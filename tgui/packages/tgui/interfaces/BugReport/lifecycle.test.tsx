@@ -319,6 +319,29 @@ test('Try again says it failed again only once DM says its refresh answered', ()
   expect(hasText("Couldn't reach the report server")).toBe(false);
 });
 
+test('an outage after DM reached the server again starts over, not with Still can’t reach it', () => {
+  const first = 'Your report is kept. Try again in a minute.';
+  const again =
+    "Still can't reach it. Try again in a few minutes. Your report is kept.";
+  const outage = {
+    unreachable: true,
+    status: "Couldn't reach the report server.",
+  };
+  openAt(4);
+  setData(outage);
+  fireEvent.click(button('Try again'));
+  setData({ refreshAnswered: 1 });
+  const answered = hasText(again);
+  // A poll reaches it, then a later one doesn't
+  setData({ unreachable: false, status: null });
+  setData(outage);
+  expect({ answered, first: hasText(first), again: hasText(again) }).toEqual({
+    answered: true,
+    first: true,
+    again: false,
+  });
+});
+
 test('the sent page names the issue and opens it, or starts the next report', () => {
   show();
   setData({
@@ -530,6 +553,78 @@ test('a limit’s clock and a picture’s time stay put when a page shows again 
     limitBefore: true,
     limitAfter: true,
     pictureAfter: true,
+  });
+});
+
+// DM answers each window focus's targets act with captureTargets alone, and tgui keeps every key it leaves out
+test('a focus answer keeps the limit’s clock, since it leaves the limit as it was', () => {
+  let now = new Date(2026, 9, 23, 14, 0, 0).getTime();
+  spies.push(spyOn(Date, 'now').mockImplementation(() => now));
+  openAt(4);
+  setData({ limit: { kind: 'reports', retryIn: 30 * 60000 } });
+  const before = hasText(/at 14:30, in about 30 minutes/);
+  now += 10 * 60000;
+  fireEvent.focus(window);
+  setData({ captureTargets: [] });
+  expect({
+    before,
+    after: hasText(/at 14:30, in about 20 minutes/),
+    moved: hasText(/at 14:40/),
+  }).toEqual({ before: true, after: true, moved: false });
+});
+
+test('after focus answers, Send comes back once the limit has passed', () => {
+  let now = new Date(2026, 9, 23, 14, 0, 0).getTime();
+  spies.push(spyOn(Date, 'now').mockImplementation(() => now));
+  openAt(4);
+  setData({ limit: { kind: 'reports', retryIn: 30 * 60000 } });
+  const sendBefore = hasButton('Send report');
+  now += 10 * 60000;
+  setData({ captureTargets: [] });
+  now = new Date(2026, 9, 23, 14, 31, 0).getTime();
+  setData({ captureTargets: [] });
+  expect({
+    sendBefore,
+    sendAfter: hasButton('Send report'),
+    notice: hasText(/You can send this one at/),
+  }).toEqual({ sendBefore: false, sendAfter: true, notice: false });
+});
+
+test('a focus answer keeps a picture’s time', () => {
+  let now = new Date(2026, 9, 23, 14, 0, 0).getTime();
+  spies.push(spyOn(Date, 'now').mockImplementation(() => now));
+  setData({ pictures: [{ ...picture, takenAgo: 0 }] });
+  openAt(2);
+  const before = hasText(/In-game capture · 14:00/);
+  now += 10 * 60000;
+  setData({ captureTargets: [] });
+  expect({
+    before,
+    after: hasText(/In-game capture · 14:00/),
+    moved: hasText(/14:10/),
+  }).toEqual({ before: true, after: true, moved: false });
+});
+
+test('a focus answer keeps the sent page’s retry clock', () => {
+  let now = new Date(2026, 9, 23, 14, 0, 0).getTime();
+  spies.push(spyOn(Date, 'now').mockImplementation(() => now));
+  show();
+  setData({
+    result: {
+      kind: 'accepted',
+      receipt: {
+        screening: 'passed',
+        publication: 'retryable',
+        nextAttemptIn: 15 * 60000,
+      },
+    },
+  });
+  const before = hasText(/tries again at 14:15/);
+  now += 10 * 60000;
+  setData({ captureTargets: [] });
+  expect({ before, after: hasText(/tries again at 14:15/) }).toEqual({
+    before: true,
+    after: true,
   });
 });
 

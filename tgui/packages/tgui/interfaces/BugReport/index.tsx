@@ -1,6 +1,6 @@
 // THIS IS AN APHELION UI FILE
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Section, Stack } from 'tgui-core/components';
 import { useBackend } from '../../backend';
 import { Window } from '../../layouts';
@@ -48,6 +48,22 @@ type Press = { key: string; seen: boolean };
 /** A Try again waiting on DM, with DM's count of answered ones when it was pressed */
 type Retry = { from: number };
 
+/**
+ * Returns when this value of DM's came, which the waits and ages in it count from. An update that leaves its key
+ * out keeps the old value, and so the old time
+ *
+ * Arguments:
+ * * value - one key of DM's data, a new value with every update that sends it
+ */
+function useArrival(value: unknown) {
+  const [arrival, setArrival] = useState(() => ({ value, at: Date.now() }));
+  if (arrival.value === value) return arrival.at;
+  // Taken while rendering, so no frame shows the new value's wait counted from the old one's time
+  const next = { value, at: Date.now() };
+  setArrival(next);
+  return next.at;
+}
+
 export const BugReport = () => {
   const { act, data } = useBackend<BugReportData>();
   const { limits, result } = data;
@@ -86,9 +102,11 @@ export const BugReport = () => {
   const working = (key: string) => press?.key === key;
   const sending = working('send');
   const holding = pictures.some((picture) => picture.state !== 'ready');
-  // DM's waits count from their update, so every time made from one counts from when it came, not from each render
-  const arrivedAt = useMemo(() => Date.now(), [data]);
-  const limitUntil = data.limit ? arrivedAt + data.limit.retryIn : 0;
+  // DM's waits and ages count from the update that sent them, and one leaving a key out keeps its old value
+  const limitAt = useArrival(data.limit);
+  const picturesAt = useArrival(data.pictures);
+  const resultAt = useArrival(result);
+  const limitUntil = data.limit ? limitAt + data.limit.retryIn : 0;
   const limited = limitUntil > Date.now();
   const answered = data.refreshAnswered;
   const retrying = !!retry && answered <= retry.from;
@@ -164,11 +182,11 @@ export const BugReport = () => {
 
   // Send comes back when the limit's wait passes
   useEffect(() => {
-    const wait = data.limit?.retryIn ?? 0;
+    const wait = limitUntil - Date.now();
     if (wait <= 0) return;
     const timer = setTimeout(() => setNow(Date.now()), wait + 50);
     return () => clearTimeout(timer);
-  }, [data.limit]);
+  }, [limitUntil]);
 
   // Other updates come before a Try again's answer, so only DM's count passing the press says the status is its answer
   useEffect(() => {
@@ -367,7 +385,7 @@ export const BugReport = () => {
 
   let body;
   if (accepted) {
-    body = <DoneState receipt={result?.receipt} arrivedAt={arrivedAt} />;
+    body = <DoneState receipt={result?.receipt} arrivedAt={resultAt} />;
   } else if (checking && !sending) {
     body = <CheckingState paused={data.pollingPaused} />;
   } else if (page === 1) {
@@ -388,7 +406,7 @@ export const BugReport = () => {
         data={data}
         pictures={pictures}
         previews={previews}
-        arrivedAt={arrivedAt}
+        arrivedAt={picturesAt}
         actions={pictureActions}
         shotsOpen={shotsOpen}
         onShots={setShotsOpen}

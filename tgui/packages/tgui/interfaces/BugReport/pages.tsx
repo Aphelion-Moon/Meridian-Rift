@@ -589,7 +589,7 @@ export function ReviewPage(props: {
   pictures: ReportPicture[];
   holding: boolean;
   limited: boolean;
-  /** When the hourly limit lets go, made once from the update that brought it */
+  /** When the hourly limit lets go, made once from the update that brought the limit */
   limitUntil: number;
   offline: boolean;
   triedAgain: boolean;
@@ -757,7 +757,7 @@ export function CheckingState(props: { paused: boolean }) {
 
 export function DoneState(props: {
   receipt?: ReportReceipt | null;
-  /** When the update came, which the receipt's wait counts from */
+  /** When the result came, which the receipt's wait counts from */
   arrivedAt: number;
 }) {
   const { receipt, arrivedAt } = props;

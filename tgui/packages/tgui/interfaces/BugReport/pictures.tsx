@@ -37,7 +37,7 @@ const SOURCE_ICON = {
  * Returns the caption a picture's card shows, with the time it was taken
  *
  * Arguments:
- * * picture - the picture, whose takenAgo counts back from its update
+ * * picture - the picture, whose takenAgo counts back from the update that sent the pictures
  * * arrivedAt - when that update came
  */
 function caption(picture: ReportPicture, arrivedAt: number) {
@@ -264,7 +264,7 @@ export function PicturePage(props: {
   data: BugReportData;
   pictures: ReportPicture[];
   previews: Record<string, string | null>;
-  /** When the update came, which the pictures' times count back from */
+  /** When the pictures came, which their times count back from */
   arrivedAt: number;
   actions: PictureActions;
   shotsOpen: boolean;
