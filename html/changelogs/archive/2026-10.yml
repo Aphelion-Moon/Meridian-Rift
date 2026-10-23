@@ -482,3 +482,66 @@
       second while it's open
   - bugfix: stacks printed by autolathes and protolathes keep the correct material
       contents when printed in batches or merged with existing stacks.
+2026-10-23:
+  13spacemen:
+  - bugfix: The follow link in ghost poll "was selected" announcements now follows
+      the chosen player instead of doing nothing.
+  Aeri:
+  - bugfix: The Icebox prison rec room and mess hall no longer trigger a fire alarm
+      when there's no atmospheric problem
+  ImogenOC:
+  - admin: Adds new equipment to the admin cyborgs
+  Melbert:
+  - qol: Rat spit no longer causes vomitting directly, instead now causing more direct
+      disgust.
+  - bugfix: Prosthetic Limb quirk cannot replace limbs that you don't have
+  - bugfix: Transhumanist cannot replace limbs nor organs that you don't have
+  - bugfix: Prosthetic organ cannot replace organs that you don't have
+  - bugfix: Prosthetic organ will not give lungs to species that don't breathe oxygen
+  - bugfix: Quadruple Amputee won't give you limbs that you don't have
+  - qol: Using Sitalesse or Sumalism as your chaplain religion now gives your bible
+      a unique description
+  - bugfix: Fixes default bible name producing "The holy book of default bible name"
+      instead of "The holy book of [my diety]"
+  - map: 'Tram: Remapped Atmospherics entirely, a bit of Engineering, and a bit of
+      the hallway outside'
+  Moonridden:
+  - refactor: entire repo stops referencing things outside of our services for most
+      things
+  NoHaxJustPi:
+  - rscadd: Headslugs and alien larvae can doorcrawl.
+  SmArtKar:
+  - bugfix: Fixed some MODsuit modules having broken names in action bar
+  - bugfix: Ceruleans no longer flop in zero-g
+  TealSeer:
+  - bugfix: fixed wizard's heart eater perk not actually increasing damage resistance
+  tontyGH:
+  - bugfix: Cyborgs are now properly severed from the paranormal plane when revived
+  - bugfix: Changing your bible to insuls should make the received insuls no longer
+      disappear sometimes
+  uaioy:
+  - balance: silicons take 1 flash to be stunned again (syndie borgs unchanged)
+  vinylspiders:
+  - bugfix: fixed mood sometimes sticking to the room you just fell or got teleported
+      out of.
+  - admin: jumping somewhere in your own body, or with Jump To Ghost, no longer leaves
+      your mood stuck on the area you jumped out of.
+  - bugfix: crafted spears and explosive lances no longer turn invisible when worn
+      on your back
+  - refactor: (performance) the R&D console no longer resends the whole techweb every
+      second while connected to it
+  - bugfix: papers no longer pop open on their own when you pick up a pen or stamp
+      after an earlier attempt to read them failed, or after you ghosted while reading
+  - bugfix: wearing a space suit or bio suit without a helmet no longer hides your
+      gender, and being fully covered (like a bomb suit and hood or a sealed modsuit)
+      now does
+  - bugfix: plasmamen, ethereals and shadowpeople/any other nondimorphic gendered
+      species no longer get the female cut on their underwear
+  - bugfix: losing a moth's chest arms no longer drops what's in your right hand,
+      and your active hand moves to a hand you still have
+  - bugfix: moth chest-arms are named what you'd expect now instead of just "moth"
+  - bugfix: fixes an issue where cargo consoles were rejecting private orders sometimes
+  - bugfix: Eigenstasium spirits no longer vanish the moment someone walks through
+      them
+  - bugfix: walking through an Eigenstasium spirit no longer curses the area to look
+      pixel shifted and weird for five minutes
