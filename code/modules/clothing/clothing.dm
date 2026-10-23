@@ -106,6 +106,16 @@
 		qdel(src)
 
 /obj/item/clothing/attack(mob/living/target, mob/living/user, list/modifiers, list/attack_modifiers)
+	//We check to pat them out, first!
+	if(target.on_fire)
+		if(user == target)//No patting yourself out, sorry.
+			return
+		user.changeNext_move(CLICK_CD_MELEE)
+		target.visible_message(span_warning("[user] pats out the flames on [target] with [src]!"))
+		target.adjust_fire_stacks(-2)
+		take_damage(10, BURN, FIRE)
+		return ..()
+	//Ok, snack time.
 	if(user.combat_mode || !HAS_TRAIT(user, TRAIT_CLOTH_EATER) || (resistance_flags & INDESTRUCTIBLE))
 		return ..()
 	moth_snack ||= create_moth_snack()
