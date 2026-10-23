@@ -1,5 +1,7 @@
 // THIS IS AN APHELION UI FILE
 
+import type { Reason } from './overlay';
+
 type Send = (type: string, payload: Record<string, unknown>) => void;
 
 export type TransferOptions = {
@@ -82,9 +84,10 @@ export class SnapshotTransfer {
     else this.schedule();
   }
 
-  cancel() {
+  /** Stops the transfer, telling the server why */
+  cancel(reason: Reason = 'cancelled') {
     if (!this.active) return;
-    this.send('bug-report/capture-cancel', { nonce: this.nonce });
+    this.send('bug-report/capture-cancel', { nonce: this.nonce, reason });
     this.finish(false);
   }
 
@@ -99,8 +102,9 @@ export class SnapshotTransfer {
 
   private post() {
     if (!this.active) return;
+    // No acknowledgement after every try, so the image isn't getting there whole
     if (++this.tries > this.options.tries) {
-      this.cancel();
+      this.cancel('interrupted');
       return;
     }
     const { chunk } = this.options;

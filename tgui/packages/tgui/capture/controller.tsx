@@ -1,21 +1,31 @@
 // THIS IS AN APHELION UI FILE
 
 import {
-  type CSSProperties,
+  type KeyboardEvent,
   type PointerEvent,
   useEffect,
   useRef,
   useState,
 } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { Box, Button } from 'tgui-core/components';
+import { Icon } from 'tgui-core/components';
+import { classes } from 'tgui-core/react';
 import { configAtom, store } from '../events/store';
+import { ReportButton } from '../interfaces/BugReport/ReportButton';
+import { type Crop, encodeSnapshot, renderUiSnapshot } from './dom-snapshot';
 import {
-  type Crop,
-  encodeSnapshot,
-  renderUiSnapshot,
-  SnapshotRefusal,
-} from './dom-snapshot';
+  CORNERS,
+  type Corner,
+  cropBetween,
+  isSlip,
+  keyAction,
+  nextFocus,
+  type Point,
+  pivotFor,
+  type Reason,
+  reasonOf,
+} from './overlay';
+import { type StringId, say } from './strings';
 import { SnapshotTransfer } from './transfer';
 
 /** What the server asks a window for - the capture's nonce, and how it wants the image sent */
@@ -32,6 +42,10 @@ let current:
       host?: HTMLDivElement;
       root?: Root;
       transfer?: SnapshotTransfer;
+      /** Why its drawing failed, which is what the server hears however the overlay closes */
+      failure?: Reason;
+      /** Whether the server brought the report window forward when the last chunk arrived */
+      forward?: boolean;
     }
   | undefined;
 
@@ -47,21 +61,28 @@ function close() {
   current = undefined;
 }
 
-/** Stops this window's capture, telling the server unless it already finished */
-export function cancelUiSnapshot() {
+/** Turns a capture down before anything is drawn, saying why */
+function refuse(nonce: string, reason: Reason) {
+  Byond.sendMessage('bug-report/capture-cancel', { nonce, reason });
+}
+
+/** Stops this window's capture, telling the server why unless it already finished. A failed drawing keeps its reason */
+export function cancelUiSnapshot(reason: Reason = 'cancelled') {
   if (!current) return;
-  if (current.transfer?.active) current.transfer.cancel();
-  else if (!current.transfer)
-    Byond.sendMessage('bug-report/capture-cancel', {
-      nonce: current.request.nonce,
-    });
+  const why = current.failure ?? reason;
+  if (current.transfer?.active) current.transfer.cancel(why);
+  else if (!current.transfer) refuse(current.request.nonce, why);
   close();
 }
 
+/** The server took a chunk, and with the last one says whether the report window came forward */
 export function acknowledgeUiSnapshot(payload: {
   nonce: string;
   index: number;
+  forward?: unknown;
 }) {
+  if (current && payload?.nonce === current.request.nonce)
+    current.forward = !!payload.forward;
   current?.transfer?.acknowledge(payload);
 }
 
@@ -85,38 +106,36 @@ export async function requestUiSnapshot(payload: CaptureRequest) {
   if (
     (drawingSince !== undefined &&
       performance.now() - drawingSince < DEADLINE) ||
-    (current && !(current.transfer && !current.transfer.active)) ||
-    !name ||
-    name === 'BugReport'
+    (current && !(current.transfer && !current.transfer.active))
   ) {
-    Byond.sendMessage('bug-report/capture-cancel', { nonce: request.nonce });
+    refuse(request.nonce, 'busy');
+    return;
+  }
+  if (!name || name === 'BugReport') {
+    refuse(request.nonce, 'not_allowed');
     return;
   }
   close();
-  current = { request, deadline: setTimeout(cancelUiSnapshot, DEADLINE) };
+  current = {
+    request,
+    deadline: setTimeout(() => cancelUiSnapshot('timed_out'), DEADLINE),
+  };
   let canvas: HTMLCanvasElement | undefined;
-  let failure = '';
+  let failure: Reason | undefined;
   // A steady clock like the deadline timer's, so changing the system clock can't free or hold the window early
   const started = performance.now();
   drawingSince = started;
   try {
     // Drawn before the preview exists, so the preview can never be in it
     canvas = await renderUiSnapshot(document.body);
-    Object.assign(canvas.style, {
-      display: 'block',
-      maxWidth: '100%',
-      maxHeight: '65vh',
-    });
   } catch (error) {
-    failure =
-      error instanceof SnapshotRefusal
-        ? error.message
-        : `Could not create this UI snapshot. Choose a screenshot file in the report instead. ${error instanceof Error ? error.message : error}`;
+    failure = reasonOf(error);
   } finally {
     // A render that counted as stuck can still settle later, and mustn't free the window from the one drawing now
     if (drawingSince === started) drawingSince = undefined;
   }
   if (current?.request.nonce !== request.nonce) return;
+  current.failure = failure;
   current.host = document.createElement('div');
   document.body.appendChild(current.host);
   current.root = createRoot(current.host);
@@ -126,178 +145,263 @@ export async function requestUiSnapshot(payload: CaptureRequest) {
   Byond.winset(Byond.windowId, { focus: true });
 }
 
-const OVERLAY: CSSProperties = {
-  position: 'fixed',
-  inset: 0,
-  zIndex: 2147483647,
-  background: '#101820',
-  color: '#fff',
-  padding: '16px',
-  overflow: 'auto',
-  font: '14px sans-serif',
+/** The overlay's element ids, for its name, its description and where focus goes */
+const TITLE_ID = 'BugReportCapture-title';
+const ABOUT_ID = 'BugReportCapture-about';
+const ADD_ID = 'BugReportCapture-add';
+const CANCEL_ID = 'BugReportCapture-cancel';
+const CLOSE_ID = 'BugReportCapture-close';
+
+/** A failed drawing's line, the same words the report window gets for that reason */
+const FAILURE_LINES: Partial<Record<Reason, StringId>> = {
+  too_big: 'cap.too_big',
+  empty: 'cap.empty',
+  timed_out: 'cap.timed_out',
 };
-const STAGE: CSSProperties = {
-  position: 'relative',
-  display: 'inline-block',
-  maxWidth: '100%',
-  userSelect: 'none',
-  lineHeight: 0,
-  touchAction: 'none',
-};
-const SELECTION: CSSProperties = {
-  position: 'absolute',
-  border: '2px solid #67d5ff',
-  background: '#67d5ff33',
-  pointerEvents: 'none',
-  display: 'none',
-};
+
 const clamp = (value: number) => Math.max(0, Math.min(1, value));
 
 function SnapshotPreview(props: {
   canvas?: HTMLCanvasElement;
-  failure: string;
+  failure?: Reason;
   request: CaptureRequest;
 }) {
   const { canvas, failure, request } = props;
   // Dragging lives in refs and moves the box by hand, so a drag never re-renders
   const selection = useRef<HTMLDivElement>(null);
-  const origin = useRef<{ x: number; y: number } | undefined>(undefined);
+  const pivot = useRef<Point | undefined>(undefined);
   const crop = useRef<Crop | undefined>(undefined);
+  // Enter can come again before the next render, and adds once
+  const adding = useRef(false);
+  const [cropped, setCropped] = useState(false);
   const [phase, setPhase] = useState<'preview' | 'sending' | 'done'>(
     canvas ? 'preview' : 'done',
   );
-  const [note, setNote] = useState(failure);
+  const [note, setNote] = useState<{ text: string; failed?: boolean }>();
 
   // The server ends a capture whose window never says this, since a renderer that died drawing it can't
   useEffect(() => {
     Byond.sendMessage('bug-report/capture-ready', { nonce: request.nonce });
   }, [request.nonce]);
 
+  // Focus goes to what comes next - Add to report, Cancel while it sends, Close at the end - and back to Add
+  // when Clear crop goes
+  useEffect(() => {
+    const target =
+      phase === 'preview' ? ADD_ID : phase === 'sending' ? CANCEL_ID : CLOSE_ID;
+    document.getElementById(target)?.focus();
+  }, [phase, cropped]);
+
   function showCrop(area?: Crop) {
     crop.current = area;
-    const style = selection.current?.style;
-    if (!style) return;
-    style.display = area ? 'block' : 'none';
+    const box = selection.current;
+    if (!box) return;
+    box.hidden = !area;
     if (area) {
-      style.left = `${area.x * 100}%`;
-      style.top = `${area.y * 100}%`;
-      style.width = `${area.width * 100}%`;
-      style.height = `${area.height * 100}%`;
+      Object.assign(box.style, {
+        left: `${area.x * 100}%`,
+        top: `${area.y * 100}%`,
+        width: `${area.width * 100}%`,
+        height: `${area.height * 100}%`,
+      });
     }
   }
 
-  function point(event: PointerEvent) {
+  function point(event: PointerEvent): Point {
     const bounds = canvas!.getBoundingClientRect();
     return {
       x: clamp((event.clientX - bounds.x) / bounds.width),
       y: clamp((event.clientY - bounds.y) / bounds.height),
-      bounds,
     };
   }
 
+  function clearCrop() {
+    showCrop(undefined);
+    setCropped(false);
+  }
+
   async function attach() {
-    if (phase !== 'preview' || !canvas) return;
+    if (phase !== 'preview' || !canvas || adding.current) return;
+    adding.current = true;
     setPhase('sending');
-    setNote('Encoding the snapshot…');
+    setNote({ text: say('ov.preparing') });
     try {
       const encoded = await encodeSnapshot(canvas, request.limit, crop.current);
       if (current?.request.nonce !== request.nonce) return;
-      current.transfer = new SnapshotTransfer(Byond.sendMessage, {
+      const transfer = new SnapshotTransfer(Byond.sendMessage, {
         chunk: request.chunk,
         limit: request.limit,
         finished: (ok) => {
+          // The report window came forward to show the picture, so nothing's left to say here
+          if (ok && current?.forward) return close();
           setPhase('done');
           setNote(
             ok
-              ? 'Snapshot sent. Return to the bug report to check validation and sharing.'
-              : 'Snapshot transfer stopped. Return to the report and try again.',
+              ? { text: say('ov.sent') }
+              : { text: say('ov.stopped'), failed: true },
           );
         },
         progress: (sent, total) =>
-          setNote(`Sending the snapshot… ${Math.round((sent / total) * 100)}%`),
+          setNote({
+            text: say('ov.sending', { n: Math.round((sent / total) * 100) }),
+          }),
       });
-      current.transfer.start(request.nonce, encoded);
+      // Started before the capture holds it, so one that never starts is still cancelled with the server
+      transfer.start(request.nonce, encoded);
+      current.transfer = transfer;
     } catch (error) {
+      adding.current = false;
       setPhase('preview');
-      setNote(String(error instanceof Error ? error.message : error));
+      setNote({
+        text: say(
+          reasonOf(error) === 'too_big' ? 'ov.tooBigCrop' : 'cap.failed',
+        ),
+        failed: true,
+      });
     }
   }
 
-  // A refusal or a failure has nothing to preview or crop, so it gets its line and a way out
-  if (!canvas) {
-    return (
-      <div
-        role="dialog"
-        aria-label="Report UI snapshot preview"
-        style={OVERLAY}
-      >
-        <p role="status">{note}</p>
-        <Button onClick={cancelUiSnapshot}>Close</Button>
-      </div>
-    );
+  function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === 'Tab') {
+      // The window under the overlay is out of reach, so focus goes round the overlay's own buttons
+      const controls = [
+        ...event.currentTarget.querySelectorAll<HTMLElement>('[tabindex="0"]'),
+      ];
+      if (!controls.length) return;
+      event.preventDefault();
+      controls[
+        nextFocus(
+          controls.indexOf(document.activeElement as HTMLElement),
+          controls.length,
+          event.shiftKey,
+        )
+      ].focus();
+      return;
+    }
+    const action = keyAction(event.key, event.defaultPrevented);
+    if (!action) return;
+    event.preventDefault();
+    if (action === 'cancel') cancelUiSnapshot();
+    else attach();
   }
 
   return (
-    <div role="dialog" aria-label="Report UI snapshot preview" style={OVERLAY}>
-      <h2>Preview this UI snapshot</h2>
-      <p>
-        Only this selected TGUI is reconstructed. Check for missing images or
-        sensitive text. Drag a rectangle to crop, or attach the whole preview.
-        It stays private until you opt in on the report.
-      </p>
-      <div
-        style={STAGE}
-        onPointerDown={(event) => {
-          if (phase !== 'preview') return;
-          origin.current = point(event);
-          showCrop(undefined);
-          event.currentTarget.setPointerCapture(event.pointerId);
-          event.preventDefault();
-        }}
-        onPointerMove={(event) => {
-          if (!origin.current || phase !== 'preview') return;
-          const end = point(event);
-          showCrop({
-            x: Math.min(origin.current.x, end.x),
-            y: Math.min(origin.current.y, end.y),
-            width: Math.abs(origin.current.x - end.x),
-            height: Math.abs(origin.current.y - end.y),
-          });
-        }}
-        onPointerUp={(event) => {
-          origin.current = undefined;
-          const { bounds } = point(event);
-          const area = crop.current;
-          // A slip of the mouse is not a crop
-          if (
-            area &&
-            (area.width * bounds.width < 8 || area.height * bounds.height < 8)
-          )
-            showCrop(undefined);
-        }}
-      >
-        <div
-          ref={(node) => {
-            if (node && canvas.parentNode !== node) node.prepend(canvas);
-          }}
-        />
-        <div ref={selection} style={SELECTION} />
+    <div
+      className="BugReportCapture"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={TITLE_ID}
+      aria-describedby={ABOUT_ID}
+      tabIndex={-1}
+      onKeyDown={onKeyDown}
+    >
+      <div className="BugReportCapture__panel">
+        <h2 id={TITLE_ID} className="BugReportCapture__title">
+          {say('ov.title')}
+        </h2>
+        {canvas ? (
+          <>
+            <p id={ABOUT_ID} className="BugReportCapture__text">
+              {say('ov.text')}
+            </p>
+            <div
+              className="BugReportCapture__stage"
+              onPointerDown={(event) => {
+                if (phase !== 'preview') return;
+                const corner = (event.target as HTMLElement).dataset?.corner;
+                // A corner handle resizes the crop from the corner across from it, anywhere else starts a new one
+                if (corner && crop.current) {
+                  pivot.current = pivotFor(crop.current, corner as Corner);
+                } else {
+                  pivot.current = point(event);
+                  showCrop(undefined);
+                }
+                event.currentTarget.setPointerCapture(event.pointerId);
+                event.preventDefault();
+              }}
+              onPointerMove={(event) => {
+                if (!pivot.current || phase !== 'preview') return;
+                showCrop(cropBetween(pivot.current, point(event)));
+              }}
+              onPointerUp={() => {
+                if (!pivot.current) return;
+                pivot.current = undefined;
+                const { width, height } = canvas.getBoundingClientRect();
+                // A slip of the mouse is not a crop
+                if (crop.current && isSlip(crop.current, width, height))
+                  showCrop(undefined);
+                setCropped(!!crop.current);
+              }}
+            >
+              <div
+                ref={(node) => {
+                  if (node && canvas.parentNode !== node) node.prepend(canvas);
+                }}
+              />
+              <div
+                ref={selection}
+                className="BugReportCapture__selection"
+                hidden
+              >
+                {CORNERS.map((corner) => (
+                  <div
+                    key={corner}
+                    className={`BugReportCapture__handle BugReportCapture__handle--${corner}`}
+                    data-corner={corner}
+                  />
+                ))}
+              </div>
+            </div>
+          </>
+        ) : (
+          <p
+            id={ABOUT_ID}
+            className="BugReportCapture__text BugReportCapture__failure"
+          >
+            <Icon name="triangle-exclamation" />
+            {say(FAILURE_LINES[failure!] ?? 'cap.failed')}
+          </p>
+        )}
+        <div className="MeridianControlRow BugReportCapture__footer">
+          <div
+            className={classes([
+              'MeridianControlRow__fill',
+              'BugReportCapture__status',
+              note?.failed && 'BugReportCapture__status--failed',
+            ])}
+            role="status"
+            aria-live="polite"
+          >
+            {note?.failed && <Icon name="triangle-exclamation" />}
+            {note?.text}
+          </div>
+          {phase === 'done' ? (
+            <ReportButton id={CLOSE_ID} onClick={() => cancelUiSnapshot()}>
+              {say('ov.close')}
+            </ReportButton>
+          ) : (
+            <ReportButton id={CANCEL_ID} onClick={() => cancelUiSnapshot()}>
+              {say('ov.cancel')}
+            </ReportButton>
+          )}
+          {phase === 'preview' && cropped && (
+            <ReportButton onClick={clearCrop}>{say('ov.clear')}</ReportButton>
+          )}
+          {phase === 'preview' && (
+            <ReportButton
+              id={ADD_ID}
+              color="good"
+              className="BugReportCapture__add"
+              onClick={attach}
+            >
+              {say('ov.add')}
+            </ReportButton>
+          )}
+        </div>
+        {phase === 'preview' && (
+          <p className="BugReportCapture__keys">{say('ov.keys')}</p>
+        )}
       </div>
-      <Box mt={1}>
-        <Button disabled={phase !== 'preview'} onClick={attach}>
-          Attach snapshot
-        </Button>
-        <Button
-          disabled={phase !== 'preview'}
-          onClick={() => showCrop(undefined)}
-        >
-          Use whole snapshot
-        </Button>
-        <Button onClick={cancelUiSnapshot}>
-          {phase === 'done' ? 'Close preview' : 'Cancel snapshot'}
-        </Button>
-      </Box>
-      <p role="status">{note}</p>
     </div>
   );
 }

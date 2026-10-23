@@ -839,8 +839,216 @@ $classic-roles: (
   }
 }
 
-// The page heading takes each theme's own section title face, and its size, which keeps the pixel faces crisp
-.theme-meridian_aphelion .BugReport__heading {
+// The window capture overlay (capture/controller.tsx): it sits over the window it copies, in that window's theme
+.BugReportCapture {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  overflow: auto;
+  padding: var(--space-m);
+
+  // The dialog itself only holds focus after a click on the picture, so it draws no ring for it
+  &:focus {
+    outline: none;
+  }
+
+  .BugReportCapture__panel {
+    display: flex;
+    box-sizing: border-box;
+    min-height: 100%;
+    flex-direction: column;
+    gap: var(--space-m);
+    padding: var(--space-l);
+    border: 1px solid;
+  }
+
+  .BugReportCapture__title {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.2;
+    text-transform: none;
+    letter-spacing: normal;
+  }
+
+  .BugReportCapture__text {
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  .BugReportCapture__failure {
+    display: flex;
+    gap: var(--space-m);
+    align-items: flex-start;
+    padding: var(--space-m) var(--space-l);
+    border: 1px solid;
+    border-left-width: 4px;
+  }
+
+  // The stage is exactly the picture's size, so the crop lines up with it
+  .BugReportCapture__stage {
+    position: relative;
+    align-self: flex-start;
+    max-width: 100%;
+    border: 1px solid;
+    line-height: 0;
+    cursor: crosshair;
+    touch-action: none;
+    user-select: none;
+
+    canvas {
+      display: block;
+      max-width: 100%;
+      max-height: 60vh;
+    }
+  }
+
+  .BugReportCapture__selection {
+    position: absolute;
+    box-sizing: border-box;
+    border: 2px solid;
+    pointer-events: none;
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  // A handle shows 10px and takes the pointer 24px across, centred on its corner
+  .BugReportCapture__handle {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    margin: -12px;
+    pointer-events: auto;
+
+    &::before {
+      position: absolute;
+      inset: 7px;
+      box-sizing: border-box;
+      border: 1px solid;
+      content: '';
+    }
+  }
+
+  .BugReportCapture__handle--nw {
+    top: 0;
+    left: 0;
+    cursor: nwse-resize;
+  }
+
+  .BugReportCapture__handle--ne {
+    top: 0;
+    left: 100%;
+    cursor: nesw-resize;
+  }
+
+  .BugReportCapture__handle--sw {
+    top: 100%;
+    left: 0;
+    cursor: nesw-resize;
+  }
+
+  .BugReportCapture__handle--se {
+    top: 100%;
+    left: 100%;
+    cursor: nwse-resize;
+  }
+
+  .BugReportCapture__status--failed {
+    padding-left: var(--space-s);
+    border-left: 4px solid;
+  }
+
+  .BugReportCapture__status .Icon {
+    margin-right: var(--space-s);
+  }
+
+  // Every target is at least 24px, the one main action bigger, as in the report window
+  .BugReportCapture__footer > .Button {
+    min-height: 28px;
+    padding: 0 var(--space-l);
+    line-height: 26px;
+  }
+
+  .BugReportCapture__footer > .BugReportCapture__add.Button {
+    min-height: 32px;
+    padding: 0 var(--space-xl);
+    font-weight: 700;
+    line-height: 30px;
+  }
+
+  .BugReportCapture__keys {
+    margin: 0;
+  }
+}
+
+/// The overlay's colours, once per family of themes
+@mixin capture-paint($roles) {
+  background: role($roles, 'canvas');
+  color: role($roles, 'text');
+
+  .BugReportCapture__panel,
+  .BugReportCapture__failure {
+    border-color: role($roles, 'line');
+    background: role($roles, 'raised');
+  }
+
+  .BugReportCapture__stage {
+    border-color: role($roles, 'line');
+  }
+
+  .BugReportCapture__selection {
+    border-color: role($roles, 'focus');
+    background: color-mix(in srgb, #{role($roles, 'focus')} 20%, transparent);
+  }
+
+  // The canvas colour rims each handle, so it shows on any picture
+  .BugReportCapture__handle::before {
+    border-color: role($roles, 'canvas');
+    background: role($roles, 'focus');
+  }
+
+  .BugReportCapture__status,
+  .BugReportCapture__keys {
+    color: role($roles, 'muted');
+  }
+
+  .BugReportCapture__failure,
+  .BugReportCapture__status--failed {
+    border-left-color: role($roles, 'danger');
+    color: role($roles, 'text');
+  }
+
+  .BugReportCapture__failure .Icon,
+  .BugReportCapture__status--failed .Icon {
+    color: role($roles, 'danger');
+  }
+
+  // tgui-core takes the outline off buttons, and only the console themes put a ring back
+  .Button:focus-visible {
+    outline: 2px solid role($roles, 'focus');
+    outline-offset: 2px;
+  }
+}
+
+// tgui's own variables, which every theme has, then the console tokens wherever there are some
+.BugReportCapture {
+  @include capture-paint($classic-roles);
+}
+
+.theme-console .BugReportCapture {
+  @include capture-paint($console-roles);
+
+  .BugReportCapture__add.Button--color--good {
+    color: var(--console-surface-canvas);
+  }
+}
+
+// The page heading and the overlay's title take each theme's own section title face, and its size, which keeps
+// the pixel faces crisp
+.theme-meridian_aphelion .BugReport__heading,
+.theme-meridian_aphelion .BugReportCapture__title {
   font-family: var(--aphelion-font-display);
   // tgui-core's Section title size
   font-size: 14px;
@@ -849,22 +1057,29 @@ $classic-roles: (
 }
 
 .theme-meridian_wastelander .BugReport__heading,
+.theme-meridian_wastelander .BugReportCapture__title,
 .theme-meridian_vector .BugReport__heading,
+.theme-meridian_vector .BugReportCapture__title,
 .theme-meridian_cyberpunk .BugReport__heading,
+.theme-meridian_cyberpunk .BugReportCapture__title,
 .theme-meridian_augmentation .BugReport__heading,
-.theme-meridian_shadowbroker .BugReport__heading {
+.theme-meridian_augmentation .BugReportCapture__title,
+.theme-meridian_shadowbroker .BugReport__heading,
+.theme-meridian_shadowbroker .BugReportCapture__title {
   font-family: var(--console-font-display);
   // The size _components.scss gives these themes' section titles
   font-size: max(13px, 1em);
   font-weight: 400;
 }
 
-.theme-meridian_hephaestus .BugReport__heading {
+.theme-meridian_hephaestus .BugReport__heading,
+.theme-meridian_hephaestus .BugReportCapture__title {
   font-family: var(--forge-display);
   font-weight: 600;
   font-stretch: condensed;
 }
 
-.theme-meridian_foundry .BugReport__heading {
+.theme-meridian_foundry .BugReport__heading,
+.theme-meridian_foundry .BugReportCapture__title {
   font-family: var(--foundry-display);
 }

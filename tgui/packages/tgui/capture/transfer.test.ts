@@ -59,9 +59,26 @@ test('a lost acknowledgement sends the same chunk again, then the transfer gives
   expect(sent.length).toBe(2);
   expect(sent[1].payload).toEqual(sent[0].payload);
   await wait(180);
-  expect(sent.at(-1)?.type).toBe('bug-report/capture-cancel');
+  // The server reads why, which here is the chunks never arriving
+  expect(sent.at(-1)).toEqual({
+    type: 'bug-report/capture-cancel',
+    payload: { nonce: 'nonce', reason: 'interrupted' },
+  });
   expect(transfer.active).toBe(false);
   expect(outcome).toEqual([false]);
+});
+
+test('a cancel tells the server why, the player cancelling when nothing says otherwise', () => {
+  const { sent, send } = recorder();
+  for (const reason of [undefined, 'timed_out'] as const) {
+    const transfer = new SnapshotTransfer(send, timings);
+    transfer.start('nonce', 'AAAABBBB');
+    transfer.cancel(reason);
+  }
+  expect(sent.map((item) => item.payload)).toEqual([
+    { nonce: 'nonce', reason: 'cancelled' },
+    { nonce: 'nonce', reason: 'timed_out' },
+  ]);
 });
 
 test('an image over the limit, broken base64 or a second transfer is refused', () => {

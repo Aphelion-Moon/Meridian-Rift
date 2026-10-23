@@ -8,7 +8,6 @@ import {
   renderUiSnapshot,
   SnapshotRefusal,
   svgDataUrl,
-  TOO_BIG,
 } from './dom-snapshot';
 import * as cloning from './vendor/clone-node';
 
@@ -23,13 +22,23 @@ function box(text: string) {
 /** What the renderer would decode, back out of the data URL */
 const svgOf = (url: string) => decodeURIComponent(url.slice(PREFIX.length));
 
-/** How a snapshot of this root ends - its refusal's line, failed or drawn - so no DOM node ever reaches expect() */
+/** How a snapshot of this root ends - its refusal's reason, failed or drawn - so no DOM node ever reaches expect() */
 async function outcome(root: HTMLElement) {
   try {
     await renderUiSnapshot(root);
     return 'drawn';
   } catch (error) {
-    return error instanceof SnapshotRefusal ? error.message : 'failed';
+    return error instanceof SnapshotRefusal ? error.reason : 'failed';
+  }
+}
+
+/** The reason a build was refused, 'none' if it wasn't, or 'failed' for any other error */
+function refusal(build: () => unknown) {
+  try {
+    build();
+    return 'none';
+  } catch (error) {
+    return error instanceof SnapshotRefusal ? error.reason : 'failed';
   }
 }
 
@@ -83,12 +92,9 @@ test('a snapshot exactly at the budget is built, and one character over it is re
   );
   const encode = spyOn(globalThis, 'encodeURIComponent');
   try {
-    expect(() => svgDataUrl(box('Changelog'), 40, 20, length - 1)).toThrow(
-      SnapshotRefusal,
-    );
-    expect(() => svgDataUrl(box('Changelog'), 40, 20, length - 1)).toThrow(
-      TOO_BIG,
-    );
+    expect(
+      refusal(() => svgDataUrl(box('Changelog'), 40, 20, length - 1)),
+    ).toBe('too_big');
     expect(encode.mock.calls.length).toBe(0);
   } finally {
     encode.mockRestore();
@@ -96,17 +102,17 @@ test('a snapshot exactly at the budget is built, and one character over it is re
 });
 
 test('the budget holds without being passed', () => {
-  expect(() => svgDataUrl(box('x'.repeat(MAX_SVG_CHARS)), 40, 20)).toThrow(
-    TOO_BIG,
-  );
+  expect(
+    refusal(() => svgDataUrl(box('x'.repeat(MAX_SVG_CHARS)), 40, 20)),
+  ).toBe('too_big');
 });
 
-test('a window over the node or side limit is refused with the same line, and one with no size is not', async () => {
+test('a window over the node or side limit is refused as too big, and one with no size as empty', async () => {
   const crowded = box('Changelog');
   for (let count = 0; count < MAX_NODES; count++) {
     crowded.appendChild(document.createElement('div'));
   }
-  expect(await outcome(crowded)).toBe(TOO_BIG);
+  expect(await outcome(crowded)).toBe('too_big');
   const sides: [number, number][] = [
     [MAX_SIDE + 1, 300],
     [300, MAX_SIDE + 1],
@@ -114,10 +120,10 @@ test('a window over the node or side limit is refused with the same line, and on
   for (const [width, height] of sides) {
     const wide = box('Changelog');
     wide.getBoundingClientRect = () => ({ width, height }) as DOMRect;
-    expect(await outcome(wide)).toBe(TOO_BIG);
+    expect(await outcome(wide)).toBe('too_big');
   }
   // happy-dom lays nothing out, so this one has no size at all
-  expect(await outcome(box('Changelog'))).toBe('failed');
+  expect(await outcome(box('Changelog'))).toBe('empty');
 });
 
 test("a stuck snapshot's scroll marks never move another box in the next one", async () => {
@@ -194,7 +200,7 @@ test('a snapshot the renderer cannot decode is refused instead of drawing foreve
       outcome(root),
       new Promise((resolve) => setTimeout(resolve, 1000, 'still drawing')),
     ]);
-    expect(ended).toBe(TOO_BIG);
+    expect(ended).toBe('too_big');
   } finally {
     clone.mockRestore();
     decode.mockRestore();

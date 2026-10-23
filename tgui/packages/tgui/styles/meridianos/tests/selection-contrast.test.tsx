@@ -208,3 +208,48 @@ describe('Report window readability', () => {
     expect(rings).toEqual(['solid 2px', 'solid 2px', 'solid 2px']);
   });
 });
+
+describe('Capture overlay readability', () => {
+  const token = (name: string) =>
+    getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const color = (selector: string, property = 'color') =>
+    getComputedStyle(document.querySelector(selector)!).getPropertyValue(
+      property,
+    );
+
+  for (const theme of MERIDIAN_THEME_IDS) {
+    it(`keeps the capture overlay's words and failure bars readable in ${theme}`, () => {
+      document.documentElement.className = `theme-console theme-${theme}`;
+      render(
+        <div className="BugReportCapture">
+          <div className="BugReportCapture__panel">
+            <p className="BugReportCapture__text">A copy of this window.</p>
+            <p className="BugReportCapture__failure">
+              It couldn't be captured.
+            </p>
+            <div className="BugReportCapture__status BugReportCapture__status--failed">
+              It's too big to send.
+            </div>
+            <p className="BugReportCapture__keys">Enter adds it</p>
+          </div>
+        </div>,
+      );
+      // Everything sits on the overlay's panel
+      const raised = token('--console-surface-raised');
+      for (const words of [
+        '.BugReportCapture__text',
+        '.BugReportCapture__failure',
+        '.BugReportCapture__status--failed',
+        '.BugReportCapture__keys',
+      ])
+        expect(contrast(color(words), raised)).toBeGreaterThanOrEqual(4.5);
+      for (const bar of [
+        '.BugReportCapture__failure',
+        '.BugReportCapture__status--failed',
+      ])
+        expect(
+          contrast(color(bar, 'border-left-color'), raised),
+        ).toBeGreaterThanOrEqual(3);
+    });
+  }
+});

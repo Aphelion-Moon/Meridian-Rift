@@ -1,5 +1,6 @@
 // THIS IS AN APHELION UI FILE
 
+import type { Reason } from './overlay';
 import { cloneNode } from './vendor/clone-node';
 import { embedImages } from './vendor/embed-images';
 import { embedWebFonts } from './vendor/embed-webfonts';
@@ -8,8 +9,12 @@ import type { Options } from './vendor/types';
 /** A part of the snapshot, each side a fraction of the whole from 0 to 1 */
 export type Crop = { x: number; y: number; width: number; height: number };
 
-/** A snapshot turned down on purpose, its message written for the player to read as it is */
-export class SnapshotRefusal extends Error {}
+/** A snapshot turned down on purpose, with its reason for the overlay and the server to put in words */
+export class SnapshotRefusal extends Error {
+  constructor(readonly reason: Reason) {
+    super(reason);
+  }
+}
 
 export const MAX_NODES = 5000;
 export const MAX_SIDE = 4096;
@@ -18,8 +23,6 @@ export const MAX_SIDE = 4096;
  * and a window's renderer dies near 2.5 GB, so this keeps a snapshot near 1 GB at its peak
  */
 export const MAX_SVG_CHARS = 50_000_000;
-export const TOO_BIG =
-  "That window's too big to snapshot. Try a smaller one, or use F2.";
 const SVG_NS = 'http://www.w3.org/2000/svg';
 /** The snapshot is drawn no bigger than this, plenty for a bug report */
 const DRAWN_WIDTH = 1600;
@@ -59,15 +62,15 @@ export async function renderUiSnapshot(
   const nodes: HTMLElement[] = [root];
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
   while (walker.nextNode()) {
-    if (nodes.length >= MAX_NODES) throw new SnapshotRefusal(TOO_BIG);
+    if (nodes.length >= MAX_NODES) throw new SnapshotRefusal('too_big');
     nodes.push(walker.currentNode as HTMLElement);
   }
   const bounds = root.getBoundingClientRect();
   const width = Math.ceil(bounds.width);
   const height = Math.ceil(bounds.height);
-  if (width > MAX_SIDE || height > MAX_SIDE) throw new SnapshotRefusal(TOO_BIG);
-  if (!width || !height)
-    throw new Error('This UI has nothing on screen to snapshot.');
+  if (width > MAX_SIDE || height > MAX_SIDE)
+    throw new SnapshotRefusal('too_big');
+  if (!width || !height) throw new SnapshotRefusal('empty');
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 12000);
   const scrolling = nodes.filter((node) => node.scrollTop || node.scrollLeft);
@@ -127,7 +130,7 @@ export async function renderUiSnapshot(
     });
     await embedWebFonts(clone, options);
     await embedImages(clone, options);
-    if (controller.signal.aborted) throw new Error('UI snapshot timed out.');
+    if (controller.signal.aborted) throw new SnapshotRefusal('timed_out');
     const image = await decodeImage(svgDataUrl(clone, width, height));
     const scale = Math.min(1, DRAWN_WIDTH / width, DRAWN_HEIGHT / height);
     const canvas = document.createElement('canvas');
@@ -161,7 +164,7 @@ function decodeImage(url: string): Promise<HTMLImageElement> {
       image.decode().then(
         () => requestAnimationFrame(() => resolve(image)),
         // Most likely a picture too big for the renderer to hold
-        () => reject(new SnapshotRefusal(TOO_BIG)),
+        () => reject(new SnapshotRefusal('too_big')),
       );
     image.onerror = reject;
     image.crossOrigin = 'anonymous';
@@ -194,7 +197,7 @@ export function svgDataUrl(
   foreignObject.appendChild(node);
   const text = new XMLSerializer().serializeToString(svg);
   // The renderer would decode the whole thing at once and die partway, taking the window with it
-  if (text.length > budget) throw new SnapshotRefusal(TOO_BIG);
+  if (text.length > budget) throw new SnapshotRefusal('too_big');
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(text)}`;
 }
 
@@ -252,7 +255,5 @@ export async function encodeSnapshot(
     const base64 = await encode(canvas, type, quality);
     if (base64 && base64.length <= limit) return base64;
   }
-  throw new Error(
-    'This snapshot is too large even compressed. Crop it, or choose a screenshot file.',
-  );
+  throw new SnapshotRefusal('too_big');
 }
