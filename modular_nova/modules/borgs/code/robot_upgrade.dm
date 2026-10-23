@@ -201,7 +201,7 @@
 // Engiborg RLD
 /obj/item/borg/upgrade/rld
 	name = "engineering cyborg rapid lighting device upgrade"
-	desc = "An upgrade to allow a cyborg to use a Rapid Lighting Device."
+	desc = "An upgrade to allow a cyborg to use a rapid lighting device."
 	icon_state = "module_engineer"
 	require_model = TRUE
 	model_type = list(/obj/item/robot_model/engineering)

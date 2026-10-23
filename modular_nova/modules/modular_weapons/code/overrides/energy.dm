@@ -232,9 +232,6 @@
 	)
 
 // xray laser no wallbang variant
-/datum/crafting_recipe/laser/xraylaser
-	result = /obj/item/gun/energy/laser/xray/no_wallbang
-
 /obj/item/gun/energy/laser/xray/no_wallbang
 	name = "\improper Type 6/RP X-ray laser gun"
 	desc = "The Type 6 Heat Delivery System, Reduced Penetration variant, developed by Nanotrasen. \
@@ -274,3 +271,14 @@
 /datum/supply_pack/security/armory/laser_carbine
 	name = "SC-1R Laser Carbine Crate"
 	desc = "Contains three Type SC-1R laser burst carbines, developed by Allstar Lasers. Fires a rapid burst of slightly weaker laser projectiles."
+
+// Crew-side requisitions get the reduced penetration variant, sans wallbanger
+/datum/supply_pack/security/armory/rnd_locked/xray
+	name = "Type 6/RP X-ray Laser Gun Requisition"
+	desc = "Contains a Type 6/RP X-ray Laser Gun, an atypical energy gun that fires radioactive-infused laser beams, \
+		which are capable of penetrating most forms of armor, though not walls or other dense structures."
+	contains = list(/obj/item/gun/energy/laser/xray/no_wallbang = 1)
+
+/datum/supply_pack/security/armory/rnd_locked/xray/three_pack
+	name = "Type 6/RP X-ray Laser Gun Requisition (x3)"
+	contains = list(/obj/item/gun/energy/laser/xray/no_wallbang = 3)

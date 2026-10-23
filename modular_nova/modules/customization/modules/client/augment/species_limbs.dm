@@ -268,6 +268,7 @@
 /datum/augment_item/limb/chest/species/moth
 	name = "Moth chest"
 	path = /obj/item/bodypart/chest/moth
+	species_whitelist = list(SPECIES_MOTH = 1) // the chest carries the extra arms
 
 /datum/augment_item/limb/l_arm/species/moth
 	name = "Moth left arm"

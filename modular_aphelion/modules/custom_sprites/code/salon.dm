@@ -287,6 +287,8 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	// Initialize the new body before copying donor appearance; never reinitialize those snapshots.
 	body.sync_custom_sprite_appearance(refresh_body = TRUE)
 	for(var/obj/item/bodypart/limb as anything in body.bodyparts.Copy())
+		if(limb.bodypart_flags & BODYPART_ABSTRACT) // comes with its chest; get_bodypart(null) would return the chest
+			continue
 		var/obj/item/bodypart/source_limb = source.get_bodypart(limb.body_zone)
 		if(!source_limb)
 			limb.drop_limb(TRUE)

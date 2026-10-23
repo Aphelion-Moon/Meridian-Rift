@@ -154,6 +154,8 @@
 #define FEATURE_BREASTS "breasts"
 #define FEATURE_ANUS "anus"
 #define FEATURE_BUTT "butt"
+/// A moth going without its extra pair of chest arms, from the extra arms preference turned off
+#define FEATURE_MOTH_TWO_ARMS "moth_two_arms"
 
 
 #define MANDATORY_FEATURE_LIST list(\

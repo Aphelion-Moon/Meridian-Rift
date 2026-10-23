@@ -22,6 +22,31 @@
 	initial_gas_mix = ICEMOON_DEFAULT_ATMOS
 	baseturfs = /turf/open/misc/asteroid/snow/icemoon
 
+/turf/open/floor/fakebasalt/crater
+	icon_state = "basalt_dug"
+
+// Looks like reinforced glass, but it's indestructible and you can't see through it
+/turf/open/indestructible/reinforced_glass
+	name = "reinforced glass floor"
+	icon = 'icons/turf/floors/reinf_glass.dmi'
+	icon_state = "reinf_glass-0"
+	base_icon_state = "reinf_glass"
+
+/turf/open/indestructible/hoteltile/dark
+	icon_state = "darkfull"
+
+/turf/open/indestructible/hoteltile/iron
+	icon_state = "floor"
+
+/turf/open/indestructible/hoteltile/plating
+	icon_state = "plating"
+
+/turf/open/indestructible/hoteltile/stairs_old
+	icon_state = "stairs-old"
+
+/turf/open/indestructible/hoteltile/white
+	icon_state = "white"
+
 /turf/closed/indestructible/normal_wall
 	name = "wall"
 	icon = 'modular_nova/modules/aesthetics/walls/icons/wall.dmi'

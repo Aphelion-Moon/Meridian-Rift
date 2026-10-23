@@ -327,7 +327,7 @@
 	var/def_zone = null
 	if (iscarbon(constricted))
 		var/mob/living/carbon/carbon_target = constricted
-		def_zone = pick(carbon_target.bodyparts)
+		def_zone = pick(carbon_target.get_bodyparts())
 	constricted.apply_damage(stored_damage, BRUTE, def_zone = def_zone, blocked = armor, wound_bonus = wound_bonus)
 	owner.visible_message(span_warning("[owner] squeezes [constricted] with [owner.p_their()] tail!"), span_danger("You squeeze [constricted] with your tail!"), ignored_mobs = list(constricted))
 	to_chat(constricted, span_warning("[owner] squeezes you with [owner.p_their()] tail!"))

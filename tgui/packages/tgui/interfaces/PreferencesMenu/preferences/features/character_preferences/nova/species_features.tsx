@@ -193,6 +193,13 @@ export const custom_pod_eye_color: FeatureToggle = {
   component: CheckboxInput,
 };
 
+export const moth_extra_arms: FeatureToggle = {
+  name: 'Extra Arms',
+  description:
+    'Grow a second pair of arms from your chest. Turn this off for a moth with only two arms.',
+  component: CheckboxInput,
+};
+
 export const skin_tone_toggle: FeatureToggle = {
   name: 'Skin Tone',
   description:
