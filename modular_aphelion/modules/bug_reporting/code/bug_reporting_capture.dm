@@ -193,9 +193,13 @@
 	capture_received += length(chunk)
 	capture_total = total
 	capture_next++
-	window.send_message("bug-report/capture-ack", list("nonce" = capture_nonce, "index" = index))
+	var/list/ack = list("nonce" = capture_nonce, "index" = index)
 	if(capture_received < capture_total)
+		window.send_message("bug-report/capture-ack", ack)
 		return TRUE
+	// The last one says whether the report window came forward, so the overlay knows it can close
+	ack["forward"] = bring_forward()
+	window.send_message("bug-report/capture-ack", ack)
 	var/path = capture_path
 	var/datum/bug_report_picture/picture = capture_picture
 	capture_path = null
@@ -206,6 +210,18 @@
 	// The upload owns the file now, including deleting it
 	INVOKE_ASYNC(src, PROC_REF(upload_picture), picture, path, "base64")
 	return TRUE
+
+/// Brings the report window in front of the reporter's others, returning whether one was open to bring
+/datum/bug_report/proc/bring_forward()
+	for(var/datum/tgui/ui as anything in open_uis)
+		if(ui.window && !ui.closing)
+			ui.window.bring_to_front()
+			return TRUE
+	return FALSE
+
+/// Brings this window in front of the player's others
+/datum/tgui_window/proc/bring_to_front()
+	winset(client, id, "focus=true")
 
 #undef BUG_REPORT_CAPTURE_MAX
 #undef BUG_REPORT_CAPTURE_READY_WAIT

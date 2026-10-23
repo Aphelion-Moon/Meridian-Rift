@@ -80,6 +80,9 @@
 /datum/tgui_window/bug_report_test/close(can_be_suspended = TRUE, logout = FALSE)
 	return
 
+/datum/tgui_window/bug_report_test/bring_to_front()
+	messages += list(list("type" = "focus"))
+
 /// A test window that keeps every message reaching it instead of acting on it
 /datum/tgui_window/bug_report_test/inbox
 
@@ -116,6 +119,13 @@
 	LAZYADD(report.pictures, picture)
 	picture.update_attachment(list("id" = attachment_id, "state" = "ready", "publicConsent" = FALSE))
 	return picture
+
+/// The payload of the last chunk acknowledgement a test window got, or null with none
+/proc/bug_report_test_last_ack(datum/tgui_window/bug_report_test/window)
+	for(var/position in length(window.messages) to 1 step -1)
+		var/list/message = window.messages[position]
+		if(message["type"] == "bug-report/capture-ack")
+			return message["payload"]
 
 /// A staged image for an upload to send
 /proc/bug_report_test_image()
@@ -196,6 +206,23 @@
 	TEST_ASSERT(!fexists(path), "The staged capture outlived its upload")
 	TEST_ASSERT_EQUAL(picture.attachment_id, "capture", "The upload's image wasn't taken")
 	TEST_ASSERT_EQUAL(picture.window_data()["state"], "processing", "The picture doesn't wait on the service's check")
+	TEST_ASSERT_EQUAL(bug_report_test_last_ack(window)?["forward"], FALSE, "The last chunk's answer brought forward a report window that isn't open")
+
+	// With the report window open, the capture arriving brings it forward, and the overlay hears so
+	var/datum/bug_report/test/forwarded = bug_report_test_report(src)
+	var/datum/tgui/bug_report_test/report_ui = allocate(/datum/tgui/bug_report_test)
+	report_ui.window = new /datum/tgui_window/bug_report_test(forwarded.owner, "tgui-window-1")
+	LAZYADD(forwarded.open_uis, report_ui)
+	window = bug_report_test_window(forwarded)
+	forwarded.begin_ui_capture(window.id)
+	forwarded.replies = list(list("attachment" = list("id" = "forwarded", "state" = "processing", "publicConsent" = FALSE)))
+	TEST_ASSERT(forwarded.receive_ui_capture(window, "bug-report/capture-chunk", list("nonce" = forwarded.capture_nonce, "index" = 0, "totalLength" = 4, "data" = "AAAA")), "A one-chunk capture was refused")
+	UNTIL(!forwarded.busy)
+	TEST_ASSERT_EQUAL(bug_report_test_last_ack(window)?["forward"], TRUE, "The overlay wasn't told the report window came forward")
+	var/datum/tgui_window/bug_report_test/report_window = report_ui.window
+	var/list/last_message = LAZYACCESS(report_window.messages, length(report_window.messages))
+	TEST_ASSERT_EQUAL(last_message?["type"], "focus", "The report window wasn't brought forward when its capture arrived")
+	LAZYREMOVE(forwarded.open_uis, report_ui)
 
 	var/datum/bug_report/test/oversized = bug_report_test_report(src)
 	window = bug_report_test_window(oversized)
