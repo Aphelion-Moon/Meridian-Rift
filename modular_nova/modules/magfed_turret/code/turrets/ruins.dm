@@ -5,7 +5,7 @@
 	icon = 'modular_nova/modules/magfed_turret/icons/turrets/ruins.dmi'
 	icon_state = "outpost_toolbox"
 	righthand_file = 'modular_nova/modules/magfed_turret/icons/inhands/righthand.dmi'
-	lefthand_file = 'modular_nova/modules/magfed_turret/icons//inhands/lefthand.dmi'
+	lefthand_file = 'modular_nova/modules/magfed_turret/icons/inhands/lefthand.dmi'
 	inhand_icon_state = "outpost_turretkit"
 	turret_type = /obj/machinery/porta_turret/syndicate/toolbox/mag_fed/outpost
 	mag_slots = 2
@@ -43,7 +43,7 @@
 	icon = 'modular_nova/modules/magfed_turret/icons/turrets/ruins.dmi'
 	icon_state = "colonist_toolbox"
 	righthand_file = 'modular_nova/modules/magfed_turret/icons/inhands/righthand.dmi'
-	lefthand_file = 'modular_nova/modules/magfed_turret/icons//inhands/lefthand.dmi'
+	lefthand_file = 'modular_nova/modules/magfed_turret/icons/inhands/lefthand.dmi'
 	inhand_icon_state = "colonist_turretkit"
 	turret_type = /obj/machinery/porta_turret/syndicate/toolbox/mag_fed/colonist
 	mag_slots = 2
@@ -176,7 +176,7 @@
 	icon = 'modular_nova/modules/magfed_turret/icons/turrets/ruins.dmi'
 	icon_state = "duster_toolbox"
 	righthand_file = 'modular_nova/modules/magfed_turret/icons/inhands/righthand.dmi'
-	lefthand_file = 'modular_nova/modules/magfed_turret/icons//inhands/lefthand.dmi'
+	lefthand_file = 'modular_nova/modules/magfed_turret/icons/inhands/lefthand.dmi'
 	inhand_icon_state = "duster_turretkit"
 	easy_deploy = TRUE
 	turret_type = /obj/machinery/porta_turret/syndicate/toolbox/mag_fed/duster

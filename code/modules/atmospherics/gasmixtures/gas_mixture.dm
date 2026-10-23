@@ -1,18 +1,25 @@
+/* // APHELION EDIT REMOVAL START - DOGMOS
 /*
 What are the archived variables for?
 Calculations are done using the archived variables with the results merged into the regular variables.
 This prevents race conditions that arise based on the order of tile processing.
 */
+*/ // APHELION EDIT REMOVAL END
+/* Dogmos owns gas storage and math in Rust; this datum preserves the DM API. */ // APHELION EDIT ADDITION - DOGMOS
 
 GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 
 /datum/gas_mixture
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	/// Associative list of moles for each gas. List key is /datum/gas/<gas_name>, value is amount in moles
 	var/list/moles
 	/// Archived version of moles
 	var/list/moles_archive
 	/// Static list of gas meta data like heat capacity (initialized globally)
+	*/ // APHELION EDIT REMOVAL END
+	/// DM-side gas metadata such as names, icons, and specific heats. // APHELION EDIT ADDITION - DOGMOS
 	var/static/list/gas_meta
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	/// The temperature of the gas mix in kelvin. Should never be lower then TCMB
 	var/temperature = TCMB
 	/// Used, like all archived variables, to ensure turf sharing is consistent inside a tick, no matter
@@ -20,34 +27,78 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 	var/tmp/temperature_archived = TCMB
 	/// Volume in liters (duh)
 	var/volume = CELL_VOLUME
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	/// Dogmos arena handle. Do not read or write this directly.
+	var/_extools_pointer_gasmixture
+	/// Initial volume passed to Dogmos during registration.
+	var/initial_volume = CELL_VOLUME
+	// APHELION EDIT ADDITION END
 	/// The last tick this gas mixture shared on. A counter that turfs use to manage activity
 	var/last_share = 0
 	/// Tells us what reactions have happened in our gasmix. Assoc list of reaction - moles reacted pair.
 	var/list/reaction_results
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	/// Whether to call garbage_collect() on the sharer during shares, used for immutable mixtures
 	var/gc_share = FALSE
 	/// When this gas mixture was last touched by pipeline processing
 	/// I am sorry
+	*/ // APHELION EDIT REMOVAL END
+	/// When this gas mixture was last touched by pipeline processing. // APHELION EDIT ADDITION - DOGMOS
 	var/pipeline_cycle = -1
+	// APHELION EDIT ADDITION START - DOGMOS
+	/// Whether Dogmos has accepted this mixture's monotonic immutable finalization.
+	var/dogmos_immutable = FALSE
+	// APHELION EDIT ADDITION END
 
+/* // APHELION EDIT REMOVAL START - DOGMOS
 /datum/gas_mixture/New(volume)
 	moles = list()
 	moles_archive = list()
+*/ // APHELION EDIT REMOVAL END
+/datum/gas_mixture/New(volume, datum/gas_mixture/copy_source) // APHELION EDIT ADDITION - DOGMOS
 	if(!isnull(volume))
+		/* // APHELION EDIT REMOVAL START - DOGMOS
 		src.volume = volume
 	if(src.volume <= 0)
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
+		initial_volume = volume
+	if(initial_volume <= 0)
+		// APHELION EDIT ADDITION END
 		stack_trace("Created a gas mixture with zero volume!")
+	// APHELION EDIT ADDITION START - DOGMOS
+	__gasmixture_register()
+	if(copy_source)
+		copy_from(copy_source)
+	// APHELION EDIT ADDITION END
 	reaction_results = new
 
+/* // APHELION EDIT REMOVAL START - DOGMOS
 //listmos procs
 //use the macros in performance intensive areas. for their definitions, refer to code/__DEFINES/atmospherics.dm
+*/ // APHELION EDIT REMOVAL END
+// APHELION EDIT ADDITION START - DOGMOS
+/datum/gas_mixture/Del()
+	if(!isnull(_extools_pointer_gasmixture))
+		__gasmixture_unregister()
+	return ..()
+// APHELION EDIT ADDITION END
 
+/* // APHELION EDIT REMOVAL START - DOGMOS
 ///assert_gas(gas_id) - used to guarantee that the gas list for this id exists in gas_mixture.gases.
 ///Must be used before adding to a gas. May be used before reading from a gas.
 /datum/gas_mixture/proc/assert_gas(gas_id)
 	moles[gas_id] += 0
 	moles_archive[gas_id] += 0
+*/ // APHELION EDIT REMOVAL END
+// APHELION EDIT ADDITION START - DOGMOS
+/// Turf mixtures retain a non-zero vacuum heat capacity.
+/datum/gas_mixture/turf/heat_capacity()
+	return ..() || HEAT_CAPACITY_VACUUM
+// APHELION EDIT ADDITION END
 
+/* // APHELION EDIT REMOVAL START - DOGMOS
 ///assert_gases(args) - shorthand for calling assert_gas(gas_id) once for each gas type.
 /datum/gas_mixture/proc/assert_gases(...)
 	var/cached_moles = moles
@@ -55,13 +106,32 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 	for(var/gas_id in args)
 		cached_moles[gas_id] += 0
 		cached_moles_archive[gas_id] += 0
+*/ // APHELION EDIT REMOVAL END
+// APHELION EDIT ADDITION START - DOGMOS
+/// Converts a DM gas typepath to Dogmos' string identifier.
+/proc/gas_string_id(gas_id)
+	// Warn once if a gas crosses the FFI before the registry is ready.
+	if(!SSdogmos?.gases_registered)
+		var/static/warned_before_registration = FALSE
+		if(!warned_before_registration)
+			warned_before_registration = TRUE
+			stack_trace("A gas id was handed to Dogmos before SSdogmos finished registering the gas table. Dogmos will reject it and the mixture will stay empty. Check subsystem init order.")
+// APHELION EDIT ADDITION END
 
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 ///add_gas(gas_id) - similar to assert_gas(), but does not check for an existing gas list for this id. This can clobber existing gases.
 ///Used instead of assert_gas() when you know the gas does not exist. Faster than assert_gas().
 /datum/gas_mixture/proc/add_gas(gas_id)
 	moles[gas_id] = 0
 	moles_archive[gas_id] = 0
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	if(istext(gas_id))
+		return gas_id
+	return GLOB.meta_gas_info[META_GAS_ID][gas_id]
+	// APHELION EDIT ADDITION END
 
+/* // APHELION EDIT REMOVAL START - DOGMOS
 ///add_gases(args) - shorthand for calling add_gas() once for each gas_type.
 /datum/gas_mixture/proc/add_gases(...)
 	var/cached_moles = moles
@@ -69,7 +139,14 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 	for(var/gas_id in args)
 		cached_moles[gas_id] = 0
 		cached_moles_archive[gas_id] = 0
+*/ // APHELION EDIT REMOVAL END
+// APHELION EDIT ADDITION START - DOGMOS
+/// Keeps the legacy archive API available; Dogmos archives during turf processing.
+/datum/gas_mixture/proc/archive()
+	return TRUE //Dogmos archives internally during turf processing; nothing for DM to do here
+// APHELION EDIT ADDITION END
 
+/* // APHELION EDIT REMOVAL START - DOGMOS
 ///garbage_collect() - removes any gas list which is empty.
 ///If called with a list as an argument, only removes gas lists with IDs from that list.
 ///Must be used after subtracting from a gas. Must be used after assert_gas()
@@ -78,31 +155,87 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 /datum/gas_mixture/proc/garbage_collect()
 	values_cut_under(moles, MOLAR_ACCURACY, TRUE)
 	values_cut_under(moles_archive, MOLAR_ACCURACY, TRUE)
+*/ // APHELION EDIT REMOVAL END
+// APHELION EDIT ADDITION START - DOGMOS
+/// Returns the moles for a gas typepath or Dogmos string id.
+/datum/gas_mixture/proc/get_moles(gas_id)
+	return __get_moles(gas_string_id(gas_id))
+// APHELION EDIT ADDITION END
 
+/* // APHELION EDIT REMOVAL START - DOGMOS
 //PV = nRT
+*/ // APHELION EDIT REMOVAL END
+// APHELION EDIT ADDITION START - DOGMOS
+/// Sets the moles for a gas typepath or Dogmos string id.
+/datum/gas_mixture/proc/set_moles(gas_id, amt_val)
+	return __set_moles(gas_string_id(gas_id), amt_val)
+// APHELION EDIT ADDITION END
 
+/* // APHELION EDIT REMOVAL START - DOGMOS
 ///joules per kelvin
 /datum/gas_mixture/proc/heat_capacity()
 	return values_dot(moles, GAS_META[META_GAS_SPECIFIC_HEAT])
+*/ // APHELION EDIT REMOVAL END
+// APHELION EDIT ADDITION START - DOGMOS
+/// Preserves upstream's setter API while keeping gas storage owned by Dogmos.
+/datum/gas_mixture/proc/set_gas(gas_specie, amount)
+	set_moles(gas_specie, amount)
+// APHELION EDIT ADDITION END
 
+/* // APHELION EDIT REMOVAL START - DOGMOS
 ///joules per kelvin. Same as heat_capacity() for moles_archive.
 // Separate function to reduce branches in a hot function
 /datum/gas_mixture/proc/heat_capacity_archive()
 	return values_dot(moles_archive, GAS_META[META_GAS_SPECIFIC_HEAT])
+*/ // APHELION EDIT REMOVAL END
+// APHELION EDIT ADDITION START - DOGMOS
+/// Adjusts a gas amount; accepts a typepath or Dogmos string id.
+/datum/gas_mixture/proc/adjust_moles(id_val, num_val)
+	return __adjust_moles(gas_string_id(id_val), num_val)
+// APHELION EDIT ADDITION END
 
+/* // APHELION EDIT REMOVAL START - DOGMOS
 /// Same as above except vacuums return HEAT_CAPACITY_VACUUM
 /datum/gas_mixture/turf/heat_capacity()
 	return values_dot(moles, GAS_META[META_GAS_SPECIFIC_HEAT]) || HEAT_CAPACITY_VACUUM
+*/ // APHELION EDIT REMOVAL END
+// APHELION EDIT ADDITION START - DOGMOS
+/// Adjusts a gas amount at a supplied temperature.
+/datum/gas_mixture/proc/adjust_moles_temp(id_val, num_val, temp_val)
+	return __adjust_moles_temp(gas_string_id(id_val), num_val, temp_val)
+// APHELION EDIT ADDITION END
 
+/* // APHELION EDIT REMOVAL START - DOGMOS
 /// Same as above except vacuums return HEAT_CAPACITY_VACUUM
 // Separate function to reduce branches in a hot function
 /datum/gas_mixture/turf/heat_capacity_archive()
 	return values_dot(moles_archive, GAS_META[META_GAS_SPECIFIC_HEAT]) || HEAT_CAPACITY_VACUUM
+*/ // APHELION EDIT REMOVAL END
+// APHELION EDIT ADDITION START - DOGMOS
+/// Returns a gas's heat capacity.
+/datum/gas_mixture/proc/partial_heat_capacity(gas_id)
+	return __partial_heat_capacity(gas_string_id(gas_id))
+// APHELION EDIT ADDITION END
 
+/* // APHELION EDIT REMOVAL START - DOGMOS
 /// Calculate moles
 /datum/gas_mixture/proc/total_moles()
 	return values_sum(moles)
+*/ // APHELION EDIT REMOVAL END
+// APHELION EDIT ADDITION START - DOGMOS
+/// Adjusts multiple gases from alternating gas ids and amounts.
+/datum/gas_mixture/proc/adjust_multi(...)
+	var/list/args_copy = args.Copy()
+	for(var/i in 1 to args_copy.len step 2)
+		args_copy[i] = gas_string_id(args_copy[i])
+	// __adjust_multi() reads dogmos_slot/dogmos_generation off its own src (this same mixture) -
+	// it does not expect src prepended into args. Inserting it here shifted every gas_id/amount
+	// pair by one, so __adjust_multi() tried to treat the mixture reference itself as a gas id
+	// ("Unknown Dogmos gas id /datum/gas_mixture.") and walked off the end of the pair list.
+	return __adjust_multi(arglist(args_copy))
+// APHELION EDIT ADDITION END
 
+/* // APHELION EDIT REMOVAL START - DOGMOS
 /// Checks to see if gas amount exists in mixture.
 /// Do NOT use this in code where performance matters!
 /// It's better to batch calls to garbage_collect(), especially in places where you're checking many gastypes
@@ -137,11 +270,22 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 /datum/gas_mixture/proc/archive()
 	moles_archive = moles.Copy()
 	temperature_archived = temperature
+*/ // APHELION EDIT REMOVAL END
+// APHELION EDIT ADDITION START - DOGMOS
+/// Returns the typepaths of all gases present in the mixture.
+/datum/gas_mixture/proc/get_gases()
+	// Both native backends return a fresh list, so conversion needs no second allocation.
+	var/list/gases = __get_gases()
+	for(var/i in 1 to length(gases))
+		gases[i] = gas_id2path(gases[i])
+	return gases
+// APHELION EDIT ADDITION END
 
 ///Merges all air from giver into self. Deletes giver. Returns: 1 if we are mutable, 0 otherwise
 /datum/gas_mixture/proc/merge(datum/gas_mixture/giver)
-	if(!giver)
+	if(is_immutable() || !giver) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(!giver)
 		return FALSE
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 
 	//heat transfer
 	if(abs(temperature - giver.temperature) > MINIMUM_TEMPERATURE_DELTA_TO_CONSIDER)
@@ -157,8 +301,11 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 	for(var/gas_id, value in cached_giver_moles)
 		cached_moles[gas_id] += value
 
+	*/ // APHELION EDIT REMOVAL END
+	__merge(giver) // APHELION EDIT ADDITION - DOGMOS
 	SEND_SIGNAL(src, COMSIG_GASMIX_MERGED)
 	return TRUE
+/* // APHELION EDIT REMOVAL START - DOGMOS
 
 // Set the gas specie within the gas mix to a set amount, if there is none it will be created at the target temp
 /datum/gas_mixture/proc/set_gas(gas_specie, amount)
@@ -167,40 +314,60 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 
 /datum/gas_mixture/proc/set_temperature(target_temp)
 	temperature = target_temp
+*/ // APHELION EDIT REMOVAL END
 
 /// Add a specific amount of moles to specified gas or add a new gas to the mix
 /// amount is added so make it negative to remove
 /datum/gas_mixture/proc/adjust_gas(gas, amount)
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	moles[gas] += QUANTIZE(amount)
 	garbage_collect()
+	*/ // APHELION EDIT REMOVAL END
+	adjust_moles(gas, QUANTIZE(amount)) // APHELION EDIT ADDITION - DOGMOS
 
 /// Add a specific amount of moles to all the gasses present or add a new gas to the mix
 ///gases_moles is an associative list of gas species to their amount to be added
 /datum/gas_mixture/proc/adjust_multiple_gases(list/gases_moles)
-	var/cached_moles = moles
+	var/list/args_list = list() // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/cached_moles = moles
 	for(var/gas_id, value in gases_moles)
+		/* // APHELION EDIT REMOVAL START - DOGMOS
 		cached_moles[gas_id] += value
 	garbage_collect()
 
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
+		args_list += list(gas_id, value)
+	if(length(args_list))
+		adjust_multi(arglist(args_list))
+		// APHELION EDIT ADDITION END
 
 /// Modify the gas list as to convert moles of gas species A to gas species B
 /// reactant and product are the gas species to convert and conversion_amount is the amount to be converted
 /datum/gas_mixture/proc/convert_gas(datum/gas/reactant, datum/gas/product, conversion_amount)
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	var/list/cached_moles = moles
 	assert_gases(reactant, product)
 	cached_moles[reactant] -= QUANTIZE(conversion_amount)
 	cached_moles[product] += QUANTIZE(conversion_amount)
 	garbage_collect()
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	conversion_amount = QUANTIZE(conversion_amount)
+	adjust_multi(reactant, -conversion_amount, product, conversion_amount)
+	// APHELION EDIT ADDITION END
 
 ///Proportionally removes amount of gas from the gas_mixture.
-///Returns: gas_mixture with the gases removed
+///Returns: gas_mixture with the gases removed, or null if amount <= 0 // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: ///Returns: gas_mixture with the gases removed
 /datum/gas_mixture/proc/remove(amount)
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 
 	var/list/cached_moles = moles
 	var/total_moles = values_sum(cached_moles)
 	amount = min(amount, total_moles) //Can not take more air than tile has!
+	*/ // APHELION EDIT REMOVAL END
 	if(amount <= 0)
 		return null
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	var/ratio = amount / total_moles
 
 	var/datum/gas_mixture/removed = new type(volume)
@@ -214,15 +381,26 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 	garbage_collect()
 
 	SEND_SIGNAL(src, COMSIG_GASMIX_REMOVED)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	var/datum/gas_mixture/removed = new type(return_volume())
+	if(is_immutable())
+		removed.copy_from(src) //space etc. is inexhaustible; don't drain it
+	else
+		__remove(removed, amount)
+		SEND_SIGNAL(src, COMSIG_GASMIX_REMOVED)
+	// APHELION EDIT ADDITION END
 	return removed
 
 ///Proportionally removes amount of gas from the gas_mixture.
 ///Returns: gas_mixture with the gases removed
 /datum/gas_mixture/proc/remove_ratio(ratio)
+	var/datum/gas_mixture/removed = new type(return_volume()) // APHELION EDIT ADDITION - DOGMOS
 	if(ratio <= 0)
-		var/datum/gas_mixture/removed = new(volume)
+		// var/datum/gas_mixture/removed = new(volume) // APHELION EDIT REMOVAL - DOGMOS
 		return removed
 	ratio = min(ratio, 1)
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 
 	var/list/cached_moles = moles
 	var/datum/gas_mixture/removed = new type(volume)
@@ -236,28 +414,48 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 	garbage_collect()
 
 	SEND_SIGNAL(src, COMSIG_GASMIX_REMOVED)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	if(is_immutable())
+		removed.copy_from(src) //space etc. is inexhaustible; don't drain it
+	else
+		__remove_ratio(removed, ratio)
+		SEND_SIGNAL(src, COMSIG_GASMIX_REMOVED)
+	// APHELION EDIT ADDITION END
 	return removed
 
 ///Removes an amount of a specific gas from the gas_mixture.
 ///Returns: gas_mixture with the gas removed
 /datum/gas_mixture/proc/remove_specific(gas_id, amount)
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	var/list/cached_moles = moles
 	amount = min(amount, cached_moles[gas_id])
+	*/ // APHELION EDIT REMOVAL END
+	amount = min(amount, get_moles(gas_id)) // APHELION EDIT ADDITION - DOGMOS
 	if(amount <= 0)
 		return null
 	var/datum/gas_mixture/removed = new type
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	removed.temperature = temperature
 	removed.moles[gas_id] = amount
 	cached_moles[gas_id] -= amount
 
 	// TODO(antropod): maybe use if (cached_moles[gas_id] < MOLAR_ACCURACY) cached_moles -= gas_id?
 	garbage_collect()
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	removed.set_temperature(return_temperature())
+	removed.set_moles(gas_id, amount)
+	if(!is_immutable())
+		adjust_moles(gas_id, -amount)
+	// APHELION EDIT ADDITION END
 	return removed
 
 /datum/gas_mixture/proc/remove_specific_ratio(gas_id, ratio)
 	if(ratio <= 0)
 		return null
 	ratio = min(ratio, 1)
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 
 	var/list/cached_moles = moles
 	var/datum/gas_mixture/removed = new type
@@ -270,6 +468,8 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 	garbage_collect()
 
 	return removed
+	*/ // APHELION EDIT REMOVAL END
+	return remove_specific(gas_id, get_moles(gas_id) * ratio) // APHELION EDIT ADDITION - DOGMOS
 
 ///Distributes the contents of two mixes equally between themselves
 //Returns: bool indicating whether gases moved between the two mixes
@@ -279,30 +479,61 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 		. = TRUE
 		var/self_heat_cap = heat_capacity()
 		var/other_heat_cap = other.heat_capacity()
+		/* // APHELION EDIT REMOVAL START - DOGMOS
 		var/new_temp = (temperature * self_heat_cap + other.temperature * other_heat_cap) / (self_heat_cap + other_heat_cap)
 		temperature = new_temp
 		other.temperature = new_temp
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
+		var/combined_heat_cap = self_heat_cap + other_heat_cap
+		if(combined_heat_cap)
+			var/new_temp = (return_temperature() * self_heat_cap + other.return_temperature() * other_heat_cap) / combined_heat_cap
+			set_temperature(new_temp)
+			other.set_temperature(new_temp)
+		// APHELION EDIT ADDITION END
 
 	var/min_p_delta = 0.1
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	var/total_volume = volume + other.volume
 	var/list/cached_moles = moles
 	var/list/cached_other_moles = other.moles
 	var/list/gas_list = cached_moles | cached_other_moles
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	var/our_volume = return_volume()
+	var/other_volume = other.return_volume()
+	var/total_volume = our_volume + other_volume
+	var/list/gas_list = get_gases() | other.get_gases()
+	// APHELION EDIT ADDITION END
 	for(var/gas_id in gas_list)
+		/* // APHELION EDIT REMOVAL START - DOGMOS
 		assert_gas(gas_id)
 		other.assert_gas(gas_id)
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
+		var/our_moles = get_moles(gas_id)
+		var/their_moles = other.get_moles(gas_id)
+		// APHELION EDIT ADDITION END
 		//math is under the assumption temperatures are equal
-		if(abs(cached_moles[gas_id] / volume - cached_other_moles[gas_id] / other.volume) > min_p_delta / (R_IDEAL_GAS_EQUATION * temperature))
+		if(abs(our_moles / our_volume - their_moles / other_volume) > min_p_delta / (R_IDEAL_GAS_EQUATION * return_temperature())) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(abs(cached_moles[gas_id] / volume - cached_other_moles[gas_id] / other.volume) > min_p_delta / (R_IDEAL_GAS_EQUATION * temperature))
 			. = TRUE
+			/* // APHELION EDIT REMOVAL START - DOGMOS
 			var/total_moles = cached_moles[gas_id] + cached_other_moles[gas_id]
 			cached_moles[gas_id] = total_moles * (volume/total_volume)
 			cached_other_moles[gas_id] = total_moles * (other.volume/total_volume)
 	garbage_collect()
 	other.garbage_collect()
+			*/ // APHELION EDIT REMOVAL END
+			// APHELION EDIT ADDITION START - DOGMOS
+			var/total_moles = our_moles + their_moles
+			set_moles(gas_id, total_moles * (our_volume/total_volume))
+			other.set_moles(gas_id, total_moles * (other_volume/total_volume))
+			// APHELION EDIT ADDITION END
 
 ///Creates new, identical gas mixture
 ///Returns: duplicate gas mixture
 /datum/gas_mixture/proc/copy()
+	/* // APHELION EDIT REMOVAL START - DOGMOS_COPY_CREATION
 	var/list/cached_moles = moles
 	var/datum/gas_mixture/copy = new type
 	var/list/copy_cached_moles = copy.moles
@@ -313,7 +544,16 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 		copy_cached_moles[gas_id] = value
 		copy_cached_moles_archive[gas_id] = 0
 
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS_COPY_CREATION
+	// Exact types have no custom constructor or copy hook. Subtypes retain dynamic dispatch below.
+	if(type == /datum/gas_mixture || type == /datum/gas_mixture/turf)
+		return new type(return_volume(), src)
+	var/datum/gas_mixture/copy = new type(return_volume())
+	copy.copy_from(src)
+	// APHELION EDIT ADDITION END
 	return copy
+/* // APHELION EDIT REMOVAL START - DOGMOS
 
 
 ///Copies variables from sample
@@ -333,10 +573,12 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 		cached_moles_archive[gas_id] = 0
 
 	return TRUE
+*/ // APHELION EDIT REMOVAL END
 
 ///Copies variables from sample, moles multiplicated by partial
 ///Returns: TRUE if we are mutable, FALSE otherwise
 /datum/gas_mixture/proc/copy_from_ratio(datum/gas_mixture/sample, partial = 1)
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	var/list/cached_moles = moles //accessing datum vars is slower than proc vars
 	var/list/sample_cached_moles = sample.moles
 	// Remove all gases (sample overrides our values anyways)
@@ -344,6 +586,13 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 	temperature = sample.temperature
 	for(var/gas_id, amount in sample_cached_moles)
 		cached_moles[gas_id] = amount * partial
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	if(is_immutable())
+		return FALSE
+	copy_from(sample)
+	multiply(partial)
+	// APHELION EDIT ADDITION END
 	return TRUE
 
 /// Performs air sharing calculations between two gas_mixtures
@@ -351,15 +600,30 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 /// If we don't retain this, we will get negative moles. Don't do it
 /// Returns: amount of gas exchanged (+ if sharer received)
 /datum/gas_mixture/proc/share(datum/gas_mixture/sharer, our_coeff, sharer_coeff)
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	var/list/cached_moles = moles
 	var/list/cached_moles_archive = moles_archive
 	var/list/sharer_cached_moles = sharer.moles
 	var/list/sharer_cached_moles_archive = sharer.moles_archive
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	// Remaining callers are non-turf equipment; turf sharing is handled by Dogmos.
+	var/list/our_gases = get_gases()
+	var/list/sharer_gases = sharer.get_gases()
+	var/list/gas_list = our_gases | sharer_gases
+	// APHELION EDIT ADDITION END
 
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	var/list/only_in_sharer = sharer_cached_moles - cached_moles
 	var/list/only_in_cached = cached_moles - sharer_cached_moles
 
 	var/temperature_delta = temperature_archived - sharer.temperature_archived
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	var/self_temperature_before = return_temperature()
+	var/sharer_temperature_before = sharer.return_temperature()
+	var/temperature_delta = self_temperature_before - sharer_temperature_before
+	// APHELION EDIT ADDITION END
 	var/temp_delta_threshold = abs(temperature_delta) > MINIMUM_TEMPERATURE_DELTA_TO_CONSIDER
 
 	var/old_self_heat_capacity = 0
@@ -374,6 +638,7 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 	var/moved_moles = 0
 	var/abs_moved_moles = 0
 
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	//GAS TRANSFER
 
 	//Prep
@@ -384,9 +649,23 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 		sharer_cached_moles[gas_id] = 0
 		sharer_cached_moles_archive[gas_id] = 0
 
+	*/ // APHELION EDIT REMOVAL END
 	var/list/cached_specific_heat = GAS_META[META_GAS_SPECIFIC_HEAT]
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	for(var/gas_id in cached_moles) //transfer gases
 		var/delta = QUANTIZE(cached_moles_archive[gas_id] - sharer_cached_moles_archive[gas_id]) //the amount of gas that gets moved between the mixtures
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	// Deltas are collected and applied as two batched native calls after the loop instead of two
+	// adjust_moles() round trips per gas type inside it - share() is called per machine, per tick,
+	// so an unbatched loop here was doubling the pipenet reconciliation boundary cost.
+	var/list/self_deltas = list()
+	var/list/sharer_deltas = list()
+	for(var/gas_id in gas_list) //transfer gases
+		var/our_moles = get_moles(gas_id)
+		var/sharer_moles = sharer.get_moles(gas_id)
+		var/delta = QUANTIZE(our_moles - sharer_moles) //the amount of gas that gets moved between the mixtures
+	// APHELION EDIT ADDITION END
 
 		if(!delta)
 			continue
@@ -405,10 +684,23 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 			else
 				heat_capacity_sharer_to_self -= gas_heat_capacity //subtract here instead of adding the absolute value because we know that delta is negative.
 
+		/* // APHELION EDIT REMOVAL START - DOGMOS
 		cached_moles[gas_id] -= delta
 		sharer_cached_moles[gas_id] += delta
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
+		self_deltas += list(gas_id, -delta)
+		sharer_deltas += list(gas_id, delta)
+		// APHELION EDIT ADDITION END
 		moved_moles += delta
 		abs_moved_moles += abs(delta)
+	// APHELION EDIT ADDITION START - DOGMOS
+
+	if(length(self_deltas))
+		adjust_multi(arglist(self_deltas))
+	if(length(sharer_deltas))
+		sharer.adjust_multi(arglist(sharer_deltas))
+	// APHELION EDIT ADDITION END
 
 	last_share = abs_moved_moles
 
@@ -417,25 +709,44 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 		var/new_self_heat_capacity = old_self_heat_capacity + heat_capacity_sharer_to_self - heat_capacity_self_to_sharer
 		var/new_sharer_heat_capacity = old_sharer_heat_capacity + heat_capacity_self_to_sharer - heat_capacity_sharer_to_self
 
+		/* // APHELION EDIT REMOVAL START - DOGMOS
 		//transfer of thermal energy (via changed heat capacity) between self and sharer
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
+		// Both energy balances use the same pre-transfer state.
+		var/self_temperature_after = self_temperature_before
+		var/sharer_temperature_after = sharer_temperature_before
+		// APHELION EDIT ADDITION END
 		if(new_self_heat_capacity > MINIMUM_HEAT_CAPACITY)
-			temperature = (old_self_heat_capacity*temperature - heat_capacity_self_to_sharer*temperature_archived + heat_capacity_sharer_to_self*sharer.temperature_archived)/new_self_heat_capacity
+			self_temperature_after = (old_self_heat_capacity*self_temperature_before - heat_capacity_self_to_sharer*self_temperature_before + heat_capacity_sharer_to_self*sharer_temperature_before)/new_self_heat_capacity // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: temperature = (old_self_heat_capacity*temperature - heat_capacity_self_to_sharer*temperature_archived + heat_capacity_sharer_to_self*sharer.temperature_archived)/new_self_heat_capacity
 
 		if(new_sharer_heat_capacity > MINIMUM_HEAT_CAPACITY)
+			/* // APHELION EDIT REMOVAL START - DOGMOS
 			sharer.temperature = (old_sharer_heat_capacity*sharer.temperature-heat_capacity_sharer_to_self*sharer.temperature_archived + heat_capacity_self_to_sharer*temperature_archived)/new_sharer_heat_capacity
+			*/ // APHELION EDIT REMOVAL END
+			// APHELION EDIT ADDITION START - DOGMOS
+			sharer_temperature_after = (old_sharer_heat_capacity*sharer_temperature_before - heat_capacity_sharer_to_self*sharer_temperature_before + heat_capacity_self_to_sharer*self_temperature_before)/new_sharer_heat_capacity
+		if(new_self_heat_capacity > MINIMUM_HEAT_CAPACITY)
+			set_temperature(self_temperature_after)
+		if(new_sharer_heat_capacity > MINIMUM_HEAT_CAPACITY)
+			sharer.set_temperature(sharer_temperature_after)
+			// APHELION EDIT ADDITION END
 		//thermal energy of the system (self and sharer) is unchanged
 
 			if(abs(old_sharer_heat_capacity) > MINIMUM_HEAT_CAPACITY)
 				if(abs(new_sharer_heat_capacity/old_sharer_heat_capacity - 1) < 0.1) // <10% change in sharer heat capacity
 					temperature_share(sharer, OPEN_HEAT_TRANSFER_COEFFICIENT)
 
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	if(length(only_in_sharer + only_in_cached)) //if all gases were present in both mixtures, we know that no gases are 0
 		garbage_collect(only_in_cached) //any gases the sharer had, we are guaranteed to have. gases that it didn't have we are not.
 		sharer.garbage_collect(only_in_sharer) //the reverse is equally true
 	else if (initial(sharer.gc_share))
 		sharer.garbage_collect()
 
+	*/ // APHELION EDIT REMOVAL END
 	if(temperature_delta > MINIMUM_TEMPERATURE_TO_MOVE || abs(moved_moles) > MINIMUM_MOLES_DELTA_TO_MOVE)
+		/* // APHELION EDIT REMOVAL START - DOGMOS
 		var/our_moles = values_sum(cached_moles)
 		var/their_moles = values_sum(sharer_cached_moles)
 		return (temperature_archived*(our_moles + moved_moles) - sharer.temperature_archived*(their_moles - moved_moles)) * R_IDEAL_GAS_EQUATION / volume
@@ -491,15 +802,28 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 				return "temp"
 
 	return ""
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
+		var/our_moles = total_moles()
+		var/their_moles = sharer.total_moles()
+		return (return_temperature()*(our_moles + moved_moles) - sharer.return_temperature()*(their_moles - moved_moles)) * R_IDEAL_GAS_EQUATION / return_volume()
+		// APHELION EDIT ADDITION END
 
 ///Performs various reactions such as combustion and fabrication
 ///Returns: 1 if any reaction took place; 0 otherwise
 /datum/gas_mixture/proc/react(datum/holder)
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	. = NO_REACTION
 	var/list/cached_moles = moles
 	if(!length(cached_moles))
 		return
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	if(is_immutable())
+		return NO_REACTION
+	// APHELION EDIT ADDITION END
 
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	var/list/pre_formation = list()
 	var/list/mid_formation = list()
 	var/list/post_formation = list()
@@ -521,9 +845,15 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 
 	//Fuck you
 	if(cached_moles[/datum/gas/hypernoblium] >= REACTION_OPPRESSION_THRESHOLD && temperature > REACTION_OPPRESSION_MIN_TEMP)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	// Keep this cheap wrapper gate for direct DM callers; the native hook mirrors it for Dogmos callers.
+	if(get_moles(/datum/gas/hypernoblium) >= REACTION_OPPRESSION_THRESHOLD && return_temperature() > REACTION_OPPRESSION_MIN_TEMP)
+	// APHELION EDIT ADDITION END
 		return STOP_REACTIONS
 
 	reaction_results = new
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	//It might be worth looking into updating these after each reaction, but that makes us care more about order of operations, so be careful
 	var/temp = temperature
 	reaction_loop:
@@ -542,17 +872,19 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 			//at this point, all requirements for the reaction are satisfied. we can now react()
 			. |= reaction.react(src, holder)
 
+	*/ // APHELION EDIT REMOVAL END
+	. = __react(holder) // APHELION EDIT ADDITION - DOGMOS
 
 	if(.) //If we changed the mix to any degree
-		garbage_collect()
+		// garbage_collect() // APHELION EDIT REMOVAL - DOGMOS
 		SEND_SIGNAL(src, COMSIG_GASMIX_REACTED)
 
 
 /**
  * Returns the partial pressure of the gas in the breath based on BREATH_VOLUME
  * eg:
- * Plas_PP = get_breath_partial_pressure(gas_mixture.moles[/datum/gas/plasma])
- * O2_PP = get_breath_partial_pressure(gas_mixture.moles[/datum/gas/oxygen])
+ * Plas_PP = get_breath_partial_pressure(gas_mixture.get_moles(/datum/gas/plasma))
+ * O2_PP = get_breath_partial_pressure(gas_mixture.get_moles(/datum/gas/oxygen))
  * get_breath_partial_pressure(gas_mole_count) --> PV = nRT, P = nRT/V
  *
  * 10/20*5 = 2.5
@@ -560,7 +892,7 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
  */
 
 /datum/gas_mixture/proc/get_breath_partial_pressure(gas_mole_count)
-	return (gas_mole_count * R_IDEAL_GAS_EQUATION * temperature) / BREATH_VOLUME
+	return (gas_mole_count * R_IDEAL_GAS_EQUATION * return_temperature()) / BREATH_VOLUME // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: return (gas_mole_count * R_IDEAL_GAS_EQUATION * temperature) / BREATH_VOLUME
 
 /**
  * Counts how much pressure will there be if we impart MOLAR_ACCURACY amounts of our gas to the output gasmix.
@@ -572,7 +904,7 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 /datum/gas_mixture/proc/gas_pressure_minimum_transfer(datum/gas_mixture/output_air)
 	var/resulting_energy = output_air.thermal_energy() + (MOLAR_ACCURACY / total_moles() * thermal_energy())
 	var/resulting_capacity = output_air.heat_capacity() + (MOLAR_ACCURACY / total_moles() * heat_capacity())
-	return (output_air.total_moles() + MOLAR_ACCURACY) * R_IDEAL_GAS_EQUATION * (resulting_energy / resulting_capacity) / output_air.volume
+	return (output_air.total_moles() + MOLAR_ACCURACY) * R_IDEAL_GAS_EQUATION * (resulting_energy / resulting_capacity) / output_air.return_volume() // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: return (output_air.total_moles() + MOLAR_ACCURACY) * R_IDEAL_GAS_EQUATION * (resulting_energy / resulting_capacity) / output_air.volume
 
 
 /** Returns the amount of gas to be pumped to a specific container.
@@ -586,12 +918,16 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 	var/our_moles = total_moles()
 	var/output_moles = output_air.total_moles()
 	var/output_pressure = output_air.return_pressure()
+	// APHELION EDIT ADDITION START - DOGMOS
+	var/our_temperature = return_temperature()
+	var/output_temperature = output_air.return_temperature()
+	// APHELION EDIT ADDITION END
 
-	if(our_moles <= 0 || temperature <= 0)
+	if(our_moles <= 0 || our_temperature <= 0) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(our_moles <= 0 || temperature <= 0)
 		return FALSE
 
 	var/pressure_delta = 0
-	if(output_air.temperature <= 0 || output_moles <= 0)
+	if(output_temperature <= 0 || output_moles <= 0) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(output_air.temperature <= 0 || output_moles <= 0)
 		ignore_temperature = TRUE
 		pressure_delta = target_pressure
 	else
@@ -601,18 +937,24 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 		return FALSE
 
 	if(ignore_temperature)
-		return (pressure_delta*output_air.volume)/(temperature * R_IDEAL_GAS_EQUATION)
+		return (pressure_delta*output_air.return_volume())/(our_temperature * R_IDEAL_GAS_EQUATION) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: return (pressure_delta*output_air.volume)/(temperature * R_IDEAL_GAS_EQUATION)
 
 	// Lower and upper bound for the moles we must transfer to reach the pressure. The answer is bound to be here somewhere.
-	var/pv = target_pressure * output_air.volume
+	var/pv = target_pressure * output_air.return_volume() // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/pv = target_pressure * output_air.volume
 	/// The PV/R part in the equation we will use later. Counted early because pv/(r*t) might not be equal to pv/r/t, messing our lower and upper limit.
 	var/pvr = pv / R_IDEAL_GAS_EQUATION
 	// These works by assuming our gas has extremely high heat capacity
 	// and the resultant gasmix will hit either the highest or lowest temperature possible.
 
 	/// This is the true lower limit, but numbers still can get lower than this due to floats.
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	var/lower_limit = max((pvr / max(temperature, output_air.temperature)) - output_moles, 0)
 	var/upper_limit = (pvr / min(temperature, output_air.temperature)) - output_moles // In theory this should never go below zero, the pressure_delta check above should account for this.
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	var/lower_limit = max((pvr / max(our_temperature, output_temperature)) - output_moles, 0)
+	var/upper_limit = (pvr / min(our_temperature, output_temperature)) - output_moles // In theory this should never go below zero, the pressure_delta check above should account for this.
+	// APHELION EDIT ADDITION END
 
 	lower_limit = max(lower_limit - ATMOS_PRESSURE_ERROR_TOLERANCE, 0)
 	upper_limit += ATMOS_PRESSURE_ERROR_TOLERANCE
@@ -663,7 +1005,7 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 	if(.)
 		return
 	// Inaccurate and will probably explode but whatever.
-	return (pressure_delta*output_air.volume)/(temperature * R_IDEAL_GAS_EQUATION)
+	return (pressure_delta*output_air.return_volume())/(our_temperature * R_IDEAL_GAS_EQUATION) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: return (pressure_delta*output_air.volume)/(temperature * R_IDEAL_GAS_EQUATION)
 
 /// Actually tries to solve the quadratic equation.
 /// Do mind that the numbers can get very big and might hit BYOND's single point float limit.
@@ -671,7 +1013,11 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 	var/solution
 	if(IS_FINITE(a) && IS_FINITE(b) && IS_FINITE(c))
 		solution = max(SolveQuadratic(a, b, c))
-		if(solution > lower_limit && solution < upper_limit) //SolveQuadratic can return empty lists so be careful here
+		// APHELION EDIT ADDITION START - DOGMOS
+		// At large mole counts the absolute tolerance rounds away; the physical bounds are inclusive.
+		// SolveQuadratic can return no roots, so do not let null compare as a valid zero.
+		// APHELION EDIT ADDITION END
+		if(isnum(solution) && IS_FINITE(solution) && solution >= lower_limit && solution <= upper_limit) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(solution > lower_limit && solution < upper_limit) //SolveQuadratic can return empty lists so be careful here
 			return solution
 	stack_trace("Failed to solve pressure quadratic equation. A: [a]. B: [b]. C:[c]. Current value = [solution]. Expected lower limit: [lower_limit]. Expected upper limit: [upper_limit].")
 	return FALSE
@@ -687,7 +1033,7 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 		for (var/iteration in 1 to ATMOS_PRESSURE_APPROXIMATION_ITERATIONS)
 			var/diff = (a*solution**2 + b*solution + c) / (2*a*solution + b) // f(sol) / f'(sol)
 			solution -= diff // xn+1 = xn - f(sol) / f'(sol)
-			if(abs(diff) < MOLAR_ACCURACY && (solution > lower_limit) && (solution < upper_limit))
+			if(abs(diff) < MOLAR_ACCURACY && IS_FINITE(solution) && (solution >= lower_limit) && (solution <= upper_limit)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(abs(diff) < MOLAR_ACCURACY && (solution > lower_limit) && (solution < upper_limit))
 				return solution
 	stack_trace("Newton's Approximation for pressure failed after [ATMOS_PRESSURE_APPROXIMATION_ITERATIONS] iterations. A: [a]. B: [b]. C:[c]. Current value: [solution]. Expected lower limit: [lower_limit]. Expected upper limit: [upper_limit].")
 	return FALSE
@@ -695,11 +1041,11 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 /// Pumps gas from src to output_air. Amount depends on target_pressure
 /datum/gas_mixture/proc/pump_gas_to(datum/gas_mixture/output_air, target_pressure, specific_gas = null, datum/gas_mixture/output_pipenet_air = null)
 	var/datum/gas_mixture/input_air = specific_gas ? remove_specific_ratio(specific_gas, 1) : src
-	var/temperature_delta = abs(input_air.temperature - output_air.temperature)
+	var/temperature_delta = abs(input_air.return_temperature() - output_air.return_temperature()) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/temperature_delta = abs(input_air.temperature - output_air.temperature)
 	var/datum/gas_mixture/removed
 
 	var/transfer_moles_output = input_air.gas_pressure_calculate(output_air, target_pressure, temperature_delta <= 5)
-	var/transfer_moles_pipenet = output_pipenet_air?.volume ? input_air.gas_pressure_calculate(output_pipenet_air, target_pressure, temperature_delta <= 5) : 0
+	var/transfer_moles_pipenet = output_pipenet_air?.return_volume() ? input_air.gas_pressure_calculate(output_pipenet_air, target_pressure, temperature_delta <= 5) : 0 // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/transfer_moles_pipenet = output_pipenet_air?.volume ? input_air.gas_pressure_calculate(output_pipenet_air, target_pressure, temperature_delta <= 5) : 0
 	var/transfer_moles = max(transfer_moles_output, transfer_moles_pipenet)
 
 	if(specific_gas)
@@ -724,10 +1070,10 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 		return FALSE
 	//Can not have a pressure delta that would cause output_pressure > input_pressure
 	target_pressure = output_starting_pressure + min(target_pressure - output_starting_pressure, (input_starting_pressure - output_starting_pressure)/2)
-	var/temperature_delta = abs(temperature - output_air.temperature)
+	var/temperature_delta = abs(return_temperature() - output_air.return_temperature()) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/temperature_delta = abs(temperature - output_air.temperature)
 
 	var/transfer_moles_output = gas_pressure_calculate(output_air, target_pressure, temperature_delta <= 5)
-	var/transfer_moles_pipenet = output_pipenet_air?.volume ? gas_pressure_calculate(output_pipenet_air, target_pressure, temperature_delta <= 5) : 0
+	var/transfer_moles_pipenet = output_pipenet_air?.return_volume() ? gas_pressure_calculate(output_pipenet_air, target_pressure, temperature_delta <= 5) : 0 // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/transfer_moles_pipenet = output_pipenet_air?.volume ? gas_pressure_calculate(output_pipenet_air, target_pressure, temperature_delta <= 5) : 0
 	var/transfer_moles = max(transfer_moles_output, transfer_moles_pipenet)
 
 	//Actually transfer the gas
@@ -754,28 +1100,75 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 
 		current_reaction.react(air_mixture = src, working_power = working_power, electrolyzer_args = electrolyzer_args)
 
+/* // APHELION EDIT REMOVAL START - DOGMOS
 	garbage_collect()
 
+*/ // APHELION EDIT REMOVAL END
 /// Convert a gas mixture to a string (ie. "o2=22;n2=82;TEMP=180")
 /// Rounds all temperature and gases to 0.01 and skips any gases less than that amount
 /datum/gas_mixture/proc/to_string()
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	var/list/cached_moles = moles
 	var/rounded_temp = round(temperature, 0.01)
+	*/ // APHELION EDIT REMOVAL END
+	var/rounded_temp = round(return_temperature(), 0.01) // APHELION EDIT ADDITION - DOGMOS
 
 	var/list/atmos_contents = list()
 	var/temperature_str = "TEMP=[num2text(rounded_temp)]"
 
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	if(!length(cached_moles) || total_moles() < 0.01)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	var/list/present_gases = get_gases()
+	if(!length(present_gases) || total_moles() < 0.01)
+	// APHELION EDIT ADDITION END
 		return temperature_str
 
 	var/list/cached_gas_id = GAS_META[META_GAS_ID]
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	for(var/gas_id, gas_moles in cached_moles)
 		gas_moles = round(gas_moles, 0.01)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	for(var/gas_id in present_gases)
+		var/gas_moles = round(get_moles(gas_id), 0.01)
+	// APHELION EDIT ADDITION END
 		if(gas_moles >= 0.01)
 			atmos_contents += "[cached_gas_id[gas_id]]=[num2text(gas_moles)]"
 
 	atmos_contents += temperature_str
 	return atmos_contents.Join(";")
+// APHELION EDIT ADDITION START - DOGMOS
+
+/// Reconstructs a gas-id-to-moles list; targeted get_moles() calls are cheaper for known gases.
+/datum/gas_mixture/proc/get_moles_list()
+	var/list/snapshot = list()
+	for(var/gas_id in get_gases())
+		snapshot[gas_id] = get_moles(gas_id)
+	return snapshot
+
+/// Checks if the gas amount exists in the mixture.
+/// Do NOT use this in code where performance matters!
+/datum/gas_mixture/proc/has_gas(gas_id, amount=0)
+	return amount < get_moles(gas_id)
+
+/// Gets the gas visuals for everything in this mixture
+/datum/gas_mixture/proc/return_visuals(turf/z_context)
+	var/list/output = list()
+	var/offset = GET_TURF_PLANE_OFFSET(z_context) + 1
+	var/list/_META_MOLES_VISIBLE = GAS_META[META_GAS_MOLES_VISIBLE]
+	var/list/_META_GAS_OVERLAY = GAS_META[META_GAS_OVERLAY]
+	for(var/gas_id in get_gases())
+		if(GLOB.nonoverlaying_gases[gas_id])
+			continue
+		var/amount = get_moles(gas_id)
+		if(amount <= _META_MOLES_VISIBLE[gas_id])
+			continue
+		var/gas_overlay = _META_GAS_OVERLAY[gas_id][offset]
+		output += gas_overlay[min(TOTAL_VISIBLE_STATES, CEILING(amount / MOLES_GAS_VISIBLE_STEP, 1))]
+	return output
+// APHELION EDIT ADDITION END
 
 /**
  * A simple helper proc that checks if the contents of a list of gases are within acceptable terms.
@@ -788,11 +1181,17 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
  * Returns TRUE if the list of gases is acceptable, FALSE otherwise.
  */
 /datum/gas_mixture/proc/check_gases(list/acceptable_gas_bounds, extraneous_gas_limit = 0.1)
-	SHOULD_BE_PURE(TRUE)
+	// SHOULD_BE_PURE(TRUE) // APHELION EDIT REMOVAL - DOGMOS
 
 	var/list/gases_to_check = acceptable_gas_bounds.Copy() // thank you spaceman
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	var/list/cached_moles = moles
 	for(var/id, gas_moles in cached_moles)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	for(var/id in get_gases())
+		var/gas_moles = get_moles(id)
+	// APHELION EDIT ADDITION END
 		if(!(id in gases_to_check))
 			if(gas_moles > extraneous_gas_limit)
 				return FALSE
