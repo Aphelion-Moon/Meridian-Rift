@@ -2500,7 +2500,7 @@ GLOBAL_LIST_INIT(subspace_ballmatter_spheres, list(
 	AddElement(/datum/element/manufacturer_examine, COMPANY_ADMIN)
 	buffer_slots = list("Slot 1" = null, "Slot 2" = null, "Slot 3" = null, "Slot 4" = null, "Slot 5" = null, "Slot 6" = null, "Slot 7" = null)// seven fits a radial
 
-/obj/item/multitool/admin/Destroy()
+/obj/item/multitool/admin/Destroy(force)
 	buffer_slots = null
 	return ..()
 
