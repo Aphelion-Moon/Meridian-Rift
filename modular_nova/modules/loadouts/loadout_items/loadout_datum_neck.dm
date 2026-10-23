@@ -50,7 +50,7 @@
 /datum/loadout_item/neck/collar
 	name = "Collar (Tagged)"
 	item_path = /obj/item/clothing/neck/collar/tagged
-	reskin_datum = /datum/atom_skin/collar_tagged
+	reskin_datum = /datum/atom_skin/collar
 
 /datum/loadout_item/neck/leather_collar
 	name = "Collar (Leather)"
@@ -59,7 +59,7 @@
 /datum/loadout_item/neck/leather_collar_tagged
 	name = "Collar (Tagged, Leather)"
 	item_path = /obj/item/clothing/neck/collar/leather/tagged
-	reskin_datum = /datum/atom_skin/leather_collar_tagged
+	reskin_datum = /datum/atom_skin/collar/leather
 
 /// SPIKE
 /datum/loadout_item/neck/spikecollar

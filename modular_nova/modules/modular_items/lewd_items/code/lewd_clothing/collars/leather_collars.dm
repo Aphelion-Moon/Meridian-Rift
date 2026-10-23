@@ -12,33 +12,31 @@
 /obj/item/clothing/neck/collar/leather/setup_reskins()
 	return //No reskins on this one
 
-//The ones below are the reskins
-/datum/atom_skin/leather_collar_tagged
-	abstract_type = /datum/atom_skin/leather_collar_tagged
+//Reskins for the tagged leather collar
+/datum/atom_skin/collar/leather
+	abstract_type = /datum/atom_skin/collar/leather
 	greyscale_item_path = /obj/item/clothing/neck/collar/leather/tagged
 
 //Alphabetically sorted; the initial selection is Tagged
-/datum/atom_skin/leather_collar_tagged/bell
+/datum/atom_skin/collar/leather/bell
 	preview_name = "Bell"
 	new_icon_state = "leather_bell_collar"
-	new_name = "leather bell collar"
+	jingles = TRUE
 
-/datum/atom_skin/leather_collar_tagged/cowbell
+/datum/atom_skin/collar/leather/cowbell
 	preview_name = "Cowbell"
 	new_icon_state = "leather_cowbell_collar"
-	new_name = "leather cowbell collar"
+	jingles = TRUE
 
-/datum/atom_skin/leather_collar_tagged/cross
+/datum/atom_skin/collar/leather/cross
 	preview_name = "Cross"
 	new_icon_state = "leather_cross_collar"
-	new_name = "leather cross collar"
 
-/datum/atom_skin/leather_collar_tagged/holo
+/datum/atom_skin/collar/leather/holo
 	preview_name = "Holographic"
 	new_icon_state = "leather_holocollar"
-	new_name = "leather holocollar"
 
-/datum/atom_skin/leather_collar_tagged/tag
+/datum/atom_skin/collar/leather/tag
 	preview_name = "Tagged"
 	new_icon_state = "leather_tagged_collar"
 
@@ -53,10 +51,4 @@
 	greyscale_colors = "#2d2d33#9b111e#dead39"
 
 /obj/item/clothing/neck/collar/leather/tagged/setup_reskins()
-	AddComponent(/datum/component/reskinable_item, /datum/atom_skin/leather_collar_tagged, initial_skin = "Tagged")
-
-/*
-/obj/item/clothing/neck/collar/leather/bell/Initialize(mapload)
-	. = ..()
-	AddComponent(/datum/component/squeak, list('sound/effects/jingle.ogg'=1), 25, 50, 16)
-*/
+	AddComponent(/datum/component/reskinable_item, /datum/atom_skin/collar/leather, initial_skin = "Tagged")
