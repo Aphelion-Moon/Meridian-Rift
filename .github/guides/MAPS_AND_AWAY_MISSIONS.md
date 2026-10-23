@@ -2,17 +2,17 @@
 
 Station map configurations included in this repository:
 
-- [CatwalkStation](../../_maps/catwalkstation.json)
-- [DeltaStation](../../_maps/deltastation.json)
-- [IceBoxStation](../../_maps/icebox.json)
-- [MetaStation](../../_maps/metastation.json)
-- [NebulaStation](../../_maps/nebulastation.json)
-- [TramStation](../../_maps/tramstation.json)
+- [CatwalkStation](../../_maps/map_jsons/catwalkstation.json)
+- [DeltaStation](../../_maps/map_jsons/deltastation.json)
+- [IceBoxStation](../../_maps/map_jsons/icebox.json)
+- [MetaStation](../../_maps/map_jsons/metastation.json)
+- [NebulaStation](../../_maps/map_jsons/nebulastation.json)
+- [TramStation](../../_maps/map_jsons/tramstation.json)
 
 Debug station maps.
 
-- [RuntimeStation](../../_maps/runtimestation.json)
-- [MultiZ](../../_maps/multiz_debug.json)
+- [RuntimeStation](../../_maps/map_jsons/runtimestation.json)
+- [MultiZ](../../_maps/map_jsons/multiz_debug.json)
 
 All maps have their own code file that is in the base of the `_maps` directory, or elsewhere in the codebase. For example, all of the station maps in rotation each have a corresponding JSON file and are loaded using the server's [configuration](#configuration) passed onto the Mapping subsystem. Maps are loaded dynamically when the game starts. Follow this guideline when adding your own map, to your fork, for easy compatibility.
 
