@@ -26,6 +26,8 @@
 #define BUG_REPORT_UPLOADS_PER_HOUR 5
 /// In-game and window captures per ckey per hour, the service's own cap
 #define BUG_REPORT_CAPTURES_PER_HOUR 30
+/// What the sent page says when the service turns down a look at its receipt, which the next poll asks for again
+#define BUG_REPORT_RECEIPT_REFUSED "Your report is sent, but the report server didn't say how it's doing. This window asks again within a minute."
 
 /// Tells the bridge which server run a report came from
 GLOBAL_VAR_INIT(bug_report_boot_id, GUID())
@@ -224,7 +226,7 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 	/// The submission's outcome - checking, needs_revision, limited, or accepted with its receipt
 	var/list/result
 	/// When the receipt we hold came, in REALTIMEOFDAY, which its wait to publish again counts from, or 0 when it has no wait
-	var/refresh_time = 0
+	var/receipt_arrival = 0
 	/// The window's Try agains that have their answer, from zero each time it opens, which it waits on to say how it went
 	var/answered = 0
 	/// The idempotency key of the submission being checked
@@ -662,9 +664,15 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 /datum/bug_report/proc/refresh_receipt()
 	var/list/response = bridge_action("receipt")
 	if(!response)
+		// The report's in, so a refusal here only means its news waits, and keeping the text isn't the worry
+		if(refused)
+			status = BUG_REPORT_RECEIPT_REFUSED
 		poll_failed()
 		return
 	poll_failures = 0
+	// This answer is the news the refusal held back
+	if(status == BUG_REPORT_RECEIPT_REFUSED)
+		status = null
 	if(islist(response["receipt"]))
 		result = drop_unix_times(list("kind" = "accepted", "receipt" = response["receipt"]))
 		note_retry()
@@ -686,14 +694,14 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 
 /// Notes when the receipt came, since the wait to publish again it sends is only true the moment it answers
 /datum/bug_report/proc/note_retry()
-	refresh_time = isnum(result["receipt"]?["nextAttemptIn"]) ? REALTIMEOFDAY : 0
+	receipt_arrival = isnum(result["receipt"]?["nextAttemptIn"]) ? REALTIMEOFDAY : 0
 
 /// The submission's outcome as the window takes it, with the receipt's wait counted from now
 /datum/bug_report/proc/result_data()
-	if(!refresh_time || !result?["receipt"])
+	if(!receipt_arrival || !result?["receipt"])
 		return result
 	var/list/receipt = result["receipt"].Copy()
-	receipt["nextAttemptIn"] = max(receipt["nextAttemptIn"] - (REALTIMEOFDAY - refresh_time) * 100, 0)
+	receipt["nextAttemptIn"] = max(receipt["nextAttemptIn"] - (REALTIMEOFDAY - receipt_arrival) * 100, 0)
 	var/list/sent = result.Copy()
 	sent["receipt"] = receipt
 	return sent
@@ -967,3 +975,4 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 #undef BUG_REPORT_DRAFTS_PER_HOUR
 #undef BUG_REPORT_UPLOADS_PER_HOUR
 #undef BUG_REPORT_CAPTURES_PER_HOUR
+#undef BUG_REPORT_RECEIPT_REFUSED

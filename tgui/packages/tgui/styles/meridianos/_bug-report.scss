@@ -127,7 +127,8 @@ $classic-roles: (
 
   .BugReport__heading {
     margin: 0;
-    font-size: 17px;
+    // tgui-core's Section title size, which the themes below change where their titles do
+    font-size: 14px;
     font-weight: 700;
     line-height: 1.2;
     text-transform: none;
@@ -864,7 +865,8 @@ $classic-roles: (
 
   .BugReportCapture__title {
     margin: 0;
-    font-size: 17px;
+    // The window's heading size, as tgui-core's Section title
+    font-size: 14px;
     font-weight: 700;
     line-height: 1.2;
     text-transform: none;
@@ -1082,4 +1084,7 @@ $classic-roles: (
 .theme-meridian_foundry .BugReport__heading,
 .theme-meridian_foundry .BugReportCapture__title {
   font-family: var(--foundry-display);
+  // Foundry's section titles (_foundry.scss:176), in the one weight the face has
+  font-size: 16px;
+  font-weight: 400;
 }

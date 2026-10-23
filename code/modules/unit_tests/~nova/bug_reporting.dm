@@ -419,13 +419,23 @@
 	for(var/tick in 1 to 4)
 		report.replies = list(bug_report_test_answer(404, list("error" = "receipt_not_found")))
 		report.refresh()
-	TEST_ASSERT(!report.polling_paused && report.status == "The report server turned that down. Your text is kept.", "Receipt polls the server turned down read as losing touch")
+	TEST_ASSERT(!report.polling_paused && report.status == "Your report is sent, but the report server didn't say how it's doing. This window asks again within a minute.", "Receipt polls the server turned down read as losing touch, or worried about a sent report's text")
+	report.replies = list(list("receipt" = list("reportId" = "accepted")))
+	report.refresh()
+	TEST_ASSERT_NULL(report.status, "The receipt came and the line saying the server held it back stayed")
 	report.result = null
 	for(var/tick in 1 to 4)
 		report.replies = list(bug_report_test_answer(429, list("error" = "draft_request_limit")))
 		report.refresh()
 	TEST_ASSERT(!report.polling_paused, "Draft reads the server turned down read as losing touch")
-	for(var/tick in 1 to 4)
+	// A refusal between lost polls ends their run, so the lost one after it is the first of four again
+	for(var/tick in 1 to 3)
+		report.refresh()
+	report.replies = list(bug_report_test_answer(429, list("error" = "draft_request_limit")))
+	report.refresh()
+	report.refresh()
+	TEST_ASSERT(!report.polling_paused, "A poll the server turned down didn't end the run of lost ones")
+	for(var/tick in 1 to 3)
 		report.refresh()
 	TEST_ASSERT(report.polling_paused && findtext(report.status, "Lost touch"), "Four polls with no answer didn't pause polling")
 
@@ -733,7 +743,7 @@
 	report.replies = list(list("result" = list("kind" = "accepted", "receipt" = list("publication" = "retryable", "nextAttemptAt" = 1729700000123, "nextAttemptIn" = 60000))))
 	report.check_submission()
 	// Ten seconds pass
-	report.refresh_time -= 100
+	report.receipt_arrival -= 100
 	var/wait = report.result_data()["receipt"]["nextAttemptIn"]
 	TEST_ASSERT(wait > 49000 && wait <= 50000, "The receipt's wait wasn't counted from now")
 	TEST_ASSERT_EQUAL(report.result["receipt"]["nextAttemptIn"], 60000, "Counting the wait from now changed the receipt we hold")
