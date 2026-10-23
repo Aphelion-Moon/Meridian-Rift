@@ -7,8 +7,36 @@
 /// Portion (out of 1) of reagents that are lost during the transfer from a mop/towel to a container.
 #define SQUEEZING_DISPERSAL_RATIO 0.75
 
+/// SSliquids fires per liquid fire run. It fires every second, so a fire run comes every 4 seconds.
 #define REQUIRED_FIRE_PROCESSES 4
-#define REQUIRED_FIRE_POWER_PER_UNIT 5
+/// Power per unit a liquid mix must beat to burn. It sits low enough that weak drinks, at power 2, still light.
+#define REQUIRED_FIRE_POWER_PER_UNIT 1
+/// Share of a liquid mix that must be flammable for it to burn. Non-flammables smother a fire once they are half the mix.
+#define REQUIRED_FIRE_FLAMMABLE_SHARE 0.5
+
+// A liquid fire reaches a state only with both the power per unit and the flammable units listed for it.
+// Power per unit caps how fierce the mix burns. The flammable units left shrink the fire as it burns out.
+#define LIQUID_FIRE_POWER_MILD 2.5
+#define LIQUID_FIRE_POWER_MEDIUM 4.5
+#define LIQUID_FIRE_POWER_HUGE 6
+#define LIQUID_FIRE_POWER_INFERNO 7.5
+#define LIQUID_FIRE_UNITS_MILD 1.5
+#define LIQUID_FIRE_UNITS_MEDIUM 3
+#define LIQUID_FIRE_UNITS_HUGE 6
+#define LIQUID_FIRE_UNITS_INFERNO 8
+
+// Units of a reagent a burning tile uses up per fire run.
+/// Fuels and strong spirits: 30 units on one tile burn out in a minute.
+#define LIQUID_FIRE_BURNRATE_VOLATILE 2
+/// Beer, wine and weak cocktails: 30 units on one tile flare out in about half a minute.
+#define LIQUID_FIRE_BURNRATE_WEAK 4
+/// Oils: 30 units on one tile burn for about ten minutes.
+#define LIQUID_FIRE_BURNRATE_HEAVY 0.2
+
+/// Temperature a huge liquid fire exposes its tile to. The states below it run cooler.
+#define LIQUID_FIRE_TEMPERATURE_HUGE 700
+/// Temperature a liquid inferno exposes its tile to.
+#define LIQUID_FIRE_TEMPERATURE_INFERNO 1000
 
 #define PARTIAL_TRANSFER_AMOUNT 0.3
 

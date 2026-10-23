@@ -51,112 +51,141 @@
 /obj/effect/abstract/liquid_turf/onShuttleMove(turf/newT, turf/oldT, list/movement_force, move_dir, obj/docking_port/stationary/old_dock, obj/docking_port/mobile/moving_dock)
 	return
 
+/**
+ * Updates fire_state from this liquid's mix.
+ *
+ * Arguments:
+ * - hotspotted: TRUE when something is igniting us, so a liquid that isn't burning yet can catch.
+ *
+ * Returns:
+ * - TRUE: The liquid is burning.
+ * - FALSE: It isn't, and any fire it had is out.
+ */
 /obj/effect/abstract/liquid_turf/proc/check_fire(hotspotted = FALSE)
-	var/my_burn_power = get_burn_power(hotspotted)
-	if(!my_burn_power)
-		if(fire_state)
-			//Set state to 0
-			set_fire_state(LIQUID_FIRE_STATE_NONE)
-		return FALSE
-	//Calculate appropriate state
-	var/new_state = LIQUID_FIRE_STATE_SMALL
-	switch(my_burn_power)
-		if(0 to 7)
-			new_state = LIQUID_FIRE_STATE_SMALL
-		if(7 to 8)
-			new_state = LIQUID_FIRE_STATE_MILD
-		if(8 to 9)
-			new_state = LIQUID_FIRE_STATE_MEDIUM
-		if(9 to 10)
-			new_state = LIQUID_FIRE_STATE_HUGE
-		if(10 to INFINITY)
-			new_state = LIQUID_FIRE_STATE_INFERNO
-
+	var/new_state = get_fire_state(hotspotted)
 	if(fire_state != new_state)
 		set_fire_state(new_state)
+	return new_state != LIQUID_FIRE_STATE_NONE
 
-	return TRUE
-
+/// Sets the fire state, with flames and a light sized to it.
 /obj/effect/abstract/liquid_turf/proc/set_fire_state(new_state)
 	fire_state = new_state
 	switch(fire_state)
 		if(LIQUID_FIRE_STATE_NONE)
-			set_light_range(0)
+			set_light(0)
 		if(LIQUID_FIRE_STATE_SMALL)
-			set_light_range(LIGHT_RANGE_FIRE)
+			set_light(1.5, 0.5)
 		if(LIQUID_FIRE_STATE_MILD)
-			set_light_range(LIGHT_RANGE_FIRE)
+			set_light(2, 0.75)
 		if(LIQUID_FIRE_STATE_MEDIUM)
-			set_light_range(LIGHT_RANGE_FIRE)
+			set_light(2.5, 1)
 		if(LIQUID_FIRE_STATE_HUGE)
-			set_light_range(LIGHT_RANGE_FIRE)
+			set_light(LIGHT_RANGE_FIRE, 1.5)
 		if(LIQUID_FIRE_STATE_INFERNO)
-			set_light_range(LIGHT_RANGE_FIRE)
-	update_light()
+			set_light(4, LIGHT_POWER_FIRE)
 	update_icon(UPDATE_OVERLAYS)
 
-/obj/effect/abstract/liquid_turf/proc/get_burn_power(hotspotted = FALSE)
-	//We are not on fire and werent ignited by a hotspot exposure, no fire pls
+/**
+ * Returns the fire state this liquid's mix supports.
+ *
+ * A mix burns only while more than REQUIRED_FIRE_FLAMMABLE_SHARE of it is flammable and its power per unit
+ * beats REQUIRED_FIRE_POWER_PER_UNIT. Each state above small then needs both its LIQUID_FIRE_POWER_* power
+ * per unit and its LIQUID_FIRE_UNITS_* flammable units. Power per unit caps how fierce the mix burns, and the
+ * flammable units left shrink the fire as it burns out.
+ *
+ * Arguments:
+ * - hotspotted: TRUE when something is igniting us. Without it, a liquid that isn't burning stays out.
+ *
+ * Returns:
+ * - A LIQUID_FIRE_STATE_* define, LIQUID_FIRE_STATE_NONE when the liquid won't burn.
+ */
+/obj/effect/abstract/liquid_turf/proc/get_fire_state(hotspotted = FALSE)
 	if(!hotspotted && !fire_state)
-		return FALSE
+		return LIQUID_FIRE_STATE_NONE
 	var/total_burn_power = 0
-	var/datum/reagent/R //Faster declaration
-	for(var/reagent_type in reagent_list)
-		R = reagent_type
-		var/burn_power = initial(R.liquid_fire_power)
+	var/flammable_units = 0
+	for(var/reagent_type, volume in reagent_list)
+		var/datum/reagent/reagent_path = reagent_type
+		var/burn_power = initial(reagent_path.liquid_fire_power)
 		if(burn_power)
-			total_burn_power += burn_power * reagent_list[reagent_type]
-	if(!total_burn_power)
-		return FALSE
-	total_burn_power /= total_reagents //We get burn power per unit.
-	if(total_burn_power <= REQUIRED_FIRE_POWER_PER_UNIT)
-		return FALSE
-	//Finally, we burn
-	return total_burn_power
+			total_burn_power += burn_power * volume
+			flammable_units += volume
+	if(flammable_units <= total_reagents * REQUIRED_FIRE_FLAMMABLE_SHARE)
+		return LIQUID_FIRE_STATE_NONE
+	var/power_per_unit = total_burn_power / total_reagents
+	if(power_per_unit <= REQUIRED_FIRE_POWER_PER_UNIT)
+		return LIQUID_FIRE_STATE_NONE
+	if(power_per_unit >= LIQUID_FIRE_POWER_INFERNO && flammable_units >= LIQUID_FIRE_UNITS_INFERNO)
+		return LIQUID_FIRE_STATE_INFERNO
+	if(power_per_unit >= LIQUID_FIRE_POWER_HUGE && flammable_units >= LIQUID_FIRE_UNITS_HUGE)
+		return LIQUID_FIRE_STATE_HUGE
+	if(power_per_unit >= LIQUID_FIRE_POWER_MEDIUM && flammable_units >= LIQUID_FIRE_UNITS_MEDIUM)
+		return LIQUID_FIRE_STATE_MEDIUM
+	if(power_per_unit >= LIQUID_FIRE_POWER_MILD && flammable_units >= LIQUID_FIRE_UNITS_MILD)
+		return LIQUID_FIRE_STATE_MILD
+	return LIQUID_FIRE_STATE_SMALL
+
+/// Returns the temperature this liquid's fire exposes its tile and everything on it to.
+/obj/effect/abstract/liquid_turf/proc/get_fire_temperature()
+	switch(fire_state)
+		if(LIQUID_FIRE_STATE_HUGE)
+			return LIQUID_FIRE_TEMPERATURE_HUGE
+		if(LIQUID_FIRE_STATE_INFERNO)
+			return LIQUID_FIRE_TEMPERATURE_INFERNO
+	return (T20C + 50) + (50 * fire_state)
 
 /obj/effect/abstract/liquid_turf/extinguish()
 	. = ..()
 	if(fire_state)
 		set_fire_state(LIQUID_FIRE_STATE_NONE)
 
+/**
+ * Runs one fire run on this tile: spreads the fire, burns its fuel and heats the tile.
+ *
+ * Each flammable reagent uses up its liquid_fire_burnrate, then the fire state follows what's left.
+ * So the fire steps down as it burns out, and leaves processing once it's out.
+ */
 /obj/effect/abstract/liquid_turf/proc/process_fire()
-	if(!fire_state)
+	if(!fire_state || !check_fire())
 		SSliquids.processing_fire -= my_turf
-	var/old_state = fire_state
-	if(!check_fire())
-		SSliquids.processing_fire -= my_turf
+		return
 	//Try spreading
-	if(fire_state == old_state) //If an extinguisher made our fire smaller, dont spread, else it's too hard to put out
-		for(var/turf/adjacent_turf in my_turf.atmos_adjacent_turfs)
-			if(adjacent_turf.liquids && !adjacent_turf.liquids.fire_state && adjacent_turf.liquids.check_fire(TRUE))
-				SSliquids.processing_fire[adjacent_turf] = TRUE
+	for(var/turf/adjacent_turf in my_turf.atmos_adjacent_turfs)
+		if(adjacent_turf.liquids && !adjacent_turf.liquids.fire_state && adjacent_turf.liquids.check_fire(TRUE))
+			SSliquids.processing_fire[adjacent_turf] = TRUE
 	//Burn our resources
-	var/datum/reagent/reagent //Faster declaration
-	var/burn_rate
-	for(var/reagent_type in reagent_list)
-		reagent = reagent_type
-		burn_rate = initial(reagent.liquid_fire_burnrate)
-		if(burn_rate)
-			var/amt = reagent_list[reagent_type]
-			if(burn_rate >= amt)
-				reagent_list -= reagent_type
-				total_reagents -= amt
-			else
-				reagent_list[reagent_type] -= burn_rate
-				total_reagents -= burn_rate
+	for(var/reagent_type, volume in reagent_list)
+		var/datum/reagent/reagent_path = reagent_type
+		if(!initial(reagent_path.liquid_fire_power))
+			continue
+		var/burn_rate = initial(reagent_path.liquid_fire_burnrate)
+		if(burn_rate >= volume)
+			reagent_list -= reagent_type
+			total_reagents -= volume
+		else
+			reagent_list[reagent_type] -= burn_rate
+			total_reagents -= burn_rate
 
-	my_turf.hotspot_expose((T20C+50) + (50*fire_state), 125)
+	var/fire_temperature = get_fire_temperature()
+	my_turf.hotspot_expose(fire_temperature, 125)
 	for(var/atom/content in my_turf.contents)
 		if(!QDELETED(content))
-			content.fire_act((T20C+50) + (50*fire_state), 125)
+			content.fire_act(fire_temperature, 125)
 
 	if(reagent_list.len == 0)
 		qdel(src, TRUE)
+		return
+	has_cached_share = FALSE
+	if(my_turf.lgroup)
+		// The burn changed our mix, so the group reshares and remixes its colour.
+		my_turf.lgroup.dirty = TRUE
+		my_turf.lgroup.invalidate_cached_mix()
 	else
-		has_cached_share = FALSE
-		if(!my_turf.lgroup)
-			calculate_height()
-			set_reagent_color_for_liquid()
+		calculate_height()
+		set_reagent_color_for_liquid()
+	// Step down now, so the smallest flames still show before the fuel is gone.
+	if(!check_fire())
+		SSliquids.processing_fire -= my_turf
 
 /obj/effect/abstract/liquid_turf/proc/process_evaporation()
 	if(immutable)
@@ -354,21 +383,10 @@
 /obj/effect/abstract/liquid_turf/proc/calculate_height()
 	var/new_height = ceil(total_reagents)/LIQUID_HEIGHT_DIVISOR
 	set_height(new_height)
-	var/determined_new_state
 	//We add the turf height if it's positive to state calculations
 	if(my_turf.turf_height > 0)
 		new_height += my_turf.turf_height
-	switch(new_height)
-		if(0 to LIQUID_ANKLES_LEVEL_HEIGHT-1)
-			determined_new_state = LIQUID_STATE_PUDDLE
-		if(LIQUID_ANKLES_LEVEL_HEIGHT to LIQUID_WAIST_LEVEL_HEIGHT-1)
-			determined_new_state = LIQUID_STATE_ANKLES
-		if(LIQUID_WAIST_LEVEL_HEIGHT to LIQUID_SHOULDERS_LEVEL_HEIGHT-1)
-			determined_new_state = LIQUID_STATE_WAIST
-		if(LIQUID_SHOULDERS_LEVEL_HEIGHT to LIQUID_FULLTILE_LEVEL_HEIGHT-1)
-			determined_new_state = LIQUID_STATE_SHOULDERS
-		if(LIQUID_FULLTILE_LEVEL_HEIGHT to INFINITY)
-			determined_new_state = LIQUID_STATE_FULLTILE
+	var/determined_new_state = get_liquid_state_for_height(new_height)
 	if(determined_new_state != liquid_state)
 		set_new_liquid_state(determined_new_state)
 		alpha = SSliquids.get_pool_alpha(liquid_state, reagent_opacity)
@@ -376,20 +394,21 @@
 /obj/effect/abstract/liquid_turf/immutable/calculate_height()
 	var/new_height = ceil(total_reagents)/LIQUID_HEIGHT_DIVISOR
 	set_height(new_height)
-	var/determined_new_state
-	switch(new_height)
-		if(0 to LIQUID_ANKLES_LEVEL_HEIGHT-1)
-			determined_new_state = LIQUID_STATE_PUDDLE
-		if(LIQUID_ANKLES_LEVEL_HEIGHT to LIQUID_WAIST_LEVEL_HEIGHT-1)
-			determined_new_state = LIQUID_STATE_ANKLES
-		if(LIQUID_WAIST_LEVEL_HEIGHT to LIQUID_SHOULDERS_LEVEL_HEIGHT-1)
-			determined_new_state = LIQUID_STATE_WAIST
-		if(LIQUID_SHOULDERS_LEVEL_HEIGHT to LIQUID_FULLTILE_LEVEL_HEIGHT-1)
-			determined_new_state = LIQUID_STATE_SHOULDERS
-		if(LIQUID_FULLTILE_LEVEL_HEIGHT to INFINITY)
-			determined_new_state = LIQUID_STATE_FULLTILE
+	var/determined_new_state = get_liquid_state_for_height(new_height)
 	if(determined_new_state != liquid_state)
 		set_new_liquid_state(determined_new_state)
+
+/// Returns the LIQUID_STATE_* depth for a liquid height, fractions included, from a puddle up to a full tile.
+/obj/effect/abstract/liquid_turf/proc/get_liquid_state_for_height(state_height)
+	if(state_height < LIQUID_ANKLES_LEVEL_HEIGHT)
+		return LIQUID_STATE_PUDDLE
+	if(state_height < LIQUID_WAIST_LEVEL_HEIGHT)
+		return LIQUID_STATE_ANKLES
+	if(state_height < LIQUID_SHOULDERS_LEVEL_HEIGHT)
+		return LIQUID_STATE_WAIST
+	if(state_height < LIQUID_FULLTILE_LEVEL_HEIGHT)
+		return LIQUID_STATE_SHOULDERS
+	return LIQUID_STATE_FULLTILE
 
 /obj/effect/abstract/liquid_turf/proc/set_height(new_height)
 	var/prev_height = height
@@ -462,7 +481,7 @@
 		if(prob(7) && !(L.movement_type & FLYING))
 			L.slip(1 SECONDS, T, NO_SLIP_WHEN_WALKING, 2 SECONDS, TRUE)
 	if(fire_state)
-		AM.fire_act((T20C+50) + (50*fire_state), 125)
+		AM.fire_act(get_fire_temperature(), 125)
 
 /obj/effect/abstract/liquid_turf/proc/mob_fall(datum/source, mob/M)
 	SIGNAL_HANDLER

@@ -115,13 +115,13 @@ SUBSYSTEM_DEF(liquids)
 	if(run_type == SSLIQUIDS_RUN_TYPE_FIRE)
 		fire_counter++
 		if(fire_counter >= REQUIRED_FIRE_PROCESSES)
+			fire_counter = 0
 			for(var/t in processing_fire)
 				var/turf/T = t
 				T.liquids.process_fire()
 			if(MC_TICK_CHECK)
 				return
 			resumed = FALSE
-			fire_counter = 0
 		run_type = SSLIQUIDS_RUN_TYPE_TURFS
 
 /datum/controller/subsystem/liquids/proc/add_active_turf(turf/T)

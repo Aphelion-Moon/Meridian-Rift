@@ -30,6 +30,12 @@ GLOBAL_VAR_INIT(liquid_debug_colors, FALSE)
 		amount_of_active_turfs++
 	if(T.liquids)
 		T.liquids.has_cached_share = FALSE
+		invalidate_cached_mix()
+
+/// Drops the cached colour and opacity once new reagents join the group, so the next share remixes them.
+/datum/liquid_group/proc/invalidate_cached_mix()
+	cached_color = null
+	cached_opacity = null
 
 /datum/liquid_group/proc/remove_from_group(turf/T)
 	members -= T
@@ -59,6 +65,7 @@ GLOBAL_VAR_INIT(liquid_debug_colors, FALSE)
 			T.liquids.has_cached_share = FALSE
 	otherg.members = list()
 	qdel(otherg)
+	invalidate_cached_mix()
 	share()
 
 /datum/liquid_group/proc/break_group()

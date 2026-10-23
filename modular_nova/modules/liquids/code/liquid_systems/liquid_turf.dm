@@ -202,6 +202,7 @@
 	SSliquids.add_active_turf(src)
 	if(lgroup)
 		lgroup.dirty = TRUE
+		lgroup.invalidate_cached_mix()
 
 /turf/proc/add_liquid(reagent, amount, no_react = FALSE, chem_temp = 300)
 	if(!liquids)
@@ -240,6 +241,7 @@
 	SSliquids.add_active_turf(src)
 	if(lgroup)
 		lgroup.dirty = TRUE
+		lgroup.invalidate_cached_mix()
 
 /turf/proc/can_share_liquids_with(turf/T)
 	if(T.z != z) //No Z here handling currently
