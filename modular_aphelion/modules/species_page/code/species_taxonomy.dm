@@ -4,35 +4,45 @@
  * holiday, whatever this says. See /datum/species/proc/get_species_family().
  */
 GLOBAL_LIST_INIT(species_page_families, list(
+	//Mammals proper. Wow!
 	/datum/species/human = /datum/species_family/mammalian,
 	/datum/species/dwarf = /datum/species_family/mammalian,
 	/datum/species/tajaran = /datum/species_family/mammalian,
 	/datum/species/vulpkanin = /datum/species_family/mammalian,
 	/datum/species/shadekin = /datum/species_family/mammalian,
+	//Reptiles, now.
 	/datum/species/lizard = /datum/species_family/reptilian,
 	/datum/species/unathi = /datum/species_family/reptilian,
 	/datum/species/monkey/kobold = /datum/species_family/reptilian,
+	//Avians.
 	/datum/species/vox = /datum/species_family/avian,
 	/datum/species/vox_primalis = /datum/species_family/avian,
 	/datum/species/teshari = /datum/species_family/avian,
+	/datum/species/gypak = /datum/species_family/avian,
+	//Aquatics. Mammalian aquatics included, I guess.
 	/datum/species/akula = /datum/species_family/aquatic,
 	/datum/species/skrell = /datum/species_family/aquatic,
+	//Bawgs. Bawgy folks.
 	/datum/species/insectoid = /datum/species_family/insectoid,
 	/datum/species/fly = /datum/species_family/insectoid,
 	/datum/species/moth = /datum/species_family/insectoid,
+	//Robots / adjacent.
 	/datum/species/synthetic/holosynth = /datum/species_family/synthetic,
 	/datum/species/protean = /datum/species_family/synthetic,
 	/datum/species/android = /datum/species_family/synthetic,
+	//Freaks of nature.
 	/datum/species/ethereal = /datum/species_family/elemental,
 	/datum/species/golem = /datum/species_family/elemental,
 	/datum/species/plasmaman = /datum/species_family/elemental,
 	/datum/species/pod = /datum/species_family/elemental,
+	//Freaks of nature, the sequel.
 	/datum/species/xeno = /datum/species_family/xenobiological,
 	/datum/species/jelly = /datum/species_family/xenobiological,
 	/datum/species/snail = /datum/species_family/xenobiological,
 	/datum/species/abductor = /datum/species_family/xenobiological,
-	/datum/species/dullahan = /datum/species_family/xenobiological,
-	/datum/species/ghoul = /datum/species_family/xenobiological,
+	/datum/species/dullahan = /datum/species_family/xenobiological,//You really do not belong here, but, alas...
+	/datum/species/ghoul = /datum/species_family/xenobiological,//I'd also call you DEAD. Oh my lord.
+	//Freaks of nature, the reprisals. Aren't these all disabled, more-or-less?
 	/datum/species/skeleton = /datum/species_family/paranormal,
 	/datum/species/zombie = /datum/species_family/paranormal,
 	/datum/species/mutant = /datum/species_family/paranormal,

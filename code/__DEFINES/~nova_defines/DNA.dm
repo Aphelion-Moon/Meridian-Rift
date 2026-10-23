@@ -221,6 +221,7 @@
 #define SPECIES_SHADEKIN "shadekin"
 #define SPECIES_INSECTOID "insectoid"
 #define SPECIES_HOLOSYNTH "holosynth"
+#define SPECIES_GYPAK "gypak"//In the absence of a better place to put this, it goes here for now. No Meridian defines yet.
 
 #define SPECIES_MUTANT "mutant"
 #define SPECIES_MUTANT_INFECTIOUS "infectious_mutant"
