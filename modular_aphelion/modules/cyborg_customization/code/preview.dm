@@ -86,7 +86,7 @@
 /// Only a temporary serialization buffer exists; the round retains the file resource.
 /datum/asset/cyborg_model_gallery/proc/json_resource(list/data)
 	var/static/file_serial = 0
-	var/filename = "data/cyborg-gallery-[world.process]-[++file_serial].json"
+	var/filename = "data/cyborg-gallery-[world.port]-[++file_serial].json"
 	var/resource
 	var/exception/failure
 	try

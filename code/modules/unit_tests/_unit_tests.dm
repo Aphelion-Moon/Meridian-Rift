@@ -164,6 +164,9 @@
 #include "crafting.dm"
 #include "crayons.dm"
 #include "create_and_destroy.dm"
+// APHELION EDIT ADDITION START
+#include "cyborg_occlusion.dm"
+// APHELION EDIT ADDITION END
 #include "damp_rag.dm"
 #include "dcs_check_list_arguments.dm"
 #include "dcs_get_id_from_elements.dm"
@@ -393,7 +396,6 @@
 #include "~nova\cyborg_appearance.dm"
 #include "~nova\cyborg_customization.dm"
 #include "~nova\cyborg_storage.dm"
-#include "cyborg_occlusion.dm" // APHELION EDIT ADDITION - cyborg round resource and early initialization regressions
 #include "~nova\digi_underclothes.dm"
 #include "~nova\digitigrade_legs.dm"
 #include "~nova\language_understanding.dm"

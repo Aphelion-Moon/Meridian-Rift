@@ -191,7 +191,7 @@
 		var/exception/failure
 		SSasset_loading.assets_generating++
 		try
-			var/prefix = "tmp/cyborg-occlusion-[world.process]-[world.realtime]-[job_serial]"
+			var/prefix = "tmp/cyborg-occlusion-[world.port]-[world.realtime]-[job_serial]"
 			resource = generate_model(model_sources[key], prefix, temporary_files)
 			if(!resource)
 				throw EXCEPTION("Cyborg occlusion generation produced no resource for [key]")
@@ -272,7 +272,7 @@
 		var/mask_state = mask["states"]["[state["mask_state"]]#[state["moving"]]"]
 		entries["state[index]"] = cyborg_occlusion_recipe(file(body_path), "state[index]", mask["file"], mask_state)
 	// One asynchronous IconForge job contains only this requested model.
-	var/output_name = "cyborg-occlusion-[world.process]-[world.realtime]-[job_serial]-output"
+	var/output_name = "cyborg-occlusion-[world.port]-[world.realtime]-[job_serial]-output"
 	var/size = "[model["width"]]x[model["height"]]"
 	var/output_path = "tmp/[output_name]_[size].dmi"
 	temporary_files += output_path
