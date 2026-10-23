@@ -108,6 +108,7 @@
 	report.busy = TRUE
 	report.begin_ui_capture(window.id)
 	report.choose_screenshot()
+	report.begin_view_capture()
 	report.remove_picture(picture.id)
 	report.picture_consent(picture.id, TRUE)
 	TEST_ASSERT_EQUAL(length(report.calls), 0, "A busy report started a bridge call")
@@ -569,6 +570,44 @@
 	report.replies = null
 	report.remove_picture(unconfirmed.id)
 	TEST_ASSERT((unconfirmed in report.pictures) && findtext(report.status, "still attached"), "A removal the bridge didn't confirm dropped the picture")
+
+/// The in-game capture waits between captures, holds to two across the server, says when there's nothing to see, and renders the view it sees
+/datum/unit_test/bug_report_view
+
+/datum/unit_test/bug_report_view/Run()
+	var/datum/bug_report/test/report = bug_report_test_report(src)
+	report.begin_view_capture()
+	TEST_ASSERT_EQUAL(LAZYLEN(report.pictures), 1, "An in-game capture with nothing in view left no card")
+	var/datum/bug_report_picture/picture = report.pictures[1]
+	TEST_ASSERT(picture.reason == "nothing" && picture.window_data()["state"] == "failed", "Nothing in view didn't say so")
+	TEST_ASSERT(!report.busy && !length(report.calls), "Nothing in view left the report busy or uploaded something")
+	report.begin_view_capture(picture.id)
+	TEST_ASSERT_EQUAL(report.status, "Give it a few seconds before the next capture.", "A second capture inside the wait didn't say to wait")
+	COOLDOWN_RESET(report, view_cooldown)
+	GLOB.bug_report_renders = 2
+	report.begin_view_capture(picture.id)
+	GLOB.bug_report_renders = 0
+	TEST_ASSERT_EQUAL(report.status, "Lots of captures are running right now. Try again in a moment.", "A third render at once across the server didn't say to wait")
+	TEST_ASSERT_EQUAL(picture.reason, "nothing", "A refused capture changed the picture")
+
+	var/datum/bug_report/test/viewer = bug_report_test_report(src)
+	var/datum/client_interface/bug_report/reporter = viewer.owner
+	reporter.eye = run_loc_floor_bottom_left
+	reporter.view = "5x5"
+	viewer.replies = list(list("attachment" = list("id" = "view", "state" = "processing", "publicConsent" = FALSE)))
+	viewer.begin_view_capture()
+	TEST_ASSERT_EQUAL(length(viewer.calls), 1, "The in-game capture wasn't uploaded once")
+	var/list/upload = viewer.calls[1]
+	TEST_ASSERT(upload["file_existed"] && upload["headers"]["x-report-source"] == "view" && upload["headers"]["x-report-encoding"] == "", "The in-game capture didn't go up as a view's image")
+	TEST_ASSERT_EQUAL(GLOB.bug_report_renders, 0, "A finished render kept its slot")
+	var/datum/bug_report_picture/rendered = viewer.pictures[1]
+	TEST_ASSERT(rendered.attachment_id == "view" && rendered.take == 1 && !viewer.busy, "The in-game capture's image wasn't taken")
+
+	var/datum/bug_report/test/capturer = bug_report_test_report(src)
+	for(var/capture in 1 to 30)
+		bug_report_budget(capturer.context["ckey"], "captures")
+	capturer.begin_view_capture()
+	TEST_ASSERT(findtext(capturer.status, "30 captures this hour") && !capturer.pictures, "An in-game capture past the service's hourly cap went ahead")
 
 /// The service's waits reach the window counted from now, and a submission it refuses for its pictures stops and catches up
 /datum/unit_test/bug_report_service_answers

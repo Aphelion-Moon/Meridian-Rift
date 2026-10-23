@@ -7386,6 +7386,7 @@
 #include "modular_aphelion\modules\bug_reporting\code\bug_reporting_capture.dm"
 #include "modular_aphelion\modules\bug_reporting\code\bug_reporting_context.dm"
 #include "modular_aphelion\modules\bug_reporting\code\bug_reporting_screenshot.dm"
+#include "modular_aphelion\modules\bug_reporting\code\bug_reporting_view.dm"
 #include "modular_aphelion\modules\bulge\code\adaptive_colour.dm"
 #include "modular_aphelion\modules\bulge\code\bulge.dm"
 #include "modular_aphelion\modules\bulge\code\colour_cache.dm"

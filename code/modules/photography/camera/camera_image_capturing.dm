@@ -14,8 +14,8 @@
 
 #define PHYSICAL_POSITION(atom) ((atom.y * ICON_SIZE_Y) + (atom.pixel_y))
 
-/obj/item/camera/proc/camera_get_icon(list/turfs, turf/center, datum/turf_reservation/clone_area)
-	PRIVATE_PROC(TRUE)
+/obj/item/camera/proc/camera_get_icon(list/turfs, turf/center, datum/turf_reservation/clone_area, yield_while_cloning = FALSE) // APHELION EDIT CHANGE - bug reports' in-game captures clone a whole view, more than a tick's work. ORIGINAL: /obj/item/camera/proc/camera_get_icon(list/turfs, turf/center, datum/turf_reservation/clone_area)
+	PROTECTED_PROC(TRUE) // APHELION EDIT CHANGE - bug reports' in-game capture camera renders a reporter's view with it. ORIGINAL: PRIVATE_PROC(TRUE)
 
 	var/list/atoms = list()
 	var/list/lighting = list()
@@ -51,6 +51,10 @@
 					atoms += new /obj/effect/appearance_clone(newT, found_atom)
 			else if(!found_atom.invisibility || (see_ghosts && isobserver(found_atom)))
 				atoms += new /obj/effect/appearance_clone(newT, found_atom)
+		// APHELION EDIT ADDITION START - bug reports' in-game captures yield between turfs, photos keep cloning in one go
+		if(yield_while_cloning)
+			CHECK_TICK
+		// APHELION EDIT ADDITION END
 	skip_normal = TRUE
 	wipe_atoms = TRUE
 	center = locate(cloned_center_x, cloned_center_y, bottom_left.z)

@@ -795,7 +795,7 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 	if(busy)
 		return
 	switch(action)
-		if("submit", "screenshot", "capture_ui", "keep")
+		if("submit", "screenshot", "capture_ui", "capture_view", "keep")
 			// Never take report ids, context or identity from the page, only its text and choices
 			if(!update_local_fields(params["fields"], params["fieldsEpoch"], action == "submit"))
 				return TRUE
@@ -812,6 +812,8 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 					INVOKE_ASYNC(src, PROC_REF(choose_screenshot), params["replace"])
 				if("capture_ui")
 					INVOKE_ASYNC(src, PROC_REF(begin_ui_capture), params["windowId"], params["replace"])
+				if("capture_view")
+					INVOKE_ASYNC(src, PROC_REF(begin_view_capture), params["replace"])
 			return TRUE
 		if("reload")
 			return resolve_draft(FALSE)
