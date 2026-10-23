@@ -1,10 +1,5 @@
 /obj/item/organ/pod_hair
-	name = "podperson hair"
-	desc = "Base for many-o-salads."
 	mutantpart_key = FEATURE_POD_HAIR
-	zone = BODY_ZONE_HEAD
-	slot = ORGAN_SLOT_EXTERNAL_POD_HAIR
-	bodypart_overlay = /datum/bodypart_overlay/mutant/pod_hair
 
 /datum/bodypart_overlay/mutant/pod_hair
 	layers = list(
@@ -13,7 +8,6 @@
 	)
 	color_swapped_layer = EXTERNAL_FRONT_OVER
 	color_source = ORGAN_COLOR_OVERRIDE
-	offset_location = ENTIRE_BODY
 
 /datum/bodypart_overlay/mutant/pod_hair/override_color(rgb_value)
 	return draw_color
