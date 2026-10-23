@@ -129,19 +129,27 @@
 	melee = 10
 	bullet = 10
 
+/datum/atom_skin/furcoat
+	abstract_type = /datum/atom_skin/furcoat
+
+/datum/atom_skin/furcoat/brown
+	preview_name = "Brown Fur Coat"
+	new_icon_state = "winter_coat"
+
+/datum/atom_skin/furcoat/white
+	preview_name = "White Fur Coat"
+	new_icon_state = "winter_coat_white"
+
+/datum/atom_skin/furcoat/cream
+	preview_name = "Cream Fur Coat"
+	new_icon_state = "winter_coat_cream"
+
 /obj/item/clothing/suit/brownfurrich/public
 	name = "fur coat"
 	desc = "A lavishly cosy furr coat, made with 100% recycled carbon!"
 
-/obj/item/clothing/suit/brownfurrich/white
-	name = "white fur coat"
-	desc = "A lavishly cosy furr coat, made with 100% recycled carbon!"
-	icon_state = "winter_coat_white"
-
-/obj/item/clothing/suit/brownfurrich/cream
-	name = "cream fur coat"
-	desc = "A lavishly cosy furr coat, made with 100% recycled carbon!"
-	icon_state = "winter_coat_cream"
+/obj/item/clothing/suit/brownfurrich/public/setup_reskins()
+	AddComponent(/datum/component/reskinable_item, /datum/atom_skin/furcoat)
 
 /obj/item/clothing/suit/fallsparka
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits.dmi'
