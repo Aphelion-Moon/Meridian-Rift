@@ -60,7 +60,7 @@ Adding a printable means adding a `/datum/design/admin` subtype in admin_techweb
 
 admin_robots.dm holds the walker models, and admin_robot_items.dm holds the cyborg-only gear they use.
 
-- The Central Command, Frontline, Backline and Technical walkers can be piloted by players. Nothing in their kits may be gated behind `client.holder` or the admin firing pin, and each specialist should out-equip a fully upgraded station cyborg of the same job.
+- The Central Command, Frontline, Backline and Technical walkers can be piloted by players. Their equipment must have player-usable primary functions; optional staff-only modes remain restricted. Each specialist should out-equip a fully upgraded station cyborg of the same job.
 - The Bluespace and Subspace walkers are the admin walkers. They carry the admin tool set, holder-gated items included.
 - None of the walkers use syndicate gear. The CC hypospray, paddles, RCD, radio, pinpointer, pulse carbine and sequencer in admin_robot_items.dm replace it.
 

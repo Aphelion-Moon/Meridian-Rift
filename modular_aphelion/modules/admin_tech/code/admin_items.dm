@@ -2501,10 +2501,6 @@ GLOBAL_LIST_INIT(subspace_ballmatter_spheres, list(
 	buffer_slots = list("Slot 1" = null, "Slot 2" = null, "Slot 3" = null, "Slot 4" = null, "Slot 5" = null, "Slot 6" = null, "Slot 7" = null)// seven fits a radial
 
 /obj/item/multitool/admin/Destroy()
-	for(var/slot_name in buffer_slots)
-		var/datum/stored = buffer_slots[slot_name]
-		if(stored)
-			UnregisterSignal(stored, COMSIG_QDELETING)
 	buffer_slots = null
 	return ..()
 
@@ -2513,12 +2509,14 @@ GLOBAL_LIST_INIT(subspace_ballmatter_spheres, list(
 	. += span_notice("Use in hand to switch between its [length(buffer_slots)] buffer slots. Currently on [active_slot].")
 
 /obj/item/multitool/admin/set_buffer(datum/new_buffer)
-	. = ..()
-	if(buffer_slots[active_slot])
-		UnregisterSignal(buffer_slots[active_slot], COMSIG_QDELETING)
-	buffer_slots[active_slot] = buffer
-	if(buffer)
-		RegisterSignal(buffer, COMSIG_QDELETING, PROC_REF(on_slot_buffer_deleted))
+	var/datum/old_buffer = buffer
+	if(old_buffer)
+		remove_buffer(old_buffer)
+	buffer_slots[active_slot] = buffer = new_buffer
+	if(old_buffer && !(old_buffer in assoc_to_values(buffer_slots)))
+		UnregisterSignal(old_buffer, COMSIG_QDELETING)
+	if(!QDELETED(buffer))
+		RegisterSignal(buffer, COMSIG_QDELETING, PROC_REF(on_slot_buffer_deleted), override = TRUE)
 
 /obj/item/multitool/admin/proc/on_slot_buffer_deleted(datum/source)
 	SIGNAL_HANDLER
@@ -2526,7 +2524,7 @@ GLOBAL_LIST_INIT(subspace_ballmatter_spheres, list(
 		if(buffer_slots[slot_name] == source)
 			buffer_slots[slot_name] = null
 	if(buffer == source)
-		buffer = null
+		remove_buffer(source)
 
 /obj/item/multitool/admin/attack_self(mob/user, list/modifiers)
 	var/list/choices = list()

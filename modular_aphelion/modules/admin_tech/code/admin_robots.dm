@@ -22,9 +22,8 @@
 // TODO: Explore more borg hands? How many hands can a borg reasonably have?
 // Baseline CC model, total generalist. Can do a bit of everything but lacks specialized tools.
 // When you need a general ERT or CC Borg, pick this.
-// The CC walkers (this one, Frontline, Backline, Technical) are meant to be piloted by players, so their kits avoid anything
-// gated behind client.holder. Each specialist should also out-equip a fully upgraded station cyborg of the same job.
-// The gated admin tools live on the Bluespace and Subspace walkers instead. CC-only cyborg gear is in admin_robot_items.dm.
+// The CC walkers (this one, Frontline, Backline, Technical) have player-usable kits; some tools retain optional staff-only modes.
+// Each specialist should out-equip a fully upgraded station cyborg of the same job. CC-only gear is in admin_robot_items.dm.
 /obj/item/robot_model/admin
 	name = "Central Command"
 	basic_modules = list(
@@ -426,22 +425,13 @@
 	)
 	radio_channels = list(RADIO_CHANNEL_COMMAND, RADIO_CHANNEL_MEDICAL)
 	model_traits = list(TRAIT_NEGATES_GRAVITY, TRAIT_PUSHIMMUNE, TRAIT_FASTMED)
-	var/datum/weakref/crew_monitor_ref
-
-/obj/item/robot_model/admin/backline/Destroy(force)
-	var/datum/action/crew_monitor = crew_monitor_ref?.resolve()
-	qdel(crew_monitor)
-	crew_monitor_ref = null
-	return ..()
 
 /obj/item/robot_model/admin/backline/be_transformed_to(obj/item/robot_model/old_model, forced = FALSE)
 	. = ..()
 	if(!.)
 		return FALSE
-	var/mob/living/silicon/robot/borg = loc
-	var/datum/action/cooldown/borg_crew_monitor/crew_monitor = new(borg)
-	crew_monitor.Grant(borg)
-	crew_monitor_ref = WEAKREF(crew_monitor)
+	var/datum/action/cooldown/borg_crew_monitor/crew_monitor = new(src)
+	crew_monitor.Grant(robot)
 
 // The mob for the walker itself.
 /mob/living/silicon/robot/model/admin/backline
