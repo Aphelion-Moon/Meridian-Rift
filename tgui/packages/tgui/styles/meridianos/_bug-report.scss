@@ -1,0 +1,846 @@
+// THIS IS AN APHELION UI FILE
+// The report window (interfaces/BugReport): short pages in every theme, tokens only.
+@use 'sass:map';
+
+// The theme tokens each colour role reads, so every rule below is written once
+// and stays a single var() deep, which the contrast tests can compute.
+$console-roles: (
+  'text': --console-text-primary,
+  'muted': --console-text-secondary,
+  'line': --console-border-control,
+  'subtle': --console-border-subtle,
+  'raised': --console-surface-raised,
+  'recessed': --console-surface-recessed,
+  'canvas': --console-surface-canvas,
+  'accent': --console-interaction-accent,
+  'focus': --console-interaction-focus,
+  'info': --console-status-information,
+  'good': --console-status-success,
+  'warning': --console-status-warning,
+  'danger': --console-status-danger,
+);
+// Classic wears nanotrasen's paint, so it reads tgui's own variables.
+$classic-roles: (
+  'text': --color-text,
+  'muted': --color-label,
+  'line': --color-border-primary,
+  'subtle': --color-border,
+  'raised': --color-section,
+  'recessed': --color-base,
+  'canvas': --color-base,
+  'accent': --color-primary,
+  'focus': --color-text,
+  'info': --color-primary,
+  'good': --color-good,
+  'warning': --color-average,
+  'danger': --color-bad,
+);
+
+@function role($roles, $name) {
+  @return var(#{map.get($roles, $name)});
+}
+
+.BugReport {
+  // The page, header and footer are three Sections in a column, the page the one that scrolls
+  .BugReport__header,
+  .BugReport__footer {
+    margin-bottom: 0;
+  }
+
+  .BugReport__header .Section__content,
+  .BugReport__footer .Section__content {
+    padding: var(--space-m) var(--space-l);
+  }
+
+  .BugReport__steps {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s);
+  }
+
+  .BugReport__strip {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-s);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .BugReport__stripItem {
+    display: flex;
+    min-width: 0;
+  }
+
+  // Done, current and to-do share one box, so the strip never jumps between pages
+  .BugReport__step.Button {
+    display: flex;
+    width: 100%;
+    min-height: 28px;
+    margin: 0;
+    padding: 0 var(--space-m);
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    line-height: 1.2;
+    white-space: normal;
+
+    > .Button__content {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-s);
+    }
+  }
+
+  .BugReport__step--current,
+  .BugReport__step--todo {
+    cursor: default;
+    pointer-events: none;
+  }
+
+  .BugReport__step--current {
+    font-weight: 700;
+  }
+
+  .BugReport__stepNumber {
+    flex: none;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .BugReport__stepLabel {
+    min-width: 0;
+    text-align: center;
+  }
+
+  .BugReport__stepOf {
+    font-size: 12px;
+  }
+
+  .BugReport__pageBody {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+    padding: var(--space-s) var(--space-xs);
+  }
+
+  .BugReport__heading {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.2;
+    text-transform: none;
+    letter-spacing: normal;
+  }
+
+  .BugReport__field {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: var(--space-s);
+  }
+
+  .BugReport__label {
+    font-weight: 700;
+  }
+
+  .BugReport__optional {
+    font-weight: 400;
+  }
+
+  // tgui's Input box, as a plain element so the page owns Enter and the labels
+  .BugReport__input,
+  .BugReport__textarea {
+    width: 100%;
+    min-height: 30px;
+    box-sizing: border-box;
+    padding: var(--space-xs) var(--space-m);
+    font: inherit;
+    line-height: 1.4;
+  }
+
+  .BugReport__textarea {
+    display: block;
+    resize: vertical;
+  }
+
+  .BugReport__count {
+    min-height: 1em;
+    font-size: 12px;
+  }
+
+  .BugReport__error {
+    display: flex;
+    gap: var(--space-s);
+    align-items: flex-start;
+    padding-left: var(--space-m);
+    border-left: 4px solid;
+    font-weight: 700;
+  }
+
+  .BugReport__errorIcon,
+  .BugReport__noticeIcon,
+  .BugReport__feedbackIcon {
+    flex: none;
+    margin-top: 2px;
+  }
+
+  .BugReport__sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .BugReport__notice,
+  .BugReport__summary {
+    display: flex;
+    gap: var(--space-m);
+    align-items: flex-start;
+    padding: var(--space-m) var(--space-l);
+    border: 1px solid;
+    border-left-width: 4px;
+  }
+
+  .BugReport__summary {
+    flex-direction: column;
+    border-width: 2px;
+  }
+
+  .BugReport__noticeBody {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: var(--space-s);
+  }
+
+  .BugReport__noticeTitle,
+  .BugReport__summaryTitle {
+    display: flex;
+    gap: var(--space-s);
+    align-items: center;
+    margin: 0;
+    font-size: 14px;
+    text-transform: none;
+    letter-spacing: normal;
+  }
+
+  .BugReport__summaryList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    margin: 0;
+    padding-left: 22px;
+  }
+
+  // A link-looking button, for the summary and the notices pointing at a field
+  .BugReport__link {
+    min-height: 24px;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    text-align: left;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .BugReport__feedback {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s);
+    padding-left: var(--space-m);
+    border-left: 3px solid;
+  }
+
+  .BugReport__feedbackMessage {
+    display: flex;
+    gap: var(--space-s);
+  }
+
+  .BugReport__stepList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .BugReport__stepRow {
+    display: flex;
+    gap: var(--space-m);
+    align-items: center;
+  }
+
+  .BugReport__stepNo {
+    flex: none;
+    min-width: 22px;
+    font-weight: 700;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .BugReport__stepInput {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .BugReport__removeStep.Button {
+    flex: none;
+    min-width: 28px;
+    min-height: 28px;
+    margin: 0;
+  }
+
+  .BugReport__choices {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .BugReport__choices > legend {
+    margin-bottom: var(--space-m);
+    padding: 0;
+  }
+
+  .BugReport__chips {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+    gap: var(--space-m);
+  }
+
+  .BugReport__chips--rows {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .BugReport__chip {
+    display: flex;
+    min-height: 32px;
+    box-sizing: border-box;
+    gap: var(--space-m);
+    align-items: center;
+    padding: var(--space-xs) var(--space-l);
+    border: 1px solid;
+    cursor: pointer;
+  }
+
+  .BugReport__chip--on {
+    border-width: 2px;
+    font-weight: 700;
+  }
+
+  .BugReport__chipIcon,
+  .BugReport__chipCheck,
+  .BugReport__meter {
+    flex: none;
+  }
+
+  .BugReport__chipLabel {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .BugReport__meter rect {
+    fill: none;
+    stroke: currentColor;
+  }
+
+  .BugReport__meter .BugReport__meterOn {
+    fill: currentColor;
+  }
+
+  .BugReport__review {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+  }
+
+  .BugReport__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 2px var(--space-l);
+    padding: var(--space-m) 0;
+    border-bottom: 1px solid;
+  }
+
+  .BugReport__rowLabel {
+    grid-column: 1;
+    font-size: 12px;
+  }
+
+  .BugReport__rowValue {
+    display: -webkit-box;
+    grid-column: 1;
+    margin: 0;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  .BugReport__rowValue--lines {
+    white-space: pre-line;
+  }
+
+  .BugReport__rowAction {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+  }
+
+  .BugReport__public {
+    display: flex;
+    gap: var(--space-m);
+    align-items: flex-start;
+    margin: 0;
+  }
+
+  .BugReport__publicIcon {
+    flex: none;
+    margin-top: 2px;
+  }
+
+  .BugReport__state {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-l);
+    align-items: center;
+    padding: var(--space-xl) var(--space-m);
+    text-align: center;
+  }
+
+  .BugReport__state .BugReport__notice {
+    width: 100%;
+    box-sizing: border-box;
+    text-align: left;
+  }
+
+  .BugReport__stateText {
+    max-width: 40ch;
+    margin: 0;
+  }
+
+  .BugReport__doneIcon {
+    font-size: 64px;
+  }
+
+  .BugReport__waiting {
+    display: flex;
+    gap: var(--space-s);
+    align-items: center;
+  }
+
+  .BugReport__small {
+    margin: 0;
+    font-size: 12px;
+  }
+
+  .BugReport__ticks {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s);
+  }
+
+  // A tick's whole row takes the click, so the target is the row and not the box
+  .BugReport__tick {
+    display: flex;
+    min-height: 24px;
+    gap: var(--space-l);
+    align-items: flex-start;
+    padding: var(--space-xs) var(--space-m);
+    cursor: pointer;
+  }
+
+  .BugReport__tick--nested,
+  .BugReport__nested {
+    padding-left: 30px;
+  }
+
+  .BugReport__tick--locked {
+    cursor: default;
+  }
+
+  .BugReport__checkbox {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin: 2px 0 0;
+    cursor: inherit;
+  }
+
+  .BugReport__tickText {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+    overflow-wrap: anywhere;
+  }
+
+  .BugReport__tickLabel {
+    display: flex;
+    gap: var(--space-s);
+    align-items: center;
+    font-weight: 700;
+  }
+
+  .BugReport__windows {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+
+    > legend {
+      padding: 0 0 0 var(--space-m);
+    }
+
+    > .BugReport__hint {
+      padding-left: var(--space-m);
+    }
+  }
+
+  .BugReport__limitLine {
+    display: flex;
+    gap: var(--space-s);
+    padding-left: var(--space-m);
+  }
+
+  .BugReport__shots {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-m);
+    padding-top: var(--space-m);
+    border-top: 1px solid;
+  }
+
+  .BugReport__disclosure {
+    display: flex;
+    width: 100%;
+    min-height: 32px;
+    gap: var(--space-m);
+    align-items: center;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .BugReport__chevron {
+    flex: none;
+    transition: transform 0.15s;
+  }
+
+  .BugReport__chevron--open {
+    transform: rotate(90deg);
+  }
+
+  .BugReport__disclosureTitle {
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .BugReport__badge {
+    min-width: 22px;
+    padding: 0 6px;
+    box-sizing: border-box;
+    border: 1px solid;
+    border-radius: 10px;
+    font-size: 12px;
+    text-align: center;
+  }
+
+  .BugReport__cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+    gap: var(--space-l);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .BugReport__card {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: var(--space-m);
+    padding: var(--space-m);
+    border: 1px solid;
+  }
+
+  // The preview never takes more than 40% of the window, whatever the picture's shape
+  .BugReport__preview {
+    display: block;
+    width: 100%;
+    max-height: 40vh;
+    object-fit: contain;
+  }
+
+  .BugReport__placeholder {
+    display: flex;
+    min-height: 6rem;
+    aspect-ratio: 7 / 5;
+    max-height: 40vh;
+    flex-direction: column;
+    gap: var(--space-m);
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-m);
+    border: 1px dashed;
+    font-size: 12px;
+    text-align: center;
+  }
+
+  .BugReport__placeholderIcon {
+    font-size: 22px;
+  }
+
+  .BugReport__caption {
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+
+  .BugReport__cardLine {
+    display: flex;
+    gap: var(--space-s);
+    align-items: flex-start;
+  }
+
+  .BugReport__footerRow {
+    justify-content: flex-end;
+  }
+
+  .BugReport__status {
+    min-height: 1.2em;
+  }
+
+  // Every target is at least 24px, the one main action bigger
+  .BugReport__footerRow > .Button,
+  .BugReport__card .Button,
+  .BugReport__notice .Button,
+  .BugReport__field .Button,
+  .BugReport__review .Button,
+  .BugReport__windows .Button {
+    min-height: 28px;
+    padding: 0 var(--space-l);
+    line-height: 26px;
+  }
+
+  .BugReport__footerRow > .BugReport__main.Button {
+    min-height: 32px;
+    padding: 0 var(--space-xl);
+    font-weight: 700;
+    line-height: 30px;
+  }
+
+  .BugReport__locked {
+    cursor: default;
+  }
+
+  .BugReport__heading:focus {
+    outline: none;
+  }
+}
+
+// The strip keeps its numbers alone in narrow windows, and the page's step line says the name
+@media (max-width: 479px) {
+  .BugReport .BugReport__stepLabel {
+    display: none;
+  }
+}
+
+// The status line takes a row of its own once the buttons would squeeze it
+@media (max-width: 439px) {
+  .BugReport .BugReport__status {
+    flex-basis: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .BugReport .BugReport__chevron {
+    transition: none;
+  }
+}
+
+/// The colours, once per family of themes
+@mixin paint($roles) {
+  .BugReport__hint,
+  .BugReport__optional,
+  .BugReport__stepOf,
+  .BugReport__stepNo,
+  .BugReport__count,
+  .BugReport__rowLabel,
+  .BugReport__placeholder,
+  .BugReport__status {
+    color: role($roles, 'muted');
+  }
+
+  .BugReport__error {
+    border-left-color: role($roles, 'danger');
+    color: role($roles, 'text');
+  }
+
+  .BugReport__errorIcon,
+  .BugReport__summaryIcon,
+  .BugReport__cardLine--failed .Icon {
+    color: role($roles, 'danger');
+  }
+
+  .BugReport__input[aria-invalid='true'],
+  .BugReport__textarea[aria-invalid='true'] {
+    border-color: role($roles, 'danger');
+  }
+
+  .BugReport__notice,
+  .BugReport__card,
+  .BugReport__chip {
+    border-color: role($roles, 'line');
+    background: role($roles, 'raised');
+  }
+
+  .BugReport__summary {
+    border-color: role($roles, 'danger');
+    background: role($roles, 'raised');
+  }
+
+  .BugReport__notice--info {
+    border-left-color: role($roles, 'info');
+
+    .BugReport__noticeIcon {
+      color: role($roles, 'info');
+    }
+  }
+
+  .BugReport__notice--warning {
+    border-left-color: role($roles, 'warning');
+
+    .BugReport__noticeIcon {
+      color: role($roles, 'warning');
+    }
+  }
+
+  .BugReport__notice--danger {
+    border-left-color: role($roles, 'danger');
+
+    .BugReport__noticeIcon {
+      color: role($roles, 'danger');
+    }
+  }
+
+  .BugReport__notice--muted {
+    border-left-color: role($roles, 'muted');
+  }
+
+  .BugReport__link,
+  .BugReport__disclosure {
+    color: role($roles, 'text');
+  }
+
+  .BugReport__feedback {
+    border-left-color: role($roles, 'info');
+  }
+
+  .BugReport__feedbackIcon {
+    color: role($roles, 'info');
+  }
+
+  .BugReport__chip--on {
+    border-color: role($roles, 'accent');
+  }
+
+  .BugReport__chipIcon,
+  .BugReport__chipCheck,
+  .BugReport__meter,
+  .BugReport__tickIcon,
+  .BugReport__publicIcon,
+  .BugReport__chevron {
+    color: role($roles, 'accent');
+  }
+
+  .BugReport__checkbox {
+    accent-color: role($roles, 'accent');
+  }
+
+  .BugReport__row,
+  .BugReport__shots {
+    border-color: role($roles, 'subtle');
+  }
+
+  .BugReport__badge {
+    border-color: role($roles, 'line');
+  }
+
+  .BugReport__placeholder {
+    border-color: role($roles, 'muted');
+    background: role($roles, 'recessed');
+  }
+
+  .BugReport__doneIcon {
+    color: role($roles, 'good');
+  }
+
+  // Native controls draw no ring of their own in these themes
+  .BugReport__link:focus-visible,
+  .BugReport__disclosure:focus-visible,
+  .BugReport__checkbox:focus-visible,
+  .BugReport__notice:focus-visible,
+  .BugReport__summary:focus-visible,
+  .BugReport__chip:has(> input:focus-visible) {
+    outline: 2px solid role($roles, 'focus');
+    outline-offset: 2px;
+  }
+
+  .BugReport__tick--locked,
+  .BugReport__locked {
+    color: role($roles, 'muted');
+  }
+}
+
+.theme-console .BugReport {
+  @include paint($console-roles);
+
+  // tgui's green under MeridianOS's light button text is 2.4:1, the canvas colour on it reads
+  .BugReport__main.Button--color--good {
+    color: var(--console-surface-canvas);
+  }
+}
+
+.theme-meridian_classic .BugReport {
+  @include paint($classic-roles);
+}
+
+// The page heading takes each theme's own heading face
+.theme-meridian_aphelion .BugReport__heading {
+  font-family: var(--aphelion-font-display);
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: 0.025em;
+}
+
+.theme-meridian_wastelander .BugReport__heading,
+.theme-meridian_vector .BugReport__heading,
+.theme-meridian_cyberpunk .BugReport__heading,
+.theme-meridian_augmentation .BugReport__heading,
+.theme-meridian_shadowbroker .BugReport__heading {
+  font-family: var(--console-font-display);
+  font-size: 18px;
+  font-weight: 400;
+}
+
+.theme-meridian_hephaestus .BugReport__heading {
+  font-family: Bahnschrift, 'Arial Narrow', 'Segoe UI', sans-serif;
+  font-weight: 600;
+  font-stretch: condensed;
+}
+
+.theme-meridian_foundry .BugReport__heading {
+  font-family: var(--foundry-display);
+}

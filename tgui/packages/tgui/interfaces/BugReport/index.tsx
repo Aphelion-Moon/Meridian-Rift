@@ -1,242 +1,210 @@
 // THIS IS AN APHELION UI FILE
 
-import { storage } from 'common/storage';
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Box,
-  Button,
-  Dropdown,
-  Input,
-  Section,
-  Stack,
-  TextArea,
-} from 'tgui-core/components';
+import { useEffect, useRef, useState } from 'react';
+import { Section, Stack } from 'tgui-core/components';
 import { useBackend } from '../../backend';
 import { Window } from '../../layouts';
-import { hasReproductionHint } from './form-hints';
-import type {
-  BugReportData,
-  ReportAttachment,
-  ReportContext,
-  ReportFields,
-} from './types';
+import { storeDraft, useDraft } from './draft';
+import {
+  checkAll,
+  checkPage,
+  type FieldError,
+  type Page,
+  toWire,
+  vagueSteps,
+} from './form';
+import {
+  HEADING_ID,
+  NOTICE_ID,
+  previewKey,
+  SUMMARY_ID,
+  stepId,
+  TITLE_ID,
+} from './ids';
+import {
+  CheckingState,
+  ConflictNotice,
+  DoneState,
+  ReviewPage,
+  StepsPage,
+  TitlePage,
+} from './pages';
+import { type PictureActions, PicturePage } from './pictures';
+import { ReportButton } from './ReportButton';
+import { say } from './strings';
+import type { BugReportData } from './types';
 
-/** Unsent text per report, kept in the browser so typing never touches the server */
-const DRAFTS_KEY = 'bug-report-drafts';
-const KEPT_DRAFTS = 5;
-const TEXT_FIELDS = {
-  title: 'Title',
-  observed: 'What happened',
-  expected: 'Expected result',
-  reproduction: 'Reproduction: what did you do before the problem?',
-} as const;
-type TextField = keyof typeof TEXT_FIELDS;
-const CATEGORIES = ['Other', 'UI', 'Gameplay', 'Crash', 'Performance', 'Map'];
-const SEVERITIES = ['unspecified', 'minor', 'major', 'critical'];
-const UTC_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+const STEPS = [say('step.1'), say('step.2'), say('step.3'), say('step.4')];
+// A preview that hasn't come by then shows as failed, with a way to ask again
+const PREVIEW_WAIT = 12000;
+// A press DM never answers stops looking busy after this
+const PRESS_WAIT = 3000;
 
-type StoredDraft = { epoch: number; fields: ReportFields; at: number };
-
-async function storeDraft(
-  reportId: string,
-  epoch: number,
-  fields: ReportFields | null,
-) {
-  const drafts: Record<string, StoredDraft> =
-    (await storage.get(DRAFTS_KEY)) ?? {};
-  if (fields) drafts[reportId] = { epoch, fields, at: Date.now() };
-  else delete drafts[reportId];
-  const newest = Object.entries(drafts)
-    .sort(([, a], [, b]) => b.at - a.at)
-    .slice(0, KEPT_DRAFTS);
-  storage.set(DRAFTS_KEY, Object.fromEntries(newest));
-}
-
-/** The form's text: the server's copy, then any newer unsent text this browser kept for the same report */
-function useDraft(reportId: string, epoch: number, serverFields: ReportFields) {
-  const [fields, setFields] = useState(serverFields);
-  const latest = useRef(fields);
-  latest.current = fields;
-  const pending = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-
-  // The server's text wins whenever it replaces it (a new epoch) or the report changes
-  useEffect(() => {
-    let current = true;
-    setFields(serverFields);
-    storage.get(DRAFTS_KEY).then((drafts) => {
-      const kept: StoredDraft | undefined = drafts?.[reportId];
-      if (current && kept?.epoch === epoch) setFields(kept.fields);
-    });
-    return () => {
-      current = false;
-    };
-  }, [reportId, epoch]);
-
-  // Whatever is still waiting to be kept goes when the window closes
-  useEffect(
-    () => () => {
-      if (pending.current === undefined) return;
-      clearTimeout(pending.current);
-      storeDraft(reportId, epoch, latest.current);
-    },
-    [reportId, epoch],
-  );
-
-  const edit = useCallback(
-    (name: keyof ReportFields, value: string | null) => {
-      setFields((previous) => ({ ...previous, [name]: value }));
-      clearTimeout(pending.current);
-      pending.current = setTimeout(() => {
-        pending.current = undefined;
-        storeDraft(reportId, epoch, latest.current);
-      }, 500);
-    },
-    [reportId, epoch],
-  );
-  return [fields, edit] as const;
-}
-
-const version = (
-  context: ReportContext | undefined,
-  name: 'client' | 'server' | 'compiler',
-) => {
-  const value = context?.versions?.[name];
-  return value ? `${value.version}.${value.build}` : 'unavailable';
-};
-
-const ContextSection = memo(function ContextSection(props: {
-  context?: ReportContext;
-}) {
-  const { context } = props;
-  return (
-    <Section title="Frozen incident context">
-      <Box>
-        Round: {context?.roundId ?? 'unavailable'}; map:{' '}
-        {context?.map ?? 'unavailable'}
-      </Box>
-      <Box>
-        Client: {version(context, 'client')}; server:{' '}
-        {version(context, 'server')}; compiler: {version(context, 'compiler')}
-      </Box>
-      <Box>
-        Revision: {context?.build?.commit ?? 'unavailable'}; base:{' '}
-        {context?.build?.base ?? 'unavailable'}
-      </Box>
-      <Box>
-        Test merges:{' '}
-        {context?.build?.testMerges
-          ?.map((merge) => `#${merge.number} ${merge.commit ?? ''}`)
-          .join(', ') || 'none recorded'}
-      </Box>
-    </Section>
-  );
-});
-
-const ScreenshotSection = memo(function ScreenshotSection(props: {
-  attachment?: ReportAttachment | null;
-  attachmentPending?: boolean;
-  blocked: boolean;
-  checking: boolean;
-  preview?: { id: string; src: string };
-  previewConfirmed?: boolean;
-}) {
-  const { act } = useBackend();
-  const { attachment, blocked, checking, preview, previewConfirmed } = props;
-  return (
-    <Section title="Screenshot">
-      <Box>{attachment?.state ?? 'Upload not yet confirmed'}</Box>
-      {blocked && (
-        <Box>
-          Waiting for your screenshot. Submission stays paused until it is ready
-          or you remove it.
-        </Box>
-      )}
-      {!!preview && (
-        <img
-          key={preview.id}
-          src={preview.src}
-          alt="Selected report screenshot"
-          style={{ maxWidth: '100%', maxHeight: '24rem' }}
-          onLoad={() => act('preview_loaded', { attachmentId: preview.id })}
-        />
-      )}
-      <Button
-        disabled={checking || attachment?.state !== 'ready'}
-        onClick={() =>
-          act('preview', { attachmentId: attachment?.id, reload: true })
-        }
-      >
-        Reload preview
-      </Button>
-      <Button
-        disabled={checking}
-        onClick={() =>
-          act('remove_screenshot', { attachmentId: attachment?.id })
-        }
-      >
-        Remove screenshot
-      </Button>
-      <Button.Checkbox
-        checked={!!attachment?.publicConsent}
-        disabled={
-          checking || !previewConfirmed || attachment?.state !== 'ready'
-        }
-        onClick={() =>
-          act('screenshot_consent', {
-            attachmentId: attachment?.id,
-            publicConsent: !attachment?.publicConsent,
-          })
-        }
-      >
-        Publish this screenshot with the GitHub issue
-      </Button.Checkbox>
-      <Box>
-        The screenshot stays private unless you select public sharing after
-        previewing it.
-      </Box>
-    </Section>
-  );
-});
+/** The control that started what DM is busy with, and whether an update came since */
+type Press = { key: string; seen: boolean };
 
 export const BugReport = () => {
   const { act, data } = useBackend<BugReportData>();
-  const [fields, edit] = useDraft(data.reportId, data.fieldsEpoch, data.fields);
-  const [hint, setHint] = useState(false);
-  const [acknowledged, setAcknowledged] = useState('');
-  const [error, setError] = useState('');
-  const [captureRequested, setCaptureRequested] = useState(false);
-  const [captureTarget, setCaptureTarget] = useState('');
-  const checking =
-    data.busy || (data.result?.kind === 'checking' && !data.pollingPaused);
-  const attachmentBlocked =
-    !!data.attachmentPending ||
-    (!!data.attachment && data.attachment.state !== 'ready');
-  const receipt = data.result?.receipt;
-  const readyId =
-    data.attachment?.state === 'ready' ? data.attachment.id : undefined;
-  const preview =
-    (readyId && data.preview?.id === readyId && data.preview) || undefined;
-  const targets = data.captureTargets ?? [];
-  const target = targets.some((item) => item.id === captureTarget)
-    ? captureTarget
-    : targets[0]?.id;
+  const { limits, result } = data;
+  const pictures = data.pictures ?? [];
+  const [fields, edit] = useDraft(
+    data.reportId,
+    data.fieldsEpoch,
+    data.fields,
+    limits.steps,
+  );
+  const [page, setPage] = useState<Page>(1);
+  const [reached, setReached] = useState<Page>(1);
+  const [errors, setErrors] = useState<FieldError[] | null>(null);
+  const [backToReview, setBackToReview] = useState(false);
+  const [vague, setVague] = useState<string | null>(null);
+  const [keptVague, setKeptVague] = useState<string | null>(null);
+  const [press, setPress] = useState<Press | null>(null);
+  const [triedAgain, setTriedAgain] = useState(0);
+  const [limitUntil, setLimitUntil] = useState(0);
+  const [, setNow] = useState(0);
+  const [previews, setPreviews] = useState<Record<string, string | null>>({});
+  const requested = useRef(new Set<string>());
+  const loaded = useRef(new Set<string>());
+  const [shotsOpen, setShotsOpen] = useState(pictures.length > 0);
+  const seenPictures = useRef(new Set(pictures.map((picture) => picture.id)));
+  // Which window each window capture came from, since two windows can share a title
+  const windowOf = useRef(new Map<number, string>());
+  const askedWindow = useRef<string | null>(null);
+  const focusNext = useRef<string | null>(fields.title ? HEADING_ID : TITLE_ID);
 
+  const kind = result?.kind;
+  const accepted = kind === 'accepted';
+  const checking = kind === 'checking';
+  const sentBack = kind === 'needs_revision';
+  const working = (key: string) => press?.key === key;
+  const sending = working('send');
+  const holding = pictures.some((picture) => picture.state !== 'ready');
+  const limited = !!data.limit && limitUntil > Date.now();
+
+  /** Moves focus once the page shows what it should land on */
+  const focus = (id: string) => {
+    focusNext.current = id;
+  };
   useEffect(() => {
-    setHint(false);
-    setAcknowledged('');
-    setError('');
+    if (!focusNext.current) return;
+    const target = document.getElementById(focusNext.current);
+    if (!target) return;
+    focusNext.current = null;
+    target.focus();
+  });
+
+  /** Sends an action carrying the form whole */
+  function actWithFields(action: string, extra?: Record<string, unknown>) {
+    act(action, {
+      ...extra,
+      fields: toWire(fields),
+      fieldsEpoch: data.fieldsEpoch,
+    });
+  }
+
+  /** Remembers which control started an action, so only it says it's working */
+  function pressed(key: string) {
+    const mark = { key, seen: false };
+    setPress(mark);
+    setTimeout(
+      () => setPress((current) => (current === mark ? null : current)),
+      PRESS_WAIT,
+    );
+  }
+
+  // Every update after a press says whether DM is still on it
+  useEffect(() => {
+    setPress((current) => {
+      if (!current) return current;
+      if (!data.busy) return null;
+      return current.seen ? current : { ...current, seen: true };
+    });
+  }, [data]);
+
+  // A new report or new text from the server starts the pages over
+  useEffect(() => {
+    setPage(1);
+    setReached(1);
+    setErrors(null);
+    setVague(null);
+    setKeptVague(null);
+    setBackToReview(false);
   }, [data.reportId, data.fieldsEpoch]);
 
   // The text is in the report now, so this browser can forget it
   useEffect(() => {
-    if (receipt) storeDraft(data.reportId, 0, null);
-  }, [!!receipt]);
+    if (accepted) storeDraft(data.reportId, 0, null);
+  }, [accepted]);
 
-  // The preview comes once per attachment, only when the page asks for it
+  // A send-back opens the steps, where the checker's words are; a sent report shows how it's doing
   useEffect(() => {
-    if (readyId && !preview && !data.busy)
-      act('preview', { attachmentId: readyId });
-  }, [readyId, !!preview, data.busy]);
+    if (sentBack) {
+      setPage(3);
+      setReached(4);
+      setErrors(null);
+      focus(NOTICE_ID);
+    } else if (accepted || checking) {
+      focus(HEADING_ID);
+    }
+  }, [kind]);
+
+  // The limit's wait counts from the update that brought it, and Send comes back when it passes
+  useEffect(() => {
+    const wait = data.limit?.retryIn ?? 0;
+    setLimitUntil(wait > 0 ? Date.now() + wait : 0);
+    if (wait <= 0) return;
+    const timer = setTimeout(() => setNow(Date.now()), wait + 50);
+    return () => clearTimeout(timer);
+  }, [data.limit]);
+
+  // A server that answers again is no longer one we tried and failed to reach
+  useEffect(() => {
+    if (!data.unreachable) setTriedAgain(0);
+  }, [data.unreachable]);
+
+  // Previews come one picture at a time and only when asked, so they're kept here by picture and take
+  useEffect(() => {
+    const preview = data.preview;
+    if (!preview) return;
+    setPreviews((kept) => ({ ...kept, [previewKey(preview)]: preview.src }));
+  }, [data.preview]);
+
+  // Each ready picture asks for its preview once a take, never while DM is busy since it would drop it
+  useEffect(() => {
+    if (data.busy) return;
+    for (const picture of pictures) {
+      const key = previewKey(picture);
+      if (
+        picture.state !== 'ready' ||
+        key in previews ||
+        requested.current.has(key)
+      )
+        continue;
+      requested.current.add(key);
+      act('preview', { pictureId: picture.id });
+      setTimeout(
+        () =>
+          setPreviews((kept) =>
+            key in kept ? kept : { ...kept, [key]: null },
+          ),
+        PREVIEW_WAIT,
+      );
+    }
+  }, [data.pictures, data.busy, previews]);
+
+  // A new picture opens the attached screenshots, then they stay how the player leaves them
+  useEffect(() => {
+    for (const picture of pictures) {
+      if (seenPictures.current.has(picture.id)) continue;
+      seenPictures.current.add(picture.id);
+      setShotsOpen(true);
+      if (picture.source === 'window' && askedWindow.current) {
+        windowOf.current.set(picture.id, askedWindow.current);
+        askedWindow.current = null;
+      }
+    }
+  }, [data.pictures]);
 
   // Other windows open and close without telling this one, so look again on focus
   useEffect(() => {
@@ -245,270 +213,330 @@ export const BugReport = () => {
     return () => window.removeEventListener('focus', refreshTargets);
   }, []);
 
-  /** Sends an action carrying the form whole */
-  function actWithFields(action: string, extra: Record<string, unknown> = {}) {
-    act(action, { ...extra, fields, fieldsEpoch: data.fieldsEpoch });
+  function goTo(next: Page, target = HEADING_ID) {
+    setPage(next);
+    setReached((previous) => (next > previous ? next : previous));
+    setErrors(null);
+    setVague(null);
+    focus(target);
   }
 
-  function submit(asWritten = false) {
-    if (attachmentBlocked) {
-      setError(
-        'Wait for your screenshot to finish, retry it, or remove it before submitting.',
-      );
-      return;
-    }
-    if (
-      fields.incidentAt &&
-      (!UTC_TIME.test(fields.incidentAt) ||
-        !Number.isFinite(Date.parse(fields.incidentAt)) ||
-        new Date(fields.incidentAt).toISOString() !== fields.incidentAt)
-    ) {
-      setError(
-        'Use the exact UTC format shown for incident time, or leave it blank.',
-      );
-      return;
-    }
-    if (
-      (Object.keys(TEXT_FIELDS) as TextField[]).some(
-        (key) => !fields[key].trim(),
-      )
-    ) {
-      setError(
-        'Fill each required field. Describe what you did before the problem happened.',
-      );
-      return;
-    }
-    const content = JSON.stringify(fields);
-    if (
-      !asWritten &&
-      acknowledged !== content &&
-      hasReproductionHint(fields.reproduction)
-    ) {
-      setHint(true);
-      return;
-    }
-    setAcknowledged(content);
-    setHint(false);
-    setError('');
-    actWithFields('submit');
+  function showErrors(found: FieldError[]) {
+    const first = found[0].page;
+    if (first !== page) goTo(first, SUMMARY_ID);
+    setErrors(found.filter((error) => error.page === first));
+    focus(SUMMARY_ID);
   }
+
+  function next() {
+    const found = checkPage(page, fields, limits);
+    if (found.length) return showErrors(found);
+    if (page === 3) {
+      const text = vagueSteps(fields);
+      if (text && text !== keptVague) {
+        setErrors(null);
+        setVague(text);
+        focus(NOTICE_ID);
+        return;
+      }
+    }
+    setBackToReview(false);
+    goTo(backToReview ? 4 : ((page + 1) as Page));
+  }
+
+  function keepVague() {
+    setKeptVague(vague);
+    setBackToReview(false);
+    goTo(4);
+  }
+
+  function send() {
+    if (sending || data.busy) return;
+    const found = checkAll(fields, limits);
+    if (found.length) return showErrors(found);
+    if (holding) return;
+    actWithFields('submit');
+    pressed('send');
+  }
+
+  function tryAgain() {
+    if (working('refresh')) return;
+    setTriedAgain((count) => count + 1);
+    act('refresh');
+    pressed('refresh');
+  }
+
+  function change(target: Page, focusId: string) {
+    setBackToReview(true);
+    goTo(target, focusId);
+  }
+
+  // The picture page's actions, which DM refuses while it's busy, so they hold until it isn't
+  const targets = data.captureTargets ?? [];
+  const pictureActions: PictureActions = {
+    take(source, extra) {
+      if (source === 'window' && !extra?.replace)
+        askedWindow.current = (extra?.windowId as string) ?? null;
+      const action =
+        source === 'view'
+          ? 'capture_view'
+          : source === 'window'
+            ? 'capture_ui'
+            : 'screenshot';
+      actWithFields(action, extra);
+    },
+    remove(picture) {
+      act('remove_screenshot', { pictureId: picture.id });
+      pressed(`remove:${picture.id}`);
+    },
+    share(picture) {
+      act('screenshot_consent', {
+        pictureId: picture.id,
+        publicConsent: !picture.publicConsent,
+      });
+      pressed(`share:${picture.id}`);
+    },
+    reload(picture) {
+      const key = previewKey(picture);
+      requested.current.delete(key);
+      setPreviews(({ [key]: _dropped, ...kept }) => kept);
+    },
+    loaded(picture) {
+      const key = previewKey(picture);
+      if (loaded.current.has(key)) return;
+      loaded.current.add(key);
+      act('preview_loaded', { pictureId: picture.id, take: picture.take });
+    },
+    lookAgain: () => act('targets'),
+    pressed,
+    working,
+    windowFor(picture) {
+      const asked = windowOf.current.get(picture.id);
+      if (asked !== undefined)
+        return targets.some((target) => target.id === asked)
+          ? asked
+          : undefined;
+      // A window captured before the window last opened is found by its title
+      return targets.find((target) => target.title === picture.title)?.id;
+    },
+  };
+  const conflict = data.conflict ? (
+    <ConflictNotice
+      onResolve={(keep) => (keep ? actWithFields('keep') : act('reload'))}
+    />
+  ) : null;
+
+  const editing = !accepted && !(checking && !sending);
+  const showStrip = editing;
+  const offline = data.unreachable && page === 4;
+
+  let body;
+  if (accepted) {
+    body = <DoneState receipt={result?.receipt} />;
+  } else if (checking && !sending) {
+    body = <CheckingState paused={data.pollingPaused} />;
+  } else if (page === 1) {
+    body = (
+      <TitlePage
+        fields={fields}
+        edit={edit}
+        limits={limits}
+        errors={errors}
+        feedback={sentBack ? result?.feedback : null}
+        top={conflict}
+        onEnter={next}
+      />
+    );
+  } else if (page === 2) {
+    body = (
+      <PicturePage
+        data={data}
+        pictures={pictures}
+        previews={previews}
+        actions={pictureActions}
+        shotsOpen={shotsOpen}
+        onShots={setShotsOpen}
+        top={conflict}
+      />
+    );
+  } else if (page === 3) {
+    body = (
+      <StepsPage
+        fields={fields}
+        edit={edit}
+        limits={limits}
+        kinds={data.kinds ?? []}
+        impacts={data.impacts ?? []}
+        errors={errors}
+        feedback={sentBack ? result?.feedback : null}
+        vague={vague}
+        onAddSteps={() => {
+          setVague(null);
+          focus(stepId(0));
+        }}
+        onKeepVague={keepVague}
+        focus={focus}
+        top={conflict}
+      />
+    );
+  } else {
+    body = (
+      <ReviewPage
+        fields={fields}
+        data={data}
+        pictures={pictures}
+        holding={holding}
+        limited={limited}
+        offline={offline}
+        triedAgain={triedAgain > 0}
+        onChange={change}
+        top={conflict}
+      />
+    );
+  }
+
+  // The footer's buttons stay where they are, Back first and the one main action last
+  let back: { label: string; onClick: () => void } | null = null;
+  let main: { label: string; onClick: () => void; working?: boolean } | null =
+    null;
+  if (accepted) {
+    back = { label: say('btn.another'), onClick: () => act('new') };
+    if (result?.receipt?.issueUrl)
+      main = { label: say('btn.openIssue'), onClick: () => act('issue') };
+  } else if (checking && !sending) {
+    if (data.pollingPaused)
+      main = {
+        label: say('btn.tryAgain'),
+        onClick: tryAgain,
+        working: working('refresh'),
+      };
+  } else if (page < 4) {
+    if (page > 1)
+      back = {
+        label: say('btn.back'),
+        onClick: () => goTo((page - 1) as Page),
+      };
+    main = { label: say('btn.next'), onClick: next };
+  } else {
+    back = { label: say('btn.back'), onClick: () => goTo(3) };
+    if (offline) {
+      main = {
+        label: say('btn.tryAgain'),
+        onClick: tryAgain,
+        working: working('refresh'),
+      };
+    } else if (data.enabled && !limited && !holding) {
+      main = {
+        label: sending
+          ? say('btn.sending')
+          : sentBack
+            ? say('btn.sendAgain')
+            : say('btn.send'),
+        onClick: send,
+        working: sending,
+      };
+    }
+  }
+
+  const status = sending ? say('st.sending') : (data.status ?? '');
 
   return (
-    <Window title="Report a Meridian bug" width={700} height={760}>
-      <Window.Content scrollable>
-        <Section title="Report an issue">
-          <Box mb={1}>
-            Staff receive private diagnostics. Your report normally becomes a
-            public GitHub issue automatically; no GitHub account is needed.
-          </Box>
-          <ContextSection context={data.context} />
-          {receipt ? (
-            <Section title="Report received">
-              <Box>Reference: {receipt.reportId}</Box>
-              <Box>
-                Screening: {receipt.screening}; publication:{' '}
-                {receipt.publication}
-              </Box>
-              {receipt.screening === 'waiting-ai-quota' && (
-                <Box>
-                  Your report is saved and waiting for free AI allowance. You do
-                  not need to submit again.
-                </Box>
-              )}
-              {!!receipt.nextAttemptAt && (
-                <Box>
-                  Next attempt: {new Date(receipt.nextAttemptAt).toUTCString()}
-                </Box>
-              )}
-              {!!receipt.issueUrl && (
-                <Button onClick={() => act('issue')}>
-                  GitHub #{receipt.issueNumber}
-                </Button>
-              )}
-              <Button onClick={() => act('new')}>Report another issue</Button>
-            </Section>
-          ) : (
-            <Stack vertical>
-              {(Object.keys(TEXT_FIELDS) as TextField[]).map((field) => (
-                <Stack.Item key={field}>
-                  <Box bold mb={0.5}>
-                    {TEXT_FIELDS[field]}
-                  </Box>
-                  {field === 'title' ? (
-                    <Input
-                      fluid
-                      value={fields.title}
-                      maxLength={160}
-                      disabled={checking}
-                      onChange={(value) => edit('title', value)}
-                    />
-                  ) : (
-                    <TextArea
-                      fluid
-                      height="6rem"
-                      value={fields[field]}
-                      maxLength={8000}
-                      disabled={checking}
-                      onChange={(value) => edit(field, value)}
-                    />
-                  )}
-                  {data.result?.feedback
-                    ?.filter((item) => item.field === field)
-                    .map((item) => (
-                      <Box key={item.message} color="bad">
-                        {item.message}
-                      </Box>
-                    ))}
-                </Stack.Item>
-              ))}
-              <Stack.Item>
-                <Box bold>Optional incident time (UTC)</Box>
-                <Input
-                  fluid
-                  value={fields.incidentAt ?? ''}
-                  placeholder="YYYY-MM-DDTHH:mm:ss.sssZ"
-                  maxLength={40}
-                  disabled={checking}
-                  onChange={(value) => edit('incidentAt', value || null)}
-                />
-                <Box>
-                  Leave blank to use the captured time. An edited time is
-                  reporter-supplied; the original context stays frozen.
-                </Box>
-              </Stack.Item>
-              <Stack.Item>
-                <Dropdown
-                  options={CATEGORIES}
-                  selected={fields.category}
-                  disabled={checking}
-                  onSelected={(category) => edit('category', category)}
-                />
-                <Dropdown
-                  options={SEVERITIES}
-                  selected={fields.severity}
-                  disabled={checking}
-                  onSelected={(severity) => edit('severity', severity)}
-                />
-                <Button
-                  disabled={checking || !target}
-                  onClick={() =>
-                    actWithFields('capture_ui', { windowId: target })
-                  }
-                >
-                  Snapshot selected TGUI
-                </Button>
-                <Dropdown
-                  options={targets.map((item) => ({
-                    value: item.id,
-                    displayText: item.title,
-                  }))}
-                  selected={target}
-                  displayText={
-                    targets.find((item) => item.id === target)?.title
-                  }
-                  disabled={checking || !target}
-                  placeholder="Open another TGUI to snapshot it"
-                  onSelected={setCaptureTarget}
-                />
-                {/* Other windows open and close without telling this one, and the dropdown's own clicks never reach us */}
-                <Button
-                  icon="sync"
-                  tooltip="Look for open windows again"
-                  disabled={checking}
-                  onClick={() => act('targets')}
-                />
-                <Box>
-                  Snapshot one of your open TGUI windows, then preview and
-                  optionally crop it there. Bug-report windows are excluded.
-                  This is a UI reconstruction; check that its contents look
-                  correct.
-                </Box>
-                <Button
-                  disabled={checking}
-                  onClick={() => {
-                    Byond.command('.screenshot auto');
-                    setCaptureRequested(true);
-                  }}
-                >
-                  Capture game map (F2)
-                </Button>
-                <Button
-                  disabled={checking}
-                  onClick={() => actWithFields('screenshot')}
-                >
-                  Choose screenshot
-                </Button>
-                <Box>
-                  Choose a PNG, JPEG or WebP image, up to 10 MiB. Use an OS
-                  snipping tool for TGUI or other windows; F2 captures only the
-                  game map into BYOND/screenshots.
-                </Box>
-                {captureRequested && (
-                  <Box>
-                    Capture requested. If no image was saved, press F2. Then
-                    choose the saved screenshot.
-                  </Box>
-                )}
-                {(!!data.attachment || data.attachmentPending) && (
-                  <ScreenshotSection
-                    attachment={data.attachment}
-                    blocked={attachmentBlocked}
-                    checking={checking}
-                    preview={preview}
-                    previewConfirmed={data.previewConfirmed}
-                  />
-                )}
-              </Stack.Item>
-              {data.conflict && (
-                <Stack.Item>
-                  <Box>
-                    The service has another saved version. Your local text is
-                    preserved. Choose which version to continue editing.
-                  </Box>
-                  <Button disabled={checking} onClick={() => act('reload')}>
-                    Load saved draft
-                  </Button>
-                  <Button
-                    disabled={checking}
-                    onClick={() => actWithFields('keep')}
-                  >
-                    Keep my local text
-                  </Button>
-                </Stack.Item>
-              )}
-              {hint && (
-                <Stack.Item>
-                  <Box>
-                    What did you do immediately before the problem? Add an
-                    action or any setup that matters.
-                  </Box>
-                  <Button onClick={() => setHint(false)}>Add details</Button>
-                  <Button onClick={() => submit(true)}>
-                    Submit as written
-                  </Button>
-                </Stack.Item>
-              )}
-              <Stack.Item>
-                <Button
-                  disabled={checking || data.conflict || attachmentBlocked}
-                  onClick={() => submit()}
-                >
-                  {checking ? 'Checking report…' : 'Submit report'}
-                </Button>
-              </Stack.Item>
-              {data.result?.kind === 'limited' && (
-                <Box color="average">
-                  Limit reached. Next available:{' '}
-                  {new Date(data.result.retryAt ?? 0).toUTCString()}
-                </Box>
-              )}
-              {error && <Box color="bad">{error}</Box>}
-            </Stack>
+    <Window title={say('win.title')} width={600} height={700}>
+      <Window.Content className="BugReport">
+        <Stack vertical fill>
+          {showStrip && (
+            <Stack.Item>
+              <Section className="BugReport__header">
+                <StepStrip page={page} reached={reached} onGo={goTo} />
+              </Section>
+            </Stack.Item>
           )}
-          <Box mt={1}>{data.status}</Box>
-          <Button onClick={() => act('refresh')}>Retry connection</Button>
-        </Section>
+          <Stack.Item grow basis={0}>
+            <Section fill scrollable className="BugReport__page">
+              {body}
+            </Section>
+          </Stack.Item>
+          <Stack.Item>
+            <Section className="BugReport__footer">
+              <div className="MeridianControlRow BugReport__footerRow">
+                <div
+                  className="MeridianControlRow__fill BugReport__status"
+                  role="status"
+                  aria-live="polite"
+                >
+                  {status}
+                </div>
+                {back && (
+                  <ReportButton onClick={back.onClick}>
+                    {back.label}
+                  </ReportButton>
+                )}
+                {main && (
+                  <ReportButton
+                    color="good"
+                    className="BugReport__main"
+                    aria-busy={main.working || undefined}
+                    onClick={main.onClick}
+                  >
+                    {main.label}
+                  </ReportButton>
+                )}
+              </div>
+            </Section>
+          </Stack.Item>
+        </Stack>
       </Window.Content>
     </Window>
   );
 };
+
+/** The four steps, done ones as buttons back to them, the current one marked, the rest muted */
+function StepStrip(props: {
+  page: Page;
+  reached: Page;
+  onGo: (page: Page) => void;
+}) {
+  const { page, reached, onGo } = props;
+  return (
+    <nav className="BugReport__steps" aria-label={say('step.strip')}>
+      <ol className="BugReport__strip">
+        {STEPS.map((name, index) => {
+          const number = (index + 1) as Page;
+          const inner = (
+            <>
+              <span className="BugReport__stepNumber">{number}</span>
+              <span className="BugReport__stepLabel">{name}</span>
+            </>
+          );
+          return (
+            <li key={name} className="BugReport__stripItem">
+              {number === page ? (
+                <div
+                  className="Button Button--selected Button--color--default BugReport__step BugReport__step--current"
+                  aria-current="step"
+                >
+                  <div className="Button__content">{inner}</div>
+                </div>
+              ) : number <= reached ? (
+                <ReportButton
+                  className="BugReport__step"
+                  aria-label={say('step.done.aria', { n: number, name })}
+                  onClick={() => onGo(number)}
+                >
+                  {inner}
+                </ReportButton>
+              ) : (
+                <div className="Button Button--color--default BugReport__step BugReport__step--todo">
+                  <div className="Button__content">{inner}</div>
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+      <div className="BugReport__stepOf">
+        {say('step.of', { n: page, name: STEPS[page - 1] })}
+      </div>
+    </nav>
+  );
+}

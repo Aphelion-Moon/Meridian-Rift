@@ -125,3 +125,60 @@ describe('MeridianOS selected control readability', () => {
     });
   }
 });
+
+describe('Report window readability', () => {
+  const token = (name: string) =>
+    getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+  for (const theme of MERIDIAN_THEME_IDS) {
+    it(`keeps the report window's hints, notices and choices readable in ${theme}`, () => {
+      document.documentElement.className = `theme-console theme-${theme}`;
+      render(
+        <div className="BugReport">
+          <div className="BugReport__hint">A brief overview of the issue</div>
+          <div className="BugReport__error">Give it a title.</div>
+          <div className="BugReport__notice BugReport__notice--warning">
+            <span className="BugReport__noticeIcon">!</span>
+          </div>
+          <div className="BugReport__notice BugReport__notice--danger">
+            <span className="BugReport__noticeIcon">!</span>
+          </div>
+          <div className="BugReport__notice BugReport__notice--info">
+            <span className="BugReport__noticeIcon">i</span>
+          </div>
+          <span className="BugReport__chip BugReport__chip--on">Lag</span>
+        </div>,
+      );
+      const base = token('--console-surface-base');
+      const raised = token('--console-surface-raised');
+      const color = (selector: string, property = 'color') =>
+        getComputedStyle(document.querySelector(selector)!).getPropertyValue(
+          property,
+        );
+      // Hints sit on the page and inside cards and notices
+      for (const background of [base, raised])
+        expect(
+          contrast(color('.BugReport__hint'), background),
+        ).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(color('.BugReport__error'), base)).toBeGreaterThanOrEqual(
+        4.5,
+      );
+      expect(
+        contrast(color('.BugReport__error', 'border-left-color'), base),
+      ).toBeGreaterThanOrEqual(3);
+      // A notice's bar and icon carry its tone, beside words that say it too
+      for (const tone of ['warning', 'danger', 'info']) {
+        const notice = `.BugReport__notice--${tone}`;
+        expect(
+          contrast(color(notice, 'border-left-color'), raised),
+        ).toBeGreaterThanOrEqual(3);
+        expect(
+          contrast(color(`${notice} .BugReport__noticeIcon`), raised),
+        ).toBeGreaterThanOrEqual(3);
+      }
+      expect(
+        contrast(color('.BugReport__chip--on', 'border-top-color'), raised),
+      ).toBeGreaterThanOrEqual(3);
+    });
+  }
+});

@@ -19,6 +19,7 @@
 // Window-border glyph artwork has no consumer in the lobby.
 @include meta.load-css('./peripheral-data.scss');
 @include meta.load-css('./motion.scss');
+@include meta.load-css('./bug-report.scss');
 @include meta.load-css('../interfaces/TimeoutBar.scss');
 @include meta.load-css('../interfaces/MutantColorButtons.scss');
 @include meta.load-css('../interfaces/Muscles.scss');
