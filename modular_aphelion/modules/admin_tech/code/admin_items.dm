@@ -2428,7 +2428,7 @@ GLOBAL_LIST_INIT(subspace_ballmatter_spheres, list(
 		for(var/datum/reagent/reagent as anything in target.reagents.reagent_list)
 			report += "<span class='notice ml-2'>&rdsh; [reagent.name]: [round(reagent.volume, 0.1)]u</span>"
 
-	if(target.mind)// If there is a client connected
+	if(user.client?.holder && target.mind)
 		report += "<span class='notice ml-1'>Mind: [target.mind.name] (Key: [target.mind.key || "None"])</span>"
 		if(length(target.mind.antag_datums))// Bonus check for if there is an antagonist datum in this body.
 			report += "<span class='alert ml-1'>Antagonist roles:</span>"

@@ -78,11 +78,16 @@
 /obj/item/pinpointer/response_team_cyborg/scan_for_target()
 	target = null
 	var/turf/here = get_turf(src)
+	if(!here)
+		return ..()
 	var/list/possible_targets = list()
 	for(var/datum/mind/responder as anything in get_antag_minds(/datum/antagonist/ert))
 		var/mob/living/responder_body = responder.current
 		// The walker itself is usually a responder too, so skip whoever is carrying this.
 		if(!isliving(responder_body) || responder_body == loc || responder_body.stat == DEAD)
+			continue
+		var/turf/responder_turf = get_turf(responder_body)
+		if(!responder_turf || responder_turf.z != here.z)
 			continue
 		possible_targets |= responder_body
 	target = get_closest_atom(/mob/living, possible_targets, here)

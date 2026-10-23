@@ -97,6 +97,9 @@
 	var/mob/living/silicon/robot/borg = loc
 	if(!istype(borg))
 		return FALSE
+	if(!istype(borg.radio, /obj/item/radio/borg/centcom))
+		QDEL_NULL(borg.radio)
+		borg.radio = new /obj/item/radio/borg/centcom(borg)
 	var/datum/action/cooldown/borg_thermal/thermal_vision = new(borg)
 	var/datum/action/cooldown/borg_disguise/disguise = new(borg)
 	var/datum/action/cooldown/borg_xray/xray_vision = new(borg)
@@ -467,6 +470,7 @@
 		/obj/item/holosign_creator/atmos/admin,
 		/obj/item/assembly/signaler/cyborg,
 		/obj/item/blueprints/cyborg,
+		/obj/item/shuttle_blueprints/borg,
 		/obj/item/electroadaptive_pseudocircuit,
 		/obj/item/inducer/cyborg,
 		/obj/item/storage/part_replacer/bluespace,
