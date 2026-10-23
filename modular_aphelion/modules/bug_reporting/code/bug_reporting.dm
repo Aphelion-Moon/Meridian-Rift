@@ -4,8 +4,10 @@
 #endif
 /// Longest title the reporting service takes
 #define BUG_REPORT_TITLE_MAX 160
-/// Longest observed, expected or reproduction text the reporting service takes
+/// Longest expected or reproduction text the reporting service takes
 #define BUG_REPORT_TEXT_MAX 8000
+/// Most numbered steps the window offers
+#define BUG_REPORT_STEPS_MAX 20
 /// Earlier reports a connection keeps for Recent bug reports
 #define BUG_REPORT_HISTORY 20
 /// Bridge requests in flight across the whole server, so no crowd of reporters can pile up rust-g jobs
@@ -20,8 +22,10 @@
 #define BUG_REPORT_SUBMITS_PER_HOUR 10
 /// New reports per ckey per hour, kept under the service's 30 so it never refuses to register one
 #define BUG_REPORT_DRAFTS_PER_HOUR 20
-/// Screenshot uploads per ckey per hour, the service's own cap
-#define BUG_REPORT_UPLOADS_PER_HOUR 10
+/// Uploads of the reporter's own screenshots per ckey per hour, the service's own cap - captures don't count
+#define BUG_REPORT_UPLOADS_PER_HOUR 5
+/// In-game and window captures per ckey per hour, the service's own cap
+#define BUG_REPORT_CAPTURES_PER_HOUR 30
 
 /// Tells the bridge which server run a report came from
 GLOBAL_VAR_INIT(bug_report_boot_id, GUID())
@@ -52,32 +56,65 @@ GLOBAL_LIST_EMPTY(bug_report_budgets)
 	return CONFIG_GET(string/bug_report_bridge_url) == BUG_REPORT_BRIDGE_ORIGIN
 
 /**
+ * Counts what's left of a ckey's hourly allowance of one kind, forgetting uses over an hour old.
+ *
+ * Arguments:
+ * * ckey - whose allowance
+ * * kind - accepted, submits, drafts, uploads or captures
+ */
+/proc/bug_report_uses_left(ckey, kind)
+	var/static/list/caps = list(
+		"accepted" = BUG_REPORT_ACCEPTED_PER_HOUR,
+		"submits" = BUG_REPORT_SUBMITS_PER_HOUR,
+		"drafts" = BUG_REPORT_DRAFTS_PER_HOUR,
+		"uploads" = BUG_REPORT_UPLOADS_PER_HOUR,
+		"captures" = BUG_REPORT_CAPTURES_PER_HOUR,
+	)
+	var/key = "[ckey]:[kind]"
+	var/list/uses = GLOB.bug_report_budgets[key]
+	while(length(uses) && uses[1] <= world.time - 1 HOURS)
+		uses.Cut(1, 2)
+	if(uses && !length(uses))
+		GLOB.bug_report_budgets -= key
+	return caps[kind] - length(uses)
+
+/**
  * Spends one of a ckey's hourly allowances, mirroring the reporting service's own caps.
  *
  * Returns 0 when there was one to spend, otherwise how long until one frees up.
  * They live for the round, so a reconnect doesn't refill them.
  * Arguments:
  * * ckey - whose allowance
- * * kind - accepted, submits, drafts or uploads
+ * * kind - accepted, submits, drafts, uploads or captures
  * * spend - FALSE to only check
  */
 /proc/bug_report_budget(ckey, kind, spend = TRUE)
-	var/static/list/caps = list(
-		"accepted" = BUG_REPORT_ACCEPTED_PER_HOUR,
-		"submits" = BUG_REPORT_SUBMITS_PER_HOUR,
-		"drafts" = BUG_REPORT_DRAFTS_PER_HOUR,
-		"uploads" = BUG_REPORT_UPLOADS_PER_HOUR,
-	)
 	var/key = "[ckey]:[kind]"
-	var/list/uses = GLOB.bug_report_budgets[key] || list()
-	GLOB.bug_report_budgets[key] = uses
-	while(length(uses) && uses[1] <= world.time - 1 HOURS)
-		uses.Cut(1, 2)
-	if(length(uses) >= caps[kind])
+	if(bug_report_uses_left(ckey, kind) <= 0)
+		var/list/uses = GLOB.bug_report_budgets[key]
 		return uses[1] + 1 HOURS - world.time
 	if(spend)
-		uses += world.time
+		LAZYADDASSOCLIST(GLOB.bug_report_budgets, key, world.time)
 	return 0
+
+/**
+ * Whether a field counts as empty, by the same rule as the reporting service.
+ *
+ * Only Unicode's whitespace and the zero width no-break space count as nothing, and steps that are only
+ * their numbers count as nothing too. We don't use trimtext(), it also takes the zero width space.
+ * Arguments:
+ * * text - what the reporter wrote
+ * * numbered - whether it's the steps, which arrive as numbered lines
+ */
+/proc/bug_report_blank(text, numbered = FALSE)
+	var/static/regex/numbering = regex(@"(^|\n)[ \t]*[0-9]{1,3}\.", "g")
+	// Unicode's White_Space characters, which the window's check counts, then U+FEFF, which the service's trim() takes too
+	var/static/list/blank_codes = list(9, 10, 11, 12, 13, 32, 133, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288, 65279)
+	if(numbered)
+		text = numbering.Replace(text, "$1")
+	for(var/code in blank_codes)
+		text = replacetext(text, ascii2text(code), "")
+	return !length(text)
 
 /// Opens this connection's report, starting a new one once the last was accepted
 /client/proc/open_bug_report()
@@ -89,10 +126,8 @@ GLOBAL_LIST_EMPTY(bug_report_budgets)
 /client/proc/new_bug_report()
 	var/wait = bug_report_budget(ckey, "drafts")
 	if(wait)
-		to_chat(src, span_warning("You've started a lot of bug reports this hour. Try again in [DisplayTimeText(wait)], or reopen one with Recent bug reports."))
+		to_chat(src, span_warning("You've started [BUG_REPORT_DRAFTS_PER_HOUR] bug reports this hour. You can start another in [DisplayTimeText(wait)], or reopen one with Recent bug reports."))
 		return FALSE
-	// Only the report being written keeps its preview image in memory
-	bug_report_draft?.forget_preview()
 	bug_report_draft = new(src)
 	LAZYADD(bug_report_history, bug_report_draft)
 	if(length(bug_report_history) > BUG_REPORT_HISTORY)
@@ -101,28 +136,31 @@ GLOBAL_LIST_EMPTY(bug_report_budgets)
 		qdel(oldest)
 	return TRUE
 
-GAME_VERB_DESC(/client, recent_bug_reports, "Recent bug reports", "Reopen a report or receipt from this connection", "OOC")
+GAME_VERB_DESC(/client, recent_bug_reports, "Recent bug reports", "Reopen a report you started this session", "OOC")
 	var/list/choices = list()
+	var/list/repeats = list()
 	for(var/datum/bug_report/report as anything in bug_report_history)
-		choices["[report.fields["title"] || "Untitled"] ([report.request_id])"] = report
-	var/choice = input(src, "Choose a report", "Recent bug reports") as null|anything in choices
+		var/label = "[report.fields["title"] || "Untitled report"] (started [report.started_at])"
+		// Two reports with one title in the same minute would otherwise share an entry
+		repeats[label] += 1
+		choices[repeats[label] > 1 ? "[label] ([repeats[label]])" : label] = report
+	var/choice = input(src, "Which report?", "Recent bug reports") as null|anything in choices
 	var/datum/bug_report/report = choices[choice]
 	if(QDELETED(report))
 		return
-	if(report != bug_report_draft)
-		bug_report_draft?.forget_preview()
 	bug_report_draft = report
 	report.ui_interact(mob)
 
-GAME_VERB_DESC(/client, report_upstream_issue, "Report upstream issue", "Open the manual upstream GitHub issue form", "OOC")
+GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open /tg/station's GitHub form, for bugs in the base game", "OOC")
 	DIRECT_OUTPUT(src, link("https://github.com/tgstation/tgstation/issues/new?template=bug_report_form.yml"))
 
 /**
  * One bug report from one connection, from the moment its form opens to its receipt.
  *
- * The incident context is frozen in New(), before anything can yield. Everything after goes through the
- * reporting bridge on this machine, one request at a time per report. The window only updates when
- * something here changes, and we poll only while it is open and the report waits on the service.
+ * The incident context is frozen in New(), before anything can yield, and only ever goes to the bridge.
+ * Everything after goes through the reporting bridge on this machine, one request at a time per report.
+ * The window only updates when something here changes, and we poll only while it is open and the report
+ * waits on the service.
  */
 /datum/bug_report
 	/// The connection writing this report
@@ -131,14 +169,17 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report upstream issue", "Open th
 	var/session_id
 	/// This report's id at the bridge
 	var/request_id
-	/// What the game looked like when the report was opened, never changed after
+	/// The round time the report was started, so Recent bug reports can tell them apart
+	var/started_at
+	/// What the game looked like when the report was opened, never changed after and never sent to the window
 	var/list/context
 	/// Whether the bridge holds our context, which every other call needs
 	var/context_saved = FALSE
-	/// The reporter's text and choices as the page last sent them
+	/// Whether the reporting service holds our draft, which the bridge registers after it takes our context
+	var/registered = FALSE
+	/// The reporter's text and choices as the page last sent them - the window never asks for incidentAt
 	var/list/fields = list(
 		"title" = "",
-		"observed" = "",
 		"expected" = "",
 		"reproduction" = "",
 		"category" = "Other",
@@ -153,14 +194,22 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report upstream issue", "Open th
 	var/revision = 0
 	/// A saved draft that moved on while we had unsaved text, waiting for the reporter to choose
 	var/list/remote_draft
-	/// One line telling the reporter what is happening
-	var/status = "Saving incident context"
+	/// One line telling the reporter what is happening, or null with nothing to say
+	var/status
 	/// Whether a reporter's action is running, which holds every other action
 	var/busy = FALSE
 	/// Whether a bridge request for this report is in flight
 	var/requesting = FALSE
+	/// Whether the last bridge request went unanswered, which the window shows until one gets through
+	var/unreachable = FALSE
+	/// Which hourly limit holds sending, reports or sends, while limit_until is ahead
+	var/limit_kind
+	/// When the hourly limit holding sending lets go, in REALTIMEOFDAY
+	var/limit_until = 0
 	/// The submission's outcome - checking, needs_revision, limited, or accepted with its receipt
 	var/list/result
+	/// When the service tries publishing the accepted report again, in REALTIMEOFDAY, or 0 when it hasn't said
+	var/retry_until = 0
 	/// The idempotency key of the submission being checked
 	var/submission_key
 	/// Failed polls in a row, which pause polling at four
@@ -169,6 +218,21 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report upstream issue", "Open th
 	var/polling_paused = FALSE
 	/// The wait before the next background poll, growing while nothing changes
 	var/poll_delay = BUG_REPORT_POLL_MIN
+	/// What a report can be about, in the order the window offers them - the service's category, its words and icon
+	var/static/list/kinds = list(
+		list("value" = "Gameplay", "label" = "Gameplay", "icon" = "gamepad"),
+		list("value" = "UI", "label" = "Windows and menus", "icon" = "window-maximize"),
+		list("value" = "Map", "label" = "The map", "icon" = "map"),
+		list("value" = "Performance", "label" = "Lag", "icon" = "gauge-high"),
+		list("value" = "Crash", "label" = "Crash", "icon" = "burst"),
+		list("value" = "Other", "label" = "Something else", "icon" = "circle-question"),
+	)
+	/// How much a bug gets in the way, worst first - the service's severity and its words
+	var/static/list/impacts = list(
+		list("value" = "critical", "label" = "It stops me playing"),
+		list("value" = "major", "label" = "It gets in the way, but I can keep playing"),
+		list("value" = "minor", "label" = "It's small, or it just looks wrong"),
+	)
 	COOLDOWN_DECLARE(refresh_cooldown)
 	COOLDOWN_DECLARE(action_cooldown)
 
@@ -177,6 +241,7 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report upstream issue", "Open th
 	owner.bug_report_session_id ||= GUID()
 	session_id = owner.bug_report_session_id
 	request_id = GUID()
+	started_at = round_timestamp("hh:mm")
 	context = bug_report_context_snapshot(owner.mob, owner.ckey, session_id, owner.byond_version, owner.byond_build)
 	return ..()
 
@@ -216,7 +281,7 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report upstream issue", "Open th
  */
 /datum/bug_report/proc/bridge_call(route, body = "", list/headers, body_file, output_file, timeout = 10)
 	if(!bug_reports_enabled())
-		status = "Reporting isn't set up on this server. Your text is kept."
+		status = "Bug reports aren't set up on this server right now. Your text is kept."
 		return
 	UNTIL(!valid_owner() || (!requesting && GLOB.bug_report_requests < BUG_REPORT_MAX_REQUESTS))
 	if(!valid_owner())
@@ -232,18 +297,24 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report upstream issue", "Open th
 	try
 		request.begin_async()
 	catch
-		status = "Reporting service unavailable (rust-g refused the request). Your text is kept."
+		unreachable = TRUE
+		status = "Couldn't reach the report server. Your text is kept. Try again in a minute."
 	UNTIL(request.is_complete())
 	GLOB.bug_report_requests--
 	requesting = FALSE
 	if(!valid_owner())
 		return
 	var/datum/http_response/response = request.into_response()
-	if(!response.errored && response.status_code == 409)
-		return list("revisionConflict" = TRUE)
-	if(response.errored || response.status_code < 200 || response.status_code >= 300)
-		status = "Reporting service unavailable ([response.status_code || "no answer"]). Your text is kept."
+	if(response.errored || response.status_code < 200 || (response.status_code >= 300 && response.status_code != 409))
+		unreachable = TRUE
+		status = "Couldn't reach the report server. Your text is kept. Try again in a minute."
 		return
+	// Any answer means the bridge is back, so its failure line goes with it
+	if(unreachable)
+		unreachable = FALSE
+		status = null
+	if(response.status_code == 409)
+		return list("revisionConflict" = TRUE)
 	if(output_file)
 		return TRUE
 	var/list/data
@@ -253,7 +324,7 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report upstream issue", "Open th
 		data = null
 	if(islist(data))
 		return data
-	status = "Reporting service sent a reply we couldn't read. Your text is kept."
+	status = "Something went wrong on the report server. Your text is kept. Try again in a minute."
 
 /**
  * Runs an action on this report's draft at the bridge, handing it our context first if it doesn't hold it.
@@ -272,35 +343,54 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report upstream issue", "Open th
 
 /// Hands our frozen context to the bridge, which keeps it before any cloud draft exists
 /datum/bug_report/proc/save_context()
+	// A bridge that answers quickly never shows it
+	addtimer(CALLBACK(src, PROC_REF(show_getting_ready)), 1 SECONDS)
 	var/list/response = bridge_call("context", json_encode(list("context" = context, "requestId" = request_id)), list("Content-Type" = "application/json"))
 	if(!response)
 		return FALSE
 	context_saved = TRUE
-	status = response["status"] == "ready" ? "Ready" : "Incident context saved locally; waiting for reporting service"
+	registered = response["status"] == "ready"
+	status = registered ? null : "Waiting for the report server…"
 	return TRUE
+
+/// Says we're getting ready when the bridge takes over a second to take our context
+/datum/bug_report/proc/show_getting_ready()
+	if(context_saved || status)
+		return
+	status = "Getting ready…"
+	push_update()
+
+/// Notes that the service holds our draft, ending the wait for it
+/datum/bug_report/proc/took_draft()
+	if(registered)
+		return
+	registered = TRUE
+	status = null
 
 /// Saves the reporter's text to the draft if it changed, returning whether the saved draft now matches it
 /datum/bug_report/proc/save_fields()
 	if(!context_saved && !save_context())
 		return FALSE
 	if(remote_draft)
-		status = "Choose Load saved draft or Keep my local text before saving."
+		status = "Pick which version to keep first."
 		return FALSE
 	if(!fields_dirty)
 		return TRUE
 	var/list/response = bridge_action("save", list("fields" = fields, "revision" = revision))
 	if(response?["revisionConflict"])
 		remote_draft = bridge_action("read")?["draft"]
-		status = "The saved draft changed. Your local text is preserved. Load the saved draft or explicitly keep your local text."
+		// The window's own notice asks which version to keep
+		status = null
 		return FALSE
 	var/list/draft = response?["draft"]
 	if(!draft)
 		if(response)
-			status = "Context saved locally; service registration is pending."
+			status = "Still connecting to the report server. Your text is kept."
 		return FALSE
 	revision = draft["revision"]
 	fields_dirty = FALSE
-	update_attachment(draft["attachment"])
+	took_draft()
+	update_pictures(draft)
 	return TRUE
 
 /**
@@ -310,38 +400,43 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report upstream issue", "Open th
  * Arguments:
  * * incoming - the page's fields
  * * epoch - the fields_epoch the page's text is based on
- * * required - whether every text field must be filled, as for a submission
+ * * required - whether the title, steps and what should have happened must be filled, as for a submission
  */
 /datum/bug_report/proc/update_local_fields(list/incoming, epoch, required = FALSE)
 	var/static/list/text_limits = list(
 		"title" = BUG_REPORT_TITLE_MAX,
-		"observed" = BUG_REPORT_TEXT_MAX,
 		"expected" = BUG_REPORT_TEXT_MAX,
 		"reproduction" = BUG_REPORT_TEXT_MAX,
 	)
-	var/static/list/categories = list("Other", "UI", "Gameplay", "Crash", "Performance", "Map")
-	var/static/list/severities = list("unspecified", "minor", "major", "critical")
 	if(result?["kind"] == "accepted" || epoch != fields_epoch || !islist(incoming))
 		return FALSE
 	for(var/name, limit in text_limits)
 		var/value = incoming[name]
-		if(!istext(value) || length_char(value) > limit || (required && !length(trim(value))))
-			status = "Fill each required field within its limit."
+		if(!istext(value))
 			return FALSE
-	var/incident_at = incoming["incidentAt"]
-	// Exact UTC text crosses DM unchanged, the authenticated host validates it
-	if(!isnull(incident_at) && (!istext(incident_at) || length(incident_at) > 40))
-		return FALSE
-	var/category = incoming["category"]
-	var/severity = incoming["severity"]
+		if(length_char(value) > limit)
+			status = "Some of it is too long. Cut it down, then send it again."
+			return FALSE
+	if(required)
+		for(var/name in text_limits)
+			if(bug_report_blank(incoming[name], numbered = (name == "reproduction")))
+				status = "Some boxes are empty. Fill them in, then send it again."
+				return FALSE
+	var/category = "Other"
+	for(var/list/kind as anything in kinds)
+		if(incoming["category"] == kind["value"])
+			category = kind["value"]
+	var/severity = "unspecified"
+	for(var/list/impact as anything in impacts)
+		if(incoming["severity"] == impact["value"])
+			severity = impact["value"]
 	var/list/next_fields = list(
 		"title" = incoming["title"],
-		"observed" = incoming["observed"],
 		"expected" = incoming["expected"],
 		"reproduction" = incoming["reproduction"],
-		"category" = (category in categories) ? category : "Other",
-		"severity" = (severity in severities) ? severity : "unspecified",
-		"incidentAt" = incident_at,
+		"category" = category,
+		"severity" = severity,
+		"incidentAt" = fields["incidentAt"],
 	)
 	for(var/name, value in next_fields)
 		if(fields[name] != value)
@@ -357,13 +452,19 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report upstream issue", "Open th
 
 /// Replaces our text with a saved draft's and sends the page the new text
 /datum/bug_report/proc/adopt_draft(list/draft)
-	fields = draft["fields"].Copy()
+	var/list/saved = draft["fields"]
+	var/list/next_fields = fields.Copy()
+	// Only the fields we know, so an older draft's What happened? text stays behind
+	for(var/name in next_fields)
+		if(!isnull(saved?[name]))
+			next_fields[name] = saved[name]
+	fields = next_fields
 	revision = draft["revision"]
 	fields_dirty = FALSE
 	fields_epoch++
 	remote_draft = null
 	result = null
-	status = "Saved draft loaded."
+	status = "Loaded the saved version."
 	update_static_data_for_all_viewers()
 
 /**
@@ -381,27 +482,49 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report upstream issue", "Open th
 	revision = remote_draft["revision"]
 	remote_draft = null
 	fields_dirty = TRUE
-	status = "Local text selected. Submit to save this version."
+	status = "Kept yours. It's saved when you send it."
 	return TRUE
 
 /**
- * Spends one of the reporter's hourly allowances, or says in status how long until one frees up.
+ * Spends one of the reporter's hourly allowances, or says how long until one frees up.
  *
  * Returns whether there was one.
  * Arguments:
- * * kind - accepted, submits or uploads
+ * * kind - accepted, submits, uploads or captures
  * * spend - FALSE to only check
  */
 /datum/bug_report/proc/take_allowance(kind, spend = TRUE)
-	var/static/list/refusals = list(
-		"accepted" = "You've had [BUG_REPORT_ACCEPTED_PER_HOUR] reports accepted this hour. You can send another in",
-		"submits" = "You've submitted [BUG_REPORT_SUBMITS_PER_HOUR] times this hour. You can submit again in",
-		"uploads" = "You've attached [BUG_REPORT_UPLOADS_PER_HOUR] screenshots this hour. You can attach another in",
-	)
 	var/wait = bug_report_budget(context["ckey"], kind, spend)
-	if(wait)
-		status = "[refusals[kind]] [DisplayTimeText(wait)]."
-	return !wait
+	if(!wait)
+		return TRUE
+	switch(kind)
+		if("uploads")
+			status = "You've uploaded [BUG_REPORT_UPLOADS_PER_HOUR] of your own screenshots this hour, which is the limit. Captures still work."
+		if("captures")
+			status = "You've taken [BUG_REPORT_CAPTURES_PER_HOUR] captures this hour, which is the limit. You can take another in [DisplayTimeText(wait)]."
+		else
+			hold_sending(kind == "accepted" ? "reports" : "sends", wait)
+	return FALSE
+
+/**
+ * Holds sending under an hourly limit, which the window shows with the time it lets go.
+ *
+ * Arguments:
+ * * kind - reports for accepted reports, sends for submissions
+ * * wait - deciseconds until it lets go
+ */
+/datum/bug_report/proc/hold_sending(kind, wait)
+	limit_kind = kind
+	limit_until = REALTIMEOFDAY + wait
+	// The window's notice says it all
+	status = null
+
+/// The hourly limit holding sending as the window takes it, with the wait in ms since DM can't hold a Unix ms time
+/datum/bug_report/proc/limit_data()
+	var/wait = limit_until - REALTIMEOFDAY
+	if(!limit_kind || wait <= 0)
+		return null
+	return list("kind" = limit_kind, "retryIn" = wait * 100)
 
 /// Saves and submits the report, then checks it until the service answers
 /datum/bug_report/proc/submit_fields()
@@ -410,10 +533,11 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report upstream issue", "Open th
 	if(!take_allowance("accepted", spend = FALSE))
 		return finish_action()
 	busy = TRUE
+	status = null
 	push_update()
 	if(save_fields())
-		if(attachment_pending || (attachment && attachment["state"] != "ready"))
-			status = "Wait for the screenshot, retry it, or explicitly remove it before submitting."
+		if(!pictures_ready())
+			status = "Wait for the picture to finish, or remove it."
 		else if(take_allowance("submits"))
 			submission_key = GUID()
 			poll_failures = 0
@@ -428,7 +552,7 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report upstream issue", "Open th
 	var/key = submission_key
 	if(!key || polling_paused)
 		return
-	var/list/response = bridge_action("submit", list("revision" = revision, "key" = key))
+	var/list/response = bridge_action("submit", list("revision" = revision, "key" = key, "attachments" = attachments_wire()))
 	// An edit, a new submission or an acceptance while we waited makes this answer stale
 	if(key != submission_key || result?["kind"] == "accepted")
 		return
@@ -436,15 +560,31 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report upstream issue", "Open th
 		poll_failed()
 		return
 	poll_failures = 0
+	// The service takes a submission only when it names exactly the draft's pictures, so we catch up and stop
+	if(response["revisionConflict"])
+		submission_key = null
+		result = null
+		var/list/draft = bridge_action("read")?["draft"]
+		if(draft)
+			update_pictures(draft)
+			remove_unclaimed(draft)
+		status = "Something changed while it was sending. Check your report, then send it again."
+		return
 	var/list/next_result = response["result"]
 	if(!next_result)
 		return
 	if(next_result["kind"] != result?["kind"])
 		poll_delay = BUG_REPORT_POLL_MIN
 	result = next_result
-	status = result["kind"]
-	if(status == "accepted")
-		bug_report_budget(context["ckey"], "accepted")
+	switch(result["kind"])
+		if("accepted")
+			bug_report_budget(context["ckey"], "accepted")
+			note_retry()
+		if("limited")
+			// The service's own hourly limits, which ours mirror, so its wait arrives as ms from now
+			var/retry_in = result["retryIn"]
+			if(isnum(retry_in) && retry_in > 0)
+				hold_sending(result["reason"] == "admission" ? "reports" : "sends", retry_in / 100)
 
 /// Fetches the accepted report's receipt, which gains its issue link once published
 /datum/bug_report/proc/refresh_receipt()
@@ -455,8 +595,24 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report upstream issue", "Open th
 	poll_failures = 0
 	if(response["receipt"])
 		result = list("kind" = "accepted", "receipt" = response["receipt"])
+		note_retry()
 
-/// Reads the saved draft and its image, keeping unsaved text when the saved draft moved on
+/// Notes when the service tries publishing again, since the wait it sends is only true the moment it answers
+/datum/bug_report/proc/note_retry()
+	var/wait = result["receipt"]?["nextAttemptIn"]
+	retry_until = isnum(wait) ? REALTIMEOFDAY + wait / 100 : 0
+
+/// The submission's outcome as the window takes it, with the receipt's wait counted from now
+/datum/bug_report/proc/result_data()
+	if(!retry_until || !result?["receipt"])
+		return result
+	var/list/receipt = result["receipt"].Copy()
+	receipt["nextAttemptIn"] = max(retry_until - REALTIMEOFDAY, 0) * 100
+	var/list/sent = result.Copy()
+	sent["receipt"] = receipt
+	return sent
+
+/// Reads the saved draft and its pictures, keeping unsaved text when the saved draft moved on
 /datum/bug_report/proc/read_draft()
 	var/list/response = bridge_action("read")
 	// A reporter's action or an acceptance while we waited makes this read stale
@@ -469,13 +625,15 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report upstream issue", "Open th
 	var/list/draft = response["draft"]
 	if(!draft)
 		return
+	took_draft()
 	if(draft["revision"] != revision)
 		if(fields_dirty)
 			remote_draft = draft
-			status = "The saved draft changed. Your local text is preserved; choose which version to continue editing."
+			// The window's own notice asks which version to keep
+			status = null
 		else
 			adopt_draft(draft)
-	update_attachment(draft["attachment"])
+	update_pictures(draft)
 	if(draft["intake"] == "submitted")
 		refresh_receipt()
 
@@ -483,9 +641,9 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report upstream issue", "Open th
 /datum/bug_report/proc/poll_failed()
 	if(++poll_failures > 3)
 		polling_paused = TRUE
-		status = "Checking paused after connection failures. Your text is preserved. Retry connection to recover the result, or edit and submit again."
+		status = "Lost touch with the report server while it was checking. Your text is kept."
 
-/// Reads whatever this report waits on - its new context, its submission check, its receipt, or its draft and image
+/// Reads whatever this report waits on - its new context, its submission check, its receipt, or its draft and pictures
 /datum/bug_report/proc/refresh()
 	if(!valid_owner())
 		return
@@ -509,7 +667,10 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report upstream issue", "Open th
 			return TRUE
 		if("accepted")
 			return !result["receipt"]?["issueUrl"]
-	return attachment_pending && attachment?["state"] != "failed" && world.time < attachment_until
+	for(var/datum/bug_report_picture/picture as anything in pictures)
+		if(!picture.pending && picture.image_state == "processing" && world.time < picture.check_until)
+			return TRUE
+	return FALSE
 
 /**
  * Arms the one background poll while the window is open and the report waits on the service.
@@ -549,7 +710,7 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report upstream issue", "Open th
  *
  * Arguments:
  * * message - a new status line, or null to keep the current one
- * * extra - keys only sent on request, like the preview
+ * * extra - keys only sent on request
  */
 /datum/bug_report/proc/finish_action(message, list/extra)
 	if(message)
@@ -574,7 +735,7 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report upstream issue", "Open th
 	ui = SStgui.try_update_ui(user, src, ui)
 	if(ui)
 		return
-	ui = new(user, src, "BugReport", "Report a Meridian bug")
+	ui = new(user, src, "BugReport", "Report a bug")
 	// Every change here pushes its own update, so an open window costs nothing while it sits there
 	ui.set_autoupdate(FALSE)
 	ui.open()
@@ -584,24 +745,54 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report upstream issue", "Open th
 		INVOKE_ASYNC(src, PROC_REF(refresh))
 
 /datum/bug_report/ui_static_data(mob/user)
-	return list("reportId" = request_id, "context" = context, "fields" = fields, "fieldsEpoch" = fields_epoch)
+	var/static/list/limits = list(
+		"title" = BUG_REPORT_TITLE_MAX,
+		"text" = BUG_REPORT_TEXT_MAX,
+		"steps" = BUG_REPORT_STEPS_MAX,
+		"reports" = BUG_REPORT_ACCEPTED_PER_HOUR,
+		"sends" = BUG_REPORT_SUBMITS_PER_HOUR,
+		"uploads" = BUG_REPORT_UPLOADS_PER_HOUR,
+	)
+	var/list/page_fields = fields.Copy()
+	page_fields -= "incidentAt"
+	// No context here, the round, map, build and ids only ever go to the bridge
+	return list(
+		"reportId" = request_id,
+		"enabled" = bug_reports_enabled(),
+		"fields" = page_fields,
+		"fieldsEpoch" = fields_epoch,
+		"limits" = limits,
+		"maxPictures" = BUG_REPORT_MAX_PICTURES,
+		"kinds" = kinds,
+		"impacts" = impacts,
+	)
 
 /datum/bug_report/ui_data(mob/user)
+	var/list/picture_data
+	for(var/datum/bug_report_picture/picture as anything in pictures)
+		LAZYADD(picture_data, list(picture.window_data()))
 	return list(
 		"status" = status,
 		"busy" = busy,
-		"result" = result,
+		"result" = result_data(),
 		"conflict" = !!remote_draft,
 		"pollingPaused" = polling_paused,
-		"attachment" = attachment,
-		"attachmentPending" = attachment_pending,
-		"previewConfirmed" = preview_confirmed,
+		"unreachable" = unreachable,
+		"limit" = limit_data(),
+		"pictures" = picture_data,
+		"uploadsLeft" = bug_report_uses_left(context["ckey"], "uploads"),
 		"captureTargets" = capture_targets(),
 	)
 
 /datum/bug_report/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
 	. = ..()
-	if(. || !valid_owner() || usr.client != owner || busy)
+	if(. || !valid_owner() || usr.client != owner)
+		return
+	// Removing a picture that's waiting on its window only ends that capture, which is the action keeping us busy
+	if(action == "remove_screenshot" && capture_picture && capture_picture == find_picture(params["pictureId"]))
+		cancel_ui_capture()
+		return TRUE
+	if(busy)
 		return
 	switch(action)
 		if("submit", "screenshot", "capture_ui", "keep")
@@ -618,9 +809,9 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report upstream issue", "Open th
 				if("submit")
 					INVOKE_ASYNC(src, PROC_REF(submit_fields))
 				if("screenshot")
-					INVOKE_ASYNC(src, PROC_REF(choose_screenshot))
+					INVOKE_ASYNC(src, PROC_REF(choose_screenshot), params["replace"])
 				if("capture_ui")
-					INVOKE_ASYNC(src, PROC_REF(begin_ui_capture), params["windowId"])
+					INVOKE_ASYNC(src, PROC_REF(begin_ui_capture), params["windowId"], params["replace"])
 			return TRUE
 		if("reload")
 			return resolve_draft(FALSE)
@@ -629,15 +820,16 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report upstream issue", "Open th
 				return
 			COOLDOWN_START(src, action_cooldown, 1 SECONDS)
 			if(action == "remove_screenshot")
-				INVOKE_ASYNC(src, PROC_REF(remove_screenshot), params["attachmentId"])
+				INVOKE_ASYNC(src, PROC_REF(remove_picture), params["pictureId"])
 			else
-				INVOKE_ASYNC(src, PROC_REF(screenshot_consent), params["attachmentId"], !!params["publicConsent"])
+				INVOKE_ASYNC(src, PROC_REF(picture_consent), params["pictureId"], !!params["publicConsent"])
 			return TRUE
 		if("preview")
-			send_preview(params["attachmentId"], !!params["reload"])
+			send_preview(params["pictureId"])
 		if("preview_loaded")
-			if(preview_id && preview_id == attachment?["id"] && params["attachmentId"] == preview_id)
-				preview_confirmed = TRUE
+			var/datum/bug_report_picture/picture = find_picture(params["pictureId"])
+			if(picture && !picture.pending && picture.image_state == "ready" && params["take"] == picture.take)
+				picture.preview_seen = TRUE
 				return TRUE
 		if("targets")
 			ui.send_update(list("captureTargets" = capture_targets()))
@@ -662,6 +854,7 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report upstream issue", "Open th
 #undef BUG_REPORT_BRIDGE_ORIGIN
 #undef BUG_REPORT_TITLE_MAX
 #undef BUG_REPORT_TEXT_MAX
+#undef BUG_REPORT_STEPS_MAX
 #undef BUG_REPORT_HISTORY
 #undef BUG_REPORT_MAX_REQUESTS
 #undef BUG_REPORT_POLL_MIN
@@ -670,3 +863,4 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report upstream issue", "Open th
 #undef BUG_REPORT_SUBMITS_PER_HOUR
 #undef BUG_REPORT_DRAFTS_PER_HOUR
 #undef BUG_REPORT_UPLOADS_PER_HOUR
+#undef BUG_REPORT_CAPTURES_PER_HOUR

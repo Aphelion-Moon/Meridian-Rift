@@ -1,5 +1,7 @@
 /// Where staged screenshot files wait for their upload
 #define BUG_REPORT_TEMPORARY "data/bug-report-temporary/"
+/// How long we keep polling for the service's check of a picture
+#define BUG_REPORT_CHECK_WAIT (15 MINUTES)
 
 /**
  * Removes staged screenshot files a day old or more, at most once an hour.
@@ -29,33 +31,159 @@
 
 /// Whether a file name is one of the image types the reporting service decodes
 /proc/bug_report_image_name(filename)
-	var/static/list/extensions = list("png" = TRUE, "jpg" = TRUE, "jpeg" = TRUE, "webp" = TRUE)
+	var/static/list/extensions = list("png" = TRUE, "jpg" = TRUE, "jpeg" = TRUE, "webp" = TRUE, "gif" = TRUE)
 	return istext(filename) && extensions[LOWER_TEXT(copytext(filename, findlasttext(filename, ".") + 1))]
 
-/datum/bug_report
-	/// The service's view of the attached image - id, state and publicConsent
-	var/list/attachment
-	/// Whether an image is on its way, which holds submission
-	var/attachment_pending = FALSE
-	/// When we stop waiting on a pending image
-	var/attachment_until = 0
-	/// The attachment an upload is replacing, ignored until the new one shows up
-	var/pending_previous_id
-	/// The attachment our preview belongs to
-	var/preview_id
-	/// The private preview as a data URL, kept only while this is the connection's report
-	var/preview_src
-	/// Whether the page showed the reporter this attachment's preview, which public consent needs
-	var/preview_confirmed = FALSE
-	/// Until when BYOND's file prompt may upload one image past the usual upload limit
-	var/upload_until = 0
+/**
+ * One picture on a report - the in-game capture, a capture of one of the reporter's windows, or their own file.
+ *
+ * Its id stays the same through retakes, so the window keeps its card, while take counts the images.
+ * The service holds the image itself, we only keep what the window shows about it.
+ */
+/datum/bug_report_picture
+	/// The window's id for this picture, the same through retakes
+	var/id
+	/// Where it comes from - view, window or file
+	var/source
+	/// The captured window's title, for a window capture
+	var/title
+	/// Which image this is, counting retakes, so the window never shows the last one's preview
+	var/take = 0
+	/// When the current image was taken, in REALTIMEOFDAY
+	var/taken_at
+	/// What's happening to a new image the service doesn't have yet - rendering, waiting or uploading
+	var/pending
+	/// The service's state for the image it holds - processing, ready or failed
+	var/image_state
+	/// Why the picture failed, for the window's words - nothing, render, invalid or unconfirmed
+	var/reason
+	/// The service's id for the image it holds
+	var/attachment_id
+	/// Whether the reporter lets the image go public with the issue
+	var/public_consent = FALSE
+	/// Whether the window showed the reporter this image, which public sharing needs
+	var/preview_seen = FALSE
+	/// When we stop polling for the service's check of the image
+	var/check_until = 0
 	COOLDOWN_DECLARE(preview_cooldown)
 
-/// Lets the reporter pick a screenshot with BYOND's file prompt, then uploads it
-/datum/bug_report/proc/choose_screenshot()
+/datum/bug_report_picture/New(id, source)
+	src.id = id
+	src.source = source
+	taken_at = REALTIMEOFDAY
+
+/// The picture as the window sees it, with how long ago it was taken in ms
+/datum/bug_report_picture/proc/window_data()
+	return list(
+		"id" = id,
+		"source" = source,
+		"title" = title,
+		"take" = take,
+		"takenAgo" = (REALTIMEOFDAY - taken_at) * 100,
+		"state" = pending || image_state || "failed",
+		"reason" = reason,
+		"publicConsent" = public_consent,
+		"previewSeen" = preview_seen,
+	)
+
+/// Takes the service's view of the image, returning whether it just became ready
+/datum/bug_report_picture/proc/update_attachment(list/attachment)
+	var/was_ready = image_state == "ready"
+	attachment_id = attachment["id"]
+	image_state = attachment["state"]
+	public_consent = !!attachment["publicConsent"]
+	reason = image_state == "failed" ? "invalid" : null
+	if(image_state == "processing")
+		check_until ||= world.time + BUG_REPORT_CHECK_WAIT
+	return !was_ready && image_state == "ready"
+
+/// Forgets the image the service held, so the picture waits on a new one
+/datum/bug_report_picture/proc/forget_image()
+	attachment_id = null
+	image_state = null
+	public_consent = FALSE
+	preview_seen = FALSE
+	check_until = 0
+
+/datum/bug_report
+	/// The report's pictures in the order they were added, or null with none
+	var/list/pictures
+	/// Pictures made for this report, which numbers the next one's id
+	var/pictures_made = 0
+	/// Until when BYOND's file prompt may upload one image past the usual upload limit
+	var/upload_until = 0
+
+/// Finds one of the report's pictures by the window's id for it
+/datum/bug_report/proc/find_picture(id)
+	for(var/datum/bug_report_picture/picture as anything in pictures)
+		if(picture.id == id)
+			return picture
+
+/**
+ * Gets the picture a capture or upload is for - the one it retakes, or a new one if the report has room.
+ *
+ * Returns null when there's no such picture to retake or no room, saying so when the reporter can do
+ * something about it. A new picture joins the report once its action really starts.
+ * Arguments:
+ * * replace - the id of the picture to retake, or null for a new one
+ * * source - where the new image comes from, which a retake keeps
+ */
+/datum/bug_report/proc/picture_for(replace, source)
+	if(!isnull(replace))
+		var/datum/bug_report_picture/picture = find_picture(replace)
+		if(picture?.source != source || picture.pending)
+			return null
+		return picture
+	if(LAZYLEN(pictures) >= BUG_REPORT_MAX_PICTURES)
+		status = "That's [BUG_REPORT_MAX_PICTURES] pictures, the most a report takes. Remove one to add another."
+		return null
+	return new /datum/bug_report_picture(++pictures_made, source)
+
+/**
+ * Ends a picture's new image before the service got it.
+ *
+ * A retake goes back to the image it had. A new picture shows why it failed, or goes when there's nothing to show.
+ * Arguments:
+ * * picture - the picture whose new image ended
+ * * why - nothing or render for a render that didn't work, null to drop a new picture
+ */
+/datum/bug_report/proc/end_new_image(datum/bug_report_picture/picture, why)
+	picture.pending = null
+	if(picture.attachment_id)
+		return
+	if(why)
+		picture.reason = why
+	else
+		LAZYREMOVE(pictures, picture)
+
+/// Whether every picture's image is checked and ready to go with the report
+/datum/bug_report/proc/pictures_ready()
+	for(var/datum/bug_report_picture/picture as anything in pictures)
+		if(picture.pending || picture.image_state != "ready")
+			return FALSE
+	return TRUE
+
+/// The report's pictures as a submission names them, each image's id and whether it may go public
+/datum/bug_report/proc/attachments_wire()
+	// An empty list rather than null, the service reads [] as a report without pictures
+	var/list/wire = list()
+	for(var/datum/bug_report_picture/picture as anything in pictures)
+		wire += list(list("id" = picture.attachment_id, "public" = picture.public_consent ? 1 : 0))
+	return wire
+
+/**
+ * Lets the reporter pick a screenshot with BYOND's file prompt, then uploads it.
+ *
+ * Arguments:
+ * * replace - the id of the picture it replaces, or null for a new one
+ */
+/datum/bug_report/proc/choose_screenshot(replace)
 	if(busy || !valid_owner() || (result?["kind"] in list("accepted", "checking")))
 		return
 	if(!take_allowance("uploads", spend = FALSE))
+		return finish_action()
+	var/datum/bug_report_picture/picture = picture_for(replace, "file")
+	if(!picture)
 		return finish_action()
 	busy = TRUE
 	push_update()
@@ -65,37 +193,52 @@
 		return finish_action()
 	var/path = bug_report_temporary_path("upload")
 	if(!fcopy(upload, path))
-		return finish_action("Could not stage the screenshot. Choose it again.")
-	upload_staged_screenshot(path)
+		return finish_action("That picture couldn't be saved. Pick it again.")
+	LAZYOR(pictures, picture)
+	upload_picture(picture, path)
 
 /// Opens BYOND's file prompt with its one-image upload allowance, returning the chosen file
 /datum/bug_report/proc/prompt_screenshot()
 	upload_until = world.time + 5 MINUTES
-	. = input(owner, "Choose your screenshot (PNG, JPEG or WebP; maximum 10 MiB). F2 saves the map under BYOND/screenshots.", "Attach report screenshot") as null|file
+	. = input(owner, "A PNG, JPEG, WebP or GIF, up to 10 MB", "Add your own screenshot") as null|file
 	upload_until = 0
 
 /**
- * Uploads a staged image to the bridge and deletes the file, whatever happens.
+ * Uploads a picture's staged image to the bridge and deletes the file, whatever happens.
  *
+ * A retake gives back the picture's last image first, so the report never holds more than the service
+ * takes. The reporter's own files spend the hourly upload allowance, captures the bigger capture one.
  * Arguments:
+ * * picture - the picture the image is for, already on the report
  * * path - the generated file holding the image, or a capture's base64
  * * encoding - base64 for a capture, null for an image file
  */
-/datum/bug_report/proc/upload_staged_screenshot(path, encoding)
-	if(!valid_owner() || (result?["kind"] in list("accepted", "checking")) || !take_allowance("uploads"))
+/datum/bug_report/proc/upload_picture(datum/bug_report_picture/picture, path, encoding)
+	if(!valid_owner() || (result?["kind"] in list("accepted", "checking")) || !(picture in pictures) || !take_allowance(picture.source == "file" ? "uploads" : "captures"))
 		fdel(path)
+		end_new_image(picture)
 		return finish_action()
 	busy = TRUE
-	attachment_pending = TRUE
-	pending_previous_id = attachment?["id"]
-	forget_preview()
-	attachment_until = world.time + 15 MINUTES
-	var/list/response = attachment_call("upload", body_file = path, encoding = encoding)
+	picture.pending = "uploading"
+	picture.reason = null
+	push_update()
+	if(picture.attachment_id)
+		if(!attachment_call("remove", picture.attachment_id))
+			fdel(path)
+			picture.pending = null
+			return finish_action("Couldn't remove the picture, so it's still attached. Try again.")
+		picture.forget_image()
+	picture.take++
+	picture.taken_at = REALTIMEOFDAY
+	var/list/response = attachment_call("upload", body_file = path, encoding = encoding, source = picture.source)
 	fdel(path)
+	picture.pending = null
 	if(response?["attachment"])
-		update_attachment(response["attachment"])
+		if(picture.update_attachment(response["attachment"]))
+			status = "Picture added"
 	else
-		status = "Screenshot upload was not confirmed. Retry connection or choose it again; submission remains paused."
+		picture.reason = "unconfirmed"
+		status = "Couldn't confirm the picture was added. Try again, or pick it again."
 	finish_action()
 	schedule_poll(restart = TRUE)
 
@@ -110,8 +253,9 @@
  * * output_file - where a preview is saved
  * * public_consent - for consent, whether the image may go public with the issue
  * * encoding - base64 when an upload's file holds a capture's base64
+ * * source - for an upload, where the image came from - view, window or file
  */
-/datum/bug_report/proc/attachment_call(operation, attachment_id, body_file, output_file, public_consent = FALSE, encoding)
+/datum/bug_report/proc/attachment_call(operation, attachment_id, body_file, output_file, public_consent = FALSE, encoding, source)
 	return bridge_call(operation == "upload" ? "attachment" : "attachment/[operation]", "", list(
 		"Content-Type" = "application/octet-stream",
 		"x-report-ckey" = context["ckey"],
@@ -120,109 +264,140 @@
 		"x-report-attachment" = attachment_id || "",
 		"x-public-consent" = public_consent ? "true" : "false",
 		"x-report-encoding" = encoding || "",
+		"x-report-source" = source || "",
 	), body_file, output_file, 30)
 
-/// Takes the service's view of our attachment and moves the screenshot steps along with it
-/datum/bug_report/proc/update_attachment(list/next_attachment)
-	if(next_attachment?["id"] != attachment?["id"])
-		forget_preview()
-	attachment = next_attachment
-	switch(attachment?["state"])
-		if("ready")
-			if(attachment["id"] != pending_previous_id)
-				attachment_pending = FALSE
-				pending_previous_id = null
-				status = "Screenshot ready. Review its preview before choosing public sharing."
-		if("failed")
-			attachment_pending = TRUE
-			status = "The screenshot could not be validated. Choose another image or remove it before submitting."
-		if("processing")
-			attachment_pending = TRUE
-			attachment_until ||= world.time + 15 MINUTES
-			status = "Screenshot saved; validating image."
-
-/// Drops our copy of the preview, so only the report being written holds one
-/datum/bug_report/proc/forget_preview()
-	preview_id = null
-	preview_src = null
-	preview_confirmed = FALSE
+/// The service's pictures in a saved draft, from its list or from an older bridge's one attachment
+/datum/bug_report/proc/draft_attachments(list/draft)
+	var/list/attachments = draft["attachments"]
+	if(islist(attachments))
+		return attachments
+	return draft["attachment"] ? list(draft["attachment"]) : null
 
 /**
- * Answers the page asking for the attachment's preview.
+ * Takes the service's view of the draft's pictures, so their checks and sharing catch up.
  *
- * We send it as a data URL in a partial update, fetching it from the bridge only when we don't hold it.
+ * An image the service holds that we never heard back about goes to a picture whose upload went
+ * unconfirmed. A picture whose image the service no longer holds says so.
  * Arguments:
- * * attachment_id - the attachment the page wants to show
- * * reload - fetch it again even if we hold it
+ * * draft - the saved draft
  */
-/datum/bug_report/proc/send_preview(attachment_id, reload)
-	if(!attachment_id || attachment_id != attachment?["id"] || attachment["state"] != "ready")
-		return
-	if(preview_id == attachment_id && !reload)
-		send_partial(list("preview" = list("id" = preview_id, "src" = preview_src)))
-		return
-	if(busy || !COOLDOWN_FINISHED(src, preview_cooldown))
-		return
-	COOLDOWN_START(src, preview_cooldown, 10 SECONDS)
-	INVOKE_ASYNC(src, PROC_REF(load_preview), attachment_id)
+/datum/bug_report/proc/update_pictures(list/draft)
+	var/list/held = list()
+	for(var/list/attachment in draft_attachments(draft))
+		if(istext(attachment["id"]))
+			held[attachment["id"]] = attachment
+	var/list/unclaimed = held.Copy()
+	for(var/datum/bug_report_picture/picture as anything in pictures)
+		if(picture.attachment_id)
+			unclaimed -= picture.attachment_id
+	for(var/datum/bug_report_picture/picture as anything in pictures)
+		if(picture.pending)
+			continue
+		var/list/attachment = picture.attachment_id && held[picture.attachment_id]
+		if(!picture.attachment_id && picture.reason == "unconfirmed" && length(unclaimed))
+			attachment = unclaimed[unclaimed[1]]
+			unclaimed.Cut(1, 2)
+		if(attachment)
+			if(picture.update_attachment(attachment))
+				status = "Picture added"
+		else if(picture.attachment_id)
+			picture.forget_image()
+			picture.reason = "unconfirmed"
 
-/// Fetches the private preview PNG into a data URL - never browse_rsc, which keeps every image in the player's cache for good
-/datum/bug_report/proc/load_preview(attachment_id)
-	if(busy)
+/**
+ * Removes a picture, giving back its image first.
+ *
+ * Arguments:
+ * * picture_id - the window's id for the picture
+ */
+/datum/bug_report/proc/remove_picture(picture_id)
+	var/datum/bug_report_picture/picture = find_picture(picture_id)
+	if(busy || !picture || picture.pending || !valid_owner() || (result?["kind"] in list("accepted", "checking")))
 		return
 	busy = TRUE
 	push_update()
-	var/path = bug_report_temporary_path("preview")
-	if(attachment_call("preview", attachment_id, output_file = path) && attachment?["id"] == attachment_id && fexists(path))
-		preview_id = attachment_id
-		preview_src = "data:image/png;base64,[rustg_hash_file(RUSTG_HASH_BASE64, path)]"
-		preview_confirmed = FALSE
-	else if(valid_owner())
-		status = "Preview unavailable. Reload the preview to try again."
-	fdel(path)
-	finish_action(extra = preview_id == attachment_id ? list("preview" = list("id" = preview_id, "src" = preview_src)) : null)
-
-/// Removes the attachment, asking the service first when an upload's reply was lost
-/datum/bug_report/proc/remove_screenshot(expected_id)
-	if(busy || !valid_owner() || (result?["kind"] in list("accepted", "checking")) || attachment?["id"] != expected_id)
-		return
-	busy = TRUE
-	push_update()
-	var/removed = FALSE
-	if(!expected_id)
-		// A lost upload reply leaves us without an id, and only the saved draft can tell no image from one we never heard of
-		var/list/draft = bridge_action("read")?["draft"]
-		if(draft && draft["intake"] != "submitted")
-			var/list/saved = draft["attachment"]
-			if(saved)
-				expected_id = saved["id"]
-				update_attachment(saved)
-			else
-				removed = TRUE
-	if(expected_id)
-		removed = !!attachment_call("remove", expected_id)
+	var/removed = TRUE
+	if(picture.attachment_id)
+		removed = !!attachment_call("remove", picture.attachment_id)
+	else if(picture.reason == "unconfirmed")
+		removed = remove_unclaimed()
 	if(removed)
-		attachment = null
-		attachment_pending = FALSE
-		pending_previous_id = null
-		attachment_until = 0
-		forget_preview()
-		status = "Screenshot removed."
+		LAZYREMOVE(pictures, picture)
+		status = "Picture removed"
 	else
-		status = "Screenshot removal was not confirmed. Retry connection; your image remains attached."
+		status = "Couldn't remove the picture, so it's still attached. Try again."
 	finish_action()
 
-/// Sets whether the attachment may go public with the issue, which needs its preview shown first
-/datum/bug_report/proc/screenshot_consent(expected_id, public_consent)
-	if(busy || !valid_owner() || !preview_confirmed || preview_id != expected_id || (result?["kind"] in list("accepted", "checking")) || attachment?["id"] != expected_id)
+/**
+ * Gives back every image the service holds that none of our pictures claims, returning whether they all went.
+ *
+ * Arguments:
+ * * draft - the saved draft as just read, or null to read it now
+ */
+/datum/bug_report/proc/remove_unclaimed(list/draft)
+	// A lost upload reply leaves us without an id, and only the saved draft can tell no image from one we never heard of
+	draft ||= bridge_action("read")?["draft"]
+	if(!draft || draft["intake"] == "submitted")
+		return FALSE
+	for(var/list/attachment in draft_attachments(draft))
+		var/claimed = FALSE
+		for(var/datum/bug_report_picture/picture as anything in pictures)
+			if(picture.attachment_id == attachment["id"])
+				claimed = TRUE
+				break
+		if(!claimed && !attachment_call("remove", attachment["id"]))
+			return FALSE
+	return TRUE
+
+/**
+ * Sets whether a picture may go public with the issue, which needs its preview shown first.
+ *
+ * Arguments:
+ * * picture_id - the window's id for the picture
+ * * public_consent - whether it may go public
+ */
+/datum/bug_report/proc/picture_consent(picture_id, public_consent)
+	var/datum/bug_report_picture/picture = find_picture(picture_id)
+	if(busy || !picture?.preview_seen || picture.pending || picture.image_state != "ready" || !valid_owner() || (result?["kind"] in list("accepted", "checking")))
 		return
 	busy = TRUE
 	push_update()
-	var/list/response = attachment_call("consent", expected_id, public_consent = public_consent)
-	if(response?["attachment"])
-		update_attachment(response["attachment"])
+	var/list/response = attachment_call("consent", picture.attachment_id, public_consent = public_consent)
+	if(response?["attachment"]?["id"] == picture.attachment_id)
+		picture.update_attachment(response["attachment"])
 	else
-		status = "Sharing change was not confirmed. Retry connection to check its current state."
+		status = "Couldn't change who can see the picture. Try again."
 	finish_action()
+
+/**
+ * Answers the window asking for a picture's preview.
+ *
+ * We fetch it from the bridge each time and keep no copy, the window keeps it by id and take.
+ * Arguments:
+ * * picture_id - the window's id for the picture
+ */
+/datum/bug_report/proc/send_preview(picture_id)
+	var/datum/bug_report_picture/picture = find_picture(picture_id)
+	if(!picture || picture.pending || picture.image_state != "ready" || !COOLDOWN_FINISHED(picture, preview_cooldown))
+		return
+	COOLDOWN_START(picture, preview_cooldown, 10 SECONDS)
+	INVOKE_ASYNC(src, PROC_REF(load_preview), picture)
+
+/// Fetches a picture's private preview PNG into a data URL - never browse_rsc, which keeps every image in the player's cache for good
+/datum/bug_report/proc/load_preview(datum/bug_report_picture/picture)
+	var/attachment_id = picture.attachment_id
+	var/take = picture.take
+	var/path = bug_report_temporary_path("preview")
+	var/data_url
+	if(attachment_call("preview", attachment_id, output_file = path) && fexists(path))
+		data_url = "data:image/png;base64,[rustg_hash_file(RUSTG_HASH_BASE64, path)]"
+	fdel(path)
+	// A retake while we waited makes this the last image's preview
+	if(!valid_owner() || picture.attachment_id != attachment_id || picture.take != take)
+		return
+	// No src tells the window the preview didn't load
+	send_partial(list("preview" = list("id" = picture.id, "take" = take, "src" = data_url)))
 
 #undef BUG_REPORT_TEMPORARY
+#undef BUG_REPORT_CHECK_WAIT

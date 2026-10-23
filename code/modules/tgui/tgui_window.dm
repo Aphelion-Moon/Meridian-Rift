@@ -339,7 +339,7 @@
 			return
 		if("close", "suspend")
 			if(client?.bug_report_draft?.capture_window == src)
-				client.bug_report_draft.cancel_ui_capture("The selected TGUI closed. No snapshot was attached.")
+				client.bug_report_draft.cancel_ui_capture("closed")
 	// APHELION EDIT ADDITION END
 	// Status can be READY if user has refreshed the window.
 	if(type == "ready" && status == TGUI_WINDOW_READY)
