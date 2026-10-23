@@ -374,11 +374,15 @@ $classic-roles: (
   }
 
   .BugReport__rowValue {
-    display: -webkit-box;
     grid-column: 1;
     margin: 0;
-    overflow: hidden;
     overflow-wrap: anywhere;
+  }
+
+  // A long answer keeps to three lines, but the steps all show, since they're what gets checked
+  .BugReport__rowValue:not(.BugReport__rowValue--lines) {
+    display: -webkit-box;
+    overflow: hidden;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 3;
   }
@@ -560,7 +564,8 @@ $classic-roles: (
 
   .BugReport__cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+    // A card needs about this much for its tick and its two buttons, so a narrow window shows one a row
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
     gap: var(--space-l);
     margin: 0;
     padding: 0;
@@ -659,8 +664,9 @@ $classic-roles: (
 
 // The status line takes a row of its own once the buttons would squeeze it
 @media (max-width: 439px) {
+  // MeridianControlRow's fill sets its flex with !important, so this gives it the basis it reads
   .BugReport .BugReport__status {
-    flex-basis: 100%;
+    --meridian-control-basis: 100%;
   }
 }
 
@@ -823,12 +829,21 @@ $classic-roles: (
 
 .theme-meridian_classic .BugReport {
   @include paint($classic-roles);
+
+  // tgui-core takes the outline off buttons and only lifts a field's border, and Classic has no console ring
+  .Button:focus-visible,
+  .BugReport__input:focus-visible,
+  .BugReport__textarea:focus-visible {
+    outline: 2px solid role($classic-roles, 'focus');
+    outline-offset: 2px;
+  }
 }
 
-// The page heading takes each theme's own heading face
+// The page heading takes each theme's own section title face, and its size, which keeps the pixel faces crisp
 .theme-meridian_aphelion .BugReport__heading {
   font-family: var(--aphelion-font-display);
-  font-size: 18px;
+  // tgui-core's Section title size
+  font-size: 14px;
   font-weight: 400;
   letter-spacing: 0.025em;
 }
@@ -839,12 +854,13 @@ $classic-roles: (
 .theme-meridian_augmentation .BugReport__heading,
 .theme-meridian_shadowbroker .BugReport__heading {
   font-family: var(--console-font-display);
-  font-size: 18px;
+  // The size _components.scss gives these themes' section titles
+  font-size: max(13px, 1em);
   font-weight: 400;
 }
 
 .theme-meridian_hephaestus .BugReport__heading {
-  font-family: Bahnschrift, 'Arial Narrow', 'Segoe UI', sans-serif;
+  font-family: var(--forge-display);
   font-weight: 600;
   font-stretch: condensed;
 }

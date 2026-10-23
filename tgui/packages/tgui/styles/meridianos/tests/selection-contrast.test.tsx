@@ -181,4 +181,30 @@ describe('Report window readability', () => {
       ).toBeGreaterThanOrEqual(3);
     });
   }
+
+  it('rings the report window’s buttons and text fields under the keyboard in Classic', () => {
+    // Classic is nanotrasen's paint plus its own marker, and no theme-console ring
+    document.documentElement.className =
+      'theme-nanotrasen theme-meridian_classic';
+    render(
+      <div className="BugReport">
+        <Button>Next</Button>
+        <input className="Input BugReport__input" aria-label="Title" />
+        <textarea
+          className="Input TextArea BugReport__textarea"
+          aria-label="Expected"
+        />
+      </div>,
+    );
+    const rings = [
+      screen.getByText('Next').closest('.Button') as HTMLElement,
+      screen.getByLabelText('Title'),
+      screen.getByLabelText('Expected'),
+    ].map((control) => {
+      control.focus();
+      const style = getComputedStyle(control);
+      return `${style.getPropertyValue('outline-style')} ${style.getPropertyValue('outline-width')}`;
+    });
+    expect(rings).toEqual(['solid 2px', 'solid 2px', 'solid 2px']);
+  });
 });
