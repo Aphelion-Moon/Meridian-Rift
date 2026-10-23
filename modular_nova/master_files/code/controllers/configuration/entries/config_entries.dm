@@ -1,3 +1,9 @@
+/datum/config_entry/string/wikiurl
+	default = "https://meridian-wiki.a13.info/wiki"
+
+/datum/config_entry/string/rulesurl
+	default = "https://meridian-wiki.a13.info/wiki/Server_Policies"
+
 /datum/config_entry/string/blackoutpolicy
 	config_entry_value = "You remember nothing after you've blacked out and you do not remember who or what events killed you, however, you can have faint recollection of what led up to it."
 
