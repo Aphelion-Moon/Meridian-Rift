@@ -44,7 +44,7 @@
 
 // RCD - beats the syndicate borg RCD on every axis: reinforced walls, range, speed, every design unlocked and a cheaper draw.
 /obj/item/construction/rcd/borg/centcom
-	name = "Central Command cyborg RCD"
+	name = "\improper Central Command cyborg RCD"
 	desc = "A professional-grade RCD wired into a cyborg's power supply. It works at range, deconstructs reinforced walls, and comes with every design disk Central Command has."
 	icon_state = "cercd"
 	inhand_icon_state = "cercd"
