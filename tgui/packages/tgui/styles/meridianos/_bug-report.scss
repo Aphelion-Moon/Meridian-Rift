@@ -802,6 +802,14 @@ $classic-roles: (
   .BugReport__locked {
     color: role($roles, 'muted');
   }
+
+  // A step still to come reads as a place, not a button
+  .BugReport__step--todo.Button {
+    border: 1px dashed role($roles, 'line');
+    background: transparent;
+    box-shadow: none;
+    color: role($roles, 'muted');
+  }
 }
 
 .theme-console .BugReport {
