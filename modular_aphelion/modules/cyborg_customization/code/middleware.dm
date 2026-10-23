@@ -46,14 +46,10 @@
 	var/dirty = FALSE
 	/// Last written revision and whether it only reached memory.
 	var/saved_revision = 0
-	/// Revision already copied into the account tree; failed retries do not copy it again.
+	/// Revision already encoded into the account tree; failed retries do not encode it again.
 	var/staged_revision = -1
-	/// One independent sidecar-owned baseline, never an alias to mutable draft leaves.
-	var/list/staged_snapshot
-	/// Only canonical action replacements may reuse that baseline's library snapshots.
-	var/snapshot_requires_full_copy = TRUE
-	var/list/staged_preset_changes
-	var/list/staged_default_changes
+	/// The draft encodes past CYBORG_LAYOUT_MAX_SLOT_BYTES, so it stays unstaged until edits shrink it.
+	var/slot_full = FALSE
 	var/session_only = FALSE
 	/// A retryable write or staging failure, kept across UI close/reopen.
 	var/save_error
@@ -113,7 +109,7 @@
 		if(draft && draft["active_model"] != preview_model)
 			draft = draft.Copy()
 			draft["active_model"] = preview_model
-			update_draft(draft, canonical_action = TRUE)
+			update_draft(draft)
 		preview_pose = "idle"
 	if(params["direction"] in GLOB.cardinals)
 		preview_direction = params["direction"]
@@ -174,9 +170,22 @@
 	if(!store)
 		status_message = "This slot contains a newer layout schema. Its saved data has been preserved."
 		return TRUE
+	var/datum/json_savefile/cyborg_customization/sidecar = preferences.cyborg_layout_store()
+	if(sidecar.read_refused)
+		status_message = sidecar.write_error()
+		return TRUE
+	// Past the limit only edits that shrink the slot go through, until it can be saved again.
+	if(slot_full && !(params["operation"] in list("delete", "delete_default", "reset", "reset_position", "reset_colors", "reset_overrides", "inherit_placement")))
+		status_message = cyborg_layout_slot_full_message()
+		return TRUE
 	var/list/result = cyborg_layout_action(store, params, preview_model, preferences)
 	if(result["model"] && !catalog[result["model"]])
 		status_message = "This preset's chassis is no longer available."
+		return TRUE
+	// These copy a whole layout, so the result must fit before it is taken.
+	if(result["store"] && (params["operation"] in list("save", "save_default", "assign_default", "load", "load_default")) \
+		&& length(cyborg_layout_encode(result["store"])) > CYBORG_LAYOUT_MAX_SLOT_BYTES)
+		status_message = "That would put this character's cyborg setups over the [CYBORG_LAYOUT_MAX_SLOT_BYTES / 1024] KB limit. Delete presets or model defaults you no longer need."
 		return TRUE
 	status_message = result["message"]
 	if(result["store"])
@@ -192,7 +201,7 @@
 				var/datum/preference/preference = GLOB.preference_entries_by_key["silicon_[part_slot]_sprite"]
 				if(!isnull(sprite) && preference.is_valid(sprite, preferences))
 					preferences.update_preference(preference, sprite)
-		update_draft(result["store"], canonical_action = TRUE)
+		update_draft(result["store"])
 		if(params["operation"] in list("load", "load_default", "delete_default"))
 			preview_layout_source = "active"
 		if(result["immediate"])
@@ -359,6 +368,8 @@
 	if(operation in list("save_default", "load_default", "delete_default", "assign_default"))
 		if(!cyborg_model_catalog()[model_id])
 			return list("message" = "Select an eligible model first.")
+		if((operation in list("save_default", "assign_default")) && !store["model_defaults"][model_id] && length(store["model_defaults"]) >= CYBORG_LAYOUT_MAX_MODEL_DEFAULTS)
+			return list("message" = "This character already has [CYBORG_LAYOUT_MAX_MODEL_DEFAULTS] model defaults. Delete one first.")
 	// Copy collection indices only for operations that replace their snapshots.
 	var/list/collections
 	switch(operation)
@@ -583,7 +594,7 @@
 		destination[field] = nudge ? clamp(current + value, CYBORG_LAYOUT_MIN_PIXEL_OFFSET, CYBORG_LAYOUT_MAX_PIXEL_OFFSET) : value
 	return TRUE
 
-/** Returns the owned canonical draft without normalizing or copying its collections.
+/** Returns the owned canonical draft, decoding the slot's save text the first time.
  * Callers must use the action path or update_draft to accept mutations.
  * The sidecar is keyed by slot, so a draft left by a slot change is written to its own slot first.
  */
@@ -591,31 +602,21 @@
 	if(draft && draft_slot == preferences.default_slot)
 		return draft
 	if(draft)
-		// Even a failed disk write is staged under its original slot in the account tree.
+		// A failed disk write is still staged under its original slot; only a slot past its limit loses unsaved edits.
 		commit_draft()
-	var/list/saved = preferences.read_cyborg_layout()
-	if(cyborg_layout_import_is_future(saved))
+	var/stored = preferences.cyborg_layout_store().get_entry("character[preferences.default_slot]")
+	if(cyborg_layout_import_is_future(stored))
 		return null
 	discard_draft()
 	draft_slot = preferences.default_slot
-	draft = cyborg_layout_normalize(saved)
+	draft = cyborg_layout_from_stored(stored)
 	session_only = !preferences.cyborg_layout_store().path
 	return draft
 
-/** Accepts canonical data and schedules the existing debounce.
- * Arbitrary callers can mutate existing leaves, so they retain the full-copy boundary.
- * Only audited action paths that replace library entries may track incremental changes.
- */
-/datum/preference_middleware/cyborg_character/proc/update_draft(list/layout, canonical_action = FALSE)
+/** Accepts canonical data and schedules the existing debounce. Staging encodes the draft, so callers keep their lists. */
+/datum/preference_middleware/cyborg_character/proc/update_draft(list/layout)
 	if(!draft || draft_slot != preferences.default_slot || !islist(layout) || layout["schema_version"] != CYBORG_LAYOUT_SCHEMA_VERSION)
 		return FALSE
-	if(!canonical_action)
-		snapshot_requires_full_copy = TRUE
-		staged_preset_changes = null
-		staged_default_changes = null
-	else if(!snapshot_requires_full_copy)
-		staged_preset_changes = cyborg_layout_changed_snapshots(draft["presets"], layout["presets"], staged_preset_changes)
-		staged_default_changes = cyborg_layout_changed_snapshots(draft["model_defaults"], layout["model_defaults"], staged_default_changes)
 	draft = layout
 	draft_revision++
 	dirty = TRUE
@@ -628,7 +629,9 @@
 		deltimer(draft_timer)
 	draft_timer = addtimer(CALLBACK(src, PROC_REF(flush_timer), draft_slot, context_generation, draft_revision), 2 SECONDS, TIMER_STOPPABLE)
 
-/** Writes the draft to its slot in the sidecar. A failed write keeps the draft dirty for retry. */
+/** Encodes the draft into its slot and writes the sidecar. A failed write keeps the draft dirty for retry, and a draft
+ * past CYBORG_LAYOUT_MAX_SLOT_BYTES stays unstaged until edits shrink it.
+ */
 /datum/preference_middleware/cyborg_character/proc/commit_draft()
 	if(!dirty && !preferences.cyborg_layout_savefile?.write_pending)
 		return TRUE
@@ -637,17 +640,25 @@
 		deltimer(draft_timer)
 		draft_timer = null
 	if(dirty && staged_revision != draft_revision)
-		var/list/previous = !snapshot_requires_full_copy && store.get_entry("character[draft_slot]") == staged_snapshot ? staged_snapshot : null
-		staged_snapshot = cyborg_layout_snapshot(draft, previous, staged_preset_changes, staged_default_changes)
-		snapshot_requires_full_copy = FALSE
-		staged_preset_changes = null
-		staged_default_changes = null
+		var/text = cyborg_layout_encode(draft)
+		var/full = length(text) > CYBORG_LAYOUT_MAX_SLOT_BYTES
+		if(full != slot_full)
+			slot_full = full
+			save_error = save_problem()
+		if(slot_full)
+			// Other slots' pending writes still go out.
+			store.flush_pending()
+			return FALSE
 		// Set before the synchronous completion callback can acknowledge this revision.
 		staged_revision = draft_revision
-		preferences.stage_cyborg_layout(draft_slot, staged_snapshot)
+		preferences.stage_cyborg_layout(draft_slot, text)
 	else
 		store.flush_pending()
 	return !store.write_pending
+
+/// What the save status shows, null when everything is saved or on its way.
+/datum/preference_middleware/cyborg_character/proc/save_problem()
+	return slot_full ? cyborg_layout_slot_full_message() : preferences.cyborg_layout_savefile?.write_error()
 
 /// A delayed account write can complete after this editor switched slots or closed.
 /datum/preference_middleware/cyborg_character/proc/sidecar_write_completed()
@@ -656,7 +667,7 @@
 		saved_revision = draft_revision
 		dirty = FALSE
 	session_only = !store.path
-	save_error = store.write_failed ? "Could not save your cyborg setups. Your edits are retained; retry saving." : null
+	save_error = save_problem()
 	SStgui.update_uis(preferences)
 
 /** A stale timer cannot write a replaced draft or an older revision. */
@@ -675,18 +686,11 @@
 	draft = null
 	draft_slot = null
 	dirty = FALSE
-	invalidate_staged_snapshot()
-	save_error = preferences.cyborg_layout_savefile?.write_failed ? "Could not save your cyborg setups. Your edits are retained; retry saving." : null
+	slot_full = FALSE
+	staged_revision = -1
+	save_error = save_problem()
 	context_generation++
 	draft_revision++
-
-/// Release a superseded saved baseline without discarding the accepted editor draft.
-/datum/preference_middleware/cyborg_character/proc/invalidate_staged_snapshot()
-	staged_revision = -1
-	staged_snapshot = null
-	snapshot_requires_full_copy = TRUE
-	staged_preset_changes = null
-	staged_default_changes = null
 
 /datum/preference_middleware/cyborg_character/Destroy()
 	// Preferences asset registration creates ownerless metadata prototypes; only a

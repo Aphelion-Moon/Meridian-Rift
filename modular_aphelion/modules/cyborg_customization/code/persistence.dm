@@ -3,6 +3,10 @@
 	/// Pending durability belongs to the account, not whichever character is open now.
 	var/write_pending = FALSE
 	var/write_failed = FALSE
+	/// The last write was refused because the whole tree encodes past CYBORG_LAYOUT_MAX_SIDECAR_BYTES.
+	var/write_oversized = FALSE
+	/// The file on disk was past CYBORG_LAYOUT_MAX_SIDECAR_BYTES, so it was not read and is never overwritten.
+	var/read_refused = FALSE
 	var/next_write_at = 0
 	var/write_timer
 	var/datum/weakref/preferences_ref
@@ -36,6 +40,7 @@
 		write_timer = null
 	write_pending = FALSE
 	write_failed = FALSE
+	write_oversized = FALSE
 	return ..()
 
 /datum/json_savefile/cyborg_customization/Destroy()
@@ -46,11 +51,40 @@
 	preferences_ref = null
 	return ..()
 
+/// The parent decodes a file of any size. An oversized one is left on disk as it is.
+/datum/json_savefile/cyborg_customization/load()
+	read_refused = !!(path && fexists(path) && length(file(path)) > CYBORG_LAYOUT_MAX_SIDECAR_BYTES)
+	if(read_refused)
+		return FALSE
+	return ..()
+
 /// rust-g returns error text rather than a success boolean. Returns whether the file now holds the tree.
 /datum/json_savefile/cyborg_customization/save()
+	write_oversized = FALSE
 	if(!path)
 		return TRUE
-	return !length(rustg_file_write(json_encode(get_entry()), path))
+	// We never saw what is in a refused file, so writing our tree over it would lose it.
+	if(read_refused)
+		return FALSE
+	var/serialized = json_encode(get_entry())
+	if(length(serialized) > CYBORG_LAYOUT_MAX_SIDECAR_BYTES)
+		write_oversized = TRUE
+		return FALSE
+	return !length(rustg_file_write(serialized, path))
+
+/// What the editor tells the player about the file or the last write, null when both are fine.
+/datum/json_savefile/cyborg_customization/proc/write_error()
+	if(read_refused)
+		return "Your saved cyborg setups are too big to load. They were left untouched and new changes can't be saved; ask an admin for help."
+	if(!write_failed)
+		return null
+	if(write_oversized)
+		return "Your cyborg setups are too big to save; all your characters share one limit. Delete presets or model defaults you no longer need. Your edits are kept until then."
+	return "Could not save your cyborg setups. Your edits are retained; retry saving."
+
+/// What the editor says while a character's setups are past CYBORG_LAYOUT_MAX_SLOT_BYTES.
+/proc/cyborg_layout_slot_full_message()
+	return "This character's cyborg setups are over the [CYBORG_LAYOUT_MAX_SLOT_BYTES / 1024] KB limit, so recent changes aren't saved. Delete presets or model defaults, or reset overrides, to save again."
 
 /datum/preferences
 	/// Lazily loaded cyborg layout sidecar owned by these preferences.
@@ -71,24 +105,28 @@
 	cyborg_layout_savefile.preferences_ref = WEAKREF(src)
 	return cyborg_layout_savefile
 
-/// The raw saved layout for a character slot, or null when it has none.
-/// This tree remains store-owned and read-only; normalize or copy it before editing.
+/// The saved layout for a character slot, or null when it has none. Save text is decoded into a tree the caller owns.
+/// A tree from an older build, or text from a newer one, comes back as stored and stays read-only.
 /datum/preferences/proc/read_cyborg_layout(slot = default_slot)
-	return cyborg_layout_store().get_entry("character[slot]")
+	var/stored = cyborg_layout_store().get_entry("character[slot]")
+	return istext(stored) && !cyborg_layout_text_is_future(stored) ? cyborg_layout_decode(stored) : stored
 
-/// Stores a character slot's layout and writes the sidecar. Returns whether the write succeeded.
+/// Stores a character slot's layout and writes the sidecar. Returns FALSE when the write failed, or when the layout is
+/// past CYBORG_LAYOUT_MAX_SLOT_BYTES, which leaves the slot as it was.
 /datum/preferences/proc/write_cyborg_layout(slot, list/layout)
-	// Public callers may retain and mutate any input branch after returning.
-	return stage_cyborg_layout(slot, cyborg_layout_copy(layout))
-
-/// Takes ownership of a fully independent staged snapshot; only the editor and copying writer call this.
-/datum/preferences/proc/stage_cyborg_layout(slot, list/snapshot)
-	var/datum/json_savefile/cyborg_customization/store = cyborg_layout_store()
+	var/text = cyborg_layout_encode(layout)
+	if(length(text) > CYBORG_LAYOUT_MAX_SLOT_BYTES)
+		return FALSE
 	var/datum/preference_middleware/cyborg_character/editor = cyborg_session()
-	if(editor && editor.draft_slot == slot && editor.staged_snapshot != snapshot)
-		// Public replacement neither retains the old tree nor acknowledges its draft.
-		editor.invalidate_staged_snapshot()
-	store.set_entry("character[slot]", snapshot)
+	if(editor?.draft_slot == slot)
+		// The account tree no longer holds the editor's revision, so its next commit stages the draft again.
+		editor.staged_revision = -1
+	return stage_cyborg_layout(slot, text)
+
+/// Puts a slot's save text in the account tree and writes the sidecar. Returns whether the write succeeded.
+/datum/preferences/proc/stage_cyborg_layout(slot, text)
+	var/datum/json_savefile/cyborg_customization/store = cyborg_layout_store()
+	store.set_entry("character[slot]", text)
 	store.write_pending = TRUE
 	return store.flush_pending()
 
@@ -139,12 +177,24 @@
 	var/datum/json_savefile/cyborg_customization/store = new(null)
 	store.path = "data/player_saves/[target_ckey[1]]/[target_ckey]/cyborg_customization.json"
 	var/future = FALSE
+	var/too_big = 0
 	for(var/key, layout in layouts)
-		store.set_entry(key, layout)
-		future ||= cyborg_layout_import_is_future(layout)
-	if(!length(layouts))
+		if(cyborg_layout_import_is_future(layout))
+			future = TRUE
+			store.set_entry(key, layout)
+			continue
+		var/text = cyborg_layout_encode(layout)
+		if(length(text) > CYBORG_LAYOUT_MAX_SLOT_BYTES)
+			too_big++
+			continue
+		store.set_entry(key, text)
+	if(too_big)
+		to_chat(connected, span_warning("Cyborg layouts for [too_big] character\s were too big to import and were left out."))
+	if(!length(store.get_entry()))
 		fdel(store.path)
 	else if(!store.save())
+		// The old layouts belong to the characters this import replaced, so they go even when the new ones can't be written.
+		fdel(store.path)
 		to_chat(connected, span_warning("Your cyborg layouts could not be imported. Everything else was."))
 	if(future)
 		to_chat(connected, span_warning("A newer cyborg layout was preserved without loading because this server does not understand its schema."))

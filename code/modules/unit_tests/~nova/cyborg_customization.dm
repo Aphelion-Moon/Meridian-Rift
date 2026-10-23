@@ -1111,6 +1111,7 @@
 	var/fail_writes = FALSE
 	var/write_attempts = 0
 	var/successful_writes = 0
+	/// Character key -> the tree that write held, save text decoded.
 	var/list/last_written
 
 /datum/json_savefile/cyborg_customization/review_failure_store/save()
@@ -1118,7 +1119,9 @@
 	if(fail_writes)
 		return FALSE
 	successful_writes++
-	last_written = deep_copy_list(get_entry())
+	last_written = list()
+	for(var/key, stored in get_entry())
+		last_written[key] = istext(stored) ? cyborg_layout_decode(stored) : deep_copy_list(stored)
 	return TRUE
 
 /datum/unit_test/cyborg_review_failed_slot_write_retry
@@ -1208,7 +1211,7 @@
 	editor.close_editor()
 	TEST_ASSERT_EQUAL(store.write_attempts, 1, "Closing the editor bypassed the account write interval.")
 	TEST_ASSERT_NULL(editor.draft_timer, "Backend close retained the editor debounce instead of the account write.")
-	TEST_ASSERT_EQUAL(store.get_entry("character[preferences.default_slot]")["active"]["penis"]["pixel_x"], 12, "The latest accepted edit was not staged before close.")
+	TEST_ASSERT_EQUAL(preferences.read_cyborg_layout()["active"]["penis"]["pixel_x"], 12, "The latest accepted edit was not staged before close.")
 	store.next_write_at = world.time
 	store.flush_pending()
 	TEST_ASSERT_EQUAL(store.successful_writes, 2, "The due account write did not save the latest state.")

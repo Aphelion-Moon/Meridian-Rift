@@ -32,7 +32,8 @@ Use this checklist for the final source revision. Record the exact commit/source
 - [ ] Make the sidecar unwritable; confirm the draft remains dirty, visible as failed, and retryable, and that a later write clears the error.
 - [ ] As a guest or with dev preferences, confirm the UI does not claim durable storage.
 - [ ] Verify page close, teardown, slot switch, deletion, and import replacement follow their documented save/discard behavior.
-- [ ] Verify compact sidecar round trips and incremental snapshots preserve ordering and independent ownership. Test external same-slot replacement before completion, different-slot writes, mutable raw callers and failure retries without falsely acknowledging a newer draft.
+- [ ] Verify save text reloads exactly as the nested tree did, including overrides left at their defaults, and that older nested slots load and are rewritten as text. Test external same-slot replacement before completion, different-slot writes, mutable raw callers and failure retries without falsely acknowledging a newer draft.
+- [ ] Fill one character past 32 KB: copies past the limit are refused, edits past it stay unsaved with a clear message, and deleting a preset or default saves again.
 - [ ] Change or close the editor while a shared asset is still loading. Recheck current slot/model/direction and consent after the wait; private data must not be republished after close or revocation.
 - [ ] Verify metadata-only refreshes preserve active placement gestures, pixel changes retain coherent old stage geometry, and repeated size controls advance from accepted state while metadata waits.
 - [ ] Load old layout-only records, old unbound presets, and future-version records; verify compatibility and refusal/preservation behavior without accidental migration or downgrade.
