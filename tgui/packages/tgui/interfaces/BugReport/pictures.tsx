@@ -141,9 +141,10 @@ function Card(props: {
   src: string | null | undefined;
   busy: boolean;
   uploadsLeft: number;
+  uploadLimit: number;
   actions: PictureActions;
 }) {
-  const { picture, src, busy, uploadsLeft, actions } = props;
+  const { picture, src, busy, uploadsLeft, uploadLimit, actions } = props;
   const label = caption(picture);
   const line = pictureLine(picture);
   const ready = picture.state === 'ready';
@@ -157,7 +158,7 @@ function Card(props: {
   const retakeWhy = gone
     ? say('shot.gone')
     : noUploads
-      ? say('st.limit.pictures', { uploads: 0 })
+      ? say('st.limit.pictures', { uploads: uploadLimit })
       : null;
   // Only a capture waiting on its window can be stopped while DM is busy, since removing it ends the wait
   const removeLocked = busy && picture.state !== 'waiting';
@@ -417,6 +418,7 @@ export function PicturePage(props: {
                   src={previews[previewKey(picture)]}
                   busy={busy}
                   uploadsLeft={uploadsLeft}
+                  uploadLimit={data.limits.uploads}
                   actions={actions}
                 />
               ))}

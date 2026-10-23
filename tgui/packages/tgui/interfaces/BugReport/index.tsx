@@ -60,7 +60,8 @@ export const BugReport = () => {
   const [vague, setVague] = useState<string | null>(null);
   const [keptVague, setKeptVague] = useState<string | null>(null);
   const [press, setPress] = useState<Press | null>(null);
-  const [triedAgain, setTriedAgain] = useState(0);
+  // Updates since the player pressed Try again, which the second one answers, or null when they haven't
+  const [retryUpdates, setRetryUpdates] = useState<number | null>(null);
   const [limitUntil, setLimitUntil] = useState(0);
   const [, setNow] = useState(0);
   const [previews, setPreviews] = useState<Record<string, string | null>>({});
@@ -158,10 +159,12 @@ export const BugReport = () => {
     return () => clearTimeout(timer);
   }, [data.limit]);
 
-  // A server that answers again is no longer one we tried and failed to reach
+  // Try again's own act answers first, then the refresh it started, so only a second update still unreachable failed again
   useEffect(() => {
-    if (!data.unreachable) setTriedAgain(0);
-  }, [data.unreachable]);
+    setRetryUpdates((count) =>
+      count === null || !data.unreachable ? null : count + 1,
+    );
+  }, [data]);
 
   // Previews come one picture at a time and only when asked, so they're kept here by picture and take
   useEffect(() => {
@@ -261,7 +264,7 @@ export const BugReport = () => {
 
   function tryAgain() {
     if (working('refresh')) return;
-    setTriedAgain((count) => count + 1);
+    setRetryUpdates(0);
     act('refresh');
     pressed('refresh');
   }
@@ -388,7 +391,7 @@ export const BugReport = () => {
         holding={holding}
         limited={limited}
         offline={offline}
-        triedAgain={triedAgain > 0}
+        triedAgain={(retryUpdates ?? 0) >= 2}
         onChange={change}
         top={conflict}
       />

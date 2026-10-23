@@ -292,6 +292,23 @@ test('an unreachable server offers Try again, which asks DM to refresh', () => {
   expect(send).toHaveBeenLastCalledWith('refresh');
 });
 
+test('Try again says it failed again only once the refresh it started answers', () => {
+  const first = 'Your report is kept. Try again in a minute.';
+  const again =
+    "Still can't reach it. Try again in a few minutes. Your report is kept.";
+  openAt(4);
+  setData({ unreachable: true, status: "Couldn't reach the report server." });
+  fireEvent.click(button('Try again'));
+  // The act's own update comes back before the server has answered
+  setData({});
+  expect(hasText(first)).toBe(true);
+  expect(hasText(again)).toBe(false);
+  setData({});
+  expect(hasText(again)).toBe(true);
+  setData({ unreachable: false, status: null });
+  expect(hasText("Couldn't reach the report server")).toBe(false);
+});
+
 test('the sent page names the issue and opens it, or starts the next report', () => {
   show();
   setData({
@@ -414,4 +431,12 @@ test('a picture on the way holds sending and says why', () => {
   openAt(4);
   expect(hasText('Wait for the picture to finish, or remove it.')).toBe(true);
   expect(hasButton('Send report')).toBe(false);
+});
+
+test('at the hourly upload limit, your own screenshot says the limit by its Retake', () => {
+  setData({ pictures: [{ ...picture, source: 'file' }], uploadsLeft: 0 });
+  openAt(2);
+  expect(
+    screen.queryAllByText(/^You've uploaded 5 of your own screenshots/).length,
+  ).toBe(2);
 });
