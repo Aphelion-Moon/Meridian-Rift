@@ -50,7 +50,7 @@ GAME_VERB_HIDDEN(/client, config, "config")
 		return
 	DIRECT_OUTPUT(src, link(configurl))
 
-GAME_VERB_DESC(/client, reportissue, "report-issue", "Report an issue", null)
+GAME_VERB_DESC(/client, reportissue, "report-issue", "Report a bug", null) // APHELION EDIT CHANGE - plain words for bug reports. ORIGINAL: GAME_VERB_DESC(/client, reportissue, "report-issue", "Report an issue", null)
 
 	// APHELION EDIT ADDITION START - the in-game report form when the reporting bridge is set up
 	if(bug_reports_enabled())
