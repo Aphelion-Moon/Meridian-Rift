@@ -98,6 +98,17 @@ GLOBAL_LIST_EMPTY(bug_report_budgets)
 	return 0
 
 /**
+ * Spends what's left of a ckey's hourly allowance of one kind, for when the reporting service says it's all used.
+ *
+ * Arguments:
+ * * ckey - whose allowance
+ * * kind - uploads or captures
+ */
+/proc/bug_report_budget_fill(ckey, kind)
+	while(bug_report_uses_left(ckey, kind) > 0)
+		bug_report_budget(ckey, kind)
+
+/**
  * Whether a field counts as empty, by the same rule as the reporting service.
  *
  * Only Unicode's whitespace and the zero width no-break space count as nothing, and steps that are only
@@ -202,6 +213,8 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 	var/requesting = FALSE
 	/// Whether the last bridge request went unanswered, which the window shows until one gets through
 	var/unreachable = FALSE
+	/// Whether the report server turned down the last bridge request, which status then explains
+	var/refused = FALSE
 	/// Which hourly limit holds sending, reports or sends, while limit_until is ahead
 	var/limit_kind
 	/// When the hourly limit holding sending lets go, in REALTIMEOFDAY
@@ -280,10 +293,13 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
  * * timeout - seconds rust-g waits for the bridge
  */
 /datum/bug_report/proc/bridge_call(route, body = "", list/headers, body_file, output_file, timeout = 10)
+	refused = FALSE
 	if(!bug_reports_enabled())
 		status = "Bug reports aren't set up on this server right now. Your text is kept."
 		return
 	UNTIL(!valid_owner() || (!requesting && GLOB.bug_report_requests < BUG_REPORT_MAX_REQUESTS))
+	// Another request of this report may have been turned down while we waited, and only our own answer counts
+	refused = FALSE
 	if(!valid_owner())
 		return
 	requesting = TRUE
@@ -304,8 +320,20 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 	requesting = FALSE
 	if(!valid_owner())
 		return
-	var/datum/http_response/response = request.into_response()
-	if(response.errored || response.status_code < 200 || (response.status_code >= 300 && response.status_code != 409))
+	return bridge_reply(request.into_response(), output_file)
+
+/**
+ * Reads the bridge's answer to one request.
+ *
+ * Returns the decoded reply, TRUE for a reply saved to output_file, or null with status saying why. Only no
+ * answer or a 5xx means we couldn't reach the report server. A 4xx is it turning the request down, which sets
+ * refused, except a conflict, which means the draft moved on.
+ * Arguments:
+ * * response - the bridge's answer
+ * * output_file - the file rust-g saved the reply into, if any
+ */
+/datum/bug_report/proc/bridge_reply(datum/http_response/response, output_file)
+	if(response.errored || response.status_code < 200 || response.status_code >= 500)
 		unreachable = TRUE
 		status = "Couldn't reach the report server. Your text is kept. Try again in a minute."
 		return
@@ -313,15 +341,36 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 	if(unreachable)
 		unreachable = FALSE
 		status = null
-	if(response.status_code == 409)
-		return list("revisionConflict" = TRUE)
-	if(output_file)
-		return TRUE
 	var/list/data
-	try
-		data = json_decode(response.body)
-	catch
-		data = null
+	if(response.status_code >= 400)
+		try
+			data = json_decode(response.body)
+		catch
+			data = null
+		var/error = islist(data) && istext(data["error"]) ? data["error"] : null
+		if(response.status_code == 409 && error != "too_many_attachments")
+			return list("revisionConflict" = TRUE)
+		refused = TRUE
+		switch(error)
+			// The service also counts what the reporter does outside the game, which our hourly mirror never sees
+			if("upload_request_limit")
+				bug_report_budget_fill(context["ckey"], "uploads")
+				status = "You've reached this hour's limit on your own screenshots. Captures still work."
+			if("capture_request_limit")
+				bug_report_budget_fill(context["ckey"], "captures")
+				status = "You've reached this hour's limit on captures. Add your own screenshot instead."
+			if("too_many_attachments")
+				status = "The report server already has [BUG_REPORT_MAX_PICTURES] pictures for this report. Remove one to add another."
+			else
+				status = "The report server turned that down. Your text is kept."
+		return
+	if(response.status_code < 300)
+		if(output_file)
+			return TRUE
+		try
+			data = json_decode(response.body)
+		catch
+			data = null
 	if(islist(data))
 		return data
 	status = "Something went wrong on the report server. Your text is kept. Try again in a minute."
@@ -415,6 +464,13 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 		if(!istext(value))
 			return FALSE
 		if(length_char(value) > limit)
+			status = "Some of it is too long. Cut it down, then send it again."
+			return FALSE
+	// The steps arrive as numbered lines, and the window offers no more than BUG_REPORT_STEPS_MAX of them
+	var/static/regex/numbering = regex(@"^[ \t]*[0-9]{1,3}\.")
+	var/steps = 0
+	for(var/line in splittext(incoming["reproduction"], "\n"))
+		if(numbering.Find(line) && ++steps > BUG_REPORT_STEPS_MAX)
 			status = "Some of it is too long. Cut it down, then send it again."
 			return FALSE
 	if(required)
@@ -557,6 +613,11 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 	if(key != submission_key || result?["kind"] == "accepted")
 		return
 	if(!response)
+		// Asking again would only be turned down again, so the check stops and the status says why
+		if(refused)
+			submission_key = null
+			result = null
+			return
 		poll_failed()
 		return
 	poll_failures = 0
@@ -571,8 +632,9 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 		status = "Something changed while it was sending. Check your report, then send it again."
 		return
 	var/list/next_result = response["result"]
-	if(!next_result)
+	if(!islist(next_result))
 		return
+	drop_unix_times(next_result)
 	if(next_result["kind"] != result?["kind"])
 		poll_delay = BUG_REPORT_POLL_MIN
 	result = next_result
@@ -593,9 +655,24 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 		poll_failed()
 		return
 	poll_failures = 0
-	if(response["receipt"])
-		result = list("kind" = "accepted", "receipt" = response["receipt"])
+	if(islist(response["receipt"]))
+		result = drop_unix_times(list("kind" = "accepted", "receipt" = response["receipt"]))
 		note_retry()
+
+/**
+ * Drops the service's Unix ms times from its answer, keeping the waits beside them.
+ *
+ * DM can't hold a Unix ms time exactly, and the window only reads the waits, which we count from now.
+ * Returns the answer.
+ * Arguments:
+ * * answer - a submission's result or an accepted report's
+ */
+/datum/bug_report/proc/drop_unix_times(list/answer)
+	answer -= "retryAt"
+	var/list/receipt = answer["receipt"]
+	if(islist(receipt))
+		receipt -= "nextAttemptAt"
+	return answer
 
 /// Notes when the service tries publishing again, since the wait it sends is only true the moment it answers
 /datum/bug_report/proc/note_retry()

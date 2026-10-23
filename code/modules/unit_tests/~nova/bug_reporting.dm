@@ -10,6 +10,7 @@
 /datum/client_interface/bug_report/Destroy(force)
 	// The test windows hold us as their client, so we let go of them or neither is ever collected
 	bug_report_draft = null
+	bug_report_history = null
 	tgui_windows = null
 	return ..()
 
@@ -22,10 +23,25 @@
 
 /datum/bug_report/test/bridge_call(route, body = "", list/headers, body_file, output_file, timeout = 10)
 	calls += list(list("route" = route, "body" = length(body) ? json_decode(body) : null, "headers" = headers, "file_existed" = body_file && fexists(body_file)))
+	refused = FALSE
+	// The saved file exists whatever the answer, so only the answer can say it's a preview
+	if(output_file)
+		text2file("preview", output_file)
 	if(!length(replies))
 		return null
-	. = replies[1]
+	var/reply = replies[1]
 	replies.Cut(1, 2)
+	// A scripted HTTP answer is read like a real one
+	if(istype(reply, /datum/http_response))
+		return bridge_reply(reply, output_file)
+	return reply
+
+/// An answer from the bridge with this status and JSON body, for the scripted bridge to read like a real one
+/proc/bug_report_test_answer(status_code, list/body)
+	var/datum/http_response/answer = new
+	answer.status_code = status_code
+	answer.body = json_encode(body)
+	return answer
 
 /// An open report window with nobody behind it, keeping what it was sent
 /datum/tgui/bug_report_test
@@ -71,6 +87,7 @@
 	var/datum/client_interface/bug_report/reporter = test.allocate(/datum/client_interface/bug_report)
 	var/datum/bug_report/test/report = test.allocate(/datum/bug_report/test, reporter)
 	reporter.bug_report_draft = report
+	LAZYADD(reporter.bug_report_history, report)
 	report.context_saved = TRUE
 	return report
 
@@ -429,6 +446,16 @@
 	odd["severity"] = 3
 	TEST_ASSERT(report.update_local_fields(odd, 0), "Choices the window never offers held the text back")
 	TEST_ASSERT(report.fields["category"] == "Other" && report.fields["severity"] == "unspecified", "A choice the window never offers was taken")
+	var/list/steps = list()
+	for(var/number in 1 to 20)
+		steps += "[number]. Click it"
+	odd = filled.Copy()
+	odd["reproduction"] = jointext(steps, "\n")
+	TEST_ASSERT(report.update_local_fields(odd, 0, required = TRUE), "Twenty steps, the most the window offers, were refused")
+	odd["reproduction"] += "\n21. Click it again"
+	report.status = null
+	TEST_ASSERT(!report.update_local_fields(odd, 0), "A twenty-first step was taken")
+	TEST_ASSERT_EQUAL(report.status, "Some of it is too long. Cut it down, then send it again.", "A twenty-first step didn't say why")
 
 /// Starts a capture of the window, as if the last capture's wait had passed
 /proc/bug_report_test_capture(datum/bug_report/test/report, datum/tgui_window/bug_report_test/window)
@@ -571,6 +598,17 @@
 	report.remove_picture(unconfirmed.id)
 	TEST_ASSERT((unconfirmed in report.pictures) && findtext(report.status, "still attached"), "A removal the bridge didn't confirm dropped the picture")
 
+	var/datum/tgui/bug_report_test/ui = allocate(/datum/tgui/bug_report_test)
+	LAZYADD(report.open_uis, ui)
+	report.replies = list(list("revisionConflict" = TRUE), TRUE)
+	report.load_preview(unconfirmed)
+	var/list/preview = ui.updates[length(ui.updates)]["preview"]
+	TEST_ASSERT(preview && isnull(preview["src"]), "A preview the bridge answered with a conflict was shown")
+	report.load_preview(unconfirmed)
+	preview = ui.updates[length(ui.updates)]["preview"]
+	TEST_ASSERT(findtext(preview?["src"], "data:image/png;base64,") == 1, "A saved preview wasn't shown")
+	LAZYREMOVE(report.open_uis, ui)
+
 /// The in-game capture waits between captures, holds to two across the server, says when there's nothing to see, and renders the view it sees
 /datum/unit_test/bug_report_view
 
@@ -581,6 +619,7 @@
 	var/datum/bug_report_picture/picture = report.pictures[1]
 	TEST_ASSERT(picture.reason == "nothing" && picture.window_data()["state"] == "failed", "Nothing in view didn't say so")
 	TEST_ASSERT(!report.busy && !length(report.calls), "Nothing in view left the report busy or uploaded something")
+	TEST_ASSERT_EQUAL(bug_report_uses_left(report.context["ckey"], "captures"), 29, "A render didn't spend its capture when it started")
 	report.begin_view_capture(picture.id)
 	TEST_ASSERT_EQUAL(report.status, "Give it a few seconds before the next capture.", "A second capture inside the wait didn't say to wait")
 	COOLDOWN_RESET(report, view_cooldown)
@@ -634,6 +673,7 @@
 	report.check_submission()
 	var/list/limit = report.limit_data()
 	TEST_ASSERT(limit?["kind"] == "sends" && limit["retryIn"] > 110000 && limit["retryIn"] <= 120000, "The service's limit didn't reach the window as a wait")
+	TEST_ASSERT(!("retryAt" in report.result_data()), "The window was sent the service's Unix ms time")
 
 	report.submission_key = "key"
 	report.result = list("kind" = "checking")
@@ -644,6 +684,7 @@
 	var/wait = report.result_data()["receipt"]["nextAttemptIn"]
 	TEST_ASSERT(wait > 49000 && wait <= 50000, "The receipt's wait wasn't counted from now")
 	TEST_ASSERT_EQUAL(report.result["receipt"]["nextAttemptIn"], 60000, "Counting the wait from now changed the receipt we hold")
+	TEST_ASSERT(!("nextAttemptAt" in report.result_data()["receipt"]), "The window was sent the receipt's Unix ms time")
 
 	var/datum/bug_report/test/capturer = bug_report_test_report(src)
 	var/datum/tgui_window/bug_report_test/window = bug_report_test_window(capturer)
@@ -651,3 +692,228 @@
 		bug_report_budget(capturer.context["ckey"], "captures")
 	capturer.begin_ui_capture(window.id)
 	TEST_ASSERT(findtext(capturer.status, "30 captures this hour") && !capturer.capture_nonce && !capturer.pictures, "A capture past the service's hourly cap went ahead")
+
+/// The window's acts keep their own checks - a send needs every box, removing a picture ends its capture, sharing waits for this image's preview, and acts that reach the bridge wait between goes
+/datum/unit_test/bug_report_acts
+
+/datum/unit_test/bug_report_acts/Run()
+	var/datum/bug_report/test/report = bug_report_test_report(src)
+	var/datum/tgui/bug_report_test/ui = allocate(/datum/tgui/bug_report_test)
+	ui.status = UI_INTERACTIVE
+	var/datum/bug_report_test_sender/sender = new
+	sender.client = report.owner
+	var/old_usr = usr
+	usr = sender
+	var/list/filled = list("title" = "Door", "expected" = "Open", "reproduction" = "1. Click it", "category" = "Other", "severity" = "minor")
+	var/static/list/empty = list("title" = " ", "expected" = "\t\n", "reproduction" = "1. ")
+	for(var/name, text in empty)
+		var/list/blank = filled.Copy()
+		blank[name] = text
+		report.status = null
+		report.ui_act("submit", list("fields" = blank, "fieldsEpoch" = 0), ui)
+		TEST_ASSERT_EQUAL(report.status, "Some boxes are empty. Fill them in, then send it again.", "A send with an empty [name] didn't say why")
+	TEST_ASSERT_EQUAL(length(report.calls), 0, "A send with an empty box reached the bridge")
+	report.ui_act("submit", list("fields" = filled, "fieldsEpoch" = 0), ui)
+	TEST_ASSERT_EQUAL(length(report.calls), 1, "A send with every box filled didn't reach the bridge")
+	report.ui_act("submit", list("fields" = filled, "fieldsEpoch" = 0), ui)
+	TEST_ASSERT_EQUAL(length(report.calls), 1, "A second send inside a second reached the bridge")
+	report.ui_act("refresh", null, ui)
+	report.ui_act("refresh", null, ui)
+	TEST_ASSERT_EQUAL(length(report.calls), 2, "A second refresh inside five seconds reached the bridge")
+
+	var/datum/tgui_window/bug_report_test/window = bug_report_test_window(report)
+	report.fields_dirty = FALSE
+	COOLDOWN_RESET(report, action_cooldown)
+	report.ui_act("capture_ui", list("fields" = filled, "fieldsEpoch" = 0, "windowId" = window.id), ui)
+	TEST_ASSERT(report.busy && report.capture_picture, "The window capture didn't start")
+	report.ui_act("remove_screenshot", list("pictureId" = report.capture_picture.id), ui)
+	TEST_ASSERT(!report.busy && !report.capture_nonce && !report.pictures, "Removing the picture a capture waits on didn't end the capture")
+
+	var/datum/bug_report_picture/picture = bug_report_test_picture(report)
+	picture.take = 2
+	report.ui_act("preview_loaded", list("pictureId" = picture.id, "take" = 1), ui)
+	COOLDOWN_RESET(report, action_cooldown)
+	report.ui_act("screenshot_consent", list("pictureId" = picture.id, "publicConsent" = TRUE), ui)
+	TEST_ASSERT(!picture.preview_seen && length(report.calls) == 2, "The last image's preview let this one go public")
+	report.ui_act("preview_loaded", list("pictureId" = picture.id, "take" = 2), ui)
+	COOLDOWN_RESET(report, action_cooldown)
+	report.replies = list(list("attachment" = list("id" = "image", "state" = "ready", "publicConsent" = TRUE)))
+	report.ui_act("screenshot_consent", list("pictureId" = picture.id, "publicConsent" = TRUE), ui)
+	usr = old_usr
+	TEST_ASSERT(picture.preview_seen && picture.public_consent, "Sharing an image whose preview was shown didn't go out")
+
+/// Something opaque on the floor, for the sight test
+/obj/bug_report_test_blocker
+	name = "test blocker"
+	opacity = TRUE
+	density = TRUE
+	anchored = TRUE
+
+/// A living reporter's in-game capture leaves out what's behind something opaque, and a ghost's keeps it
+/datum/unit_test/bug_report_sight
+
+/datum/unit_test/bug_report_sight/Run()
+	var/turf/center = run_loc_floor_bottom_left
+	var/turf/blocked = locate(center.x + 1, center.y, center.z)
+	var/turf/behind = locate(center.x + 2, center.y, center.z)
+	TEST_ASSERT(behind.x <= run_loc_floor_top_right.x, "The test room is too narrow for the sight test")
+	allocate(/obj/bug_report_test_blocker, blocked)
+	var/obj/item/camera/bug_report/camera = new
+	var/list/living = camera.seen_turfs(center, 5, 5, FALSE, FALSE)
+	var/list/ghost = camera.seen_turfs(center, 5, 5, TRUE, FALSE)
+	qdel(camera)
+	TEST_ASSERT((blocked in living) && !(behind in living), "A living reporter's capture took what's behind something opaque")
+	TEST_ASSERT((behind in ghost) && length(ghost) == 25, "A ghost's capture left out some of its view")
+
+/// The report server turning a request down says what it was, never that the server was out of reach, and its hourly limits fill ours
+/datum/unit_test/bug_report_refusals
+
+/datum/unit_test/bug_report_refusals/Run()
+	var/datum/bug_report/test/report = bug_report_test_report(src)
+	var/datum/bug_report_picture/own = report.picture_for(null, "file")
+	LAZYADD(report.pictures, own)
+	report.replies = list(bug_report_test_answer(429, list("error" = "upload_request_limit")))
+	report.upload_picture(own, bug_report_test_image())
+	TEST_ASSERT_EQUAL(report.status, "You've reached this hour's limit on your own screenshots. Captures still work.", "The service's upload limit didn't say so")
+	TEST_ASSERT(!report.unreachable && !report.pictures, "The service's upload limit read as no answer, or kept the picture it turned down")
+	TEST_ASSERT_EQUAL(report.ui_data()["uploadsLeft"], 0, "The service's upload limit didn't reach the window")
+	var/datum/bug_report_picture/capture = report.picture_for(null, "view")
+	LAZYADD(report.pictures, capture)
+	report.replies = list(bug_report_test_answer(429, list("error" = "capture_request_limit")))
+	report.upload_picture(capture, bug_report_test_image())
+	TEST_ASSERT_EQUAL(report.status, "You've reached this hour's limit on captures. Add your own screenshot instead.", "The service's capture limit didn't say so")
+	TEST_ASSERT_EQUAL(bug_report_uses_left(report.context["ckey"], "captures"), 0, "The service's capture limit didn't fill ours")
+
+	var/datum/bug_report/test/crowded = bug_report_test_report(src)
+	var/datum/bug_report_picture/third = crowded.picture_for(null, "window")
+	LAZYADD(crowded.pictures, third)
+	crowded.replies = list(bug_report_test_answer(409, list("error" = "too_many_attachments")))
+	crowded.upload_picture(third, bug_report_test_image(), "base64")
+	TEST_ASSERT(crowded.status == "The report server already has 3 pictures for this report. Remove one to add another." && !crowded.pictures, "A picture the service had no room for didn't say so")
+	crowded.fields_dirty = TRUE
+	crowded.replies = list(bug_report_test_answer(410, list("error" = "draft_expired")))
+	TEST_ASSERT(!crowded.save_fields(), "A save the service turned down claimed success")
+	TEST_ASSERT(crowded.status == "The report server turned that down. Your text is kept." && !crowded.unreachable, "A save the service turned down read as no answer")
+	crowded.submission_key = "key"
+	crowded.result = list("kind" = "checking")
+	crowded.replies = list(bug_report_test_answer(400, list("error" = "invalid_attachments")))
+	crowded.check_submission()
+	TEST_ASSERT(!crowded.result && !crowded.submission_key && !crowded.polling_paused, "A check the service turned down kept checking")
+	crowded.replies = list(bug_report_test_answer(409, list("error" = "revision_conflict")), list("draft" = list("revision" = 2, "fields" = crowded.fields, "intake" = "draft")))
+	crowded.save_fields()
+	TEST_ASSERT_EQUAL(crowded.remote_draft?["revision"], 2, "A conflict stopped meaning the draft moved on")
+	crowded.remote_draft = null
+	crowded.replies = list(bug_report_test_answer(503, list("error" = "service_unavailable")))
+	crowded.save_fields()
+	TEST_ASSERT(crowded.unreachable && crowded.status == "Couldn't reach the report server. Your text is kept. Try again in a minute.", "A 5xx didn't read as out of reach")
+	crowded.unreachable = FALSE
+	var/datum/http_response/answer = new
+	answer.errored = TRUE
+	crowded.replies = list(answer)
+	crowded.save_fields()
+	TEST_ASSERT(crowded.unreachable, "No answer didn't read as out of reach")
+
+/// One reporter renders one in-game capture at a time and waits between them, however many reports they switch between
+/datum/unit_test/bug_report_render_per_player
+
+/datum/unit_test/bug_report_render_per_player/Run()
+	var/datum/bug_report/test/first = bug_report_test_report(src)
+	var/datum/client_interface/bug_report/reporter = first.owner
+	reporter.eye = run_loc_floor_bottom_left
+	reporter.view = "5x5"
+	var/datum/bug_report/test/second = allocate(/datum/bug_report/test, reporter)
+	second.context_saved = TRUE
+	LAZYADD(reporter.bug_report_history, second)
+	// The render waits a tick before its PNG, and the reporter switches reports then
+	INVOKE_ASYNC(first, TYPE_PROC_REF(/datum/bug_report, begin_view_capture))
+	TEST_ASSERT(first.rendering, "The render finished without waiting a tick")
+	reporter.bug_report_draft = second
+	// Only the render running holds the second report, not the wait the first one started
+	var/wait_time = first.view_cooldown
+	COOLDOWN_RESET(first, view_cooldown)
+	second.begin_view_capture()
+	first.view_cooldown = wait_time
+	TEST_ASSERT(second.status == "Give it a few seconds before the next capture." && !second.pictures && !length(second.calls), "A reporter rendered in two reports at once")
+	for(var/tick in 1 to 100)
+		if(!first.busy)
+			break
+		stoplag()
+	TEST_ASSERT(!first.busy && !first.rendering && !length(first.calls), "A render dropped on the way kept rendering or uploaded")
+	TEST_ASSERT_EQUAL(bug_report_uses_left(first.context["ckey"], "captures"), 29, "A render dropped on the way didn't spend its capture")
+	second.begin_view_capture()
+	TEST_ASSERT_EQUAL(second.status, "Give it a few seconds before the next capture.", "The wait between captures belonged to one report")
+
+/// A render that breaks part way gives back its slot and the reporter's, and leaves nothing waiting on it
+/datum/unit_test/bug_report_render_breaks
+
+/datum/unit_test/bug_report_render_breaks/Run()
+	var/datum/bug_report/test/report = bug_report_test_report(src)
+	var/datum/client_interface/bug_report/reporter = report.owner
+	reporter.eye = run_loc_floor_bottom_left
+	// A view with no size, which reading it can't take
+	reporter.view = ""
+	var/thrown = FALSE
+	try
+		report.begin_view_capture()
+	catch
+		thrown = TRUE
+	var/renders = GLOB.bug_report_renders
+	GLOB.bug_report_renders = 0
+	TEST_ASSERT(thrown, "A view that can't be read didn't break the render")
+	TEST_ASSERT(!report.busy && !report.rendering && !renders, "A broken render left the report, the reporter or the server rendering")
+	var/datum/bug_report_picture/picture = LAZYACCESS(report.pictures, 1)
+	TEST_ASSERT(picture?.reason == "render" && picture.window_data()["state"] == "failed", "A broken render didn't say it didn't work")
+
+/// A retake gives back the image a lost upload reply left with the service before sending its own, so the report never holds one too many
+/datum/unit_test/bug_report_retake_unclaimed
+
+/datum/unit_test/bug_report_retake_unclaimed/Run()
+	var/datum/bug_report/test/report = bug_report_test_report(src)
+	bug_report_test_picture(report, "first", "window")
+	bug_report_test_picture(report, "second", "window")
+	var/datum/bug_report_picture/lost = report.picture_for(null, "window")
+	LAZYADD(report.pictures, lost)
+	// The service took it, but its reply never came back
+	report.upload_picture(lost, bug_report_test_image(), "base64")
+	TEST_ASSERT_EQUAL(lost.reason, "unconfirmed", "An upload without a reply wasn't unconfirmed")
+	report.calls.Cut()
+	report.replies = list(
+		list("draft" = list("revision" = 0, "fields" = report.fields, "intake" = "draft", "attachments" = list(
+			list("id" = "first", "state" = "ready", "publicConsent" = FALSE),
+			list("id" = "second", "state" = "ready", "publicConsent" = FALSE),
+			list("id" = "orphan", "state" = "ready", "publicConsent" = FALSE),
+		))),
+		list("removed" = TRUE),
+		list("attachment" = list("id" = "retaken", "state" = "processing", "publicConsent" = FALSE)),
+	)
+	var/datum/tgui_window/bug_report_test/window = bug_report_test_window(report)
+	report.begin_ui_capture(window.id, lost.id)
+	report.receive_ui_capture(window, "bug-report/capture-chunk", list("nonce" = report.capture_nonce, "index" = 0, "totalLength" = 4, "data" = "AAAA"))
+	TEST_ASSERT_EQUAL(length(report.calls), 3, "A retake didn't read the draft, give back what it left and send its own")
+	TEST_ASSERT(report.calls[2]["route"] == "attachment/remove" && report.calls[2]["headers"]["x-report-attachment"] == "orphan", "A retake didn't give back the image a lost reply left")
+	TEST_ASSERT(lost.attachment_id == "retaken" && lost.take == 2 && !lost.reason, "The retake's image wasn't taken")
+
+/// A say box with no client or window, since alter_entry() reads only the payload and its phrases
+/datum/tgui_say/bug_report_test
+
+/datum/tgui_say/bug_report_test/New()
+	return
+
+/// A hurt player's forced say is cut by letter, so it comes out the same length in any alphabet
+/datum/unit_test/tgui_say_cut_by_letter
+
+/datum/unit_test/tgui_say_cut_by_letter/Run()
+	var/datum/tgui_say/bug_report_test/say = new
+	var/static/list/cases = list(
+		list("letter" = 1076, "count" = 25, "low" = 24, "high" = 24),
+		list("letter" = 1076, "count" = 30, "low" = 29, "high" = 29),
+		list("letter" = 100, "count" = 30, "low" = 29, "high" = 29),
+		list("letter" = 1076, "count" = 60, "low" = 39, "high" = 49),
+	)
+	for(var/list/test_case as anything in cases)
+		var/entry = ""
+		for(var/letter in 1 to test_case["count"])
+			entry += ascii2text(test_case["letter"])
+		var/said = say.alter_entry(list("entry" = entry, "channel" = SAY_CHANNEL))
+		var/kept = length_char(copytext(said, 1, findtext(said, "-")))
+		TEST_ASSERT(kept >= test_case["low"] && kept <= test_case["high"], "[test_case["count"]] of letter [test_case["letter"]] kept [kept], not [test_case["low"]] to [test_case["high"]]")

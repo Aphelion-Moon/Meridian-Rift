@@ -97,6 +97,10 @@
 		check_until ||= world.time + BUG_REPORT_CHECK_WAIT
 	return !was_ready && image_state == "ready"
 
+/// Whether the service may hold an image this picture sent under an id we never heard, as a lost upload reply leaves it
+/datum/bug_report_picture/proc/image_unclaimed()
+	return take && !attachment_id
+
 /// Forgets the image the service held, so the picture waits on a new one
 /datum/bug_report_picture/proc/forget_image()
 	attachment_id = null
@@ -206,28 +210,31 @@
 /**
  * Uploads a picture's staged image to the bridge and deletes the file, whatever happens.
  *
- * A retake gives back the picture's last image first, so the report never holds more than the service
- * takes. The reporter's own files spend the hourly upload allowance, captures the bigger capture one.
+ * A retake gives back the picture's last image first, or one a lost reply may have left with the service,
+ * so the report never holds more than the service takes. The reporter's own files spend the hourly upload
+ * allowance, captures the bigger capture one.
  * Arguments:
  * * picture - the picture the image is for, already on the report
  * * path - the generated file holding the image, or a capture's base64
  * * encoding - base64 for a capture, null for an image file
+ * * spent - whether its allowance was spent already, as an in-game capture's is when its render starts
  */
-/datum/bug_report/proc/upload_picture(datum/bug_report_picture/picture, path, encoding)
-	if(!valid_owner() || (result?["kind"] in list("accepted", "checking")) || !(picture in pictures) || !take_allowance(picture.source == "file" ? "uploads" : "captures"))
+/datum/bug_report/proc/upload_picture(datum/bug_report_picture/picture, path, encoding, spent = FALSE)
+	if(!valid_owner() || (result?["kind"] in list("accepted", "checking")) || !(picture in pictures) || (!spent && !take_allowance(picture.source == "file" ? "uploads" : "captures")))
 		fdel(path)
 		end_new_image(picture)
 		return finish_action()
+	var/reason = picture.reason
 	busy = TRUE
 	picture.pending = "uploading"
 	picture.reason = null
 	push_update()
-	if(picture.attachment_id)
-		if(!attachment_call("remove", picture.attachment_id))
-			fdel(path)
-			picture.pending = null
-			return finish_action("Couldn't remove the picture, so it's still attached. Try again.")
-		picture.forget_image()
+	if(picture.attachment_id ? !attachment_call("remove", picture.attachment_id) : (picture.image_unclaimed() && !remove_unclaimed()))
+		fdel(path)
+		picture.pending = null
+		picture.reason = reason
+		return finish_action(refused ? null : "Couldn't remove the picture, so it's still attached. Try again.")
+	picture.forget_image()
 	picture.take++
 	picture.taken_at = REALTIMEOFDAY
 	var/list/response = attachment_call("upload", body_file = path, encoding = encoding, source = picture.source)
@@ -236,6 +243,9 @@
 	if(response?["attachment"])
 		if(picture.update_attachment(response["attachment"]))
 			status = "Picture added"
+	else if(refused)
+		// The service kept nothing it turned down, and the status says why
+		end_new_image(picture)
 	else
 		picture.reason = "unconfirmed"
 		status = "Couldn't confirm the picture was added. Try again, or pick it again."
@@ -320,12 +330,12 @@
 	var/removed = TRUE
 	if(picture.attachment_id)
 		removed = !!attachment_call("remove", picture.attachment_id)
-	else if(picture.reason == "unconfirmed")
+	else if(picture.image_unclaimed())
 		removed = remove_unclaimed()
 	if(removed)
 		LAZYREMOVE(pictures, picture)
 		status = "Picture removed"
-	else
+	else if(!refused)
 		status = "Couldn't remove the picture, so it's still attached. Try again."
 	finish_action()
 
@@ -366,7 +376,7 @@
 	var/list/response = attachment_call("consent", picture.attachment_id, public_consent = public_consent)
 	if(response?["attachment"]?["id"] == picture.attachment_id)
 		picture.update_attachment(response["attachment"])
-	else
+	else if(!refused)
 		status = "Couldn't change who can see the picture. Try again."
 	finish_action()
 
@@ -390,7 +400,8 @@
 	var/take = picture.take
 	var/path = bug_report_temporary_path("preview")
 	var/data_url
-	if(attachment_call("preview", attachment_id, output_file = path) && fexists(path))
+	// Only TRUE means the preview was saved, a conflict's answer is a list
+	if(attachment_call("preview", attachment_id, output_file = path) == TRUE && fexists(path))
 		data_url = "data:image/png;base64,[rustg_hash_file(RUSTG_HASH_BASE64, path)]"
 	fdel(path)
 	// A retake while we waited makes this the last image's preview
