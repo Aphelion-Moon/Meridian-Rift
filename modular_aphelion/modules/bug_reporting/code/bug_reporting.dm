@@ -215,14 +215,18 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 	var/unreachable = FALSE
 	/// Whether the report server turned down the last bridge request, which status then explains
 	var/refused = FALSE
-	/// Which hourly limit holds sending, reports or sends, while limit_until is ahead
+	/// Which hourly limit holds sending, reports or sends, while its wait_time from start_time runs
 	var/limit_kind
-	/// When the hourly limit holding sending lets go, in REALTIMEOFDAY
-	var/limit_until = 0
+	/// When the hourly limit holding sending began, in REALTIMEOFDAY
+	var/start_time = 0
+	/// How long the hourly limit holds sending from start_time, in deciseconds
+	var/wait_time = 0
 	/// The submission's outcome - checking, needs_revision, limited, or accepted with its receipt
 	var/list/result
-	/// When the service tries publishing the accepted report again, in REALTIMEOFDAY, or 0 when it hasn't said
-	var/retry_until = 0
+	/// When the receipt we hold came, in REALTIMEOFDAY, which its wait to publish again counts from, or 0 when it has no wait
+	var/refresh_time = 0
+	/// The window's Try agains that have their answer, from zero each time it opens, which it waits on to say how it went
+	var/answered = 0
 	/// The idempotency key of the submission being checked
 	var/submission_key
 	/// Failed polls in a row, which pause polling at four
@@ -327,7 +331,7 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
  *
  * Returns the decoded reply, TRUE for a reply saved to output_file, or null with status saying why. Only no
  * answer or a 5xx means we couldn't reach the report server. A 4xx is it turning the request down, which sets
- * refused, except a conflict, which means the draft moved on.
+ * refused and says why in status, or on a preview's card, except a conflict, which means the draft moved on.
  * Arguments:
  * * response - the bridge's answer
  * * output_file - the file rust-g saved the reply into, if any
@@ -351,6 +355,9 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 		if(response.status_code == 409 && error != "too_many_attachments")
 			return list("revisionConflict" = TRUE)
 		refused = TRUE
+		// A preview, the one request whose reply goes to a file, says it didn't load on its own card
+		if(output_file)
+			return
 		switch(error)
 			// The service also counts what the reporter does outside the game, which our hourly mirror never sees
 			if("upload_request_limit")
@@ -362,7 +369,8 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 			if("too_many_attachments")
 				status = "The report server already has [BUG_REPORT_MAX_PICTURES] pictures for this report. Remove one to add another."
 			else
-				status = "The report server turned that down. Your text is kept."
+				// Every other 429, like the drafts limit or the bridge's own, lets go in a few minutes
+				status = response.status_code == 429 ? "The report server is busy. Your text is kept. Try again in a few minutes." : "The report server turned that down. Your text is kept."
 		return
 	if(response.status_code < 300)
 		if(output_file)
@@ -571,13 +579,15 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
  */
 /datum/bug_report/proc/hold_sending(kind, wait)
 	limit_kind = kind
-	limit_until = REALTIMEOFDAY + wait
+	// We keep them apart, since a time of day near a million deciseconds plus the wait rounds in DM's floats and could outlast it
+	start_time = REALTIMEOFDAY
+	wait_time = wait
 	// The window's notice says it all
 	status = null
 
 /// The hourly limit holding sending as the window takes it, with the wait in ms since DM can't hold a Unix ms time
 /datum/bug_report/proc/limit_data()
-	var/wait = limit_until - REALTIMEOFDAY
+	var/wait = wait_time - (REALTIMEOFDAY - start_time)
 	if(!limit_kind || wait <= 0)
 		return null
 	return list("kind" = limit_kind, "retryIn" = wait * 100)
@@ -674,17 +684,16 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 		receipt -= "nextAttemptAt"
 	return answer
 
-/// Notes when the service tries publishing again, since the wait it sends is only true the moment it answers
+/// Notes when the receipt came, since the wait to publish again it sends is only true the moment it answers
 /datum/bug_report/proc/note_retry()
-	var/wait = result["receipt"]?["nextAttemptIn"]
-	retry_until = isnum(wait) ? REALTIMEOFDAY + wait / 100 : 0
+	refresh_time = isnum(result["receipt"]?["nextAttemptIn"]) ? REALTIMEOFDAY : 0
 
 /// The submission's outcome as the window takes it, with the receipt's wait counted from now
 /datum/bug_report/proc/result_data()
-	if(!retry_until || !result?["receipt"])
+	if(!refresh_time || !result?["receipt"])
 		return result
 	var/list/receipt = result["receipt"].Copy()
-	receipt["nextAttemptIn"] = max(retry_until - REALTIMEOFDAY, 0) * 100
+	receipt["nextAttemptIn"] = max(receipt["nextAttemptIn"] - (REALTIMEOFDAY - refresh_time) * 100, 0)
 	var/list/sent = result.Copy()
 	sent["receipt"] = receipt
 	return sent
@@ -714,14 +723,22 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 	if(draft["intake"] == "submitted")
 		refresh_receipt()
 
-/// Counts a failed poll, pausing polling after four in a row until the reporter retries
+/// Counts a failed poll, pausing polling after four in a row until the reporter retries - one turned down still got its answer, whose status says why
 /datum/bug_report/proc/poll_failed()
+	if(refused)
+		poll_failures = 0
+		return
 	if(++poll_failures > 3)
 		polling_paused = TRUE
 		status = "Lost touch with the report server while it was checking. Your text is kept."
 
-/// Reads whatever this report waits on - its new context, its submission check, its receipt, or its draft and pictures
-/datum/bug_report/proc/refresh()
+/**
+ * Reads whatever this report waits on - its new context, its submission check, its receipt, or its draft and pictures.
+ *
+ * Arguments:
+ * * asked - whether the reporter asked with Try again, whose answer the window waits on
+ */
+/datum/bug_report/proc/refresh(asked = FALSE)
 	if(!valid_owner())
 		return
 	if(!context_saved)
@@ -732,6 +749,9 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 		check_submission()
 	else
 		read_draft()
+	// In the same update as the status the read found, so the window says how its Try again went
+	if(asked)
+		answered++
 	push_update()
 	schedule_poll()
 
@@ -813,6 +833,7 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 	if(ui)
 		return
 	ui = new(user, src, "BugReport", "Report a bug")
+	answered = 0
 	// Every change here pushes its own update, so an open window costs nothing while it sits there
 	ui.set_autoupdate(FALSE)
 	ui.open()
@@ -855,6 +876,7 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 		"conflict" = !!remote_draft,
 		"pollingPaused" = polling_paused,
 		"unreachable" = unreachable,
+		"refreshAnswered" = answered,
 		"limit" = limit_data(),
 		"pictures" = picture_data,
 		"uploadsLeft" = bug_report_uses_left(context["ckey"], "uploads"),
@@ -868,6 +890,17 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 	// Removing a picture that's waiting on its window only ends that capture, which is the action keeping us busy
 	if(action == "remove_screenshot" && capture_picture && capture_picture == find_picture(params["pictureId"]))
 		cancel_ui_capture()
+		return TRUE
+	if(action == "refresh")
+		// Every Try again gets its answer, one we drop too, so the window never waits on it for good
+		if(busy || !COOLDOWN_FINISHED(src, refresh_cooldown))
+			answered++
+			return TRUE
+		COOLDOWN_START(src, refresh_cooldown, 5 SECONDS)
+		poll_failures = 0
+		polling_paused = FALSE
+		poll_delay = BUG_REPORT_POLL_MIN
+		INVOKE_ASYNC(src, PROC_REF(refresh), TRUE)
 		return TRUE
 	if(busy)
 		return
@@ -912,15 +945,6 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 				return TRUE
 		if("targets")
 			ui.send_update(list("captureTargets" = capture_targets()))
-		if("refresh")
-			if(!COOLDOWN_FINISHED(src, refresh_cooldown))
-				return
-			COOLDOWN_START(src, refresh_cooldown, 5 SECONDS)
-			poll_failures = 0
-			polling_paused = FALSE
-			poll_delay = BUG_REPORT_POLL_MIN
-			INVOKE_ASYNC(src, PROC_REF(refresh))
-			return TRUE
 		if("new")
 			if(result?["kind"] == "accepted" && owner.new_bug_report())
 				owner.bug_report_draft.ui_interact(owner.mob)

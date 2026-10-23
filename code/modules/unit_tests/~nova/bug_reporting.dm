@@ -56,6 +56,14 @@
 /datum/tgui/bug_report_test/close(can_be_suspended = TRUE)
 	return
 
+/// A test window that breaks on its second update, for whatever breaks once a render has started
+/datum/tgui/bug_report_test/broken
+
+/datum/tgui/bug_report_test/broken/send_update(custom_data, force)
+	if(length(updates))
+		throw EXCEPTION("The test window broke")
+	return ..()
+
 /// A TGUI window with nobody behind it, keeping what it was sent
 /datum/tgui_window/bug_report_test
 	var/list/messages = list()
@@ -380,6 +388,19 @@
 	LAZYREMOVE(report.open_uis, ui)
 	report.poll()
 	TEST_ASSERT_EQUAL(length(report.calls), 1, "A poll ran after the window closed")
+	// Polls the server turns down got their answers, so however many come they never read as losing touch
+	for(var/tick in 1 to 4)
+		report.replies = list(bug_report_test_answer(404, list("error" = "receipt_not_found")))
+		report.refresh()
+	TEST_ASSERT(!report.polling_paused && report.status == "The report server turned that down. Your text is kept.", "Receipt polls the server turned down read as losing touch")
+	report.result = null
+	for(var/tick in 1 to 4)
+		report.replies = list(bug_report_test_answer(429, list("error" = "draft_request_limit")))
+		report.refresh()
+	TEST_ASSERT(!report.polling_paused, "Draft reads the server turned down read as losing touch")
+	for(var/tick in 1 to 4)
+		report.refresh()
+	TEST_ASSERT(report.polling_paused && findtext(report.status, "Lost touch"), "Four polls with no answer didn't pause polling")
 
 /// With no bridge configured a report sends nothing, and says so
 /datum/unit_test/bug_report_unconfigured
@@ -607,6 +628,11 @@
 	report.load_preview(unconfirmed)
 	preview = ui.updates[length(ui.updates)]["preview"]
 	TEST_ASSERT(findtext(preview?["src"], "data:image/png;base64,") == 1, "A saved preview wasn't shown")
+	report.status = "Picture added"
+	report.replies = list(bug_report_test_answer(404, list("error" = "attachment_not_found")))
+	report.load_preview(unconfirmed)
+	preview = ui.updates[length(ui.updates)]["preview"]
+	TEST_ASSERT(preview && isnull(preview["src"]) && report.status == "Picture added", "A preview the service turned down took the status line from its card")
 	LAZYREMOVE(report.open_uis, ui)
 
 /// The in-game capture waits between captures, holds to two across the server, says when there's nothing to see, and renders the view it sees
@@ -680,7 +706,7 @@
 	report.replies = list(list("result" = list("kind" = "accepted", "receipt" = list("publication" = "retryable", "nextAttemptAt" = 1729700000123, "nextAttemptIn" = 60000))))
 	report.check_submission()
 	// Ten seconds pass
-	report.retry_until -= 100
+	report.refresh_time -= 100
 	var/wait = report.result_data()["receipt"]["nextAttemptIn"]
 	TEST_ASSERT(wait > 49000 && wait <= 50000, "The receipt's wait wasn't counted from now")
 	TEST_ASSERT_EQUAL(report.result["receipt"]["nextAttemptIn"], 60000, "Counting the wait from now changed the receipt we hold")
@@ -692,6 +718,12 @@
 		bug_report_budget(capturer.context["ckey"], "captures")
 	capturer.begin_ui_capture(window.id)
 	TEST_ASSERT(findtext(capturer.status, "30 captures this hour") && !capturer.capture_nonce && !capturer.pictures, "A capture past the service's hourly cap went ahead")
+
+	for(var/list/body as anything in list(list("error" = "draft_request_limit"), null))
+		report.fields_dirty = TRUE
+		report.replies = list(bug_report_test_answer(429, body))
+		report.save_fields()
+		TEST_ASSERT_EQUAL(report.status, "The report server is busy. Your text is kept. Try again in a few minutes.", "A 429 naming no limit of ours didn't say to try again in a few minutes")
 
 /// The window's acts keep their own checks - a send needs every box, removing a picture ends its capture, sharing waits for this image's preview, and acts that reach the bridge wait between goes
 /datum/unit_test/bug_report_acts
@@ -705,7 +737,7 @@
 	var/old_usr = usr
 	usr = sender
 	var/list/filled = list("title" = "Door", "expected" = "Open", "reproduction" = "1. Click it", "category" = "Other", "severity" = "minor")
-	var/static/list/empty = list("title" = " ", "expected" = "\t\n", "reproduction" = "1. ")
+	var/list/empty = list("title" = " ", "expected" = "\t\n", "reproduction" = "1. ")
 	for(var/name, text in empty)
 		var/list/blank = filled.Copy()
 		blank[name] = text
@@ -739,8 +771,31 @@
 	COOLDOWN_RESET(report, action_cooldown)
 	report.replies = list(list("attachment" = list("id" = "image", "state" = "ready", "publicConsent" = TRUE)))
 	report.ui_act("screenshot_consent", list("pictureId" = picture.id, "publicConsent" = TRUE), ui)
-	usr = old_usr
 	TEST_ASSERT(picture.preview_seen && picture.public_consent, "Sharing an image whose preview was shown didn't go out")
+	// The window sends it again once we aren't busy, which changes nothing
+	var/made = length(report.calls)
+	report.ui_act("preview_loaded", list("pictureId" = picture.id, "take" = 2), ui)
+	TEST_ASSERT(picture.preview_seen && picture.public_consent && length(report.calls) == made, "A second preview_loaded for the same image changed something")
+
+	// Try again moves its marker in the update with the status its read found, and one we drop moves it too
+	LAZYADD(report.open_uis, ui)
+	COOLDOWN_RESET(report, refresh_cooldown)
+	report.answered = 0
+	report.replies = list(bug_report_test_answer(410, list("error" = "draft_expired")))
+	report.ui_act("refresh", null, ui)
+	var/list/answer = ui.updates[length(ui.updates)]
+	TEST_ASSERT(answer["refreshAnswered"] == 1 && answer["status"] == "The report server turned that down. Your text is kept.", "Try again's answer didn't come with the status its read found")
+	report.ui_act("refresh", null, ui)
+	TEST_ASSERT_EQUAL(report.answered, 2, "A Try again inside five seconds got no answer")
+	COOLDOWN_RESET(report, refresh_cooldown)
+	report.busy = TRUE
+	report.ui_act("refresh", null, ui)
+	report.busy = FALSE
+	TEST_ASSERT_EQUAL(report.answered, 3, "A Try again while busy got no answer")
+	report.refresh()
+	TEST_ASSERT_EQUAL(report.answered, 3, "A background poll answered a Try again")
+	LAZYREMOVE(report.open_uis, ui)
+	usr = old_usr
 
 /// Something opaque on the floor, for the sight test
 /obj/bug_report_test_blocker
@@ -813,6 +868,18 @@
 	crowded.save_fields()
 	TEST_ASSERT(crowded.unreachable, "No answer didn't read as out of reach")
 
+	var/datum/tgui/bug_report_test/ui = allocate(/datum/tgui/bug_report_test)
+	ui.status = UI_INTERACTIVE
+	var/datum/bug_report_test_sender/sender = new
+	sender.client = crowded.owner
+	var/old_usr = usr
+	usr = sender
+	var/datum/bug_report_picture/kept = bug_report_test_picture(crowded, "kept")
+	crowded.replies = list(bug_report_test_answer(404, list("error" = "attachment_not_found")))
+	crowded.ui_act("remove_screenshot", list("pictureId" = kept.id), ui)
+	usr = old_usr
+	TEST_ASSERT((kept in crowded.pictures) && crowded.status == "The report server turned that down. Your text is kept.", "A removal the service turned down didn't keep the picture and say why")
+
 /// One reporter renders one in-game capture at a time and waits between them, however many reports they switch between
 /datum/unit_test/bug_report_render_per_player
 
@@ -864,6 +931,22 @@
 	var/datum/bug_report_picture/picture = LAZYACCESS(report.pictures, 1)
 	TEST_ASSERT(picture?.reason == "render" && picture.window_data()["state"] == "failed", "A broken render didn't say it didn't work")
 
+	// Breaking before it looks at the view, as the window's update can, gives everything back too
+	var/datum/bug_report/test/second = bug_report_test_report(src)
+	second.owner.eye = run_loc_floor_bottom_left
+	second.owner.view = "5x5"
+	var/datum/tgui/bug_report_test/broken/ui = allocate(/datum/tgui/bug_report_test/broken)
+	LAZYADD(second.open_uis, ui)
+	thrown = FALSE
+	try
+		second.begin_view_capture()
+	catch
+		thrown = TRUE
+	renders = GLOB.bug_report_renders
+	GLOB.bug_report_renders = 0
+	LAZYREMOVE(second.open_uis, ui)
+	TEST_ASSERT(thrown && !second.busy && !second.rendering && !renders, "Breaking once the render started left the report or the server rendering")
+
 /// A retake gives back the image a lost upload reply left with the service before sending its own, so the report never holds one too many
 /datum/unit_test/bug_report_retake_unclaimed
 
@@ -893,6 +976,25 @@
 	TEST_ASSERT(report.calls[2]["route"] == "attachment/remove" && report.calls[2]["headers"]["x-report-attachment"] == "orphan", "A retake didn't give back the image a lost reply left")
 	TEST_ASSERT(lost.attachment_id == "retaken" && lost.take == 2 && !lost.reason, "The retake's image wasn't taken")
 
+	// Removing a picture whose upload went unconfirmed and whose retake then broke gives back the image too
+	var/datum/bug_report/test/second = bug_report_test_report(src)
+	var/datum/bug_report_picture/picture = second.picture_for(null, "view")
+	LAZYADD(second.pictures, picture)
+	picture.take = 1
+	picture.reason = "render"
+	second.replies = list(list("draft" = list("revision" = 0, "fields" = second.fields, "intake" = "draft", "attachments" = list(
+		list("id" = "orphan", "state" = "ready", "publicConsent" = FALSE),
+	))), list("removed" = TRUE))
+	var/datum/tgui/bug_report_test/ui = allocate(/datum/tgui/bug_report_test)
+	ui.status = UI_INTERACTIVE
+	var/datum/bug_report_test_sender/sender = new
+	sender.client = second.owner
+	var/old_usr = usr
+	usr = sender
+	second.ui_act("remove_screenshot", list("pictureId" = picture.id), ui)
+	usr = old_usr
+	TEST_ASSERT(!second.pictures && length(second.calls) == 2 && second.calls[2]["headers"]["x-report-attachment"] == "orphan", "Removing a picture whose upload went unconfirmed left its image with the service")
+
 /// A say box with no client or window, since alter_entry() reads only the payload and its phrases
 /datum/tgui_say/bug_report_test
 
@@ -904,7 +1006,7 @@
 
 /datum/unit_test/tgui_say_cut_by_letter/Run()
 	var/datum/tgui_say/bug_report_test/say = new
-	var/static/list/cases = list(
+	var/list/cases = list(
 		list("letter" = 1076, "count" = 25, "low" = 24, "high" = 24),
 		list("letter" = 1076, "count" = 30, "low" = 29, "high" = 29),
 		list("letter" = 100, "count" = 30, "low" = 29, "high" = 29),

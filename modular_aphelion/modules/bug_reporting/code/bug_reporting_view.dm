@@ -121,19 +121,21 @@ GLOBAL_VAR_INIT(bug_report_renders, 0)
 		return finish_action("Lots of captures are running right now. Try again in a moment.")
 	if(!take_allowance("captures"))
 		return finish_action()
-	rendering = TRUE
 	COOLDOWN_START(src, view_cooldown, BUG_REPORT_VIEW_COOLDOWN)
-	GLOB.bug_report_renders++
-	LAZYOR(pictures, picture)
-	picture.pending = "rendering"
-	picture.reason = null
-	status = null
-	push_update()
-	var/obj/item/camera/bug_report/camera = new
+	var/obj/item/camera/bug_report/camera
 	var/list/turfs
 	var/path
 	var/exception/thrown
 	try
+		// Set inside the try, so nothing breaking after them leaves the report, the reporter or the server rendering
+		rendering = TRUE
+		GLOB.bug_report_renders++
+		LAZYOR(pictures, picture)
+		picture.pending = "rendering"
+		picture.reason = null
+		status = null
+		push_update()
+		camera = new
 		var/turf/center = get_turf(owner.eye)
 		var/list/view_size = getviewsize(owner.view)
 		turfs = center && camera.seen_turfs(center, view_size[1], view_size[2], isobserver(owner.mob), istype(owner.eye, /mob/eye/camera))
