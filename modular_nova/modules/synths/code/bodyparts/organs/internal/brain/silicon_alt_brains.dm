@@ -137,8 +137,6 @@
 	var/obj/item/brain_processor/organic/new_mmi = prefs_get_brain_to_use(player_client?.prefs?.read_preference(/datum/preference/choiced/brain_type), TRUE)
 	if(!mmi || !new_mmi || new_mmi == mmi.type)
 		return
-	// Since the brain processor refactor only organic processors hold a brain organ,
-	// and positronic ones own their brainmob and ping ghosts unless told not to. Writing .brain on one runtimed here and skipped every later silicon preference.
 	new_mmi = new new_mmi(src, FALSE)
 
 	// Probably shitcode, but silicon code is spaghetti as fuck.
