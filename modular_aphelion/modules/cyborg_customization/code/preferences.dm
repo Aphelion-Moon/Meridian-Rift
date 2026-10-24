@@ -1,7 +1,8 @@
 /// Character preferences consumed by the cyborg creator and live renderer. Layouts live in the cyborg_customization.json sidecar.
+/// The ones only cyborgs have are manually rendered - the editor window shows them, character setup leaves them out.
 
 /datum/preference/choiced/cyborg_sprite
-	category = PREFERENCE_CATEGORY_NON_CONTEXTUAL
+	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	savefile_identifier = PREFERENCE_CHARACTER
 	should_update_preview = FALSE
 	can_randomize = FALSE
@@ -56,7 +57,7 @@
 	accessory_slot = ORGAN_SLOT_BREASTS
 
 /datum/preference/choiced/cyborg_size
-	category = PREFERENCE_CATEGORY_NON_CONTEXTUAL
+	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "cyborg_size"
 	should_update_preview = FALSE
@@ -119,7 +120,7 @@
 
 /datum/preference/text/custom_species_silicon
 	parent_type = /datum/preference/text/cyborg_profile
-	category = PREFERENCE_CATEGORY_NON_CONTEXTUAL
+	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "custom_species_silicon"
 	maximum_value_length = 100
@@ -131,7 +132,7 @@
 
 /datum/preference/text/custom_species_lore_silicon
 	parent_type = /datum/preference/text/cyborg_profile
-	category = PREFERENCE_CATEGORY_NON_CONTEXTUAL
+	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "custom_species_lore_silicon"
 	maximum_value_length = MAX_FLAVOR_LEN
@@ -143,7 +144,7 @@
 
 /datum/preference/text/ooc_notes_silicon
 	parent_type = /datum/preference/text/cyborg_profile
-	category = PREFERENCE_CATEGORY_NON_CONTEXTUAL
+	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "ooc_notes_silicon"
 	maximum_value_length = MAX_FLAVOR_LEN

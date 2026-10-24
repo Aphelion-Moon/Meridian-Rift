@@ -1,4 +1,5 @@
 import type { BooleanLike } from 'tgui-core/react';
+import type { ProfileFieldData } from './ProfileFields';
 
 export const CYBORG_SLOTS = [
   'penis',
@@ -170,29 +171,18 @@ export type PlacementCommand = {
   changes?: Partial<Omit<DirectionEntry, 'arousal'>>;
 };
 
-// A single registry is shared by the creator and ordinary preference filtering.
-export const CYBORG_VISUAL_KEYS = [
-  'silicon_gender',
-  'cyborg_size',
-  ...CYBORG_SLOTS.map((slot) => `silicon_${slot}_sprite`),
-];
-export const CYBORG_LORE_KEYS = [
-  'custom_species_silicon',
-  'silicon_flavor_text',
-  'silicon_flavor_text_nsfw',
-  'silicon_headshot',
-  'silicon_headshot_nsfw',
-  'ooc_notes_silicon',
-  'ooc_notes_silicon_nsfw',
-  'custom_species_lore_silicon',
-];
-// Shared AI/silicon controls remain reachable in ordinary character setup.
-export const CYBORG_ONLY_KEYS = new Set([
-  'silicon_headshot_nsfw',
-  'cyborg_size',
-  ...CYBORG_SLOTS.map((slot) => `silicon_${slot}_sprite`),
-  'custom_species_silicon',
-  'ooc_notes_silicon',
-  'ooc_notes_silicon_nsfw',
-  'custom_species_lore_silicon',
-]);
+/** What the editor's window gets from its backend. */
+export type CyborgEditorData = {
+  cyborg_customization?: CyborgCustomizationData;
+  cyborg_resources?:
+    | (Partial<CyborgCustomizationData> & {
+        layer_icons?: Record<string, string>;
+      })
+    | null;
+  /** The borg's name, which character setup's alternate names set too. */
+  name?: string;
+  /** A preference this character can't have is left out. */
+  values?: Record<string, unknown> | null;
+  active_slot?: number;
+  preference_data?: Record<string, ProfileFieldData>;
+};

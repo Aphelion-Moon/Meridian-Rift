@@ -1,7 +1,7 @@
 author: "Meridian-Rift contributors, SPLURT contributors"
 delete-after: true
 changes:
-  - rscadd: "Character setup has a dedicated cyborg appearance and lore page with layout presets and per-model defaults."
+  - rscadd: "Your cyborg's look and lore have their own editor window, with layout presets and per-model defaults. Open it with Customize, beside your cyborg name in character setup's alternate names."
   - rscadd: "Cyborgs can control part visibility and arousal through compact RoboTact and interaction panels. Configuration stays in Setup Character; viewer display remains independent."
   - qol: "The Cyborg creator has a model gallery, separate sprite-size and 25–200% scale controls, direct part dragging, and individual confirmed resets in a larger three-column layout."
   - bugfix: "Cyborg sliders and color controls wait for a pause before updating the preview, pixel placement rounds to whole numbers, and camera dragging no longer selects preview contents. Presets and defaults have clearer grouping and hover help."

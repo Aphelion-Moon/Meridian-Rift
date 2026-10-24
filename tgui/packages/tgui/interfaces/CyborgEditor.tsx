@@ -1,19 +1,29 @@
-import { useCallback, useEffect, useMemo } from 'react';
-import { useBackend } from 'tgui/backend';
+// THIS IS AN APHELION UI FILE
+import { useCallback, useMemo } from 'react';
 import { Box, NoticeBox } from 'tgui-core/components';
-import { CyborgCharacterEditor } from '../../common/CyborgCustomization/CharacterEditor';
-import { useCyborgGallery } from '../../common/CyborgCustomization/gallery';
-import { features } from '../preferences/features';
-import { FeatureValueInput } from '../preferences/features/base';
-import type { PreferencesMenuData } from '../types';
-import { cyborgPreferenceValues } from './cyborgValues';
+import { useBackend } from '../backend';
+import { Window } from '../layouts';
+import { CyborgCharacterEditor } from './common/CyborgCustomization/CharacterEditor';
+import { useCyborgGallery } from './common/CyborgCustomization/gallery';
+import {
+  PROFILE_FIELDS,
+  ProfileField,
+} from './common/CyborgCustomization/ProfileFields';
+import type { CyborgEditorData } from './common/CyborgCustomization/types';
 
-export function CyborgCharacterPage() {
-  const { data, act } = useBackend<PreferencesMenuData>();
-  useEffect(() => {
-    act('cyborg_page', { active: true });
-    return () => act('cyborg_page', { active: false });
-  }, [act]);
+/** The cyborg editor's own window, opened beside the borg's name in character setup. */
+export function CyborgEditor() {
+  return (
+    <Window width={1180} height={840}>
+      <Window.Content>
+        <CyborgEditorContent />
+      </Window.Content>
+    </Window>
+  );
+}
+
+export function CyborgEditorContent() {
+  const { data, act } = useBackend<CyborgEditorData>();
   const state = data.cyborg_customization;
   const resources = data.cyborg_resources;
   const gallery = useCyborgGallery(
@@ -44,10 +54,7 @@ export function CyborgCharacterPage() {
       },
     [state, resources, gallery.models, gallery.loading, gallery.error],
   );
-  const values = useMemo(
-    () => cyborgPreferenceValues(data.character_preferences),
-    [data.character_preferences],
-  );
+  const values = data.values ?? {};
   const onPreview = useCallback(
     (params) => act('cyborg_preview', { ...params, context: state?.context }),
     [act, state?.context],
@@ -69,7 +76,7 @@ export function CyborgCharacterPage() {
     <CyborgCharacterEditor
       key={data.active_slot}
       data={customization}
-      name={data.character_preferences.names.cyborg_name || ''}
+      name={data.name || ''}
       values={values}
       onName={(value) =>
         act('set_preference', { preference: 'cyborg_name', value })
@@ -77,34 +84,37 @@ export function CyborgCharacterPage() {
       onPreview={onPreview}
       onLayout={onLayout}
       onGalleryRetry={gallery.retry}
-      renderPreference={(key) =>
-        values[key] !== undefined && features[key] ? (
+      renderPreference={(key) => {
+        const field = PROFILE_FIELDS[key];
+        if (values[key] === undefined || !field)
+          return <Box color="label">Unavailable for this character.</Box>;
+        return (
           <>
-            {!['silicon_gender', 'cyborg_size'].includes(key) &&
-              !key.endsWith('_sprite') && (
-                <Box color="label" mb={0.5}>
-                  {features[key].name}
-                </Box>
-              )}
-            <FeatureValueInput
+            {field.kind !== 'choice' && (
+              <Box color="label" mb={0.5}>
+                {field.name}
+              </Box>
+            )}
+            <ProfileField
               key={key}
-              feature={features[key]}
               featureId={key}
               value={values[key]}
-              nativeInput
+              serverData={data.preference_data?.[key]}
+              slot={data.active_slot}
               label={
                 key === 'silicon_gender'
                   ? 'Pronouns'
                   : key === 'cyborg_size'
                     ? 'Body size'
-                    : features[key].name
+                    : field.name
+              }
+              onChange={(value) =>
+                act('set_preference', { preference: key, value })
               }
             />
           </>
-        ) : (
-          <Box color="label">Unavailable for this character.</Box>
-        )
-      }
+        );
+      }}
     />
   );
 }

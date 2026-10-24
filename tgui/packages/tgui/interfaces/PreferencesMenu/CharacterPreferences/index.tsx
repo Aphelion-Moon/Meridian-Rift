@@ -6,7 +6,6 @@ import { exhaustiveCheck } from 'tgui-core/exhaustive';
 import { PageButton } from '../components/PageButton';
 import type { PreferencesMenuData } from '../types';
 import { AntagsPage } from './AntagsPage';
-import { CyborgCharacterPage } from './CyborgCharacterPage';
 import { JobsPage } from './JobsPage';
 // NOVA EDIT ADDITION START
 import { LanguagesPage } from './LanguagesMenu';
@@ -18,7 +17,6 @@ import { QuirkPersonalityPage } from './QuirksPage';
 import { SpeciesPage } from './SpeciesRegistry'; // APHELION EDIT CHANGE - ORIGINAL: import { SpeciesPage } from './SpeciesPage';
 
 enum Page {
-  Cyborg,
   Antags,
   Main,
   Jobs,
@@ -45,15 +43,12 @@ function CharacterProfiles(props: ProfileProps) {
   const dropdownOptions = useMemo<CharacterOption[]>(() => {
     const emptySlots = profiles.filter((profile) => !profile).length;
 
-    const characterOptions = profiles.reduce<CharacterOption[]>(
-      (options, profile, slot) => {
-        if (profile) {
-          options.push({ value: slot, displayText: profile });
-        }
-        return options;
-      },
-      [],
-    );
+    const characterOptions = profiles.reduce<CharacterOption[]>((options, profile, slot) => {
+      if (profile) {
+        options.push({ value: slot, displayText: profile });
+      }
+      return options;
+    }, []);
 
     if (firstEmptySlot !== -1) {
       characterOptions.push({
@@ -88,7 +83,10 @@ function CharacterProfiles(props: ProfileProps) {
   */ // NOVA EDIT REMOVAL END
   // NOVA EDIT ADDITION START
   return (
-    <Stack align="center" justify="center">
+    <Stack
+      align="center"
+      justify="center"
+    >
       <Stack.Item width="25%">
         <Dropdown
           width="100%"
@@ -105,7 +103,7 @@ function CharacterProfiles(props: ProfileProps) {
     </Stack>
   );
 }
-// NOVA EDIT ADDITION END
+  // NOVA EDIT ADDITION END
 
 /* // NOVA EDIT REMOVAL START
 export function CharacterPreferenceWindow(props) {
@@ -115,7 +113,6 @@ export function CharacterPreferenceWindow(props) {
 */ // NOVA EDIT REMOVAL END
 // NOVA EDIT ADDITION START
 export function CharacterPreferenceWindow(props: {
-  onCyborgTabChange?: (active: boolean) => void;
   onAugmentsTabChange?: (tab: import('./LimbsPage').AugmentsTab | null) => void;
   onSpeciesPageShown?: (shown: boolean) => void;
 }) {
@@ -124,10 +121,6 @@ export function CharacterPreferenceWindow(props: {
   const [augmentsTab, setAugmentsTab] = useState<AugmentsTab | null>(null);
   */ // APHELION EDIT REMOVAL END
   const [currentPage, setCurrentPageRaw] = useState(Page.Main);
-  useEffect(() => {
-    props.onCyborgTabChange?.(currentPage === Page.Cyborg);
-    return () => props.onCyborgTabChange?.(false);
-  }, [currentPage, props.onCyborgTabChange]);
   // The character preview every tab shows: asked for once the window opens, then sent
   // whenever the character changes, unless the window already holds it.
   const heldPreview = data.character_preview?.id;
@@ -145,9 +138,6 @@ export function CharacterPreferenceWindow(props: {
   let pageContents;
 
   switch (currentPage) {
-    case Page.Cyborg:
-      pageContents = <CyborgCharacterPage />;
-      break;
     case Page.Antags:
       pageContents = <AntagsPage />;
       break;
@@ -162,12 +152,7 @@ export function CharacterPreferenceWindow(props: {
       break;
     case Page.Species:
       pageContents = (
-        <SpeciesPage
-          closeSpecies={() => setCurrentPage(Page.Main)}
-          onShown={
-            props.onSpeciesPageShown
-          } /* APHELION EDIT CHANGE - ORIGINAL: <SpeciesPage closeSpecies={() => setCurrentPage(Page.Main)} /> */
-        />
+        <SpeciesPage closeSpecies={() => setCurrentPage(Page.Main)} onShown={props.onSpeciesPageShown} /* APHELION EDIT CHANGE - ORIGINAL: <SpeciesPage closeSpecies={() => setCurrentPage(Page.Main)} /> */ />
       );
 
       break;
@@ -239,15 +224,6 @@ export function CharacterPreferenceWindow(props: {
               Loadout
             </PageButton>
           </Stack.Item>
-          <Stack.Item grow>
-            <PageButton
-              currentPage={currentPage}
-              page={Page.Cyborg}
-              setPage={setCurrentPage}
-            >
-              Cyborg
-            </PageButton>
-          </Stack.Item>
 
           <Stack.Item grow>
             <PageButton
@@ -305,12 +281,7 @@ export function CharacterPreferenceWindow(props: {
         </Stack>
       </Stack.Item>
       <Stack.Divider />
-      <Stack.Item
-        grow
-        position="relative"
-        overflowX="hidden"
-        overflowY={currentPage === Page.Cyborg ? 'hidden' : 'auto'}
-      >
+      <Stack.Item grow position="relative" overflowX="hidden" overflowY="auto">
         {pageContents}
       </Stack.Item>
     </Stack>

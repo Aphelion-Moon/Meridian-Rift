@@ -1,7 +1,8 @@
-/// Dedicated creator state. Catalog/preview work is lazy and has no map registrations.
+/// Dedicated creator state, and the editor window character setup opens. Catalog/preview work is lazy and has no map registrations.
 /datum/preference_middleware/cyborg_character
 	key = "cyborg_character"
-	var/page_active = FALSE
+	/// Whether the editor's window is open
+	var/editor_open = FALSE
 	var/preview_model
 	var/preview_layout_source = "active"
 	var/preview_direction = SOUTH
@@ -58,38 +59,113 @@
 	var/session_only = FALSE
 	/// A retryable write or staging failure, kept across UI close/reopen.
 	var/save_error
-	action_delegations = list(
-		"cyborg_page" = PROC_REF(set_page),
-		"cyborg_preview" = PROC_REF(set_preview),
-		"cyborg_layout" = PROC_REF(edit_layout),
+	action_delegations = list("open_cyborg_editor" = PROC_REF(open_editor))
+	/// The character preferences the editor sets beside its name, which the window gets the values of
+	var/static/list/editor_preferences = list(
+		/datum/preference/choiced/silicon_gender,
+		/datum/preference/choiced/cyborg_size,
+		/datum/preference/choiced/cyborg_sprite/penis,
+		/datum/preference/choiced/cyborg_sprite/sheath,
+		/datum/preference/choiced/cyborg_sprite/testicles,
+		/datum/preference/choiced/cyborg_sprite/vagina,
+		/datum/preference/choiced/cyborg_sprite/anus,
+		/datum/preference/choiced/cyborg_sprite/breasts,
+		/datum/preference/text/custom_species_silicon,
+		/datum/preference/text/headshot/silicon,
+		/datum/preference/text/headshot/silicon_nsfw,
+		/datum/preference/text/silicon_flavor_text,
+		/datum/preference/text/silicon_flavor_text_nsfw,
+		/datum/preference/text/custom_species_lore_silicon,
+		/datum/preference/text/ooc_notes_silicon,
+		/datum/preference/text/ooc_notes_silicon/nsfw,
 	)
 
-/datum/preference_middleware/cyborg_character/proc/set_page(list/params, mob/user)
-	if(!islist(params) || length(params) != 1 || !("active" in params) || !(params["active"] in list(TRUE, FALSE)))
+/// Character setup's action - opens the editor's window, or brings it to the front.
+/datum/preference_middleware/cyborg_character/proc/open_editor(list/params, mob/user)
+	if(user?.client != preferences.parent)
 		return FALSE
-	if(user?.client && user.client != preferences.parent)
-		return FALSE
-	var/active = params["active"] == TRUE
-	if(active == page_active)
-		return TRUE
-	page_active = active
-	if(page_active)
-		preview_layout_source = "active"
-		selected_part = "penis"
-	if(!page_active)
-		close_editor()
-		if(user?.client)
-			preferences.update_static_data(user, always_instant = TRUE)
-	return TRUE
+	ui_interact(user)
+	// Character setup shows nothing of the editor, so it needs no update
+	return FALSE
 
-/// The backend owns close even when native window teardown cannot deliver React cleanup.
+/// Starts editing the active layout, as the window opens.
+/datum/preference_middleware/cyborg_character/proc/begin_session()
+	if(editor_open)
+		return
+	editor_open = TRUE
+	preview_layout_source = "active"
+	selected_part = "penis"
+
+/// Ends the editing session and asks for its save. Character setup closing calls it too, so it closes the window as well.
 /datum/preference_middleware/cyborg_character/proc/close_editor()
-	page_active = FALSE
+	editor_open = FALSE
 	gallery_open = FALSE
 	gallery_department = null
 	request_save()
 	context_generation++
 	clear_preview_resources()
+	SStgui.close_uis(src)
+
+/datum/preference_middleware/cyborg_character/ui_state(mob/user)
+	return GLOB.always_state
+
+/datum/preference_middleware/cyborg_character/ui_status(mob/user, datum/ui_state/state)
+	return user?.client && user.client == preferences?.parent ? UI_INTERACTIVE : UI_CLOSE
+
+/datum/preference_middleware/cyborg_character/ui_interact(mob/user, datum/tgui/ui)
+	// tgui's own refreshes pass their window, only an explicit open brings it forward
+	var/opening = isnull(ui)
+	ui = SStgui.try_update_ui(user, src, ui)
+	if(ui)
+		if(opening && ui.window)
+			winset(user, ui.window.id, "focus=true")
+		return
+	begin_session()
+	ui = new(user, src, "CyborgEditor", "Cyborg customization")
+	ui.set_autoupdate(FALSE)
+	ui.open()
+
+/datum/preference_middleware/cyborg_character/ui_close(mob/user)
+	if(editor_open)
+		close_editor()
+
+/datum/preference_middleware/cyborg_character/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
+	. = ..()
+	if(.)
+		return
+	switch(action)
+		if("cyborg_preview")
+			return set_preview(params, ui.user)
+		if("cyborg_layout")
+			return edit_layout(params, ui.user)
+		if("set_preference")
+			return set_editor_preference(params, ui)
+
+/// Sets one of the editor's preferences through character setup's own action, so its checks and every middleware's hooks still run.
+/datum/preference_middleware/cyborg_character/proc/set_editor_preference(list/params, datum/tgui/ui)
+	var/key = params["preference"]
+	var/datum/preference/preference = istext(key) ? GLOB.preference_entries_by_key[key] : null
+	if(isnull(preference) || (!(preference.type in editor_preferences) && preference.type != /datum/preference/name/cyborg))
+		return FALSE
+	if(preferences.ui_act("set_preference", params, ui))
+		SStgui.update_uis(preferences)
+	// post_set_preference() already refreshed this window
+	return FALSE
+
+/datum/preference_middleware/cyborg_character/post_set_preference(mob/user, preference, value)
+	// Character setup and this window can both change what the editor shows
+	if(editor_open)
+		SStgui.update_uis(src)
+
+/// The values of the editor's preferences, as character setup sends them. A preference this character can't have is left out.
+/datum/preference_middleware/cyborg_character/proc/editor_preference_values(mob/user)
+	var/list/values
+	for(var/preference_type in editor_preferences)
+		var/datum/preference/preference = GLOB.preference_entries[preference_type]
+		// The setup page the player has open doesn't decide what the borg can have
+		if(preference.is_applicable(preferences))
+			LAZYSET(values, preference.savefile_key, preference.compile_ui_data(user, preferences.read_preference(preference_type)))
+	return values
 
 /datum/preference_middleware/cyborg_character/proc/set_preview(list/params, mob/user)
 	if(!islist(params) || length(params) > 10)
@@ -100,7 +176,7 @@
 		// All valid identifiers come from the finite server catalog. Bound text before lookup.
 		if(islist(value) || (istext(value) && length(value) > CYBORG_PREVIEW_MAX_IDENTIFIER_LENGTH))
 			return FALSE
-	if(!page_active || params["context"] != context_generation)
+	if(!editor_open || params["context"] != context_generation)
 		return FALSE
 	if(user && user.client && user.client != preferences.parent)
 		return FALSE
@@ -154,7 +230,7 @@
 /datum/preference_middleware/cyborg_character/proc/edit_layout(list/params, mob/user)
 	if(!islist(params) || length(params) > 8)
 		return FALSE
-	if(!page_active || params["character_slot"] != preferences.default_slot || params["context"] != context_generation)
+	if(!editor_open || params["character_slot"] != preferences.default_slot || params["context"] != context_generation)
 		return FALSE
 	if(user && user.client && user.client != preferences.parent)
 		return FALSE
@@ -222,30 +298,30 @@
 		request_save()
 	return TRUE
 
-/datum/preference_middleware/cyborg_character/get_ui_data(mob/user)
-	if(!page_active || preferences.current_window != PREFERENCE_TAB_CHARACTER_PREFERENCES)
-		return list()
+/datum/preference_middleware/cyborg_character/ui_data(mob/user)
+	if(!editor_open)
+		return
 	var/list/catalog = cyborg_model_catalog()
 	// These shared assets may yield during early startup or a catalog config change.
 	// Complete that work before capturing any private draft or preview state.
 	if(cyborg_visuals_allowed(preferences))
 		var/preflight_generation = resource_generation
 		var/datum/asset/cyborg_model_gallery/gallery = get_asset_datum(/datum/asset/cyborg_model_gallery)
-		if(QDELETED(src) || QDELETED(preferences) || !page_active || preferences.current_window != PREFERENCE_TAB_CHARACTER_PREFERENCES || resource_generation != preflight_generation)
-			return list()
+		if(QDELETED(src) || QDELETED(preferences) || !editor_open || resource_generation != preflight_generation)
+			return
 		while(TRUE)
 			if(!cyborg_visuals_allowed(preferences))
 				break
 			catalog = cyborg_model_catalog()
 			gallery.build_catalog(catalog)
-			if(QDELETED(src) || QDELETED(preferences) || !page_active || preferences.current_window != PREFERENCE_TAB_CHARACTER_PREFERENCES || resource_generation != preflight_generation)
-				return list()
+			if(QDELETED(src) || QDELETED(preferences) || !editor_open || resource_generation != preflight_generation)
+				return
 			if(!cyborg_visuals_allowed(preferences))
 				break
 			var/requested_department = gallery_open ? gallery_department : null
 			gallery.send_to_viewer(user, requested_department)
-			if(QDELETED(src) || QDELETED(preferences) || !page_active || preferences.current_window != PREFERENCE_TAB_CHARACTER_PREFERENCES || resource_generation != preflight_generation)
-				return list()
+			if(QDELETED(src) || QDELETED(preferences) || !editor_open || resource_generation != preflight_generation)
+				return
 			if(!cyborg_visuals_allowed(preferences))
 				break
 			// A department/catalog change during native acquisition must acquire the
@@ -264,7 +340,7 @@
 		clear_preview_resources()
 		resource_key = "unsupported"
 		if(needs_clear && user?.client)
-			preferences.update_static_data(user, always_instant = TRUE)
+			update_static_data(user, always_instant = TRUE)
 		return list("cyborg_customization" = list("unsupported" = TRUE, "message" = "This slot contains a newer layout schema. Its saved data has been preserved; use a compatible server or another character slot."))
 	var/layout_source = preview_layout_source
 	var/list/preview_layout = store["active"]
@@ -330,9 +406,12 @@
 	// wait needs a second stage on the wire; keep the server snapshot for later waits.
 	if(preview_pending)
 		.["cyborg_customization"]["rendered_preview"] = rendered_preview
+	.["name"] = preferences.read_preference(/datum/preference/name/cyborg)
+	.["values"] = editor_preference_values(user)
+	.["active_slot"] = preferences.default_slot
 	// Publish the new resource identity and its geometry together before TGUI re-enters ui_data.
 	if(resources_changed && user?.client)
-		preferences.update_static_data(user, always_instant = TRUE)
+		update_static_data(user, always_instant = TRUE)
 
 /datum/preference_middleware/cyborg_character/on_new_character(mob/user)
 	preview_model = null
@@ -341,6 +420,9 @@
 	preview_layout_source = "active"
 	gallery_open = FALSE
 	gallery_department = null
+	// The window shows the new slot's layouts
+	if(editor_open)
+		SStgui.update_uis(src)
 
 /** Creator action protocol; the middleware owns slot and actor checks.
  * The result takes over draft ownership. Unchanged branches may be shared with
@@ -725,7 +807,7 @@
 		dirty = FALSE
 	session_only = !store.path
 	save_error = save_problem()
-	SStgui.update_uis(preferences)
+	SStgui.update_uis(src)
 
 /** A stale timer cannot write a replaced draft or an older revision. */
 /datum/preference_middleware/cyborg_character/proc/flush_timer(slot, context, revision)
@@ -752,6 +834,9 @@
 	draft_revision++
 
 /datum/preference_middleware/cyborg_character/Destroy()
+	// The commit below saves what the window held, so its close mustn't queue another save of a store about to go
+	editor_open = FALSE
+	SStgui.close_uis(src)
 	// Preferences asset registration creates ownerless metadata prototypes; only a
 	// real preferences session can own drafts, account writes or private resources.
 	if(preferences)
@@ -759,9 +844,16 @@
 		discard_draft()
 	return ..()
 
-/** Static data is private to this preferences UI; never register sensitive PNGs globally. */
-/datum/preference_middleware/cyborg_character/get_ui_static_data(mob/user)
-	return list("cyborg_resources" = page_active && cyborg_visuals_allowed(preferences) ? preview_resources : null)
+/** Static data is private to this window; never register sensitive PNGs globally. */
+/datum/preference_middleware/cyborg_character/ui_static_data(mob/user)
+	// What the editor's preferences can be set to never changes in a round
+	var/static/list/preference_data
+	if(!preference_data)
+		preference_data = list()
+		for(var/preference_type in editor_preferences)
+			var/datum/preference/preference = GLOB.preference_entries[preference_type]
+			preference_data[preference.savefile_key] = preference.compile_constant_data()
+	return list("cyborg_resources" = editor_open && cyborg_visuals_allowed(preferences) ? preview_resources : null, "preference_data" = preference_data)
 
 /// Cancel work and release private pixels immediately, without resetting admission time.
 /datum/preference_middleware/cyborg_character/proc/clear_preview_resources()
@@ -784,9 +876,9 @@
 	if(generation != resource_generation || slot != draft_slot || slot != preferences.default_slot)
 		return
 	resource_timer = null
-	if(!page_active || preferences.current_window != PREFERENCE_TAB_CHARACTER_PREFERENCES)
+	if(!editor_open)
 		return
-	SStgui.update_uis(preferences)
+	SStgui.update_uis(src)
 
 /** Pixel dependencies exclude placement/rotation/scale, so a drag only resolves geometry.
  * Full private payloads are limited to one pixel refresh per second per editor. A single
@@ -868,13 +960,13 @@
 	var/datum/preference_middleware/cyborg_character/editor = editor_ref.resolve()
 	if(QDELETED(editor))
 		return
-	if(QDELETED(editor.preferences) || !editor.page_active || editor.preferences.current_window != PREFERENCE_TAB_CHARACTER_PREFERENCES || !cyborg_visuals_allowed(editor.preferences))
+	if(QDELETED(editor.preferences) || !editor.editor_open || !cyborg_visuals_allowed(editor.preferences))
 		editor.occlusion_loading = FALSE
 		return
 	var/list/current = cyborg_model_catalog()[editor.preview_model]
 	if(!current || current["icon"] != source_file || current["icon_state"] != base_state)
 		editor.occlusion_loading = FALSE
-		SStgui.update_uis(editor.preferences)
+		SStgui.update_uis(editor)
 		return
 	// Only weak identity and public source values survive the actual wait.
 	editor = null
@@ -890,10 +982,10 @@
 	editor.occlusion_loading = FALSE
 	if(failure)
 		editor.occlusion_failed_key = "[source_file]#[base_state]"
-	if(QDELETED(editor.preferences) || !editor.page_active || editor.preferences.current_window != PREFERENCE_TAB_CHARACTER_PREFERENCES)
+	if(QDELETED(editor.preferences) || !editor.editor_open)
 		return
 	// The next read resolves the current slot, model, consent, and layout afresh.
-	SStgui.update_uis(editor.preferences)
+	SStgui.update_uis(editor)
 
 /** Reuse the current session's unchanged resources, even after shared FIFO eviction.
  * Retention stays bounded to one gallery and six part images/metadata, not edit history.

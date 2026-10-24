@@ -5,6 +5,7 @@ import { Button, Input, TextArea } from 'tgui-core/components';
 import { store as backendStore, gameDataAtom } from '../events/store';
 import { CyborgCharacterEditor } from '../interfaces/common/CyborgCustomization/CharacterEditor';
 import { EditorSelect } from '../interfaces/common/CyborgCustomization/controls';
+import { PROFILE_FIELDS } from '../interfaces/common/CyborgCustomization/ProfileFields';
 import {
   placementBase,
   placementGroup,
@@ -17,10 +18,6 @@ import {
   type PlacementCommand,
 } from '../interfaces/common/CyborgCustomization/types';
 import { MainContent } from '../interfaces/InteractionPanel/MainContent';
-import {
-  ooc_notes_silicon,
-  ooc_notes_silicon_nsfw,
-} from '../interfaces/PreferencesMenu/preferences/features/character_preferences/aphelion/cyborg';
 
 async function main() {
   const fixtures = await fetch('/fixtures.json').then((response) =>
@@ -476,12 +473,9 @@ async function main() {
                 })
               }
               renderPreference={(key) => {
-                const notesFeature =
-                  key === 'ooc_notes_silicon'
-                    ? ooc_notes_silicon
-                    : key === 'ooc_notes_silicon_nsfw'
-                      ? ooc_notes_silicon_nsfw
-                      : undefined;
+                const notesFeature = key.startsWith('ooc_notes_silicon')
+                  ? PROFILE_FIELDS[key]
+                  : undefined;
                 const value = values[key] ?? '';
                 const change = (value: string | number) =>
                   setValues((current) => ({ ...current, [key]: value }));

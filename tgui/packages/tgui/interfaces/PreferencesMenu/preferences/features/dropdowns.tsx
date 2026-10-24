@@ -65,25 +65,6 @@ export function FeatureDropdownInput(props: DropdownInputProps) {
   const dropdownOptions = serverData ? generateOptions(serverData) : [];
   const displayText = serverData?.display_names?.[value] || String(value);
   const searchable = dropdownOptions.length > 10; // NOVA EDIT ADDITION - searchable if over 10 elements
-  // The cyborg editor opts into native keyboard navigation without replacing
-  // the shared graphical preference picker elsewhere.
-  if (props.nativeInput) {
-    return (
-      <select
-        className="Input Input--fluid"
-        aria-label={props.label}
-        disabled={disabled || !serverData}
-        value={value}
-        onChange={(event) => handleSetValue(event.currentTarget.value)}
-      >
-        {dropdownOptions.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.displayText}
-          </option>
-        ))}
-      </select>
-    );
-  }
   return (
     <Dropdown
       buttons={buttons}
@@ -99,38 +80,12 @@ export function FeatureDropdownInput(props: DropdownInputProps) {
   );
 }
 
-/** Keep numeric preferences numeric while adapting to the text dropdown contract. */
-export function FeatureNumericDropdownInput(
-  props: FeatureValueProps<number, number, FeatureChoicedServerData<number>>,
-) {
-  const { serverData, handleSetValue, value } = props;
-  return (
-    <FeatureDropdownInput
-      {...props}
-      value={String(value)}
-      serverData={
-        serverData
-          ? { ...serverData, choices: serverData.choices.map(String) }
-          : undefined
-      }
-      handleSetValue={(choice) => handleSetValue(Number(choice))}
-    />
-  );
-}
-
 export type FeatureDropdownInputCoreProps = DropdownInputProps & {
   populateOptions: (serverData: FeatureChoicedServerData) => DropdownOptions;
 };
 
 export function FeatureDropdownInputCore(props: FeatureDropdownInputCoreProps) {
-  const {
-    serverData,
-    disabled,
-    buttons,
-    handleSetValue,
-    value,
-    populateOptions,
-  } = props;
+  const { serverData, disabled, buttons, handleSetValue, value, populateOptions } = props;
   const dropdownOptions = serverData ? populateOptions(serverData) : [];
   const displayText = serverData?.display_names?.[value] || String(value);
 
@@ -146,6 +101,7 @@ export function FeatureDropdownInputCore(props: FeatureDropdownInputCoreProps) {
     />
   );
 }
+
 
 export function FeatureIconnedDropdownInput(props: IconnedDropdownInputProps) {
   const { serverData, handleSetValue, value } = props;

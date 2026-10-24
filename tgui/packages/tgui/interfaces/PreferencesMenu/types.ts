@@ -1,6 +1,6 @@
 import type { BooleanLike } from 'tgui-core/react';
+
 import type { sendAct } from '../../events/act';
-import type { CyborgCustomizationData } from '../common/CyborgCustomization/types';
 import type {
   LoadoutCategory,
   LoadoutList,
@@ -370,10 +370,6 @@ export type CharacterPreferencesData = {
 };
 
 export type PreferencesMenuData = {
-  cyborg_customization?: CyborgCustomizationData;
-  cyborg_resources?: Partial<CyborgCustomizationData> & {
-    layer_icons?: Record<string, string>;
-  };
   // character_preview_view: string; // APHELION EDIT REMOVAL - Drawn character preview
   character_profiles: (string | null)[];
 

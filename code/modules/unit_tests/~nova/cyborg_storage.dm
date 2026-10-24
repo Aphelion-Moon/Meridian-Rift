@@ -20,7 +20,7 @@
 	model_a = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")
 	model_b = cyborg_appearance_model_id(/obj/item/robot_model/service, "Drake")
 	var/datum/preference_middleware/cyborg_character/editor = preferences.cyborg_session()
-	editor.set_page(list("active" = TRUE), null)
+	editor.begin_session()
 	editor.preview_model = model_a
 	var/list/draft = editor.begin_draft()
 	draft["active_model"] = model_a

@@ -17,6 +17,7 @@
 
 /datum/preference/text/headshot/silicon_nsfw
 	savefile_key = "silicon_headshot_nsfw"
+	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	should_update_preview = FALSE
 
 /datum/preference/text/headshot/silicon_nsfw/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
