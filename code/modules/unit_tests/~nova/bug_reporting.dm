@@ -583,14 +583,51 @@
 	// tgui sends all of ui_data for an update without data
 	var/list/update = ui.updates[length(ui.updates)] || report.ui_data()
 	for(var/key, value in update)
-		held[key] = bug_report_test_wire(value)
+		held[key] = bug_report_test_got(key, value)
 	return update
 
 /// A value as the window gets it, through JSON, so what it holds is never one of the report's own lists
 /proc/bug_report_test_wire(value)
 	return json_decode(json_encode(list("value" = value)))["value"]
 
-/// The window's data as JSON, without the capture targets only some updates carry or the waits and ages, which read the clock
+/// A key's value as the window keeps it, through JSON, with its waits and ages as the time of day they count to in ds, since the window counts them from when it gets them
+/proc/bug_report_test_got(key, value)
+	value = bug_report_test_wire(value)
+	if(!islist(value))
+		return value
+	var/list/held_list = value
+	switch(key)
+		if("pictures")
+			for(var/list/card as anything in held_list)
+				card["takenAgo"] = REALTIMEOFDAY - card["takenAgo"] / 100
+		if("limit")
+			held_list["retryIn"] = REALTIMEOFDAY + held_list["retryIn"] / 100
+		if("result")
+			var/list/receipt = held_list["receipt"]
+			if(islist(receipt) && isnum(receipt["nextAttemptIn"]))
+				receipt["nextAttemptIn"] = REALTIMEOFDAY + receipt["nextAttemptIn"] / 100
+	return held_list
+
+/// What the window holds after a whole update, each key kept as bug_report_test_got keeps it
+/proc/bug_report_test_whole(datum/bug_report/test/report)
+	var/list/held = list()
+	for(var/key, value in report.ui_data())
+		held[key] = bug_report_test_got(key, value)
+	return held
+
+/// The times of day the window's waits and ages count to, by what they belong to
+/proc/bug_report_test_times(list/data)
+	var/list/times = list()
+	var/list/receipt = data["result"]?["receipt"]
+	if(islist(receipt) && isnum(receipt["nextAttemptIn"]))
+		times["the receipt's next try"] = receipt["nextAttemptIn"]
+	if(islist(data["limit"]))
+		times["the limit's end"] = data["limit"]["retryIn"]
+	for(var/list/card as anything in data["pictures"])
+		times["picture [card["id"]] taken"] = card["takenAgo"]
+	return times
+
+/// The window's data as JSON, without the capture targets only some updates carry or the waits and ages, whose times bug_report_test_times holds apart
 /proc/bug_report_test_held_json(list/data)
 	var/list/kept = list()
 	for(var/key, value in data)
@@ -612,16 +649,23 @@
 		kept[key] = value
 	return json_encode(kept)
 
-/// Sends the report's window an update, merging it as tgui does, and notes when the window then holds anything a whole update wouldn't send
+/// Sends the report's window an update, merging it as tgui does, and notes when the window then holds anything a whole update wouldn't send, or counts a wait or age to another time
 /proc/bug_report_test_merge(datum/bug_report/test/report, list/held, label, list/failures)
 	bug_report_test_push(report, held)
 	// A whole update resets what the next one counts from, which would hide what this one missed
 	var/list/sources = report.shown
-	var/whole = bug_report_test_held_json(report.ui_data())
+	var/list/sent = bug_report_test_whole(report)
 	report.shown = sources
+	var/whole = bug_report_test_held_json(sent)
 	var/holds = bug_report_test_held_json(held)
 	if(holds != whole)
 		failures += "[label]: holds [holds] where a whole update sends [whole]"
+	// Our clock moves on between the two, so a time only needs to land within a second of the whole update's
+	var/list/times = bug_report_test_times(held)
+	var/list/expected = bug_report_test_times(sent)
+	for(var/id in times | expected)
+		if(abs(times[id] - expected[id]) > 1 SECONDS)
+			failures += "[label]: the window counts [id] to [times[id]] where a whole update counts it to [expected[id]]"
 
 /// The window gets only the keys that changed since its last update, one that went as null, and all of them after an update it dropped
 /datum/unit_test/bug_report_partial_updates
@@ -682,7 +726,7 @@
 	var/datum/tgui/bug_report_test/ui = allocate(/datum/tgui/bug_report_test)
 	ui.initialized = TRUE
 	LAZYADD(report.open_uis, ui)
-	var/list/held = bug_report_test_wire(report.ui_data())
+	var/list/held = bug_report_test_whole(report)
 	var/list/failures = list()
 	report.status = "Picture added"
 	bug_report_test_merge(report, held, "a status line", failures)
@@ -741,6 +785,10 @@
 	bug_report_test_merge(report, held, "a Try again answered", failures)
 	report.hold_sending("reports", 3000)
 	bug_report_test_merge(report, held, "a limit", failures)
+	report.hold_sending("reports", 6000)
+	bug_report_test_merge(report, held, "the limit for longer", failures)
+	report.start_time -= 1000
+	bug_report_test_merge(report, held, "the limit from earlier", failures)
 	report.hold_sending("sends", 3000)
 	bug_report_test_merge(report, held, "another limit", failures)
 	report.start_time -= 4000
@@ -751,6 +799,8 @@
 	bug_report_test_merge(report, held, "sent back", failures)
 	report.result = list("kind" = "accepted", "receipt" = list("reportId" = "accepted", "screening" = "passed", "publication" = "retryable", "nextAttemptIn" = 300000))
 	report.note_retry()
+	// It came a minute ago, so the same receipt polled now counts its wait from a minute later
+	report.receipt_arrival -= 1 MINUTES
 	bug_report_test_merge(report, held, "accepted, trying again", failures)
 	report.result = list("kind" = "accepted", "receipt" = list("reportId" = "accepted", "screening" = "passed", "publication" = "retryable", "nextAttemptIn" = 300000))
 	report.note_retry()
@@ -773,7 +823,7 @@
 	report.status = "A"
 	bug_report_test_merge(report, held, "before the act", failures)
 	report.status = "B"
-	held = bug_report_test_wire(report.ui_data())
+	held = bug_report_test_whole(report)
 	report.status = "A"
 	bug_report_test_merge(report, held, "after a whole update", failures)
 	for(var/update in ui.updates)
