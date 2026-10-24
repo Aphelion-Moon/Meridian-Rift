@@ -167,7 +167,7 @@
 
 /// Rendering and examine share this - death, a disguise or being tipped over hide the parts, lockdown and stuns do not
 /proc/cyborg_body_visuals_visible(mob/living/silicon/robot/robot)
-	if(!robot || !robot.model || !robot.cyborg_appearance_allowed || CONFIG_GET(flag/disable_erp_preferences) || robot.stat == DEAD || HAS_TRAIT(robot, TRAIT_MOB_TIPPED))
+	if(!robot || !robot.model || !robot.cyborg_appearance_allowed || CONFIG_GET(flag/disable_erp_preferences) || robot.stat == DEAD || HAS_TRAIT_FROM(robot, TRAIT_IMMOBILIZED, TIPPED_OVER))
 		return FALSE
 	var/list/catalog = cyborg_model_catalog()
 	var/list/descriptor = robot.cyborg_appearance_model ? catalog[robot.cyborg_appearance_model] : null
