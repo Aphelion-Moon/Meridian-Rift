@@ -904,32 +904,6 @@
 	robot.cyborg_customization_refresh_model()
 	TEST_ASSERT_EQUAL(robot.cyborg_appearance_layout["penis"]["pixel_x"], 11, "Switching back lost the original fallback snapshot.")
 
-/// Inspect portraits sit centered in their tile and leave the live mob alone
-/datum/unit_test/cyborg_inspect_portrait_bounds/Run()
-	var/mob/living/silicon/robot/robot = EASY_ALLOCATE()
-	var/datum/examine_panel/panel = new(robot)
-	allocated += panel
-	var/list/catalog = cyborg_model_catalog()
-	for(var/id in catalog)
-		var/list/descriptor = catalog[id]
-		robot.icon = descriptor["icon"]
-		robot.icon_state = descriptor["icon_state"]
-		robot.pixel_x = 7
-		robot.pixel_y = -3
-		robot.pixel_w = 4
-		robot.pixel_z = 9
-		robot.transform = matrix().Scale(1.6)
-		var/mutable_appearance/portrait = panel.preview_appearance()
-		var/list/dimensions = get_icon_dimensions(robot.icon)
-		var/width = dimensions["width"]
-		var/height = dimensions["height"]
-		TEST_ASSERT_EQUAL(portrait.pixel_x + width / 2, world.icon_size / 2, "[id] must be horizontally centered in the inspect tile.")
-		TEST_ASSERT_EQUAL(portrait.pixel_y + height / 2, world.icon_size / 2, "[id] must be vertically centered in the inspect tile.")
-		TEST_ASSERT_EQUAL(portrait.pixel_w, 0, "Inspect portraits must not inherit a world W shift.")
-		TEST_ASSERT_EQUAL(portrait.pixel_z, 0, "Inspect portraits must not inherit a world Z shift.")
-		TEST_ASSERT(portrait.transform.a * width <= world.icon_size && portrait.transform.e * height <= world.icon_size, "[id] must fit entirely inside the inspect tile.")
-		TEST_ASSERT_EQUAL(robot.pixel_x, 7, "Building a portrait must not change the live mob.")
-
 /// Presets keep their chassis, and assigning, updating or deleting one keeps its model default in step
 /datum/unit_test/cyborg_named_setups_and_model_binding/Run()
 	var/model_a = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")

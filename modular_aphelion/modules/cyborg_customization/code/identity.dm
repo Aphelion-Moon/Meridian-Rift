@@ -1,10 +1,39 @@
 /// Only cyborgs use the new fields; AI and other silicon preferences retain their behavior.
 /proc/cyborg_identity_model(datum/preferences/preferences, fallback)
-	return cyborg_preference_value(preferences, "custom_species_silicon") || fallback
+	return preferences?.read_preference(/datum/preference/text/custom_species_silicon) || fallback
 
 /// Returns the character's silicon model lore, or the fallback when it has none
 /proc/cyborg_identity_lore(datum/preferences/preferences, fallback)
-	return cyborg_preference_value(preferences, "custom_species_lore_silicon") || fallback
+	return preferences?.read_preference(/datum/preference/text/custom_species_lore_silicon) || fallback
+
+/// The examine panel of a cyborg - Nova's silicon fields, then the borg's own model, lore, notes and second headshot
+/datum/examine_panel/cyborg
+
+/// Swaps in the cyborg panel for the plain one Nova's silicon Initialize made
+/mob/living/silicon/robot/Initialize(mapload)
+	. = ..()
+	qdel(mob_examine_panel)
+	mob_examine_panel = new /datum/examine_panel/cyborg(src)
+
+/// Patches the borg's own fields over Nova's silicon data, so other mobs' panels pay nothing for them
+/datum/examine_panel/cyborg/ui_data(mob/user)
+	. = ..()
+	var/list/data = .
+	var/datum/preferences/preferences = holder.client?.prefs
+	// tgui keeps an omitted key's last value, so a borg that lost its client still sends an empty headshot
+	data["headshot_nsfw"] = preferences ? preferences.read_preference(/datum/preference/text/headshot/silicon_nsfw) : ""
+	if(!preferences)
+		return
+	data["custom_species"] = cyborg_identity_model(preferences, data["custom_species"])
+	data["custom_species_lore"] = cyborg_identity_lore(preferences, data["custom_species_lore"])
+	var/ooc_notes = preferences.read_preference(/datum/preference/text/ooc_notes_silicon)
+	if(length(ooc_notes))
+		data["ooc_notes"] = ooc_notes
+	var/ooc_notes_nsfw = preferences.read_preference(/datum/preference/text/ooc_notes_silicon/nsfw)
+	if(length(ooc_notes_nsfw))
+		// Nova put the viewer's ERP block ahead of the human notes, so we swap only the notes after it
+		var/nova_notes = data["ooc_notes_nsfw"]
+		data["ooc_notes_nsfw"] = copytext(nova_notes, 1, length(nova_notes) - length(preferences.read_preference(/datum/preference/text/ooc_notes_nsfw)) + 1) + ooc_notes_nsfw
 
 /// GET_CLIENT can resolve to a real /client or the unit-test client interface.
 /proc/cyborg_preferences_for(mob/owner)
