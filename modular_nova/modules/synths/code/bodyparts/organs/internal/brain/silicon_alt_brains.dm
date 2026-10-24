@@ -92,8 +92,8 @@
 	. = ..()
 	// Intentionally set like this, because people have different lore for their cyborgs, and there's no real non-invasive way to print posibrains that match.
 	RegisterSignal(src, COMSIG_MOB_MIND_TRANSFERRED_INTO, PROC_REF(on_mob_mind_transferred_into))
-	RegisterSignal(src, COMSIG_MOB_GIVE_DIRECT_CONTROL, PROC_REF(on_mob_mind_transferred_into)) // APHELION EDIT ADDITION - CYBORG_CUSTOMIZATION - admin direct control skips mind transfer
-	AddComponent(/datum/component/interactable) // APHELION EDIT ADDITION - CYBORG_CUSTOMIZATION
+	RegisterSignal(src, COMSIG_MOB_GIVE_DIRECT_CONTROL, PROC_REF(on_mob_mind_transferred_into)) // admin direct control skips mind transfer
+	AddComponent(/datum/component/interactable)
 
 /mob/living/silicon/proc/on_mob_mind_transferred_into(mob/living/silicon/robot)
 	SIGNAL_HANDLER
@@ -137,7 +137,7 @@
 	var/obj/item/brain_processor/organic/new_mmi = prefs_get_brain_to_use(player_client?.prefs?.read_preference(/datum/preference/choiced/brain_type), TRUE)
 	if(!mmi || !new_mmi || new_mmi == mmi.type)
 		return
-	// APHELION EDIT CHANGE START - CYBORG_CUSTOMIZATION - since the brain processor refactor only organic processors hold a brain organ,
+	// Since the brain processor refactor only organic processors hold a brain organ,
 	// and positronic ones own their brainmob and ping ghosts unless told not to. Writing .brain on one runtimed here and skipped every later silicon preference.
 	new_mmi = new new_mmi(src, FALSE)
 
@@ -148,7 +148,6 @@
 		new_mmi.brain.name = "[real_name]'s brain"
 		new_mmi.set_brainmob(new /mob/living/brain(new_mmi))
 	new_mmi.name = "[initial(new_mmi.name)]: [real_name]"
-	// APHELION EDIT CHANGE END
 	new_mmi.brainmob.name = src.real_name
 	new_mmi.brainmob.real_name = src.real_name
 	new_mmi.brainmob.container = new_mmi
@@ -164,7 +163,7 @@
 	transfer_brain_pref(player_client)
 	transfer_emote_pref(player_client)
 	transfer_blooper_pref(player_client)
-	transfer_cyborg_customization_pref(player_client) // APHELION EDIT ADDITION - CYBORG_CUSTOMIZATION
+	transfer_cyborg_customization_pref(player_client)
 
 /mob/living/silicon/robot/apply_prefs_job(client/player_client, datum/job/job)
 	. = ..()
