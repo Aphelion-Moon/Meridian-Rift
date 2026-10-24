@@ -2,8 +2,8 @@
 
 /**
  * Which computed styles a snapshot's clone has to carry. html-to-image copied every kept property onto every node,
- * but the SVG it draws has no author CSS and nothing else: a property no author style can set on an element comes
- * out the same there anyway, from the same tag, attributes and inherited values, so we never read it; one an author
+ * but the SVG it draws has no author CSS and nothing else. A property no author style can set on an element comes
+ * out the same there anyway, from the same tag, attributes and inherited values, so we never read it. One an author
  * style can set gets written only when the SVG would compute something else, which a hidden frame with no author
  * CSS tells us, once per tag, parent tag and parent value
  */
@@ -27,7 +27,7 @@ const FROM_PARENT = new Set([
   '-webkit-text-decorations-in-effect',
 ]);
 /**
- * Inherited properties whose value resolves on each element - a line height without a unit, colours that can be
+ * Inherited properties whose value resolves on each element - a line height without a unit, colors that can be
  * currentcolor - while the clone gets an ancestor's resolved value, so every element and pseudo-element reads them
  */
 const RESOLVED_PER_ELEMENT = [
@@ -101,7 +101,7 @@ const WRITE_AS_IS = new Set([
   'ul',
   'video',
 ]);
-/** UA states the clone never has in the SVG, links included (it never underlines one): an element in one is read whole */
+/** UA states the clone never has in the SVG (it never underlines a link), so an element in one is read whole */
 const STATES = [
   ':any-link',
   ':focus',
@@ -144,11 +144,11 @@ const IGNORED_RULES = new Set([
 
 /** What a rule needs an element to have before it can apply, and which box of it the rule styles */
 export type Need = {
-  /** `id:x`, `class:x` or `tag:x`, or null when it could match any element */
+  /** id:x, class:x or tag:x, or null when it could match any element */
   key: string | null;
   /** The element itself, its ::before or ::after, another pseudo-element, or any of them when we can't tell */
   part: 'self' | 'before' | 'after' | 'other' | 'any';
-  /** The compound is CSS nesting's `&`, so it needs what the parent rule needs */
+  /** The compound is a CSS nesting &, so it needs what the parent rule needs */
   nested: boolean;
 };
 
@@ -181,7 +181,7 @@ function skipGroup(text: string, from: number): number {
   return text.length;
 }
 
-/** What one compound selector needs: its id, else a class, else its tag */
+/** What one compound selector needs - its id, else a class, else its tag */
 function compoundNeed(text: string): Need {
   let key: string | null = null;
   let rank = 0;
@@ -234,7 +234,7 @@ function compoundNeed(text: string): Need {
   return { key, part, nested };
 }
 
-/** What each selector of a selector list needs of an element: the rightmost compound decides */
+/** What each selector of a selector list needs of an element, which its rightmost compound decides */
 export function selectorNeeds(selectorText: string): Need[] {
   // An escape can hide a combinator or a class's real name, so we take it for a rule that could match anything
   if (selectorText.includes('\\')) return [ANY];
@@ -264,7 +264,7 @@ export function selectorNeeds(selectorText: string): Need[] {
   return needs;
 }
 
-/** Nesting's `&` alone stands for the parent rule's selectors */
+/** A nesting & alone stands for the parent rule's selectors */
 function resolveNesting(needs: Need[], parents: Need[] | null): Need[] {
   if (!parents || !needs.some((need) => need.nested && !need.key)) return needs;
   return needs.flatMap((need) =>
@@ -355,7 +355,7 @@ function indexRules(
 }
 
 /**
- * The kept names each longhand stands for: itself and any shorthand Chromium lists among the computed properties,
+ * The kept names each longhand stands for - itself and any shorthand Chromium lists among the computed properties,
  * such as background-position, which a rule only ever declares as its longhands
  */
 function coverageOf(names: readonly string[]): Map<string, number[]> {
@@ -404,7 +404,7 @@ function indexOf(
   return built;
 }
 
-/** One element's read plan: the kept properties an author style could set on it and on its pseudo-elements */
+/** One element's read plan - the kept properties an author style could set on it and on its pseudo-elements */
 type Plan = {
   self: number[];
   before: number[];
@@ -413,8 +413,8 @@ type Plan = {
   afterContent: boolean;
 };
 
-/** The SVG's own value of a property for one element kind: the same for any parent value, or by parent value */
-type Outcome = {
+/** The SVG's own value of a property for one element kind, the same for any parent value or by parent value */
+export type Outcome = {
   constant?: string;
   byParent?: Map<string, string>;
   first?: string;
@@ -425,6 +425,35 @@ type Table = {
   inheritsFontSize: boolean;
   probed: boolean;
 };
+
+/**
+ * Records one answer of the frame in a property's outcome. A property is inherited or set by the parent, so it's
+ * kept by parent value, or it's the same for any parent
+ */
+export function recordAnswer(
+  outcome: Outcome,
+  name: string,
+  parentValue: string,
+  answer: string,
+) {
+  if (!outcome.byParent) {
+    if (FROM_PARENT.has(name) || answer === parentValue) {
+      outcome.byParent = new Map([[parentValue, answer]]);
+      outcome.first = parentValue;
+    } else outcome.constant = answer;
+    return;
+  }
+  outcome.byParent.set(parentValue, answer);
+  // Past one parent value, a property that isn't plainly inherited is the same for any parent
+  if (
+    !FROM_PARENT.has(name) &&
+    answer !== parentValue &&
+    answer === outcome.byParent.get(outcome.first as string)
+  ) {
+    outcome.constant = answer;
+    outcome.byParent = undefined;
+  }
+}
 
 /** The hidden frame with no author CSS, shared by every snapshot running in this window */
 type Sandbox = {
@@ -505,7 +534,7 @@ function kindOf(element: Element): string {
   return kind;
 }
 
-/** A copy of the clone in the frame: same tag and UA-read attributes, no resource to load */
+/** A copy of the clone in the frame, with its tag and UA-read attributes and no resource to load */
 function frameCopy(frame: Sandbox, clone: Element): HTMLElement {
   const copy = frame.doc.createElementNS(clone.namespaceURI, clone.localName);
   for (const attribute of Array.from(clone.attributes)) {
@@ -547,7 +576,7 @@ export type StyleCopier = {
   release(): void;
 };
 
-/** What one property's decision needs: its live value, the SVG's own value, and the values a rule compares */
+/** What one property's decision needs - its live value, the SVG's own value and the values a rule compares */
 export type Decision = {
   name: string;
   live: string;
@@ -561,7 +590,7 @@ export type Decision = {
 };
 
 /**
- * Whether the clone must carry this property: only when the SVG would compute something other than the live value.
+ * Whether the clone must carry this property - only where the SVG would compute something other than the live value.
  * A pseudo-element always carries its content and its font size, since its element's font size is written smaller
  */
 export function mustWrite(decision: Decision, pseudo = false): boolean {
@@ -581,9 +610,28 @@ export function mustWrite(decision: Decision, pseudo = false): boolean {
   return predicted !== live;
 }
 
+/**
+ * The inline declarations a clone has to lose. It keeps its element's inline style, which the SVG would apply where
+ * we write nothing, so one goes unless we write a kept property it stands for
+ */
+export function inlineDrops(
+  inline: ArrayLike<string> | null,
+  covered: ReadonlyMap<string, readonly number[]>,
+  written: ReadonlySet<number>,
+): string[] {
+  const drop: string[] = [];
+  if (inline)
+    for (let at = 0; at < inline.length; at++) {
+      const covering = covered.get(inline[at]);
+      if (covering && !covering.some((position) => written.has(position)))
+        drop.push(inline[at]);
+    }
+  return drop;
+}
+
 const byPosition = (one: number, two: number) => one - two;
 
-/** A node as the copy rules see it: its namespace and tag */
+/** A node as the copy rules see it - its namespace and tag */
 export type CopyNode = { namespace: string | null; tag: string };
 /** The presentational attributes a table styles its cells by */
 const TABLE_ATTRIBUTES = [
@@ -595,12 +643,28 @@ const TABLE_ATTRIBUTES = [
   'bordercolor',
 ];
 
+/** The elements under a root in a UA state the SVG never has, which their clones copy whole */
+export function elementsInState(root: {
+  querySelectorAll(selectors: string): ArrayLike<Element>;
+}): Set<Element> {
+  const found = new Set<Element>();
+  for (const state of STATES) {
+    try {
+      for (const element of Array.from(root.querySelectorAll(state)))
+        found.add(element);
+    } catch {
+      // A state this browser doesn't know can't be on screen either
+    }
+  }
+  return found;
+}
+
 /**
- * How an element's clone gets its style. `whole` copies every kept property as html-to-image did: a snapshot's
- * root, an element in a UA state the SVG won't have, a clone of another tag, anything outside HTML and inline SVG,
- * a row or ruby text the scroll shift could part from its parent. `as-is` writes whatever an author style could
- * set, unasked: form controls, lists, cells of a table with presentational attributes. `predict` writes only what
- * the SVG would compute otherwise
+ * How an element's clone gets its style. 'whole' copies every kept property as html-to-image did, for a snapshot's
+ * root, an element in a UA state the SVG won't have, a clone of another tag, anything outside HTML and inline SVG
+ * and a row or ruby text the scroll shift could part from its parent. 'as-is' writes whatever an author style could
+ * set, unasked, for form controls, lists and cells of a table with presentational attributes. 'predict' writes only
+ * what the SVG would compute otherwise
  */
 export function copyMode(
   clone: CopyNode,
@@ -627,7 +691,7 @@ export function copyMode(
 }
 
 /**
- * The style copier for one snapshot of `root`, or null when something could style the SVG behind our back - a
+ * The style copier for one snapshot of root, or null when something could style the SVG behind our back - a
  * style element in the clone, a shadow root, a stylesheet we can't read, no frame - so html-to-image copies it all
  */
 export function createStyleCopier(
@@ -654,24 +718,9 @@ export function createStyleCopier(
     // A stylesheet from another origin can't be read, so we can't tell what it sets
     return null;
   }
-  const frame = openSandbox();
-  if (!frame) return null;
-  if (tablesFor !== joined) {
-    tables.clear();
-    sizeFollowers.clear();
-    tablesFor = joined;
-  }
   const plans = new Map<string, Plan>();
   /** Elements read and written whole, as html-to-image does */
-  const whole = new Set<Element>();
-  for (const state of STATES) {
-    try {
-      for (const element of Array.from(root.querySelectorAll(state)))
-        whole.add(element);
-    } catch {
-      // A state this browser doesn't know can't be on screen either
-    }
-  }
+  const whole = elementsInState(root);
   // Animations and transitions set values no rule we index declares, so their properties are read too
   const animated = new Map<Element, number[]>();
   for (const animation of document.getAnimations?.() ?? []) {
@@ -727,6 +776,14 @@ export function createStyleCopier(
   const everywhere = RESOLVED_PER_ELEMENT.map((name) =>
     positions.get(name),
   ).filter((position): position is number => position !== undefined);
+  // The frame opens last, since a throw in here comes before the snapshot's try and would leave it up for good
+  const frame = openSandbox();
+  if (!frame) return null;
+  if (tablesFor !== joined) {
+    tables.clear();
+    sizeFollowers.clear();
+    tablesFor = joined;
+  }
   const live = new Map<
     Element,
     { style: CSSStyleDeclaration; values: Map<number, string> }
@@ -794,40 +851,9 @@ export function createStyleCopier(
     }
     return table;
   };
-  /** Records one answer of the frame: a property is inherited, set by the parent, or the same for any parent */
-  const record = (
-    table: Table,
-    position: number,
-    parentValue: string,
-    answer: string,
-  ) => {
-    const name = names[position];
-    let outcome = table.outcomes[position];
-    if (!outcome) {
-      outcome = {};
-      table.outcomes[position] = outcome;
-    }
-    if (!outcome.byParent) {
-      if (FROM_PARENT.has(name) || answer === parentValue) {
-        outcome.byParent = new Map([[parentValue, answer]]);
-        outcome.first = parentValue;
-      } else outcome.constant = answer;
-      return;
-    }
-    outcome.byParent.set(parentValue, answer);
-    // Past one parent value, a property that isn't plainly inherited is the same for any parent
-    if (
-      !FROM_PARENT.has(name) &&
-      answer !== parentValue &&
-      answer === outcome.byParent.get(outcome.first as string)
-    ) {
-      outcome.constant = answer;
-      outcome.byParent = undefined;
-    }
-  };
   /**
-   * Asks the frame, in one style pass, for the SVG's own value of each missing property: an element copy under a
-   * copy of its parent holding the parent's values, or for a pseudo-element, an element copy holding its own
+   * Asks the frame, in one style pass, for the SVG's own value of each missing property. An element's copy goes
+   * under a copy of its parent holding the parent's values, and a pseudo-element's element copy holds them itself
    */
   const fill = (
     table: Table,
@@ -872,9 +898,10 @@ export function createStyleCopier(
     const plainStyle = win.getComputedStyle(plain, pseudo);
     missing.forEach((position, at) => {
       const name = names[position];
-      record(
-        table,
-        position,
+      table.outcomes[position] ??= {};
+      recordAnswer(
+        table.outcomes[position],
+        name,
         parentValues[at],
         (PLAIN_READ.has(name) ? plainStyle : ownStyle).getPropertyValue(name),
       );
@@ -984,7 +1011,8 @@ export function createStyleCopier(
     inheritsFontSize: boolean,
     inline: CSSStyleDeclaration | null,
   ): CopyList => {
-    const list: CopyList = { names: [], values: [], drop: [] };
+    const listed: string[] = [];
+    const values: string[] = [];
     const written = new Set<number>();
     for (const position of wanted) {
       const name = names[position];
@@ -1009,17 +1037,14 @@ export function createStyleCopier(
         if (!mustWrite(decision, pseudo)) continue;
       }
       written.add(position);
-      list.names.push(name);
-      list.values.push(value);
+      listed.push(name);
+      values.push(value);
     }
-    // The clone keeps the element's inline style, which the SVG would apply where we write nothing
-    if (inline)
-      for (let at = 0; at < inline.length; at++) {
-        const covering = covered.get(inline[at]);
-        if (covering && !covering.some((position) => written.has(position)))
-          list.drop.push(inline[at]);
-      }
-    return list;
+    return {
+      names: listed,
+      values,
+      drop: inlineDrops(inline, covered, written),
+    };
   };
 
   return {

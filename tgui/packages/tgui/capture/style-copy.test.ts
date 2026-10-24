@@ -4,7 +4,11 @@ import { expect, test } from 'bun:test';
 import {
   copyMode,
   type Decision,
+  elementsInState,
+  inlineDrops,
   mustWrite,
+  type Outcome,
+  recordAnswer,
   selectorNeeds,
 } from './style-copy';
 
@@ -21,7 +25,7 @@ const decision = (overrides: Partial<Decision>): Decision => ({
   ...overrides,
 });
 
-test('a rule is filed under its rightmost compound: its id, else a class, else its tag', () => {
+test('a rule is filed under its rightmost compound - its id, else a class, else its tag', () => {
   expect(selectorNeeds('.Button')).toEqual([
     { key: 'class:Button', part: 'self', nested: false },
   ]);
@@ -121,7 +125,7 @@ test('a pseudo-element always carries its content and font size, and leaves out 
   expect(mustWrite(decision({}), true)).toBe(false);
 });
 
-test("a colour that follows the element's own colour is left out only while it still matches that colour", () => {
+test("a color that follows the element's own color is left out only while it still matches that color", () => {
   const border = { name: 'border-top-color', predicted: 'rgb(1, 2, 3)' };
   expect(
     mustWrite(
@@ -189,4 +193,71 @@ test('a minimum size an author sets is written even where the frame reads the sa
       }),
     ),
   ).toBe(true);
+});
+
+test('an answer equal to its parent value is kept by parent value, so another parent value is asked again', () => {
+  const outcome: Outcome = {};
+  recordAnswer(outcome, 'color', 'rgb(240, 231, 206)', 'rgb(240, 231, 206)');
+  // Kept as the same for any parent, it would leave this color off an element whose parent has another one
+  expect(outcome.constant).toBeUndefined();
+  expect(outcome.byParent?.has('rgb(255, 0, 0)')).toBe(false);
+  recordAnswer(outcome, 'color', 'rgb(255, 0, 0)', 'rgb(255, 0, 0)');
+  expect(outcome.byParent?.get('rgb(255, 0, 0)')).toBe('rgb(255, 0, 0)');
+  expect(outcome.constant).toBeUndefined();
+});
+
+test('an answer that only looked inherited is the same for any parent once another parent gets it too', () => {
+  const outcome: Outcome = {};
+  recordAnswer(outcome, 'color', 'rgb(0, 0, 0)', 'rgb(0, 0, 0)');
+  recordAnswer(outcome, 'color', 'rgb(255, 0, 0)', 'rgb(0, 0, 0)');
+  expect(outcome.constant).toBe('rgb(0, 0, 0)');
+  expect(outcome.byParent).toBeUndefined();
+  const borderStyle: Outcome = {};
+  recordAnswer(borderStyle, 'border-top-style', 'solid', 'none');
+  expect(borderStyle.constant).toBe('none');
+  // A display is computed from its parent's, so it stays by parent value whatever the answers are
+  const display: Outcome = {};
+  recordAnswer(display, 'display', 'flex', 'block');
+  recordAnswer(display, 'display', 'grid', 'block');
+  expect(display.constant).toBeUndefined();
+  expect(display.byParent?.get('grid')).toBe('block');
+});
+
+test('a link is read and written whole, since the SVG never underlines one', () => {
+  const link = {} as Element;
+  const field = {} as Element;
+  // What a browser matches on an unvisited link and a focused field, and a throw for a state it doesn't know
+  const matching: Record<string, Element[]> = {
+    ':any-link': [link],
+    ':link': [link],
+    ':focus': [field],
+  };
+  const whole = elementsInState({
+    querySelectorAll: (state: string) => {
+      if (state === ':popover-open')
+        throw new SyntaxError(`'${state}' is not a valid selector`);
+      return matching[state] ?? [];
+    },
+  });
+  expect(whole.has(link)).toBe(true);
+  expect(whole.has(field)).toBe(true);
+  expect(whole.size).toBe(2);
+  expect(copyMode(html('a'), 'a', html('div'), whole.has(link), false)).toBe(
+    'whole',
+  );
+});
+
+test('an inline declaration leaves the clone unless we write a property it stands for, since the SVG would apply it', () => {
+  // A longhand stands for itself and any shorthand Chromium lists, as border-color for border-top-color
+  const covered = new Map([
+    ['width', [4]],
+    ['border-top-color', [1, 2]],
+  ]);
+  expect(
+    inlineDrops(['width', 'border-top-color'], covered, new Set([2])),
+  ).toEqual(['width']);
+  expect(inlineDrops(['width'], covered, new Set([4]))).toEqual([]);
+  // One no kept property stands for stays as html-to-image left it
+  expect(inlineDrops(['--texture'], covered, new Set())).toEqual([]);
+  expect(inlineDrops(null, covered, new Set())).toEqual([]);
 });
