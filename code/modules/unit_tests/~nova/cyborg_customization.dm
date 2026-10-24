@@ -212,6 +212,8 @@
 	var/list/runtime_data = robot.cyborg_runtime_data()
 	TEST_ASSERT_NULL(runtime_data["store"], "Runtime data must not expose editable saved layouts.")
 	TEST_ASSERT(length(runtime_data["parts"]), "Runtime controls must list configured parts.")
+	// Runtime controls answer to the player whose prefs the body took, once they are in it.
+	robot.ckey = preferences.parent.ckey
 	var/before = json_encode(robot.cyborg_appearance_layout)
 	TEST_ASSERT(!robot.cyborg_runtime_action(list("operation" = "place", "slot" = "penis", "x" = 100, "y" = 100, "character_slot" = 2, "context" = middleware.context_generation), robot), "Runtime placement must be rejected server-side.")
 	TEST_ASSERT_EQUAL(json_encode(robot.cyborg_appearance_layout), before, "Rejected runtime editing must leave layout untouched.")
@@ -238,6 +240,7 @@
 	middleware.set_preview(list("context" = middleware.context_generation, "model" = model_id), null)
 	TEST_ASSERT_EQUAL(middleware.draft_revision, draft_revision, "Selecting the current model created another draft revision.")
 	TEST_ASSERT(!middleware.dirty && !middleware.draft_timer, "Selecting the current model scheduled another save.")
+	robot.ckey = null
 
 /datum/unit_test/cyborg_action_snapshot_isolation/Run()
 	var/model_id = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")
@@ -1976,3 +1979,28 @@
 						TEST_ASSERT_EQUAL(frame[field], original[field], "Projection removed distinct moving or idle frame pixels.")
 	editor.discard_draft()
 	TEST_ASSERT(omitted_fields && distinct_fields, "The animation fixture must cover both omitted duplicates and retained distinct pixels.")
+
+/// Job spawns apply prefs before the player enters the body. The snapshot still belongs to that player, so entering the
+/// body again keeps it, and its runtime controls answer to them.
+/datum/unit_test/cyborg_job_spawn_snapshot_owner
+	parent_type = /datum/unit_test/cyborg_mock_preferences
+
+/datum/unit_test/cyborg_job_spawn_snapshot_owner/Run()
+	var/mob/living/silicon/robot/robot = EASY_ALLOCATE()
+	var/datum/preferences/preferences = create_preferences(robot)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/master_erp_preferences], TRUE)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_genitals], TRUE)
+	var/datum/preference_middleware/cyborg_character/editor = preferences.cyborg_session()
+	var/list/draft = deep_copy_list(editor.begin_draft())
+	draft["active"]["penis"]["pixel_x"] = 11
+	editor.update_draft(draft)
+	TEST_ASSERT_NULL(robot.ckey, "The fixture body already has a player.")
+	apply_cyborg_customization(robot, preferences)
+	TEST_ASSERT_EQUAL(robot.cyborg_appearance_owner, preferences.parent.ckey, "A body that took prefs before its player entered was not given to that player.")
+	robot.ckey = preferences.parent.ckey
+	draft = deep_copy_list(editor.begin_draft())
+	draft["active"]["penis"]["pixel_x"] = 33
+	editor.update_draft(draft)
+	apply_cyborg_customization(robot, preferences)
+	robot.ckey = null
+	TEST_ASSERT_EQUAL(robot.cyborg_appearance_store["active"]["penis"]["pixel_x"], 11, "The spawned player entering again replaced the body's snapshot with later editor changes.")

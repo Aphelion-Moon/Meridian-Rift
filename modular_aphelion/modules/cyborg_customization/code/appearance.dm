@@ -39,8 +39,10 @@
 /proc/apply_cyborg_customization(mob/living/silicon/robot/robot, datum/preferences/preferences)
 	if(!robot || !preferences || robot.shell)
 		return
+	// The player whose prefs these are. Job spawns apply them before the player enters the body, while its ckey is still null.
+	var/owner = preferences.parent?.ckey || robot.ckey
 	// Existing bodies keep their spawn snapshot when the same player enters them again.
-	if(robot.cyborg_appearance_owner == robot.ckey && robot.cyborg_appearance_store)
+	if(robot.cyborg_appearance_owner == owner && robot.cyborg_appearance_store)
 		robot.cyborg_customization_sync_permissions(preferences)
 		robot.cyborg_customization_refresh_model()
 		return
@@ -53,11 +55,11 @@
 		QDEL_NULL(robot.cyborg_appearance_holder)
 		robot.cyborg_customization_message = "This character has a newer layout schema. Its saved data has been preserved."
 		return
-	var/same_owner = robot.cyborg_appearance_owner == robot.ckey && robot.cyborg_appearance_slot == preferences.default_slot
+	var/same_owner = robot.cyborg_appearance_owner == owner && robot.cyborg_appearance_slot == preferences.default_slot
 	if(!same_owner)
 		robot.cyborg_appearance_active = list()
 		robot.cyborg_appearance_arousal = list()
-	robot.cyborg_appearance_owner = robot.ckey
+	robot.cyborg_appearance_owner = owner
 	robot.cyborg_appearance_slot = preferences.default_slot
 	robot.cyborg_appearance_store = list(
 		"active" = cyborg_layout_copy(current["active"]),
