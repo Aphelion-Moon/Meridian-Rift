@@ -50,8 +50,8 @@
 	var/saved_revision = 0
 	/// Revision already encoded into the account tree; failed retries do not encode it again.
 	var/staged_revision = -1
-	/// The draft's parts with their save text from its last encode (see cyborg_layout_encode()). Edits copy a part
-	/// before changing it, so these still match; raw draft updates drop them.
+	/// The draft's parts and layouts with their save text from its last encode (see cyborg_layout_encode()). Edits copy
+	/// a part or layout before changing it, so these still match; raw draft updates drop them.
 	var/list/encoded_parts
 	/// Why the draft would pass its character's or the account's limit, so it stays unstaged until edits shrink it.
 	var/full_message
@@ -408,8 +408,8 @@
 		for(var/part_slot in cyborg_layout_supported_slots())
 			var/list/entry = active[part_slot]
 			var/sprite = cyborg_preference_value(preferences, "silicon_[part_slot]_sprite")
-			// A part already holding its sprite stays as it is, and so keeps its save text.
-			if(entry["sprite"] == sprite && !isnull(sprite))
+			// A part already holding its sprite, or holding no sprite on purpose, stays as it is and keeps its save text.
+			if(entry["sprite"] == sprite && (!isnull(sprite) || ("sprite" in entry)))
 				continue
 			entry = entry.Copy()
 			entry["sprite"] = sprite
@@ -688,6 +688,11 @@
 	if(full_message)
 		return FALSE
 	staged_revision = draft_revision
+	if(store.get_entry("character[draft_slot]") == text)
+		// Edits came back to what the account already holds, so there is nothing new to write.
+		if(!store.write_pending)
+			sidecar_write_completed()
+		return TRUE
 	store.set_entry("character[draft_slot]", text)
 	store.write_pending = TRUE
 	return TRUE

@@ -488,7 +488,8 @@
 	TEST_ASSERT(!fexists(sidecar_path), "Old layouts stayed behind when every imported layout was too big.")
 
 /// Editor actions only ask for a save. The queued save stages the latest draft, writes once, acknowledges the revision it
-/// wrote, and waits out the account's spacing in the queue.
+/// wrote, and waits out the account's spacing and the subsystem's budget in the queue. Edits back to what was written
+/// write nothing, and the subsystem only fires while accounts wait.
 /datum/unit_test/cyborg_save_queue
 	parent_type = /datum/unit_test/cyborg_storage_fixture
 
@@ -513,15 +514,39 @@
 	TEST_ASSERT_EQUAL(store.last_written["character1"]["active"]["penis"]["placement_groups"]["south"]["pixel_x"], 61, "The queued save wrote an older state than the draft's latest.")
 	TEST_ASSERT(store.last_written["character1"]["presets"]["Queued"], "The queued save lost the preset its action made.")
 	TEST_ASSERT(!editor.dirty && editor.saved_revision == revision, "The written revision was not acknowledged.")
+	TEST_ASSERT(length(SScyborg_layout_saves.queue) || !SScyborg_layout_saves.can_fire, "SScyborg_layout_saves kept firing with nothing queued.")
 	// Inside the spacing the account waits, and a newer edit is not acknowledged by the older write.
 	editor.edit_layout(list("operation" = "set_placement", "slot" = "penis", "target" = list("scope" = "base", "direction" = SOUTH), "changes" = list("pixel_x" = 62), "character_slot" = 1, "context" = editor.context_generation), null)
 	editor.request_save()
+	TEST_ASSERT(SScyborg_layout_saves.can_fire, "Queuing a save did not switch SScyborg_layout_saves on.")
 	TEST_ASSERT(!cyborg_test_run_queued_save(store), "A queued save ran inside the account's spacing.")
 	TEST_ASSERT(editor.dirty && (store in SScyborg_layout_saves.queue), "A save waiting out its spacing lost its place.")
 	store.next_write_at = world.time
 	TEST_ASSERT(cyborg_test_run_queued_save(store), "A due save did not run.")
 	TEST_ASSERT_EQUAL(store.last_written["character1"]["active"]["penis"]["placement_groups"]["south"]["pixel_x"], 62, "The due save did not write the latest edit.")
 	TEST_ASSERT(!editor.dirty, "The due save was not acknowledged.")
+	// Edits that come back to what was written leave nothing to write, and the draft counts as saved.
+	writes = store.write_attempts
+	editor.edit_layout(list("operation" = "set_placement", "slot" = "penis", "target" = list("scope" = "base", "direction" = SOUTH), "changes" = list("pixel_x" = 63), "character_slot" = 1, "context" = editor.context_generation), null)
+	editor.edit_layout(list("operation" = "set_placement", "slot" = "penis", "target" = list("scope" = "base", "direction" = SOUTH), "changes" = list("pixel_x" = 62), "character_slot" = 1, "context" = editor.context_generation), null)
+	editor.request_save()
+	store.next_write_at = world.time
+	TEST_ASSERT(cyborg_test_run_queued_save(store), "An edit and its undo did not queue a save.")
+	TEST_ASSERT_EQUAL(store.write_attempts, writes, "Edits back to the written layout wrote the account again.")
+	TEST_ASSERT(!editor.dirty, "Edits back to the written layout were not counted as saved.")
+	// Past the budget even a due save waits, and goes out once the budget refills.
+	editor.edit_layout(list("operation" = "set_placement", "slot" = "penis", "target" = list("scope" = "base", "direction" = SOUTH), "changes" = list("pixel_x" = 64), "character_slot" = 1, "context" = editor.context_generation), null)
+	editor.request_save()
+	store.next_write_at = world.time
+	SScyborg_layout_saves.budget = -100
+	SScyborg_layout_saves.budget_at = world.time
+	SScyborg_layout_saves.fire()
+	TEST_ASSERT_EQUAL(store.write_attempts, writes, "A save ran past SScyborg_layout_saves' budget.")
+	TEST_ASSERT(store in SScyborg_layout_saves.queue, "A save waiting for the budget lost its place.")
+	SScyborg_layout_saves.budget_at = world.time - 10 SECONDS
+	SScyborg_layout_saves.fire()
+	TEST_ASSERT_EQUAL(store.write_attempts, writes + 1, "A waiting save did not go out once the budget refilled.")
+	TEST_ASSERT_EQUAL(store.last_written["character1"]["active"]["penis"]["placement_groups"]["south"]["pixel_x"], 64, "The save after the budget did not write the latest edit.")
 	// A store that goes writes what it has and leaves the queue.
 	var/datum/json_savefile/cyborg_customization/leaving = new(null)
 	leaving.request_save()
