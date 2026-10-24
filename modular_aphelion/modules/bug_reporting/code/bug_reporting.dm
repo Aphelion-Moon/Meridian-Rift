@@ -250,6 +250,8 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 		list("value" = "Crash", "label" = "Crash", "icon" = "burst"),
 		list("value" = "Other", "label" = "Something else", "icon" = "circle-question"),
 	)
+	/// The outcomes that hold a report's pictures as they are - sent, or being checked
+	var/static/list/sealed_results = list("accepted" = TRUE, "checking" = TRUE)
 	/// How much a bug gets in the way, worst first - the service's severity and its words
 	var/static/list/impacts = list(
 		list("value" = "critical", "label" = "It stops me playing"),

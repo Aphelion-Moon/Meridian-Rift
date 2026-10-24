@@ -186,7 +186,7 @@
  * * replace - the id of the picture it replaces, or null for a new one
  */
 /datum/bug_report/proc/choose_screenshot(replace)
-	if(busy || !valid_owner() || (result?["kind"] in list("accepted", "checking")))
+	if(busy || !valid_owner() || sealed_results[result?["kind"]])
 		return
 	if(!take_allowance("uploads", spend = FALSE))
 		return finish_action()
@@ -224,7 +224,7 @@
  * * spent - whether its allowance was spent already, as an in-game capture's is when its render starts
  */
 /datum/bug_report/proc/upload_picture(datum/bug_report_picture/picture, path, encoding, spent = FALSE)
-	if(!valid_owner() || (result?["kind"] in list("accepted", "checking")) || !(picture in pictures) || (!spent && !take_allowance(picture.source == "file" ? "uploads" : "captures")))
+	if(!valid_owner() || sealed_results[result?["kind"]] || !(picture in pictures) || (!spent && !take_allowance(picture.source == "file" ? "uploads" : "captures")))
 		fdel(path)
 		end_new_image(picture)
 		return finish_action()
@@ -327,7 +327,7 @@
  */
 /datum/bug_report/proc/remove_picture(picture_id)
 	var/datum/bug_report_picture/picture = find_picture(picture_id)
-	if(busy || !picture || picture.pending || !valid_owner() || (result?["kind"] in list("accepted", "checking")))
+	if(busy || !picture || picture.pending || !valid_owner() || sealed_results[result?["kind"]])
 		return
 	busy = TRUE
 	push_update()
@@ -373,7 +373,7 @@
  */
 /datum/bug_report/proc/picture_consent(picture_id, public_consent)
 	var/datum/bug_report_picture/picture = find_picture(picture_id)
-	if(busy || !picture?.preview_seen || picture.pending || picture.image_state != "ready" || !valid_owner() || (result?["kind"] in list("accepted", "checking")))
+	if(busy || !picture?.preview_seen || picture.pending || picture.image_state != "ready" || !valid_owner() || sealed_results[result?["kind"]])
 		return
 	busy = TRUE
 	push_update()

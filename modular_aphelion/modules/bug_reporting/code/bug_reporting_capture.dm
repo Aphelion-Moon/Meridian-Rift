@@ -64,7 +64,7 @@
  * * replace - the id of the picture it retakes, or null for a new one
  */
 /datum/bug_report/proc/begin_ui_capture(window_id, replace)
-	if(busy || capture_nonce || !valid_owner() || (result?["kind"] in list("accepted", "checking")) || !istext(window_id))
+	if(busy || capture_nonce || !valid_owner() || sealed_results[result?["kind"]] || !istext(window_id))
 		return
 	if(!COOLDOWN_FINISHED(src, capture_cooldown))
 		return finish_action("Give it a few seconds before the next capture.")

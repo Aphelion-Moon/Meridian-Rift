@@ -167,6 +167,17 @@
 	TEST_ASSERT_EQUAL(consent["headers"]["x-public-consent"], "true", "Sharing sent the wrong answer")
 	TEST_ASSERT_EQUAL(consent["headers"]["x-report-attachment"], "image", "Sharing named the wrong image")
 	TEST_ASSERT(picture.public_consent, "The sharing reply wasn't taken")
+	// A report being checked or already sent keeps its pictures as they are
+	for(var/kind in list("checking", "accepted"))
+		report.result = list("kind" = kind)
+		report.begin_ui_capture(window.id)
+		report.begin_view_capture()
+		report.remove_picture(picture.id)
+		report.picture_consent(picture.id, FALSE)
+		report.upload_picture(picture, bug_report_test_image())
+		report.choose_screenshot()
+		TEST_ASSERT(length(report.calls) == 1 && !report.capture_nonce && !report.busy && LAZYLEN(report.pictures) == 1 && picture.public_consent, "A report whose result is [kind] changed its pictures")
+	report.result = null
 	report.begin_ui_capture(window.id)
 	TEST_ASSERT_NOTNULL(report.capture_nonce, "A capture of an owned window didn't start")
 	window.on_message("close", null, list())

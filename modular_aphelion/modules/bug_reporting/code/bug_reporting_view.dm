@@ -101,7 +101,7 @@ GLOBAL_VAR_INIT(bug_report_renders, 0)
  * * replace - the id of the picture it retakes, or null for a new one
  */
 /datum/bug_report/proc/begin_view_capture(replace)
-	if(busy || !valid_owner() || (result?["kind"] in list("accepted", "checking")))
+	if(busy || !valid_owner() || sealed_results[result?["kind"]])
 		return
 	if(render_held())
 		return finish_action("Give it a few seconds before the next capture.")
