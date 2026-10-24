@@ -197,9 +197,6 @@
 	if(capture_received < capture_total)
 		window.send_message("bug-report/capture-ack", ack)
 		return TRUE
-	// The last one says whether the report window came forward, so the overlay knows it can close
-	ack["forward"] = bring_forward()
-	window.send_message("bug-report/capture-ack", ack)
 	var/path = capture_path
 	var/datum/bug_report_picture/picture = capture_picture
 	capture_path = null
@@ -207,8 +204,11 @@
 	capture_window = null
 	capture_ui = null
 	capture_picture = null
-	// The upload owns the file now, including deleting it
+	// The upload owns the file now, including deleting it, so nothing the report window does next can strand it
 	INVOKE_ASYNC(src, PROC_REF(upload_picture), picture, path, "base64")
+	// The last one says whether the report window came forward, so the overlay knows it can close
+	ack["forward"] = bring_forward()
+	window.send_message("bug-report/capture-ack", ack)
 	return TRUE
 
 /// Brings the report window in front of the reporter's others, returning whether one was open to bring

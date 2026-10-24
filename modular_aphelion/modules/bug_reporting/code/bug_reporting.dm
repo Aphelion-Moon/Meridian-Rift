@@ -28,6 +28,8 @@
 #define BUG_REPORT_CAPTURES_PER_HOUR 30
 /// What the sent page says when the service turns down a look at its receipt, which the next poll asks for again
 #define BUG_REPORT_RECEIPT_REFUSED "Your report is sent, but the report server didn't say how it's doing. This window asks again within a minute."
+/// What the sent page says when the report server doesn't answer a look at its receipt, which the next poll asks for again
+#define BUG_REPORT_RECEIPT_UNREACHABLE "Your report is sent, but the report server isn't answering. This window asks again within a minute."
 
 /// Tells the bridge which server run a report came from
 GLOBAL_VAR_INIT(bug_report_boot_id, GUID())
@@ -664,9 +666,11 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 /datum/bug_report/proc/refresh_receipt()
 	var/list/response = bridge_action("receipt")
 	if(!response)
-		// The report's in, so a refusal here only means its news waits, and keeping the text isn't the worry
+		// The report's in, so a refusal or no answer here only means its news waits, and keeping the text isn't the worry
 		if(refused)
 			status = BUG_REPORT_RECEIPT_REFUSED
+		else if(unreachable)
+			status = BUG_REPORT_RECEIPT_UNREACHABLE
 		poll_failed()
 		return
 	poll_failures = 0
@@ -733,7 +737,8 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 
 /// Counts a failed poll, pausing polling after four in a row until the reporter retries - one turned down still got its answer, whose status says why
 /datum/bug_report/proc/poll_failed()
-	if(refused)
+	// A sent report's page has no Try again to start it up again, so its polls back off to once a minute and never pause
+	if(refused || result?["kind"] == "accepted")
 		poll_failures = 0
 		return
 	if(++poll_failures > 3)
@@ -976,3 +981,4 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 #undef BUG_REPORT_UPLOADS_PER_HOUR
 #undef BUG_REPORT_CAPTURES_PER_HOUR
 #undef BUG_REPORT_RECEIPT_REFUSED
+#undef BUG_REPORT_RECEIPT_UNREACHABLE

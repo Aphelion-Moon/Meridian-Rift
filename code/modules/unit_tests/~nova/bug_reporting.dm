@@ -67,6 +67,8 @@
 /// A TGUI window with nobody behind it, keeping what it was sent
 /datum/tgui_window/bug_report_test
 	var/list/messages = list()
+	/// Whether it breaks when it's brought forward, for whatever has to be done before a capture's answer
+	var/broken = FALSE
 
 /datum/tgui_window/bug_report_test/New(client, id)
 	src.client = client
@@ -81,6 +83,8 @@
 	return
 
 /datum/tgui_window/bug_report_test/bring_to_front()
+	if(broken)
+		throw EXCEPTION("The test window broke")
 	messages += list(list("type" = "focus"))
 
 /// A test window that keeps every message reaching it instead of acting on it
@@ -223,6 +227,29 @@
 	var/list/last_message = LAZYACCESS(report_window.messages, length(report_window.messages))
 	TEST_ASSERT_EQUAL(last_message?["type"], "focus", "The report window wasn't brought forward when its capture arrived")
 	LAZYREMOVE(forwarded.open_uis, report_ui)
+
+	// A report window that breaks as it comes forward still gets its capture, and leaves no transfer open
+	var/datum/bug_report/test/stuck = bug_report_test_report(src)
+	var/datum/tgui/bug_report_test/stuck_ui = allocate(/datum/tgui/bug_report_test)
+	var/datum/tgui_window/bug_report_test/stuck_window = new(stuck.owner, "tgui-window-1")
+	stuck_window.broken = TRUE
+	stuck_ui.window = stuck_window
+	LAZYADD(stuck.open_uis, stuck_ui)
+	window = bug_report_test_window(stuck)
+	stuck.begin_ui_capture(window.id)
+	stuck.replies = list(list("attachment" = list("id" = "stuck", "state" = "processing", "publicConsent" = FALSE)))
+	var/broke = FALSE
+	try
+		stuck.receive_ui_capture(window, "bug-report/capture-chunk", list("nonce" = stuck.capture_nonce, "index" = 0, "totalLength" = 4, "data" = "AAAA"))
+	catch
+		broke = TRUE
+	TEST_ASSERT(broke, "The report window didn't break as it came forward, so this proves nothing")
+	// Bounded, since a capture stuck open keeps the report busy for minutes
+	var/give_up = world.time + 5 SECONDS
+	UNTIL(!stuck.busy || world.time > give_up)
+	TEST_ASSERT_NULL(stuck.capture_nonce, "A report window breaking as it came forward left its capture's transfer open")
+	TEST_ASSERT_EQUAL(length(stuck.calls), 1, "A report window breaking as it came forward kept its capture from uploading")
+	LAZYREMOVE(stuck.open_uis, stuck_ui)
 
 	var/datum/bug_report/test/oversized = bug_report_test_report(src)
 	window = bug_report_test_window(oversized)
@@ -423,6 +450,15 @@
 	report.replies = list(list("receipt" = list("reportId" = "accepted")))
 	report.refresh()
 	TEST_ASSERT_NULL(report.status, "The receipt came and the line saying the server held it back stayed")
+	// The sent page has no Try again, so a report server that stops answering never pauses its polls or worries about its text
+	for(var/tick in 1 to 4)
+		report.replies = list(bug_report_test_answer(503, list()))
+		report.refresh()
+	TEST_ASSERT(!report.polling_paused && report.waiting_on_service(), "Polls with no answer lost touch on a sent report, whose page has no Try again")
+	TEST_ASSERT_EQUAL(report.status, "Your report is sent, but the report server isn't answering. This window asks again within a minute.", "A sent report out of reach worried about its text or asked for a Try again its page doesn't have")
+	report.replies = list(bug_report_test_answer(200, list("receipt" = list("reportId" = "accepted"))))
+	report.refresh()
+	TEST_ASSERT(isnull(report.status) && !report.unreachable, "The receipt came and the line saying the server isn't answering stayed")
 	report.result = null
 	for(var/tick in 1 to 4)
 		report.replies = list(bug_report_test_answer(429, list("error" = "draft_request_limit")))
