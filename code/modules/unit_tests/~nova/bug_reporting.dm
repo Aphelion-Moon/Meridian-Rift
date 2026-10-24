@@ -489,6 +489,12 @@
 	report.replies = list(list("draft" = list("revision" = report.revision, "fields" = report.fields, "intake" = "submitted")), bug_report_test_answer(200, list("receipt" = list("reportId" = "accepted"))))
 	report.refresh()
 	TEST_ASSERT(report.result?["kind"] == "accepted" && isnull(report.status), "The receipt turned the page sent and a line from the unsent page stayed under it")
+	// Polls that paused on the unsent page, read again when its window opens, would never start up on the sent page, which has no Try again
+	report.result = null
+	report.polling_paused = TRUE
+	report.replies = list(list("draft" = list("revision" = report.revision, "fields" = report.fields, "intake" = "submitted")), bug_report_test_answer(200, list("receipt" = list("reportId" = "accepted"))))
+	report.refresh()
+	TEST_ASSERT(report.result?["kind"] == "accepted" && !report.polling_paused && report.waiting_on_service(), "A sent page whose polls paused before it was sent never polls for its issue")
 	report.result = null
 	for(var/tick in 1 to 4)
 		report.replies = list(bug_report_test_answer(429, list("error" = "draft_request_limit")))

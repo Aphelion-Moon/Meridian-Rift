@@ -680,6 +680,8 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 		// A line from the unsent page, like a look turned down there, doesn't belong under the receipt that turns it sent
 		if(result?["kind"] != "accepted")
 			status = null
+			// Nor does a pause from there, since the sent page has no Try again to start its polls up again
+			polling_paused = FALSE
 		result = drop_unix_times(list("kind" = "accepted", "receipt" = response["receipt"]))
 		note_retry()
 
