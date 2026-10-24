@@ -48,8 +48,8 @@
 	var/saved_revision = 0
 	/// Revision already encoded into the account tree; failed retries do not encode it again.
 	var/staged_revision = -1
-	/// The draft encodes past CYBORG_LAYOUT_MAX_SLOT_BYTES, so it stays unstaged until edits shrink it.
-	var/slot_full = FALSE
+	/// Why the draft would pass its character's or the account's limit, so it stays unstaged until edits shrink it.
+	var/full_message
 	var/session_only = FALSE
 	/// A retryable write or staging failure, kept across UI close/reopen.
 	var/save_error
@@ -174,19 +174,23 @@
 	if(sidecar.read_refused)
 		status_message = sidecar.write_error()
 		return TRUE
-	// Past the limit only edits that shrink the slot go through, until it can be saved again.
-	if(slot_full && !(params["operation"] in list("delete", "delete_default", "reset", "reset_position", "reset_colors", "reset_overrides", "inherit_placement")))
-		status_message = cyborg_layout_slot_full_message()
+	// Past a limit only edits that shrink the slot go through, until it can be saved again.
+	if(full_message && !(params["operation"] in list("delete", "delete_default", "reset", "reset_position", "reset_colors", "reset_overrides", "inherit_placement")))
+		status_message = full_message
 		return TRUE
 	var/list/result = cyborg_layout_action(store, params, preview_model, preferences)
 	if(result["model"] && !catalog[result["model"]])
 		status_message = "This preset's chassis is no longer available."
 		return TRUE
 	// These copy a whole layout, so the result must fit before it is taken.
-	if(result["store"] && (params["operation"] in list("save", "save_default", "assign_default", "load", "load_default")) \
-		&& length(cyborg_layout_encode(result["store"])) > CYBORG_LAYOUT_MAX_SLOT_BYTES)
-		status_message = "That would put this character's cyborg setups over the [CYBORG_LAYOUT_MAX_SLOT_BYTES / 1024] KB limit. Delete presets or model defaults you no longer need."
-		return TRUE
+	if(result["store"] && (params["operation"] in list("save", "save_default", "assign_default", "load", "load_default")))
+		var/text = cyborg_layout_encode(result["store"])
+		if(length(text) > CYBORG_LAYOUT_MAX_SLOT_BYTES)
+			status_message = "That would put this character's cyborg setups over the [CYBORG_LAYOUT_MAX_SLOT_BYTES / 1024] KB limit. Delete presets or model defaults you no longer need."
+			return TRUE
+		if(sidecar.bytes_with("character[preferences.default_slot]", text) > CYBORG_LAYOUT_MAX_SIDECAR_BYTES)
+			status_message = "That would put your cyborg setups over the limit all your characters share. Delete presets or model defaults you no longer need, on this character or another."
+			return TRUE
 	status_message = result["message"]
 	if(result["store"])
 		if(params["operation"] in list("load", "load_default", "reset"))
@@ -641,11 +645,15 @@
 		draft_timer = null
 	if(dirty && staged_revision != draft_revision)
 		var/text = cyborg_layout_encode(draft)
-		var/full = length(text) > CYBORG_LAYOUT_MAX_SLOT_BYTES
-		if(full != slot_full)
-			slot_full = full
+		var/problem
+		if(length(text) > CYBORG_LAYOUT_MAX_SLOT_BYTES)
+			problem = cyborg_layout_slot_full_message()
+		else if(store.bytes_with("character[draft_slot]", text) > CYBORG_LAYOUT_MAX_SIDECAR_BYTES)
+			problem = cyborg_layout_account_full_message()
+		if(problem != full_message)
+			full_message = problem
 			save_error = save_problem()
-		if(slot_full)
+		if(full_message)
 			// Other slots' pending writes still go out.
 			store.flush_pending()
 			return FALSE
@@ -658,7 +666,7 @@
 
 /// What the save status shows, null when everything is saved or on its way.
 /datum/preference_middleware/cyborg_character/proc/save_problem()
-	return slot_full ? cyborg_layout_slot_full_message() : preferences.cyborg_layout_savefile?.write_error()
+	return full_message || preferences.cyborg_layout_savefile?.write_error()
 
 /// A delayed account write can complete after this editor switched slots or closed.
 /datum/preference_middleware/cyborg_character/proc/sidecar_write_completed()
@@ -686,7 +694,7 @@
 	draft = null
 	draft_slot = null
 	dirty = FALSE
-	slot_full = FALSE
+	full_message = null
 	staged_revision = -1
 	save_error = save_problem()
 	context_generation++

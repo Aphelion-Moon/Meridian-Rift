@@ -82,9 +82,21 @@
 		return "Your cyborg setups are too big to save; all your characters share one limit. Delete presets or model defaults you no longer need. Your edits are kept until then."
 	return "Could not save your cyborg setups. Your edits are retained; retry saving."
 
+/// About how big the file would be with `text` as `key`'s entry. Other slots count without JSON escapes, so save() stays
+/// the exact check; this only keeps an over-limit account from being staged at all.
+/datum/json_savefile/cyborg_customization/proc/bytes_with(key, text)
+	. = length(json_encode(text))
+	for(var/entry_key, stored in get_entry())
+		if(entry_key != key)
+			. += istext(stored) ? length(stored) : length(json_encode(stored))
+
 /// What the editor says while a character's setups are past CYBORG_LAYOUT_MAX_SLOT_BYTES.
 /proc/cyborg_layout_slot_full_message()
 	return "This character's cyborg setups are over the [CYBORG_LAYOUT_MAX_SLOT_BYTES / 1024] KB limit, so recent changes aren't saved. Delete presets or model defaults, or reset overrides, to save again."
+
+/// What the editor says while saving a character would take the account past CYBORG_LAYOUT_MAX_SIDECAR_BYTES.
+/proc/cyborg_layout_account_full_message()
+	return "Your cyborg setups are over the limit all your characters share, so recent changes aren't saved. Delete presets or model defaults you no longer need, on this character or another."
 
 /datum/preferences
 	/// Lazily loaded cyborg layout sidecar owned by these preferences.
@@ -178,16 +190,17 @@
 	store.path = "data/player_saves/[target_ckey[1]]/[target_ckey]/cyborg_customization.json"
 	var/future = FALSE
 	var/too_big = 0
+	var/account_bytes = 0
 	for(var/key, layout in layouts)
-		if(cyborg_layout_import_is_future(layout))
-			future = TRUE
-			store.set_entry(key, layout)
-			continue
-		var/text = cyborg_layout_encode(layout)
-		if(length(text) > CYBORG_LAYOUT_MAX_SLOT_BYTES)
+		var/is_future = cyborg_layout_import_is_future(layout)
+		var/stored = is_future ? layout : cyborg_layout_encode(layout)
+		var/stored_bytes = length(json_encode(stored))
+		if(!is_future && length(stored) > CYBORG_LAYOUT_MAX_SLOT_BYTES || account_bytes + stored_bytes > CYBORG_LAYOUT_MAX_SIDECAR_BYTES)
 			too_big++
 			continue
-		store.set_entry(key, text)
+		account_bytes += stored_bytes
+		future ||= is_future
+		store.set_entry(key, stored)
 	if(too_big)
 		to_chat(connected, span_warning("Cyborg layouts for [too_big] character\s were too big to import and were left out."))
 	if(!length(store.get_entry()))

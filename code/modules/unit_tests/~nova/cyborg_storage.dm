@@ -335,16 +335,17 @@
 	draft["presets"]["Gamma"] = full_depth_layout()
 	editor.update_draft(draft)
 	TEST_ASSERT(!editor.commit_draft(), "A slot past the limit was acknowledged.")
-	TEST_ASSERT(editor.slot_full && editor.save_error == cyborg_layout_slot_full_message(), "The editor did not say the slot is full.")
+	TEST_ASSERT(editor.full_message == cyborg_layout_slot_full_message() && editor.save_error == editor.full_message, "The editor did not say the slot is full.")
 	TEST_ASSERT_EQUAL(store.get_entry("character1"), staged, "A slot past the limit replaced its last save.")
 	var/revision = editor.draft_revision
 	place(editor, 9)
 	TEST_ASSERT_EQUAL(editor.draft_revision, revision, "An edit that adds data went through on a full slot.")
 	command(editor, list("operation" = "delete", "name" = "Gamma"))
-	TEST_ASSERT(!editor.slot_full && !editor.save_error && !editor.dirty, "Shrinking the slot under the limit did not save it.")
+	TEST_ASSERT(!editor.full_message && !editor.save_error && !editor.dirty, "Shrinking the slot under the limit did not save it.")
 	TEST_ASSERT(!("Gamma" in editor.preferences.read_cyborg_layout(1)["presets"]), "The deletion was not saved.")
 
-/// Past the account limit nothing is written and the file keeps its last good contents, until a save fits again.
+/// All of an account's characters share one limit. A character that would pass it is not staged and the file keeps its
+/// last good contents until there is room; save() refuses a bigger tree whatever put it there.
 /datum/unit_test/cyborg_sidecar_size_limit
 	parent_type = /datum/unit_test/cyborg_storage_fixture
 	var/sidecar_path = "data/cyborg_sidecar_size_limit_test.json"
@@ -361,19 +362,24 @@
 	var/datum/json_savefile/cyborg_customization/store = preferences.cyborg_layout_savefile
 	var/written = rustg_file_read(sidecar_path)
 	TEST_ASSERT(length(written) && !editor.save_error, "A sidecar under the limit was not written.")
-	// A slot no editor could make takes the account past the limit.
+	// Another character already fills the account.
 	store.set_entry("character2", oversized_text())
-	store.next_write_at = world.time
 	place(editor, 51)
-	TEST_ASSERT(!editor.commit_draft(), "A tree past the limit was acknowledged as saved.")
-	TEST_ASSERT(store.write_oversized && editor.save_error == store.write_error(), "The editor did not say the setups are too big.")
-	TEST_ASSERT(rustg_file_read(sidecar_path) == written, "A refused write changed the file on disk.")
+	TEST_ASSERT(!editor.commit_draft(), "A character was staged past the account limit.")
+	TEST_ASSERT(editor.full_message == cyborg_layout_account_full_message() && editor.save_error == editor.full_message, "The editor did not say the account is full.")
+	var/revision = editor.draft_revision
+	place(editor, 52)
+	TEST_ASSERT_EQUAL(editor.draft_revision, revision, "An edit that adds data went through on a full account.")
+	TEST_ASSERT(!store.save() && store.write_oversized, "save() wrote an account past the limit.")
+	TEST_ASSERT(rustg_file_read(sidecar_path) == written, "A refused account changed the file on disk.")
+	// Deleting the other character makes room.
 	store.next_write_at = world.time
-	TEST_ASSERT(preferences.remove_cyborg_layout_slot(2), "The save back under the limit failed.")
-	TEST_ASSERT(!store.write_oversized && !editor.save_error, "A save under the limit kept the too-big error.")
+	TEST_ASSERT(preferences.remove_cyborg_layout_slot(2), "Removing the other character did not save.")
+	store.next_write_at = world.time
+	TEST_ASSERT(editor.commit_draft() && !editor.full_message && !editor.save_error, "The character did not save once the account had room.")
 	var/list/on_disk = json_decode(rustg_file_read(sidecar_path))
 	TEST_ASSERT(!("character2" in on_disk), "The deleted character is still on disk.")
-	TEST_ASSERT_EQUAL(cyborg_layout_decode(on_disk["character1"])["active"]["penis"]["placement_groups"]["south"]["pixel_x"], 51, "The edit made while the account was too big was lost.")
+	TEST_ASSERT_EQUAL(cyborg_layout_decode(on_disk["character1"])["active"]["penis"]["placement_groups"]["south"]["pixel_x"], 51, "The edit made while the account was full was lost.")
 
 /// A sidecar already past the limit on disk is neither decoded nor written over, and the editor says why.
 /datum/unit_test/cyborg_sidecar_refuses_oversized_file
@@ -466,5 +472,15 @@
 	TEST_ASSERT_EQUAL(cyborg_layout_decode(on_disk["character1"])["active"]["penis"]["pixel_x"], 5, "The imported layout was not written.")
 	TEST_ASSERT(!("character2" in on_disk), "A layout past its character's limit was imported.")
 	TEST_ASSERT(!("character3" in on_disk), "An old layout stayed behind for a character the import replaced.")
+	// Characters past the limit they all share are left out too, and the file stays under it.
+	var/list/many = list()
+	for(var/slot_number in 1 to 50)
+		var/list/layout = cyborg_layout_default()
+		layout["active"] = full_depth_layout()
+		many["character[slot_number]"] = cyborg_layout_normalize(layout)
+	cyborg_customization_after_import("cyborgimportlimittest", many)
+	var/list/kept = json_decode(rustg_file_read(sidecar_path))
+	TEST_ASSERT(length(kept) && length(kept) < 50, "Importing past the account limit kept [length(kept)] of 50 characters.")
+	TEST_ASSERT(length(file(sidecar_path)) <= CYBORG_LAYOUT_MAX_SIDECAR_BYTES, "An import wrote a file past the account limit.")
 	cyborg_customization_after_import("cyborgimportlimittest", list("character2" = cyborg_layout_normalize(too_big)))
 	TEST_ASSERT(!fexists(sidecar_path), "Old layouts stayed behind when every imported layout was too big.")
