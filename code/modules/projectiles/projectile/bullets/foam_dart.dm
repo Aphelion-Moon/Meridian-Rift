@@ -30,6 +30,10 @@
 	newcasing.modified = modified
 	newcasing.update_appearance()
 	var/obj/projectile/bullet/foam_dart/newdart = newcasing.loaded_projectile
+	// APHELION EDIT ADDITION START - DreamMaker can flag newdart as unused_var depending on the rest of the build, failing -Werror CI
+	if(!istype(newdart))
+		return
+	// APHELION EDIT ADDITION END
 	newdart.modified = modified
 	newdart.damage_type = damage_type
 	newdart.update_appearance()
