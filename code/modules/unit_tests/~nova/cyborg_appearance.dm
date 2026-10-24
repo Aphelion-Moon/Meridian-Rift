@@ -194,6 +194,15 @@
 	TEST_ASSERT(!capability["exposed"] && !length(cyborg_visual_anatomy_examine_lines(robot, TRUE)), "Immobilized cyborgs must hide visual anatomy descriptions.")
 	REMOVE_TRAIT(robot, TRAIT_IMMOBILIZED, TRAIT_SOURCE_UNIT_TESTS)
 	TEST_ASSERT(cyborg_body_visuals_visible(robot), "Removing immobilization did not restore visual eligibility.")
+	// Job spawns sit the body in its spawn chair; that buckle alone must not hide it (the live roundstart body had no parts).
+	var/obj/structure/chair/chair = allocate(/obj/structure/chair, robot.loc)
+	chair.buckle_mob(robot, force = TRUE)
+	TEST_ASSERT(robot.buckled == chair && HAS_TRAIT(robot, TRAIT_IMMOBILIZED), "The fixture body did not sit buckled and immobilized.")
+	TEST_ASSERT(cyborg_body_visuals_visible(robot), "A cyborg sitting buckled in a chair hid its visual anatomy.")
+	ADD_TRAIT(robot, TRAIT_IMMOBILIZED, TRAIT_SOURCE_UNIT_TESTS)
+	TEST_ASSERT(!cyborg_body_visuals_visible(robot), "A buckled cyborg that is also immobilized otherwise showed its visual anatomy.")
+	REMOVE_TRAIT(robot, TRAIT_IMMOBILIZED, TRAIT_SOURCE_UNIT_TESTS)
+	chair.unbuckle_mob(robot)
 	robot.model.cyborg_base_icon = "disguised"
 	capability = cyborg_part_capability(robot, "penis")
 	TEST_ASSERT(!capability["exposed"] && !length(cyborg_visual_anatomy_examine_lines(robot, TRUE)), "A disguised cyborg must hide visual anatomy descriptions.")

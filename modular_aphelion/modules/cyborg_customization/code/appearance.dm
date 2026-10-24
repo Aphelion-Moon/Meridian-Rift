@@ -164,9 +164,10 @@
 	var/list/directional = placement ? cyborg_resolve_placement(placement, robot.dir, robot.cyborg_customization_pose(), robot.cyborg_appearance_arousal[slot] || "none") : null
 	return list("configured" = !!configured, "enabled" = !!enabled, "exposed" = !!(enabled && directional?["visible"] && cyborg_body_visuals_visible(robot)))
 
-/// Rendering and examine share the same body-level exposure policy.
+/// Rendering and examine share the same body-level exposure policy. Sitting buckled, as job spawns put a body in its
+/// spawn chair, is not one of the immobilizations that hide the parts.
 /proc/cyborg_body_visuals_visible(mob/living/silicon/robot/robot)
-	if(!robot || !robot.model || !robot.cyborg_appearance_allowed || CONFIG_GET(flag/disable_erp_preferences) || robot.stat == DEAD || HAS_TRAIT(robot, TRAIT_IMMOBILIZED))
+	if(!robot || !robot.model || !robot.cyborg_appearance_allowed || CONFIG_GET(flag/disable_erp_preferences) || robot.stat == DEAD || HAS_TRAIT_NOT_FROM(robot, TRAIT_IMMOBILIZED, BUCKLED_TRAIT))
 		return FALSE
 	var/list/catalog = cyborg_model_catalog()
 	var/list/descriptor = robot.cyborg_appearance_model ? catalog[robot.cyborg_appearance_model] : null
