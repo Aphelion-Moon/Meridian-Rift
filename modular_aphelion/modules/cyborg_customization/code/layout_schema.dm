@@ -11,9 +11,10 @@
 /// The highest layer order a part can have, which draws it over the other parts
 #define CYBORG_LAYOUT_MAX_PRIORITY 10
 
-/// Save texts store parts by their place here, so only append.
+/// Save texts store parts by their place here, so only append. Every caller shares the list, so none may change it
 /proc/cyborg_layout_supported_slots()
-	return list("penis", "sheath", "testicles", "vagina", "anus", "breasts")
+	var/static/list/slots = list("penis", "sheath", "testicles", "vagina", "anus", "breasts")
+	return slots
 
 /// Save texts store overrides by their place here, so only append.
 /proc/cyborg_layout_supported_advanced_keys()
