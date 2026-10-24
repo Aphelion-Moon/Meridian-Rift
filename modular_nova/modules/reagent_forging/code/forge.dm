@@ -694,7 +694,6 @@
 	balloon_alert(user, "finished setting [ceramic_item]")
 	var/obj/item/ceramic/spawned_ceramic = new ceramic_item.forge_item(get_turf(src))
 	user.mind.adjust_experience(/datum/skill/production, 50)
-	// DreamMaker can flag spawned_ceramic as unused_var depending on the rest of the build, failing -Werror CI
 	if(!QDELETED(spawned_ceramic))
 		spawned_ceramic.color = ceramic_item.color
 	qdel(ceramic_item)
