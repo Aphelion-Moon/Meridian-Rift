@@ -241,6 +241,7 @@
 #include "ling_decap.dm"
 #include "liver.dm"
 #include "load_map_security.dm"
+#include "log_manifest.dm" // APHELION EDIT ADDITION - minds with no memories in the manifest log
 #include "lootpanel.dm"
 #include "lungs.dm"
 #include "machine_disassembly.dm"
