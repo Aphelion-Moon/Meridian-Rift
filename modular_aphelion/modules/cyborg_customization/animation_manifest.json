@@ -1,5 +1,5 @@
 {
-  "format_version": 1,
+  "format_version": 2,
   "source_sha": "090a9cb13722af449567867c720826eb6af215a5",
   "models": {
     "modular_nova/modules/borgs/icons/widerobot_eng.dmi#alina-eng": "alina",
@@ -40,6 +40,70 @@
     "modular_nova/modules/borgs/icons/widerobots_cargo.dmi#valecargo": "vale"
   },
   "profiles": {
+    "alina": {
+      "idle:0": {
+        "south": [{"x": 0.0, "y": -16, "delay": 1.0}],
+        "north": [{"x": 0.0, "y": -17, "delay": 1.0}],
+        "east": [{"x": -8.0, "y": -12, "delay": 1.0}],
+        "west": [{"x": 8.0, "y": -13, "delay": 1.0}]
+      },
+      "idle:1": {
+        "south": [{"x": 0.0, "y": -16, "delay": 1.0}, {"x": 0.0, "y": -16, "delay": 1.0}, {"x": 0.0, "y": -16, "delay": 1.0}, {"x": 0.0, "y": -16, "delay": 1.0}, {"x": 0.0, "y": -16, "delay": 1.0}, {"x": 0.0, "y": -16, "delay": 1.0}],
+        "north": [{"x": 0.0, "y": -18, "delay": 1.0}, {"x": 0.0, "y": -17, "delay": 1.0}, {"x": 0.0, "y": -18, "delay": 1.0}, {"x": 0.0, "y": -18, "delay": 1.0}, {"x": 0.0, "y": -17, "delay": 1.0}, {"x": 0.0, "y": -18, "delay": 1.0}],
+        "east": [{"x": -9.0, "y": -13, "delay": 1.0}, {"x": -9.0, "y": -13, "delay": 1.0}, {"x": -9.0, "y": -13, "delay": 1.0}, {"x": -9.0, "y": -13, "delay": 1.0}, {"x": -9.0, "y": -13, "delay": 1.0}, {"x": -9.0, "y": -13, "delay": 1.0}],
+        "west": [{"x": 7.0, "y": -13, "delay": 1.0}, {"x": 7.0, "y": -13, "delay": 1.0}, {"x": 7.0, "y": -13, "delay": 1.0}, {"x": 7.0, "y": -13, "delay": 1.0}, {"x": 7.0, "y": -13, "delay": 1.0}, {"x": 7.0, "y": -13, "delay": 1.0}]
+      },
+      "rest:0": {
+        "south": [{"x": 3.0, "y": -18, "delay": 1.0}],
+        "north": [{"x": -8.0, "y": -12, "delay": 1.0}],
+        "east": [{"x": -5.0, "y": -20, "delay": 1.0}],
+        "west": [{"x": 4.0, "y": -20, "delay": 1.0}]
+      },
+      "sit:0": {
+        "south": [{"x": 2.0, "y": -18, "delay": 1.0}],
+        "north": [{"x": -8.0, "y": -12, "delay": 1.0}],
+        "east": [{"x": -4.0, "y": -20, "delay": 1.0}],
+        "west": [{"x": 3.0, "y": -20, "delay": 1.0}]
+      },
+      "bellyup:0": {
+        "south": [{"x": 2.0, "y": -18, "delay": 1.0}],
+        "north": [{"x": -8.0, "y": -12, "delay": 1.0}],
+        "east": [{"x": -5.0, "y": -20, "delay": 1.0}],
+        "west": [{"x": 4.0, "y": -21, "delay": 1.0}]
+      }
+    },
+    "borgi": {
+      "idle:0": {
+        "south": [{"x": 0.0, "y": -22, "delay": 1.0}],
+        "north": [{"x": 0.0, "y": -21, "delay": 1.0}],
+        "east": [{"x": -4.0, "y": -20, "delay": 1.0}],
+        "west": [{"x": 5.0, "y": -20, "delay": 1.0}]
+      },
+      "idle:1": {
+        "south": [{"x": 0.0, "y": -22, "delay": 1.0}, {"x": 0.0, "y": -21, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -21, "delay": 1.0}, {"x": 0.0, "y": -22, "delay": 1.0}],
+        "north": [{"x": 0.0, "y": -21, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -19, "delay": 1.0}, {"x": 0.0, "y": -19, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -21, "delay": 1.0}],
+        "east": [{"x": -4.0, "y": -20, "delay": 1.0}, {"x": -4.0, "y": -20, "delay": 1.0}, {"x": -4.0, "y": -19, "delay": 1.0}, {"x": -4.0, "y": -18, "delay": 1.0}, {"x": -4.0, "y": -18, "delay": 1.0}, {"x": -4.0, "y": -18, "delay": 1.0}],
+        "west": [{"x": 5.0, "y": -20, "delay": 1.0}, {"x": 5.0, "y": -20, "delay": 1.0}, {"x": 5.0, "y": -19, "delay": 1.0}, {"x": 5.0, "y": -18, "delay": 1.0}, {"x": 5.0, "y": -18, "delay": 1.0}, {"x": 5.0, "y": -18, "delay": 1.0}]
+      },
+      "rest:0": {
+        "south": [{"x": 0.0, "y": -23, "delay": 1.0}],
+        "north": [{"x": 0.0, "y": -23, "delay": 1.0}],
+        "east": [{"x": -7.0, "y": -22, "delay": 1.0}],
+        "west": [{"x": 8.0, "y": -22, "delay": 1.0}]
+      },
+      "sit:0": {
+        "south": [{"x": 0.0, "y": -22, "delay": 1.0}],
+        "north": [{"x": 0.0, "y": -23, "delay": 1.0}],
+        "east": [{"x": 0.0, "y": -23, "delay": 1.0}],
+        "west": [{"x": 1.0, "y": -23, "delay": 1.0}]
+      },
+      "bellyup:0": {
+        "south": [{"x": 0.0, "y": -9, "delay": 1.0}],
+        "north": [{"x": 0.0, "y": -19, "delay": 1.0}],
+        "east": [{"x": -7.0, "y": -13, "delay": 1.0}],
+        "west": [{"x": 8.0, "y": -13, "delay": 1.0}]
+      }
+    },
     "drake": {
       "idle:0": {
         "south": [{"x": 0.0, "y": -20, "delay": 10.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}],
@@ -104,6 +168,20 @@
         "west": [{"x": 10.0, "y": -11, "delay": 1.0}]
       }
     },
+    "otie": {
+      "idle:0": {
+        "south": [{"x": 0.0, "y": -18, "delay": 1.0}],
+        "north": [{"x": 0.0, "y": -17, "delay": 1.0}],
+        "east": [{"x": -8.0, "y": -15, "delay": 1.0}],
+        "west": [{"x": 9.0, "y": -15, "delay": 1.0}]
+      },
+      "idle:1": {
+        "south": [{"x": 0.0, "y": -18, "delay": 0.9}, {"x": 0.0, "y": -18, "delay": 0.9}, {"x": 1.0, "y": -18, "delay": 0.9}, {"x": 0.0, "y": -18, "delay": 0.9}, {"x": -1.0, "y": -18, "delay": 0.9}, {"x": 0.0, "y": -18, "delay": 0.9}],
+        "north": [{"x": 0.0, "y": -17, "delay": 0.9}, {"x": 1.0, "y": -17, "delay": 0.9}, {"x": 0.0, "y": -17, "delay": 0.9}, {"x": -1.0, "y": -17, "delay": 0.9}, {"x": 0.0, "y": -17, "delay": 0.9}, {"x": 0.0, "y": -17, "delay": 0.9}],
+        "east": [{"x": -7.0, "y": -14, "delay": 0.9}, {"x": -7.0, "y": -15, "delay": 0.9}, {"x": -7.0, "y": -16, "delay": 0.9}, {"x": -8.0, "y": -16, "delay": 0.9}, {"x": -9.0, "y": -15, "delay": 0.9}, {"x": -8.0, "y": -14, "delay": 0.9}],
+        "west": [{"x": 8.0, "y": -14, "delay": 0.9}, {"x": 8.0, "y": -15, "delay": 0.9}, {"x": 8.0, "y": -16, "delay": 0.9}, {"x": 9.0, "y": -16, "delay": 0.9}, {"x": 10.0, "y": -15, "delay": 0.9}, {"x": 9.0, "y": -14, "delay": 0.9}]
+      }
+    },
     "vale": {
       "idle:0": {
         "south": [{"x": 0.0, "y": -14, "delay": 1.0}],
@@ -135,113 +213,6 @@
         "east": [{"x": -9.0, "y": -10, "delay": 1.0}],
         "west": [{"x": 10.0, "y": -10, "delay": 1.0}]
       }
-    },
-    "otie": {
-      "idle:0": {
-        "south": [{"x": 0.0, "y": -18, "delay": 1.0}],
-        "north": [{"x": 0.0, "y": -17, "delay": 1.0}],
-        "east": [{"x": -8.0, "y": -15, "delay": 1.0}],
-        "west": [{"x": 9.0, "y": -15, "delay": 1.0}]
-      },
-      "idle:1": {
-        "south": [{"x": 0.0, "y": -18, "delay": 0.9}, {"x": 0.0, "y": -18, "delay": 0.9}, {"x": 1.0, "y": -18, "delay": 0.9}, {"x": 0.0, "y": -18, "delay": 0.9}, {"x": -1.0, "y": -18, "delay": 0.9}, {"x": 0.0, "y": -18, "delay": 0.9}],
-        "north": [{"x": 0.0, "y": -17, "delay": 0.9}, {"x": 1.0, "y": -17, "delay": 0.9}, {"x": 0.0, "y": -17, "delay": 0.9}, {"x": -1.0, "y": -17, "delay": 0.9}, {"x": 0.0, "y": -17, "delay": 0.9}, {"x": 0.0, "y": -17, "delay": 0.9}],
-        "east": [{"x": -7.0, "y": -14, "delay": 0.9}, {"x": -7.0, "y": -15, "delay": 0.9}, {"x": -7.0, "y": -16, "delay": 0.9}, {"x": -8.0, "y": -16, "delay": 0.9}, {"x": -9.0, "y": -15, "delay": 0.9}, {"x": -8.0, "y": -14, "delay": 0.9}],
-        "west": [{"x": 8.0, "y": -14, "delay": 0.9}, {"x": 8.0, "y": -15, "delay": 0.9}, {"x": 8.0, "y": -16, "delay": 0.9}, {"x": 9.0, "y": -16, "delay": 0.9}, {"x": 10.0, "y": -15, "delay": 0.9}, {"x": 9.0, "y": -14, "delay": 0.9}]
-      }
-    },
-    "borgi": {
-      "idle:0": {
-        "south": [{"x": 0.0, "y": -22, "delay": 1.0}],
-        "north": [{"x": 0.0, "y": -21, "delay": 1.0}],
-        "east": [{"x": -4.0, "y": -20, "delay": 1.0}],
-        "west": [{"x": 5.0, "y": -20, "delay": 1.0}]
-      },
-      "idle:1": {
-        "south": [{"x": 0.0, "y": -22, "delay": 1.0}, {"x": 0.0, "y": -21, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -21, "delay": 1.0}, {"x": 0.0, "y": -22, "delay": 1.0}],
-        "north": [{"x": 0.0, "y": -21, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -19, "delay": 1.0}, {"x": 0.0, "y": -19, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -21, "delay": 1.0}],
-        "east": [{"x": -4.0, "y": -20, "delay": 1.0}, {"x": -4.0, "y": -20, "delay": 1.0}, {"x": -4.0, "y": -19, "delay": 1.0}, {"x": -4.0, "y": -18, "delay": 1.0}, {"x": -4.0, "y": -18, "delay": 1.0}, {"x": -4.0, "y": -18, "delay": 1.0}],
-        "west": [{"x": 5.0, "y": -20, "delay": 1.0}, {"x": 5.0, "y": -20, "delay": 1.0}, {"x": 5.0, "y": -19, "delay": 1.0}, {"x": 5.0, "y": -18, "delay": 1.0}, {"x": 5.0, "y": -18, "delay": 1.0}, {"x": 5.0, "y": -18, "delay": 1.0}]
-      },
-      "rest:0": {
-        "south": [{"x": 0.0, "y": -23, "delay": 1.0}],
-        "north": [{"x": 0.0, "y": -23, "delay": 1.0}],
-        "east": [{"x": -7.0, "y": -22, "delay": 1.0}],
-        "west": [{"x": 8.0, "y": -22, "delay": 1.0}]
-      },
-      "sit:0": {
-        "south": [{"x": 0.0, "y": -22, "delay": 1.0}],
-        "north": [{"x": 0.0, "y": -23, "delay": 1.0}],
-        "east": [{"x": 0.0, "y": -23, "delay": 1.0}],
-        "west": [{"x": 1.0, "y": -23, "delay": 1.0}]
-      },
-      "bellyup:0": {
-        "south": [{"x": 0.0, "y": -9, "delay": 1.0}],
-        "north": [{"x": 0.0, "y": -19, "delay": 1.0}],
-        "east": [{"x": -7.0, "y": -13, "delay": 1.0}],
-        "west": [{"x": 8.0, "y": -13, "delay": 1.0}]
-      }
-    },
-    "alina": {
-      "idle:0": {
-        "south": [{"x": 0.0, "y": -16, "delay": 1.0}],
-        "north": [{"x": 0.0, "y": -17, "delay": 1.0}],
-        "east": [{"x": -8.0, "y": -12, "delay": 1.0}],
-        "west": [{"x": 8.0, "y": -13, "delay": 1.0}]
-      },
-      "idle:1": {
-        "south": [{"x": 0.0, "y": -16, "delay": 1.0}, {"x": 0.0, "y": -16, "delay": 1.0}, {"x": 0.0, "y": -16, "delay": 1.0}, {"x": 0.0, "y": -16, "delay": 1.0}, {"x": 0.0, "y": -16, "delay": 1.0}, {"x": 0.0, "y": -16, "delay": 1.0}],
-        "north": [{"x": 0.0, "y": -18, "delay": 1.0}, {"x": 0.0, "y": -17, "delay": 1.0}, {"x": 0.0, "y": -18, "delay": 1.0}, {"x": 0.0, "y": -18, "delay": 1.0}, {"x": 0.0, "y": -17, "delay": 1.0}, {"x": 0.0, "y": -18, "delay": 1.0}],
-        "east": [{"x": -9.0, "y": -13, "delay": 1.0}, {"x": -9.0, "y": -13, "delay": 1.0}, {"x": -9.0, "y": -13, "delay": 1.0}, {"x": -9.0, "y": -13, "delay": 1.0}, {"x": -9.0, "y": -13, "delay": 1.0}, {"x": -9.0, "y": -13, "delay": 1.0}],
-        "west": [{"x": 7.0, "y": -13, "delay": 1.0}, {"x": 7.0, "y": -13, "delay": 1.0}, {"x": 7.0, "y": -13, "delay": 1.0}, {"x": 7.0, "y": -13, "delay": 1.0}, {"x": 7.0, "y": -13, "delay": 1.0}, {"x": 7.0, "y": -13, "delay": 1.0}]
-      },
-      "rest:0": {
-        "south": [{"x": 3.0, "y": -18, "delay": 1.0}],
-        "north": [{"x": -8.0, "y": -12, "delay": 1.0}],
-        "east": [{"x": -5.0, "y": -20, "delay": 1.0}],
-        "west": [{"x": 4.0, "y": -20, "delay": 1.0}]
-      },
-      "sit:0": {
-        "south": [{"x": 2.0, "y": -18, "delay": 1.0}],
-        "north": [{"x": -8.0, "y": -12, "delay": 1.0}],
-        "east": [{"x": -4.0, "y": -20, "delay": 1.0}],
-        "west": [{"x": 3.0, "y": -20, "delay": 1.0}]
-      },
-      "bellyup:0": {
-        "south": [{"x": 2.0, "y": -18, "delay": 1.0}],
-        "north": [{"x": -8.0, "y": -12, "delay": 1.0}],
-        "east": [{"x": -5.0, "y": -20, "delay": 1.0}],
-        "west": [{"x": 4.0, "y": -21, "delay": 1.0}]
-      }
     }
-  },
-  "fallbacks": [
-    "modular_nova/modules/borgs/icons/widerobot_eng.dmi#drakeeng-rest_alt:0: incompatible authored timing",
-    "modular_nova/modules/borgs/icons/widerobot_eng.dmi#drakeeng-rest_deep:0: incompatible authored timing",
-    "modular_nova/modules/borgs/icons/widerobot_eng.dmi#drakeeng-sit_alt:0: incompatible authored timing",
-    "modular_nova/modules/borgs/icons/widerobot_eng.dmi#otiee-bellyup:0: no unique cyan anchor",
-    "modular_nova/modules/borgs/icons/widerobot_eng.dmi#otiee-rest:0: no unique cyan anchor",
-    "modular_nova/modules/borgs/icons/widerobot_eng.dmi#otiee-sit:0: no unique cyan anchor",
-    "modular_nova/modules/borgs/icons/widerobot_jani.dmi#drakejanit-rest_alt:0: incompatible authored timing",
-    "modular_nova/modules/borgs/icons/widerobot_jani.dmi#drakejanit-rest_deep:0: incompatible authored timing",
-    "modular_nova/modules/borgs/icons/widerobot_jani.dmi#drakejanit-sit_alt:0: incompatible authored timing",
-    "modular_nova/modules/borgs/icons/widerobot_jani.dmi#otiej-bellyup:0: no unique cyan anchor",
-    "modular_nova/modules/borgs/icons/widerobot_jani.dmi#otiej-rest:0: no unique cyan anchor",
-    "modular_nova/modules/borgs/icons/widerobot_jani.dmi#otiej-sit:0: no unique cyan anchor",
-    "modular_nova/modules/borgs/icons/widerobot_mine.dmi#drakemine-rest_alt:0: incompatible authored timing",
-    "modular_nova/modules/borgs/icons/widerobot_mine.dmi#drakemine-rest_deep:0: incompatible authored timing",
-    "modular_nova/modules/borgs/icons/widerobot_mine.dmi#drakemine-sit_alt:0: incompatible authored timing",
-    "modular_nova/modules/borgs/icons/widerobot_mine.dmi#otiec-bellyup:0: no unique cyan anchor",
-    "modular_nova/modules/borgs/icons/widerobot_mine.dmi#otiec-rest:0: no unique cyan anchor",
-    "modular_nova/modules/borgs/icons/widerobot_mine.dmi#otiec-sit:0: no unique cyan anchor",
-    "modular_nova/modules/borgs/icons/widerobot_pk.dmi#drakepeace-rest_alt:0: incompatible authored timing",
-    "modular_nova/modules/borgs/icons/widerobot_pk.dmi#drakepeace-rest_deep:0: incompatible authored timing",
-    "modular_nova/modules/borgs/icons/widerobot_pk.dmi#drakepeace-sit_alt:0: incompatible authored timing",
-    "modular_nova/modules/borgs/icons/widerobot_sec.dmi#drakesec-rest_alt:0: incompatible authored timing",
-    "modular_nova/modules/borgs/icons/widerobot_sec.dmi#drakesec-rest_deep:0: incompatible authored timing",
-    "modular_nova/modules/borgs/icons/widerobot_sec.dmi#drakesec-sit_alt:0: incompatible authored timing",
-    "modular_nova/modules/borgs/icons/widerobot_sec.dmi#oties-bellyup:0: no unique cyan anchor",
-    "modular_nova/modules/borgs/icons/widerobot_sec.dmi#oties-rest:0: no unique cyan anchor",
-    "modular_nova/modules/borgs/icons/widerobot_sec.dmi#oties-sit:0: no unique cyan anchor"
-  ]
+  }
 }
