@@ -229,6 +229,7 @@
 	encoded[1] = mask
 	return encoded
 
+/// Returns a part's overrides as flat key index and override pairs, or null when it has none
 /proc/cyborg_layout_encode_advanced(list/advanced)
 	if(!length(advanced))
 		return null
@@ -355,6 +356,7 @@
 	var/list/normalized = cyborg_layout_normalize(raw, normalize_model_defaults = !!model_id, only_model_default = model_id)
 	return list("active" = with_active ? normalized["active"] : null, "model_default" = model_id ? normalized["model_defaults"][model_id] : null)
 
+/// Returns an encoded layout's parts by slot. Untouched parts are left out, for normalizing to fill in
 /proc/cyborg_layout_decode_slots(list/encoded)
 	var/list/slots = list()
 	if(!islist(encoded))
@@ -366,6 +368,7 @@
 			slots[names[index]] = entry
 	return slots
 
+/// Returns a part's fields from its mask and values, or null for an untouched part
 /proc/cyborg_layout_decode_part(list/encoded)
 	if(!islist(encoded) || !length(encoded) || !isnum(encoded[1]))
 		return null
@@ -408,6 +411,7 @@
 		entry["sprite"] = cyborg_layout_codec_element(encoded, ++index)
 	return entry
 
+/// Returns a part's overrides by key from their flat pairs, skipping key indices we don't know
 /proc/cyborg_layout_decode_advanced(list/encoded)
 	var/list/advanced = list()
 	if(!islist(encoded))
@@ -422,6 +426,7 @@
 			advanced[keys[key_index]] = override
 	return advanced
 
+/// Returns an override from its header and values, with its arousal states unless it is one
 /proc/cyborg_layout_decode_override(list/encoded, arousal_state = FALSE)
 	if(!islist(encoded) || !length(encoded) || !isnum(encoded[1]))
 		return null

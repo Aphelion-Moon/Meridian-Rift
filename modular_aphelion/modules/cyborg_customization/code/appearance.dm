@@ -37,6 +37,7 @@
 	var/datum/preference/preference = GLOB.preference_entries_by_key[key]
 	return preference ? preferences.read_preference(preference.type) : null
 
+/// Whether or not these preferences allow cyborg parts at all - the server config, the ERP master toggle and the genitals toggle
 /proc/cyborg_visuals_allowed(datum/preferences/preferences)
 	return preferences && !CONFIG_GET(flag/disable_erp_preferences) \
 		&& preferences.read_preference(/datum/preference/toggle/master_erp_preferences) \
@@ -104,6 +105,7 @@
 	cyborg_appearance_revision++
 	cyborg_customization_update_render()
 
+/// Called when the borg's chassis may have changed - takes its saved default, or else the active layout, then resizes and redraws
 /mob/living/silicon/robot/proc/cyborg_customization_refresh_model()
 	if(!cyborg_appearance_store || !model)
 		return
@@ -138,6 +140,7 @@
 		choices[slot] = isnull(sprite) ? fallback?[slot] : sprite
 	return choices
 
+/// Returns the body size a chassis can show for the requested one, 1 when it isn't eligible. Small chassis never shrink and wide or tall ones stop at 1.6
 /proc/cyborg_effective_base_size(requested, list/model_features, eligible = TRUE)
 	if(!eligible || !(requested in list(0.75, 1, 1.6, 2, 2.5)))
 		return 1
@@ -147,6 +150,7 @@
 		return min(requested, 1.6)
 	return requested
 
+/// Applies the character's body size to the borg's transform, undoing only our last factor
 /mob/living/silicon/robot/proc/cyborg_customization_apply_size()
 	if(!model || HAS_TRAIT(src, TRAIT_NO_TRANSFORM))
 		return
@@ -161,6 +165,7 @@
 	cyborg_appearance_applied_size = effective
 	update_transform(ratio)
 
+/// Returns the pose the borg's resting state shows, like rest or sit, or idle
 /mob/living/silicon/robot/proc/cyborg_customization_pose()
 	switch(robot_resting)
 		if(ROBOT_REST_NORMAL)
@@ -177,6 +182,7 @@
 			return "sit_alt"
 	return "idle"
 
+/// Returns whether a part slot is configured, turned on and showing on the borg right now
 /proc/cyborg_part_capability(mob/living/silicon/robot/robot, slot)
 	var/configured = robot.cyborg_appearance_allowed && robot.cyborg_appearance_choices?[slot] && robot.cyborg_appearance_choices[slot] != SPRITE_ACCESSORY_NONE
 	var/enabled = configured && LAZYACCESS(robot.cyborg_appearance_active, slot)

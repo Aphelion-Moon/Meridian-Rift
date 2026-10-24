@@ -26,6 +26,7 @@
 			keys += "[pose]_[direction]"
 	return keys
 
+/// Returns a new layout tree with default parts and no presets or model defaults
 /proc/cyborg_layout_default()
 	return list(
 		"schema_version" = CYBORG_LAYOUT_SCHEMA_VERSION,
@@ -36,11 +37,13 @@
 		"model_defaults" = list(),
 	)
 
+/// Returns the sprite size a slot's parts start at
 /proc/cyborg_layout_default_sprite_size(slot)
 	if(slot in list("penis", "sheath", "testicles"))
 		return 2
 	return 1
 
+/// Returns a sprite size clamped to the allowed range, or the slot's default when it isn't a number
 /proc/cyborg_layout_sprite_size(value, slot)
 	var/default_value = cyborg_layout_default_sprite_size(slot)
 	if(istext(value))
@@ -49,6 +52,7 @@
 		return default_value
 	return clamp(round(value), CYBORG_LAYOUT_MIN_SPRITE_SIZE, CYBORG_LAYOUT_MAX_SPRITE_SIZE)
 
+/// Returns a new part entry with every field at its default
 /proc/cyborg_layout_default_entry(slot = null)
 	return list(
 		"pixel_x" = 0,
@@ -63,15 +67,18 @@
 		"advanced" = list(),
 	)
 
+/// Returns a new layout with every part slot at its defaults
 /proc/cyborg_layout_default_slots()
 	var/list/slots = list()
 	for(var/slot in cyborg_layout_supported_slots())
 		slots[slot] = cyborg_layout_default_entry(slot)
 	return slots
 
+/// Returns a deep copy of a layout or layout tree
 /proc/cyborg_layout_copy(layout)
 	return deep_copy_list(layout)
 
+/// Returns a number clamped to its range and rounded to its step, or the default when it isn't one. Text numbers are read too
 /proc/cyborg_layout_number(value, minimum, maximum, default_value, step = 0.01)
 	if(istext(value))
 		value = text2num(value)
@@ -81,9 +88,11 @@
 	// Layout input instead clamps at its declared schema boundary before rounding.
 	return sanitize_float(clamp(value, minimum, maximum), minimum, maximum, step, default_value)
 
+/// Returns a valid hex color, white when it isn't one
 /proc/cyborg_layout_color(value)
 	return sanitize_hexcolor(value, default = "#ffffff")
 
+/// Returns a part entry in canonical form, every field bounded and filled in, or the slot's defaults when raw isn't a list
 /proc/cyborg_layout_normalize_entry(raw, allow_legacy_aliases = FALSE, slot = null)
 	if(!islist(raw))
 		return cyborg_layout_default_entry(slot)
@@ -118,6 +127,7 @@
 		entry["colors"] += cyborg_layout_color(color)
 	return entry
 
+/// Returns a part's overrides in canonical form. An import also expands donor pose-wide entries to each direction
 /proc/cyborg_layout_normalize_advanced(raw, allow_legacy_aliases = FALSE)
 	var/list/normalized = list()
 	if(!islist(raw))
@@ -146,6 +156,7 @@
 					normalized[directional_key] = deep_copy_list(legacy_entry)
 	return normalized
 
+/// Returns one override with only the fields it sets, bounded, or null when it sets none. Arousal states can't nest, so they pass allow_arousal FALSE
 /proc/cyborg_layout_normalize_advanced_entry(raw, allow_arousal = TRUE)
 	if(!islist(raw))
 		return null
@@ -173,6 +184,7 @@
 			entry["arousal"] = normalized_arousal
 	return length(entry) ? entry : null
 
+/// Returns a layout with every part slot normalized, defaults filling the missing ones
 /proc/cyborg_layout_normalize_slots(raw, allow_legacy_aliases = FALSE)
 	var/list/normalized = list()
 	for(var/slot in cyborg_layout_supported_slots())

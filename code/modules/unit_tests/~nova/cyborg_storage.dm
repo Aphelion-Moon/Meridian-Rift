@@ -48,6 +48,7 @@
 	. = editor.edit_layout(params, null)
 	cyborg_test_run_queued_save(editor.preferences.cyborg_layout_store())
 
+/// Sets the penis part's base pixel_x, facing south, through command()
 /datum/unit_test/cyborg_storage_fixture/proc/place(datum/preference_middleware/cyborg_character/editor, value)
 	return command(editor, list("operation" = "set_placement", "slot" = "penis", "target" = list("scope" = "base", "direction" = SOUTH), "changes" = list("pixel_x" = value)))
 
@@ -353,6 +354,7 @@
 	/// The test's own sidecar file, deleted before and after it runs
 	var/sidecar_path = "data/cyborg_sidecar_size_limit_test.json"
 
+/// Deletes the test's sidecar file
 /datum/unit_test/cyborg_sidecar_size_limit/Destroy()
 	// After the parent, so the store's final flush can't write the file again.
 	. = ..()
@@ -390,6 +392,7 @@
 	/// The test's own sidecar file, deleted after it runs
 	var/sidecar_path = "data/cyborg_sidecar_oversized_file_test.json"
 
+/// Deletes the test's sidecar file
 /datum/unit_test/cyborg_sidecar_refuses_oversized_file/Destroy()
 	. = ..()
 	fdel(sidecar_path)
@@ -457,6 +460,7 @@
 	/// The test's own account folder, deleted after it runs
 	var/account_path = "data/player_saves/c/cyborgimportlimittest/"
 
+/// Deletes the test's account folder
 /datum/unit_test/cyborg_import_replaces_old_layouts/Destroy()
 	. = ..()
 	fdel(account_path)

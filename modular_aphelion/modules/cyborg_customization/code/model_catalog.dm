@@ -108,6 +108,7 @@
 	/// Chosen skin identity survives renaming and temporary visual disguises.
 	var/cyborg_customization_skin
 
+/// Returns this model's catalog id, from its type and chosen skin
 /obj/item/robot_model/proc/cyborg_customization_id()
 	return cyborg_appearance_model_id(type, cyborg_customization_skin)
 

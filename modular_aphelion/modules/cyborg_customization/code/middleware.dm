@@ -121,12 +121,15 @@
 	clear_preview_resources()
 	SStgui.close_uis(src)
 
+/// Always state, as ui_status() does the checking
 /datum/preference_middleware/cyborg_character/ui_state(mob/user)
 	return GLOB.always_state
 
+/// Only the player whose preferences these are can use the window
 /datum/preference_middleware/cyborg_character/ui_status(mob/user, datum/ui_state/state)
 	return user?.client && user.client == preferences?.parent ? UI_INTERACTIVE : UI_CLOSE
 
+/// Opens the window and starts the session, or updates the open one, bringing it to the front on an explicit open
 /datum/preference_middleware/cyborg_character/ui_interact(mob/user, datum/tgui/ui)
 	// tgui's own refreshes pass their window, only an explicit open brings it forward
 	var/opening = isnull(ui)
@@ -140,10 +143,12 @@
 	ui.set_autoupdate(FALSE)
 	ui.open()
 
+/// Called when the window closes - ends the session and asks for its save
 /datum/preference_middleware/cyborg_character/ui_close(mob/user)
 	if(editor_open)
 		close_editor()
 
+/// Sends the window's actions to their handlers - preview changes, layout edits and preference changes
 /datum/preference_middleware/cyborg_character/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
 	. = ..()
 	if(.)
@@ -177,6 +182,7 @@
 			LAZYSET(values, preference.savefile_key, preference.compile_ui_data(user, preferences.read_preference(preference_type)))
 	return values
 
+/// Changes what the preview shows - chassis, direction, pose, arousal, gallery and which layout. Returns FALSE for a stale or bad request
 /datum/preference_middleware/cyborg_character/proc/set_preview(list/params, mob/user)
 	if(!islist(params) || length(params) > 10)
 		return FALSE
@@ -237,6 +243,7 @@
 			schedule_draft_save()
 	return TRUE
 
+/// Checks a layout edit from the window, runs it through cyborg_layout_action() and takes the result as the draft
 /datum/preference_middleware/cyborg_character/proc/edit_layout(list/params, mob/user)
 	if(!islist(params) || length(params) > 8)
 		return FALSE
@@ -308,6 +315,7 @@
 		request_save()
 	return TRUE
 
+/// Builds the window's data - the draft as the window needs it, the preview and the save status. Shared gallery work that may sleep goes first
 /datum/preference_middleware/cyborg_character/ui_data(mob/user)
 	if(!editor_open)
 		return
@@ -422,6 +430,7 @@
 	if(resources_changed && user?.client)
 		update_static_data(user, always_instant = TRUE)
 
+/// Called when the player switches character slots - resets the view, so the window shows the new slot from the start
 /datum/preference_middleware/cyborg_character/on_new_character(mob/user)
 	preview_model = null
 	selected_part = "penis"
@@ -839,6 +848,7 @@
 	context_generation++
 	draft_revision++
 
+/// Closes the window, then saves and drops the draft
 /datum/preference_middleware/cyborg_character/Destroy()
 	// The commit below saves what the window held, so its close mustn't queue another save of a store about to go
 	editor_open = FALSE

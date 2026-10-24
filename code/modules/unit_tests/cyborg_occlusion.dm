@@ -16,6 +16,7 @@
 	/// How many failures reached report_generation_failure()
 	var/reported_failures = 0
 
+/// Counts the job and makes a placeholder staging file, then yields so callers overlap. Throws for a key in fail_keys
 /datum/asset/cyborg_occlusion/demand_test/generate_model(list/model, prefix, list/temporary_files)
 	var/key = "[model["source"]]#[model["base"]]"
 	calls[key]++
@@ -34,9 +35,11 @@
 		throw EXCEPTION("expected demand-only model failure")
 	return 'icons/blanks/32x32.dmi'
 
+/// Counts the report instead of logging it
 /datum/asset/cyborg_occlusion/demand_test/report_generation_failure(key, exception/failure)
 	reported_failures++
 
+/// A model's mask is generated once, on request, and only that model's
 /datum/unit_test/cyborg_occlusion_demand_reuse/Run()
 	var/datum/asset/cyborg_occlusion/demand_test/asset = new
 	TEST_ASSERT_EQUAL(length(asset.resources), 0, "Metadata construction must not generate unrelated models")
@@ -66,6 +69,7 @@
 	/// The exception the last failed request caught
 	var/exception/last_failure
 
+/// One caller asking for a model's mask, counting how it ended
 /datum/unit_test/cyborg_occlusion_demand_concurrency/proc/request(datum/asset/cyborg_occlusion/asset, list/model)
 	try
 		if(isfile(asset.ensure_model_ready(model["source"], model["base"])))
@@ -75,6 +79,7 @@
 		failures++
 	completions++
 
+/// A hundred callers for three models share three jobs, run one at a time
 /datum/unit_test/cyborg_occlusion_demand_concurrency/Run()
 	var/datum/asset/cyborg_occlusion/demand_test/asset = new
 	var/lease_count = SSasset_loading.assets_generating
@@ -101,6 +106,7 @@
 /datum/unit_test/cyborg_occlusion_demand_failure
 	parent_type = /datum/unit_test/cyborg_occlusion_demand_concurrency
 
+/// A failed model throws the same exception to every caller, is reported once and doesn't block the next model
 /datum/unit_test/cyborg_occlusion_demand_failure/Run()
 	var/datum/asset/cyborg_occlusion/demand_test/asset = new
 	var/lease_count = SSasset_loading.assets_generating
@@ -131,6 +137,7 @@
 	GLOB.asset_datums -= asset.type
 	qdel(asset)
 
+/// The real generator publishes one resource per model and reuses it
 /datum/unit_test/cyborg_occlusion_native_model/Run()
 	var/datum/asset/cyborg_occlusion/asset = get_asset_datum(/datum/asset/cyborg_occlusion)
 	var/list/model = asset.model_sources[asset.model_sources[1]]

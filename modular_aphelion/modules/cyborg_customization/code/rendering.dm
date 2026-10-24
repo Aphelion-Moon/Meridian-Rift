@@ -37,9 +37,11 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 		resolved["scale"] *= directional["scale"]
 	return resolved
 
+/// Whether a part's placement is mirrored - a wide chassis facing west, unless the part opts out
 /proc/cyborg_mirror_placement(list/descriptor, list/entry, direction)
 	return (TRAIT_R_WIDE in descriptor["features"]) && entry["mirror_sides"] && cyborg_cardinal_direction(direction) == WEST
 
+/// Returns the direction of a part's art - a wide chassis facing north may reuse its south art
 /proc/cyborg_part_sprite_direction(list/descriptor, list/entry, direction)
 	var/cardinal = cyborg_cardinal_direction(direction)
 	if(cardinal == NORTH && (TRAIT_R_WIDE in descriptor["features"]) && entry["reuse_south"])
@@ -87,6 +89,7 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 		)))
 	return layers
 
+/// Redraws the borg's parts, making their image holder the first time
 /mob/living/silicon/robot/proc/cyborg_customization_update_render()
 	if(!cyborg_appearance_layout)
 		return
@@ -94,11 +97,13 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 		cyborg_appearance_holder = new(src, list())
 	cyborg_appearance_holder.update_from_owner()
 
+/// Redraws the parts once the borg is tipped over, which hides them
 /mob/living/silicon/robot/after_tip_over(mob/user)
 	. = ..()
 	// Every tip ends here, through tg's tippable and Nova's cyborg override alike, even for a borg that was already immobilized
 	cyborg_appearance_holder?.on_owner_transform()
 
+/// Redraws the parts once the borg is back on its feet
 /mob/living/silicon/robot/after_righted(mob/user)
 	. = ..()
 	cyborg_appearance_holder?.on_owner_transform()
@@ -116,6 +121,7 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 	/// The icon#state key of a chassis whose mask failed to build, so we don't try it again
 	var/occlusion_failed_key
 
+/// Starts showing the parts to every player who opted in, now and as they log in, and follows the borg's transform
 /obj/effect/client_image_holder/cyborg_customization/Initialize(mapload, list/mobs_which_see_us)
 	owner = loc
 	. = ..()
@@ -125,6 +131,7 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 	for(var/mob/player as anything in GLOB.player_list)
 		refresh_viewer(player)
 
+/// Takes the mask and motion map images back from every viewer
 /obj/effect/client_image_holder/cyborg_customization/Destroy(force)
 	for(var/mob/seer as anything in who_sees_us)
 		seer.client?.images -= occlusion_image
@@ -137,6 +144,7 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 	owner = null
 	return ..()
 
+/// Redraws everything after a move to another z layer, as the parent only moves the parts image
 /obj/effect/client_image_holder/cyborg_customization/on_changed_z_level(turf/old_turf, turf/new_turf, same_z_layer, notify_contents)
 	. = ..()
 	if(QDELETED(src) || same_z_layer)
@@ -145,10 +153,12 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 	render_key = null
 	update_from_owner()
 
+/// Called when a player logs in - shows them the parts if they opted in
 /obj/effect/client_image_holder/cyborg_customization/proc/viewer_login(datum/source, mob/player)
 	SIGNAL_HANDLER
 	refresh_viewer(player)
 
+/// Shows or hides the parts for a player, by their preference
 /obj/effect/client_image_holder/cyborg_customization/proc/refresh_viewer(mob/player)
 	var/allowed = player.client?.prefs?.read_preference(/datum/preference/toggle/see_cyborg_genitalia)
 	if(allowed && !(player in who_sees_us))
@@ -156,6 +166,7 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 	else if(!allowed && (player in who_sees_us))
 		remove_seer(player)
 
+/// Also shows a new viewer the mask and motion map images, and stops showing them when they log out
 /obj/effect/client_image_holder/cyborg_customization/add_seer(mob/new_seer)
 	. = ..()
 	RegisterSignal(new_seer, COMSIG_MOB_LOGOUT, PROC_REF(remove_seer))
@@ -164,6 +175,7 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 	if(animation_image)
 		new_seer.client?.images |= animation_image
 
+/// Also takes the mask and motion map images from a viewer
 /obj/effect/client_image_holder/cyborg_customization/remove_seer(mob/source)
 	source.client?.images -= occlusion_image
 	source.client?.images -= animation_image
@@ -188,9 +200,11 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 			seer.client?.images |= new_image
 	return new_image
 
+/// Swaps in a new parts image, changed in place on viewers that already have one
 /obj/effect/client_image_holder/cyborg_customization/regenerate_image()
 	shown_image = replace_image(shown_image, generate_image())
 
+/// Returns the parts image - every layer placed, turned and scaled over the borg, kept together above it
 /obj/effect/client_image_holder/cyborg_customization/generate_image()
 	// Order the whole KEEP_TOGETHER group below the separate chassis mask.
 	// Child priorities only order parts within this group, not against the mask.
@@ -217,6 +231,7 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 		result.overlays += part
 	return result
 
+/// Redraws the parts when the render key changed. Parts wait, hidden, until their chassis mask is ready
 /obj/effect/client_image_holder/cyborg_customization/proc/update_from_owner()
 	if(!owner)
 		return
@@ -286,6 +301,7 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 	holder.render_key = null
 	holder.update_from_owner()
 
+/// Called after a preference changes - puts a new part sprite in the draft, updates the borg's permissions and viewers, then refreshes the window
 /datum/preference_middleware/cyborg_character/post_set_preference(mob/user, preference, value)
 	for(var/slot in cyborg_layout_supported_slots())
 		if(preference != "silicon_[slot]_sprite")

@@ -8,11 +8,13 @@
 	/// How many times a cyborg sprite preference was read
 	var/sprite_reads = 0
 
+/// Counts sprite preference reads
 /datum/preferences/cyborg_save_failure_test/read_preference(preference_type)
 	if(ispath(preference_type, /datum/preference/choiced/cyborg_sprite))
 		sprite_reads++
 	return ..()
 
+/// Counts saves
 /datum/preferences/cyborg_save_failure_test/save_preferences()
 	save_preferences_calls++
 	return ..()
@@ -22,6 +24,7 @@
 	/// Whether or not save() fails
 	var/fail_writes = FALSE
 
+/// Fails while fail_writes is set
 /datum/json_savefile/cyborg_customization/write_failure_test/save()
 	if(fail_writes)
 		return FALSE
@@ -30,6 +33,7 @@
 /datum/unit_test/cyborg_save_failure_retains_draft
 	parent_type = /datum/unit_test/cyborg_mock_preferences
 
+/// A failed sidecar write keeps the draft for retry, layouts stay out of preferences.json and slots don't leak
 /datum/unit_test/cyborg_save_failure_retains_draft/Run()
 	var/datum/preferences/preferences = create_preferences()
 	var/datum/json_savefile/cyborg_customization/write_failure_test/store = allocate(/datum/json_savefile/cyborg_customization/write_failure_test, null)
@@ -63,6 +67,7 @@
 	TEST_ASSERT_NULL(editor.draft, "A stale timer resurrected replaced data.")
 	TEST_ASSERT_NULL(editor.draft_timer, "Replacement retained an old callback.")
 
+/// Placement edits change only what they target, fill a pose from its direction the first time, and copy before changing
 /datum/unit_test/cyborg_targeted_placement/Run()
 	var/model_id = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")
 	var/list/store = cyborg_layout_default()
@@ -127,6 +132,7 @@
 	/// GLOB.persistent_clients from before the test, so we can put it back
 	var/list/previous_persistent_client_list
 
+/// Swaps in empty preference and client globals, so tests never meet real players
 /datum/unit_test/cyborg_mock_preferences/New()
 	..()
 	previous_preferences = GLOB.preferences_datums
@@ -138,6 +144,7 @@
 	GLOB.persistent_clients_by_ckey = list()
 	GLOB.persistent_clients = list()
 
+/// Unlinks the mock clients and puts the globals back
 /datum/unit_test/cyborg_mock_preferences/Destroy()
 	// A deleted mob keeps its mock_client field; unlike a real /client this is
 	// a strong datum reference. Detach before either side enters the GC queue.
@@ -156,6 +163,7 @@
 	previous_persistent_clients = null
 	previous_persistent_client_list = null
 
+/// Returns memory-only preferences on a mock client, linked to robot when given. Readies the three Drake masks first
 /datum/unit_test/cyborg_mock_preferences/proc/create_preferences(mob/living/silicon/robot/robot, preference_type = /datum/preferences/preferences_import_test)
 	// These existing layout/lifecycle tests exercise ready resources. Cold demand
 	// and superseded completion have dedicated tests with an empty controlled cache.
@@ -182,6 +190,7 @@
 /datum/unit_test/cyborg_model_default_parts_and_runtime_usage
 	parent_type = /datum/unit_test/cyborg_mock_preferences
 
+/// A model default keeps its sprites, a new body spawns with them turned on, and runtime data lists the parts
 /datum/unit_test/cyborg_model_default_parts_and_runtime_usage/Run()
 	var/mob/living/silicon/robot/robot = EASY_ALLOCATE()
 	var/datum/preferences/cyborg_save_failure_test/preferences = create_preferences(robot, /datum/preferences/cyborg_save_failure_test)
@@ -244,6 +253,7 @@
 	TEST_ASSERT(!middleware.dirty && !middleware.draft_timer, "Selecting the current model scheduled another save.")
 	robot.ckey = null
 
+/// Edits after a preset or default action reach neither the old draft nor the saved presets and defaults
 /datum/unit_test/cyborg_action_snapshot_isolation/Run()
 	var/model_id = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")
 	var/list/store = cyborg_layout_default()
@@ -467,6 +477,7 @@
 	TEST_ASSERT_EQUAL(preferences.sprite_reads, sprite_reads, "Refused implicit overwrite performed snapshot preparation.")
 	TEST_ASSERT_EQUAL(preferences.save_preferences_calls, saves, "Refused implicit overwrite performed a native save.")
 
+/// Normalizing bounds every field, fixes colors at three and drops directions it doesn't know
 /datum/unit_test/cyborg_layout_schema_bounds_and_filters/Run()
 	var/list/raw = list(
 		"schema_version" = 1,
@@ -490,6 +501,7 @@
 	TEST_ASSERT_EQUAL(entry["advanced"]["north"]["priority"], 10, "Priority was not bounded.")
 	TEST_ASSERT_EQUAL(entry["advanced"]["north"]["arousal"]["full"]["scale"], 0.25, "Arousal scale was not bounded.")
 
+/// Normalizing copies its input and fills in every missing part
 /datum/unit_test/cyborg_layout_schema_copies_and_fills_slots/Run()
 	var/list/raw_entry = list("pixel_x" = 12)
 	var/list/raw = list("schema_version" = 1, "active" = list("penis" = raw_entry), "presets" = list("One" = list("penis" = raw_entry), "Two" = list("penis" = raw_entry)))
@@ -501,6 +513,7 @@
 		TEST_ASSERT(normalized["active"][slot], "The active [slot] entry was omitted instead of defaulted.")
 		TEST_ASSERT(normalized["presets"]["One"][slot], "A preset omitted its default [slot] entry.")
 
+/// Future layouts are refused, and unknown or oversized input is ignored without walking it
 /datum/unit_test/cyborg_layout_schema_rejects_unknown_versions_and_deep_input/Run()
 	var/list/future = list("schema_version" = 2, "active" = list("penis" = list("pixel_x" = 50)))
 	TEST_ASSERT_EQUAL(cyborg_layout_normalize(future)["active"]["penis"]["pixel_x"], 0, "Future layouts must be rejected rather than partially rewritten.")
@@ -538,6 +551,7 @@
 	command["changes"] = list("unknown" = 1)
 	TEST_ASSERT_NULL(cyborg_layout_action(cyborg_layout_default(), command, model_id)["store"], "Unknown placement fields must not replace valid data.")
 
+/// Donor aliases expand only at import, and imported layouts stay out of preferences.json
 /datum/unit_test/cyborg_layout_import_aliases_and_future_data/Run()
 	var/list/legacy_layout = list("schema_version" = 1, "active" = list("penis" = list("advanced" = list("rest" = list("pixel_x" = 9)))))
 	var/list/ordinary_layout = cyborg_layout_normalize(legacy_layout)
@@ -564,6 +578,7 @@
 	TEST_ASSERT_EQUAL(layouts["character2"]["active"]["penis"]["pixel_x"], 8, "A current layout was not carried into the sidecar.")
 	TEST_ASSERT_EQUAL(length(layouts), 2, "Slots without layouts or with malformed keys were carried into the sidecar.")
 
+/// Cyborgs get only the safe interactions, and only the body's own player can use its runtime controls
 /datum/unit_test/cyborg_interaction_and_runtime_owner_gate/Run()
 	var/mob/living/carbon/human/consistent/human = EASY_ALLOCATE()
 	var/mob/living/silicon/robot/robot = EASY_ALLOCATE()
@@ -670,11 +685,13 @@
 	/// The JSON loader requires a filesystem path, not an embedded resource.
 	var/interaction_fixture_path
 
+/// Swaps in an empty interaction list, so the test loads its own
 /datum/unit_test/cyborg_interaction_component_lists_safe_actions/New()
 	..()
 	previous_interactions = GLOB.interaction_instances
 	GLOB.interaction_instances = list()
 
+/// Puts the interactions back and deletes the fixture file
 /datum/unit_test/cyborg_interaction_component_lists_safe_actions/Destroy()
 	GLOB.interaction_instances = previous_interactions
 	previous_interactions = null
@@ -737,6 +754,7 @@
 	TEST_ASSERT(!component.ui_act("interact", list("interaction" = cheer.name), human_ui), "A cyborg interaction dispatched a lewd message outside its whitelist.")
 
 /datum/unit_test/cyborg_layout_sprite_size_and_granular_actions
+/// Sizes and placements are clamped and rounded, and each edit changes only its own field
 /datum/unit_test/cyborg_layout_sprite_size_and_granular_actions/Run()
 	var/list/defaults = cyborg_layout_default()
 	var/list/normalized = cyborg_layout_normalize(list("schema_version" = 1, "active" = list("penis" = list("sprite_size" = 99, "scale" = 99))))
@@ -797,6 +815,7 @@
 /datum/unit_test/cyborg_live_coordinates_and_spawn_snapshot
 	parent_type = /datum/unit_test/cyborg_mock_preferences
 
+/// A spawned body keeps only what it needs from its snapshot, ignores later edits, and layers its parts and mask right
 /datum/unit_test/cyborg_live_coordinates_and_spawn_snapshot/Run()
 	var/mob/living/silicon/robot/robot = EASY_ALLOCATE()
 	var/datum/preferences/preferences = create_preferences(robot)
@@ -885,6 +904,7 @@
 	robot.cyborg_customization_refresh_model()
 	TEST_ASSERT_EQUAL(robot.cyborg_appearance_layout["penis"]["pixel_x"], 11, "Switching back lost the original fallback snapshot.")
 
+/// Inspect portraits sit centered in their tile and leave the live mob alone
 /datum/unit_test/cyborg_inspect_portrait_bounds/Run()
 	var/mob/living/silicon/robot/robot = EASY_ALLOCATE()
 	var/datum/examine_panel/panel = new(robot)
@@ -910,6 +930,7 @@
 		TEST_ASSERT(portrait.transform.a * width <= world.icon_size && portrait.transform.e * height <= world.icon_size, "[id] must fit entirely inside the inspect tile.")
 		TEST_ASSERT_EQUAL(robot.pixel_x, 7, "Building a portrait must not change the live mob.")
 
+/// Presets keep their chassis, and assigning, updating or deleting one keeps its model default in step
 /datum/unit_test/cyborg_named_setups_and_model_binding/Run()
 	var/model_a = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")
 	var/model_b = cyborg_appearance_model_id(/obj/item/robot_model/service, "Drake")
@@ -942,6 +963,7 @@
 	copied["model_defaults"][model_a]["penis"]["pixel_x"] = 99
 	TEST_ASSERT_EQUAL(json_encode(store), before_copy, "The stored copy aliased the editor draft.")
 
+/// Imported preset names are trimmed, the first of a colliding name wins and nothing is shared
 /datum/unit_test/cyborg_imported_preset_names/Run()
 	var/model_a = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")
 	var/model_b = cyborg_appearance_model_id(/obj/item/robot_model/service, "Drake")
@@ -974,6 +996,7 @@
 /datum/unit_test/cyborg_slot_deletion_clears_layout
 	parent_type = /datum/unit_test/cyborg_mock_preferences
 
+/// Deleting a character takes its layout and any pending write for it
 /datum/unit_test/cyborg_slot_deletion_clears_layout/Run()
 	var/datum/preferences/preferences = create_preferences()
 	preferences.max_save_slots = 2
@@ -1041,6 +1064,7 @@
 	/// Character key -> the tree that write held, save text decoded.
 	var/list/last_written
 
+/// Counts writes, fails while fail_writes is set and keeps a decoded copy of each good write
 /datum/json_savefile/cyborg_customization/review_failure_store/save()
 	write_attempts++
 	if(fail_writes)
@@ -1062,6 +1086,7 @@
 /datum/unit_test/cyborg_review_failed_slot_write_retry
 	parent_type = /datum/unit_test/cyborg_mock_preferences
 
+/// A retry after a slot switch writes the first slot's edit and leaves the second slot alone
 /datum/unit_test/cyborg_review_failed_slot_write_retry/Run()
 	var/datum/preferences/preferences = create_preferences()
 	var/datum/json_savefile/cyborg_customization/review_failure_store/store = allocate(/datum/json_savefile/cyborg_customization/review_failure_store, null)
@@ -1083,6 +1108,7 @@
 /datum/unit_test/cyborg_review_forced_model_identity
 	parent_type = /datum/unit_test/cyborg_mock_preferences
 
+/// A forced stock model install gets its appearance id and shows its parts
 /datum/unit_test/cyborg_review_forced_model_identity/Run()
 	var/mob/living/silicon/robot/robot = EASY_ALLOCATE()
 	var/datum/preferences/preferences = create_preferences(robot)
@@ -1100,6 +1126,7 @@
 /datum/unit_test/cyborg_review_backend_ui_close
 	parent_type = /datum/unit_test/cyborg_mock_preferences
 
+/// Closing character setup closes the editor, drops its preview and saves its edits
 /datum/unit_test/cyborg_review_backend_ui_close/Run()
 	var/datum/preferences/preferences = create_preferences()
 	var/datum/preference_middleware/cyborg_character/editor = preferences.cyborg_session()
@@ -1118,6 +1145,7 @@
 /datum/unit_test/cyborg_idempotent_save_and_account_write_pacing
 	parent_type = /datum/unit_test/cyborg_mock_preferences
 
+/// Saves go through the queue, an identical save writes nothing and writes keep their spacing
 /datum/unit_test/cyborg_idempotent_save_and_account_write_pacing/Run()
 	var/datum/preferences/preferences = create_preferences()
 	var/datum/json_savefile/cyborg_customization/review_failure_store/store = allocate(/datum/json_savefile/cyborg_customization/review_failure_store, null)
@@ -1178,6 +1206,7 @@
 /datum/unit_test/cyborg_failed_retry_is_paced_across_slots
 	parent_type = /datum/unit_test/cyborg_mock_preferences
 
+/// Failed writes retry at the account's pace across slot changes, without encoding again, until storage recovers
 /datum/unit_test/cyborg_failed_retry_is_paced_across_slots/Run()
 	var/datum/preferences/preferences = create_preferences()
 	var/datum/json_savefile/cyborg_customization/review_failure_store/store = allocate(/datum/json_savefile/cyborg_customization/review_failure_store, null)
@@ -1208,6 +1237,7 @@
 	TEST_ASSERT(!editor.save_error && !store.write_pending, "Recovery retained false pending or error state.")
 
 // Focused behavior probes for cached geometry and bounded latest-state refresh.
+/// A geometry-only preview reuses the editor's own images and keeps no native icon
 /datum/unit_test/cyborg_cached_preview_geometry/Run()
 	var/list/descriptor = cyborg_model_catalog()[cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")]
 	var/list/layout = cyborg_layout_default_slots()
@@ -1225,6 +1255,7 @@
 /datum/unit_test/cyborg_latest_pixel_refresh
 	parent_type = /datum/unit_test/cyborg_mock_preferences
 
+/// A second image edit inside the interval waits on one timer, then the latest draft shows
 /datum/unit_test/cyborg_latest_pixel_refresh/Run()
 	var/datum/preferences/preferences = create_preferences()
 	preferences.default_slot = 1
@@ -1278,6 +1309,7 @@
 /datum/unit_test/cyborg_color_refresh_reuses_unaffected_resources
 	parent_type = /datum/unit_test/cyborg_mock_preferences
 
+/// A color edit rebuilds only the part it changed
 /datum/unit_test/cyborg_color_refresh_reuses_unaffected_resources/Run()
 	var/datum/preferences/preferences = create_preferences()
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/master_erp_preferences], TRUE)
@@ -1314,6 +1346,7 @@
 /datum/unit_test/cyborg_metadata_refresh_keeps_placement_live
 	parent_type = /datum/unit_test/cyborg_mock_preferences
 
+/// Metadata-only work keeps to the interval and never holds back placement
 /datum/unit_test/cyborg_metadata_refresh_keeps_placement_live/Run()
 	var/datum/preferences/preferences = create_preferences()
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/master_erp_preferences], TRUE)
@@ -1336,6 +1369,7 @@
 	current = editor.ui_data(null)["cyborg_customization"]
 	TEST_ASSERT(current["preview_pending"], "A real pixel change failed to preserve the old coherent stage.")
 
+/// The gallery is built once per catalog, through the asset transport, and a department gets only its own thumbnails
 /datum/unit_test/cyborg_gallery_shared_projection/Run()
 	var/datum/asset/cyborg_model_gallery/gallery = get_asset_datum(/datum/asset/cyborg_model_gallery)
 	var/list/catalog = cyborg_model_catalog()
@@ -1379,6 +1413,7 @@
 /datum/unit_test/cyborg_shared_asset_wait_rechecks_owner
 	parent_type = /datum/unit_test/cyborg_mock_preferences
 
+/// A shared asset wait publishes nothing to a closed or revoked editor, and nothing stale
 /datum/unit_test/cyborg_shared_asset_wait_rechecks_owner/Run()
 	var/datum/preferences/preferences = create_preferences()
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/master_erp_preferences], TRUE)
@@ -1422,6 +1457,7 @@
 	/// The resource each icon#state key gets once released
 	var/list/ready_resources
 
+/// Waits until the test releases it, then hands over its ready resource or throws
 /datum/asset/cyborg_occlusion/consumer_wait_test/ensure_model_ready(source_file, base_state)
 	calls++
 	UNTIL(released)
@@ -1434,6 +1470,7 @@
 /datum/unit_test/cyborg_demand_editor_latest_state
 	parent_type = /datum/unit_test/cyborg_mock_preferences
 
+/// A missing mask keeps the old preview showing, waits once per editor and ends on the latest model
 /datum/unit_test/cyborg_demand_editor_latest_state/Run()
 	var/datum/preferences/preferences = create_preferences()
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/master_erp_preferences], TRUE)
@@ -1489,6 +1526,7 @@
 /datum/unit_test/cyborg_demand_holder_revocation
 	parent_type = /datum/unit_test/cyborg_mock_preferences
 
+/// A missing mask hides the live parts until it is ready, waits once per holder and respects consent and deletion
 /datum/unit_test/cyborg_demand_holder_revocation/Run()
 	var/mob/living/silicon/robot/robot = EASY_ALLOCATE()
 	var/datum/preferences/preferences = create_preferences(robot)
@@ -1543,6 +1581,7 @@
 /datum/unit_test/cyborg_demand_first_open_failure
 	parent_type = /datum/unit_test/cyborg_mock_preferences
 
+/// A mask that fails to build leaves the model picker usable, and a ready model clears the failure
 /datum/unit_test/cyborg_demand_first_open_failure/Run()
 	var/datum/preferences/preferences = create_preferences()
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/master_erp_preferences], TRUE)
@@ -1657,6 +1696,7 @@
 		pieces += glyph
 	return pieces.Join()
 
+/// Profile fields keep their byte budget without splitting a character
 /datum/unit_test/cyborg_profile_text_boundaries/Run()
 	var/list/profile_types = list(
 		/datum/preference/text/custom_species_silicon,
@@ -1765,9 +1805,11 @@
 	/// The department the last send asked for
 	var/last_department
 
+/// Builds nothing - the test sets the gallery up itself
 /datum/asset/cyborg_model_gallery/acquisition_wait_test/register()
 	return
 
+/// Records the department and waits until the test releases it
 /datum/asset/cyborg_model_gallery/acquisition_wait_test/send_to_viewer(mob/user, department)
 	calls++
 	last_department = department
@@ -1777,6 +1819,7 @@
 /datum/unit_test/cyborg_gallery_acquisition_rechecks_owner
 	parent_type = /datum/unit_test/cyborg_mock_preferences
 
+/// A gallery send that waits publishes nothing to a closed, reopened or revoked editor
 /datum/unit_test/cyborg_gallery_acquisition_rechecks_owner/Run()
 	var/datum/preferences/preferences = create_preferences()
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/master_erp_preferences], TRUE)

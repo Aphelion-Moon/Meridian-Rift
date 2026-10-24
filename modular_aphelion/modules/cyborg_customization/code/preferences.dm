@@ -10,6 +10,7 @@
 	/// The organ slot whose sprite accessories this preference offers
 	var/accessory_slot
 
+/// Returns None, the silicon-only accessories and then the slot's human accessories (anus excepted)
 /datum/preference/choiced/cyborg_sprite/init_possible_values()
 	var/list/choices = list(SPRITE_ACCESSORY_NONE)
 	var/list/direct = cyborg_direct_accessories(accessory_slot)
@@ -24,12 +25,15 @@
 				choices += name
 	return choices
 
+/// Parts start with no sprite
 /datum/preference/choiced/cyborg_sprite/create_default_value()
 	return SPRITE_ACCESSORY_NONE
 
+/// Only shown when the character's preferences allow cyborg parts
 /datum/preference/choiced/cyborg_sprite/is_accessible(datum/preferences/preferences)
 	return ..(preferences) && cyborg_visuals_allowed(preferences)
 
+/// Read when a borg spawns, so there is nothing to apply to a human
 /datum/preference/choiced/cyborg_sprite/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	return
 
@@ -64,9 +68,11 @@
 	should_update_preview = FALSE
 	can_randomize = FALSE
 
+/// The body sizes the editor offers
 /datum/preference/choiced/cyborg_size/init_possible_values()
 	return list(0.75, 1, 1.6, 2, 2.5)
 
+/// Bodies start at normal size
 /datum/preference/choiced/cyborg_size/create_default_value()
 	return 1
 
@@ -76,6 +82,7 @@
 		input = text2num(input)
 	return ..()
 
+/// Read when a borg spawns, so there is nothing to apply to a human
 /datum/preference/choiced/cyborg_size/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	return
 
@@ -90,6 +97,7 @@
 /datum/preference/text/cyborg_profile
 	abstract_type = /datum/preference/text/cyborg_profile
 
+/// Cuts the text to the field's byte budget without splitting a character, then strips HTML if the field does
 /datum/preference/text/cyborg_profile/deserialize(input, datum/preferences/preferences)
 	if(!istext(input))
 		return null
@@ -109,6 +117,7 @@
 		bounded = copytext_char(bounded, 1, lower + 1)
 	return should_strip_html ? GLOB.angular_brackets.Replace(bounded, "") : bounded
 
+/// Tells the window the field's byte budget, which also caps its length
 /datum/preference/text/cyborg_profile/compile_constant_data()
 	var/byte_limit = maximum_value_length - 1
 	return list("maximum_length" = byte_limit, "maximum_bytes" = byte_limit)
@@ -128,6 +137,7 @@
 	should_update_preview = FALSE
 	can_randomize = FALSE
 
+/// Read directly by examine, so there is nothing to apply to a human
 /datum/preference/text/custom_species_silicon/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	return
 
@@ -140,6 +150,7 @@
 	should_update_preview = FALSE
 	can_randomize = FALSE
 
+/// Read directly by examine, so there is nothing to apply to a human
 /datum/preference/text/custom_species_lore_silicon/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	return
 
@@ -152,6 +163,7 @@
 	should_update_preview = FALSE
 	can_randomize = FALSE
 
+/// Read directly by examine, so there is nothing to apply to a human
 /datum/preference/text/ooc_notes_silicon/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	return
 

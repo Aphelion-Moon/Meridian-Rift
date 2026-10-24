@@ -17,15 +17,18 @@
 	/// The exception the last build threw, thrown again to everyone who waits on the gallery
 	var/exception/generation_failure
 
+/// Builds the gallery for the current catalog when assets load
 /datum/asset/cyborg_model_gallery/register()
 	build_catalog(cyborg_model_catalog())
 
+/// Waits out a running build, and throws again whatever the last build threw
 /datum/asset/cyborg_model_gallery/ensure_ready()
 	UNTIL(!generating)
 	if(generation_failure)
 		throw generation_failure
 	return src
 
+/// Rebuilds the gallery's files when the catalog changed - its model list and each department's thumbnails. A failed build keeps the old files and throws to everyone waiting
 /datum/asset/cyborg_model_gallery/proc/build_catalog(list/source_catalog)
 	ensure_ready()
 	if(catalog == source_catalog)
@@ -143,12 +146,14 @@
 		.["department"] = department
 		.["thumbnails_url"] = SSassets.transport.get_asset_url(department_asset, assets[department_asset])
 
+/// Returns the URL of each of the gallery's files
 /datum/asset/cyborg_model_gallery/get_url_mappings()
 	. = list()
 	for(var/asset_name in assets)
 		var/datum/asset_cache_item/asset = assets[asset_name]
 		.[asset_name] = SSassets.transport.get_asset_url(asset_name, asset)
 
+/// Unregisters the gallery's files and forgets them
 /datum/asset/cyborg_model_gallery/unregister()
 	for(var/asset_name in assets)
 		var/datum/asset_cache_item/asset = assets[asset_name]
@@ -222,6 +227,21 @@
 		))
 	return result
 
+/**
+ * Returns the editor preview's part layers, placed as the live renderer places them.
+ *
+ * Every part shows, all in one arousal state.
+ *
+ * Arguments:
+ * * preferences - the character's preferences, for its part sprites
+ * * descriptor - the chassis's catalog entry
+ * * layout - the layout to show
+ * * direction - the direction the preview faces
+ * * pose - the pose the preview shows
+ * * arousal_state - the arousal state every part shows in
+ * * use_saved_choices - whether a part's own saved sprite wins over the preference, as in a model default
+ * * cached_icons - optional, the editor's images of each part by slot, used instead of rendering them
+ */
 /proc/cyborg_preview_layers(datum/preferences/preferences, list/descriptor, list/layout, direction, pose, arousal_state, use_saved_choices = FALSE, list/cached_icons)
 	if(!cyborg_visuals_allowed(preferences))
 		return list()

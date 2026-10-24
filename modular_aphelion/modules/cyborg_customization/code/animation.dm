@@ -12,6 +12,7 @@
 	var/list/state = model?["[pose]:[moving ? 1 : 0]"]
 	return state?[LOWER_TEXT(dir2text(cyborg_cardinal_direction(direction)))]
 
+/// Returns the still frame a chassis's parts are placed against in this direction and pose, or null when it has no authored animation
 /proc/cyborg_animation_anchor(list/descriptor, direction, pose)
 	var/list/frames = cyborg_animation_frames(descriptor, direction, pose)
 	return length(frames) ? frames[1] : null
@@ -52,11 +53,13 @@
 	maps[key] = result
 	return result
 
+/// Called when the borg's transform changes, and when it is tipped over or righted - redraws the parts from scratch
 /obj/effect/client_image_holder/cyborg_customization/proc/on_owner_transform()
 	SIGNAL_HANDLER
 	render_key = null
 	update_from_owner()
 
+/// Swaps in the motion map image for the current parts, or takes it away when there is none
 /obj/effect/client_image_holder/cyborg_customization/proc/update_animation()
 	animation_image = replace_image(animation_image, owner && shown_image ? build_animation() : null)
 
@@ -108,6 +111,7 @@
 	shown_image.filters += filter(type = "displace", render_source = motion.render_target, size = 127)
 	return motion
 
+/// Swaps in the chassis mask image for the current parts, or takes it away when there is none
 /obj/effect/client_image_holder/cyborg_customization/proc/update_occlusion()
 	occlusion_image = replace_image(occlusion_image, build_occlusion())
 
@@ -151,6 +155,7 @@
 	/// Counts the worker's jobs, which keeps each job's temporary file names apart
 	var/job_serial = 0
 
+/// Indexes what each chassis's mask is built from, by its icon#state key, once. The masks themselves are only built on demand
 /datum/asset/cyborg_occlusion/register()
 	if(resources)
 		return

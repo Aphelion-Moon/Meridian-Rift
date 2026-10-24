@@ -2,6 +2,7 @@
 	/// What the borg's own part controls tell it, like why they can't be used
 	var/cyborg_customization_message
 
+/// Returns what the borg's own part controls show, or null when it has no spawn snapshot
 /mob/living/silicon/robot/proc/cyborg_runtime_data()
 	var/datum/preferences/owner_preferences = cyborg_preferences_for(src)
 	cyborg_customization_sync_permissions(owner_preferences)
@@ -69,6 +70,7 @@
 	cyborg_customization_update_render()
 	return TRUE
 
+/// Returns the borg this tablet belongs to, when actor is that borg, or null
 /datum/computer_file/program/robotact/proc/cyborg_customization_owner(mob/actor)
 	var/obj/item/modular_computer/pda/silicon/tablet = computer
 	if(!istype(tablet) || !iscyborg(actor) || tablet.silicon_owner != actor)

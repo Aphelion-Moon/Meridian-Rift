@@ -13,6 +13,7 @@
 	store = cyborg_layout_action(store, list("operation" = "save", "name" = "Grouped"), null)["store"]
 	TEST_ASSERT_EQUAL(store["presets"]["Grouped"]["penis"]["placement_groups"]["side"]["pixel_x"], 22, "Placement groups must survive preset normalization.")
 
+/// Wide chassis mirror their west view, keep layer order, and can reuse the south art facing north
 /datum/unit_test/cyborg_wide_placement_and_sprite_reuse/Run()
 	var/list/descriptor = cyborg_model_catalog()[cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")]
 	var/list/entry = cyborg_layout_normalize_entry(list("pixel_x" = 12, "pixel_y" = 15, "rotation" = 20, "reuse_south" = TRUE, "advanced" = list("west" = list("pixel_x" = 3, "priority" = 2))))
@@ -39,6 +40,7 @@
 	for(var/list/size_entry as anything in metadata["sizes"])
 		TEST_ASSERT_NULL(size_entry["icon"], "Hidden part inspectors must not generate size thumbnails.")
 
+/// Each chassis animates only with its own authored frames, and the preview has a body and mask image for every one
 /datum/unit_test/cyborg_creator_authored_animation_payloads/Run()
 	var/list/catalog = cyborg_model_catalog()
 	var/checked = 0
@@ -102,6 +104,7 @@
 	model.cyborg_base_icon = "disguised"
 	TEST_ASSERT_EQUAL(model.cyborg_customization_id(), engineering_id, "Mutable display fields changed the canonical identity.")
 
+/// Presets stop at the limit, overwrite only when asked and never share lists with the draft
 /datum/unit_test/cyborg_presets_refuse_overflow_and_implicit_overwrite/Run()
 	var/list/store = cyborg_layout_default()
 	for(var/index in 1 to 10)
@@ -116,6 +119,7 @@
 	TEST_ASSERT_EQUAL(loaded["store"]["active"]["penis"]["pixel_x"], 1, "Later edits aliased the first preset.")
 	TEST_ASSERT_EQUAL(length(loaded["store"]["presets"]), 10, "Loading a preset changed the preset library.")
 
+/// Base, direction and arousal offsets compose, and a hidden arousal state stays hidden
 /datum/unit_test/cyborg_pose_arousal_and_diagonal_fallback/Run()
 	var/list/entry = cyborg_layout_normalize_entry(list("pixel_x" = 5, "pixel_y" = 3, "rotation" = 10,
 		"advanced" = list("rest_alt_north" = list("pixel_x" = 2, "pixel_y" = 7, "rotation" = 20, "arousal" = list("full" = list("pixel_y" = -2, "visible" = FALSE))))))
@@ -125,6 +129,7 @@
 	TEST_ASSERT_EQUAL(placement["rotation"], 30, "Base and pose rotations did not compose.")
 	TEST_ASSERT(!placement["visible"], "A hidden directional arousal state became visible.")
 
+/// Applying the body size again changes nothing and keeps the hardware's own size factor
 /datum/unit_test/cyborg_size_preserves_hardware_and_is_idempotent/Run()
 	var/mob/living/silicon/robot/robot = EASY_ALLOCATE()
 	QDEL_NULL(robot.model)
@@ -141,6 +146,7 @@
 	robot.cyborg_customization_apply_size()
 	TEST_ASSERT_EQUAL(robot.current_size, 2, "Changing the base size did not retain hardware.")
 
+/// Examine names exposed parts only to viewers who opted in, and not while the borg is dead
 /datum/unit_test/cyborg_visual_anatomy_capability_respects_exposure/Run()
 	var/mob/living/silicon/robot/robot = EASY_ALLOCATE()
 	var/model_id = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")
@@ -195,6 +201,7 @@
 	TEST_ASSERT(!capability["exposed"], "A hidden directional display remained exposed.")
 	TEST_ASSERT(!length(cyborg_visual_anatomy_examine_lines(robot, TRUE)), "A hidden directional display appeared in examine text.")
 
+/// Silicon-only accessories have art for every size and cardinal, with the right color channels
 /datum/unit_test/cyborg_direct_accessory_states_and_cardinals/Run()
 	var/list/colors = list("#ffffff", "#ffffff", "#ffffff")
 	for(var/slot in cyborg_layout_supported_slots())
@@ -223,6 +230,7 @@
 	TEST_ASSERT_EQUAL(length(alternate_channels), 1, "An unused primary color channel was exposed for the smallest alternate pair.")
 	TEST_ASSERT_EQUAL(alternate_channels[1], 2, "The actual secondary channel lost its color index.")
 
+/// Pose and arousal edits stay inside their own pose
 /datum/unit_test/cyborg_isolated_pose_placement/Run()
 	var/list/entry = cyborg_layout_normalize_entry(list("pixel_x" = 10, "advanced" = list(
 		"south" = list("pixel_x" = 3),
@@ -235,6 +243,7 @@
 	TEST_ASSERT_EQUAL(cyborg_resolve_placement(entry, SOUTH, "idle", "full")["pixel_x"], 19, "Arousal edits must resolve inside the selected pose.")
 	TEST_ASSERT_EQUAL(cyborg_resolve_placement(entry, SOUTH, "rest", "full")["pixel_x"], 13, "Arousal edits must not leak into other poses.")
 
+/// Role variants of a chassis share one appearance id, and their old defaults move over to it
 /datum/unit_test/cyborg_shared_catalog_family_defaults/Run()
 	var/canonical = cyborg_appearance_model_id(/obj/item/robot_model/ninja, "Assault")
 	TEST_ASSERT_EQUAL(cyborg_appearance_model_id(/obj/item/robot_model/ninja_saboteur, "Assault"), canonical, "In-round variants must resolve to the shared appearance identity.")

@@ -1,9 +1,11 @@
 /// Deliberately small interaction capability surface for cyborgs. Visual anatomy
 /// does not grant organs, hands, toy handling, vore, or any lewd interaction.
 
+/// Whether a mob can take part in the interaction menu - humans and cyborgs
 /proc/cyborg_interaction_participant(mob/living/mob)
 	return ishuman(mob) || istype(mob, /mob/living/silicon/robot)
 
+/// Whether an interaction is a plain non-lewd message with no parts, effects, sounds or requirements beyond a free hand
 /proc/cyborg_message_interaction_contract_is_safe(datum/interaction/interaction, mob/living/actor, mob/living/target)
 	if(!interaction || interaction.lewd || actor == target || interaction.usage != INTERACTION_OTHER || interaction.category != "Miscellaneous")
 		return FALSE
@@ -23,6 +25,7 @@
 		return FALSE
 	return !!actor.get_active_hand()
 
+/// Whether actor may use an interaction on target when a cyborg is one of them - a cyborg only cheers, a human may also beckon and pat
 /proc/cyborg_message_interaction_allowed(datum/interaction/interaction, mob/living/actor, mob/living/target)
 	if(!cyborg_interaction_participant(actor) || !cyborg_interaction_participant(target) || !cyborg_message_interaction_contract_is_safe(interaction, actor, target))
 		return FALSE

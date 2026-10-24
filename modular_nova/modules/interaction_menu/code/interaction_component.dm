@@ -99,6 +99,7 @@
 	INVOKE_ASYNC(src, PROC_REF(ui_interact), user)
 	return CLICK_ACTION_SUCCESS
 
+/// Whether target can use an interaction on the mob this menu is for. A cyborg on either side only gets the safe message interactions
 /datum/component/interactable/proc/can_interact(datum/interaction/interaction, mob/living/target)
 	if(QDELETED(interaction) || QDELETED(target) || QDELETED(self))
 		return FALSE

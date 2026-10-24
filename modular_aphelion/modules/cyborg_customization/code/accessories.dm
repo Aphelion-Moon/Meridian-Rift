@@ -12,6 +12,7 @@
 			return "[accessory.icon_state]_[arousal_suffix]"
 	return accessory.get_sprite_suffix()
 
+/// Whether a genital accessory has art at this size, in any layer or color channel
 /proc/cyborg_dynamic_accessory_has_size(slot, datum/sprite_accessory/genital/accessory, sprite_size)
 	var/list/states = icon_states(accessory.icon)
 	var/list/arousals = slot == "penis" ? list("none", "full") : list("none")
@@ -26,6 +27,7 @@
 					return TRUE
 	return FALSE
 
+/// Returns the sizes an accessory has art for, cached by slot and choice. The caller gets its own copy
 /proc/cyborg_accessory_size_values(slot, choice)
 	var/static/list/size_cache = list()
 	var/cache_key = "[slot]|[choice]"
@@ -54,12 +56,14 @@
 	size_cache[cache_key] = result
 	return result.Copy()
 
+/// Returns the requested size when the accessory has art for it, or else the first size it has
 /proc/cyborg_accessory_effective_size(slot, choice, requested)
 	var/list/values = cyborg_accessory_size_values(slot, choice)
 	if(requested in values)
 		return requested
 	return length(values) ? values[1] : cyborg_layout_default_sprite_size(slot)
 
+/// Returns the color channels an accessory's art uses at this size and arousal state, by channel number
 /proc/cyborg_accessory_color_channels(slot, choice, sprite_size = 1, arousal = "none")
 	var/list/direct = cyborg_direct_accessories(slot)[choice]
 	if(direct)
@@ -97,6 +101,7 @@
 				result |= index
 	return result
 
+/// Returns what the editor shows for a part's sprite - its color channels and its sizes, with a thumbnail of each unless include_icons is off
 /proc/cyborg_accessory_metadata(slot, choice, list/colors, arousal, direction, requested_size = 1, include_icons = TRUE)
 	var/list/result = list("sizes" = list(), "color_channels" = cyborg_accessory_color_channels(slot, choice, requested_size, arousal))
 	var/list/size_values = cyborg_accessory_size_values(slot, choice)
@@ -108,6 +113,7 @@
 		result["sizes"] += list(size_entry)
 	return result
 
+/// Returns a part's colored art as an icon and its base64, or null when it has none. Cached, up to 128 images and 2 MiB
 /proc/cyborg_accessory_render(slot, choice, list/colors, arousal, direction, sprite_size = 1)
 	var/static/list/cache = list()
 	var/static/list/states_by_icon = list()
@@ -183,6 +189,7 @@
 	)
 	return catalog[slot] || list()
 
+/// Returns a silicon-only accessory's colored art as an icon and its base64, or null when it has none. Keeps the last 32
 /proc/cyborg_direct_accessory_render(list/descriptor, list/colors, arousal, direction, sprite_size = 1)
 	var/static/list/cache = list()
 	var/static/list/states_by_icon = list()

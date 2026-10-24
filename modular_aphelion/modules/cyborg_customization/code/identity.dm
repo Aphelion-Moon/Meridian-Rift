@@ -2,6 +2,7 @@
 /proc/cyborg_identity_model(datum/preferences/preferences, fallback)
 	return cyborg_preference_value(preferences, "custom_species_silicon") || fallback
 
+/// Returns the character's silicon model lore, or the fallback when it has none
 /proc/cyborg_identity_lore(datum/preferences/preferences, fallback)
 	return cyborg_preference_value(preferences, "custom_species_lore_silicon") || fallback
 
@@ -20,6 +21,7 @@
 	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	should_update_preview = FALSE
 
+/// The headshot is only read on examine, so there is nothing to apply to a body
 /datum/preference/text/headshot/silicon_nsfw/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	return FALSE
 
@@ -44,6 +46,7 @@
 	if(length(exposed))
 		. += span_notice("Its visual-only configured display is exposed: [english_list(exposed)].")
 
+/// Adds which visual-only parts are showing, for viewers who opted in
 /mob/living/silicon/robot/examine(mob/user)
 	. = ..()
 	var/datum/preferences/viewer_preferences = cyborg_preferences_for(user)
