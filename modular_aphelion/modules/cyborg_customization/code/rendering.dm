@@ -108,7 +108,7 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 	GLOB.cyborg_customization_holders += src
 	RegisterSignal(SSdcs, COMSIG_GLOB_MOB_LOGGED_IN, PROC_REF(viewer_login))
 	RegisterSignal(owner, COMSIG_LIVING_POST_UPDATE_TRANSFORM, PROC_REF(on_owner_transform))
-	RegisterSignals(owner, list(SIGNAL_ADDTRAIT(TRAIT_IMMOBILIZED), SIGNAL_REMOVETRAIT(TRAIT_IMMOBILIZED)), PROC_REF(on_owner_transform))
+	RegisterSignals(owner, list(SIGNAL_ADDTRAIT(TRAIT_MOB_TIPPED), SIGNAL_REMOVETRAIT(TRAIT_MOB_TIPPED)), PROC_REF(on_owner_transform))
 	for(var/mob/player as anything in GLOB.player_list)
 		refresh_viewer(player)
 
@@ -119,7 +119,7 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 	occlusion_image = null
 	animation_image = null
 	UnregisterSignal(owner, COMSIG_LIVING_POST_UPDATE_TRANSFORM)
-	UnregisterSignal(owner, list(SIGNAL_ADDTRAIT(TRAIT_IMMOBILIZED), SIGNAL_REMOVETRAIT(TRAIT_IMMOBILIZED)))
+	UnregisterSignal(owner, list(SIGNAL_ADDTRAIT(TRAIT_MOB_TIPPED), SIGNAL_REMOVETRAIT(TRAIT_MOB_TIPPED)))
 	GLOB.cyborg_customization_holders -= src
 	UnregisterSignal(SSdcs, COMSIG_GLOB_MOB_LOGGED_IN)
 	owner = null
@@ -208,7 +208,7 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 /obj/effect/client_image_holder/cyborg_customization/proc/update_from_owner()
 	if(!owner)
 		return
-	var/new_key = "[owner.cyborg_appearance_revision]|[owner.dir]|[owner.icon]|[owner.icon_state]|[owner.stat]|[owner.transform]|[HAS_TRAIT(owner, TRAIT_IMMOBILIZED)]|[CONFIG_GET(flag/disable_erp_preferences)]|[owner.cyborg_appearance_allowed]"
+	var/new_key = "[owner.cyborg_appearance_revision]|[owner.dir]|[owner.icon]|[owner.icon_state]|[owner.stat]|[owner.transform]|[HAS_TRAIT(owner, TRAIT_MOB_TIPPED)]|[CONFIG_GET(flag/disable_erp_preferences)]|[owner.cyborg_appearance_allowed]"
 	if(new_key == render_key)
 		return
 	render_key = new_key

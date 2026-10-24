@@ -170,11 +170,20 @@
 	TEST_ASSERT(!capability["exposed"] && !length(cyborg_visual_anatomy_examine_lines(robot, TRUE)), "Dead cyborgs must hide visual anatomy descriptions.")
 	robot.stat = original_stat
 	TEST_ASSERT(cyborg_body_visuals_visible(robot), "Restoring living state did not restore visual eligibility.")
-	ADD_TRAIT(robot, TRAIT_IMMOBILIZED, TRAIT_SOURCE_UNIT_TESTS)
+	var/datum/component/tippable/tippable = robot.GetComponent(/datum/component/tippable)
+	tippable.set_tipped_status(robot, TRUE)
 	capability = cyborg_part_capability(robot, "penis")
-	TEST_ASSERT(!capability["exposed"] && !length(cyborg_visual_anatomy_examine_lines(robot, TRUE)), "Immobilized cyborgs must hide visual anatomy descriptions.")
+	TEST_ASSERT(!capability["exposed"] && !length(cyborg_visual_anatomy_examine_lines(robot, TRUE)), "Tipped-over cyborgs must hide visual anatomy descriptions.")
+	tippable.set_tipped_status(robot, FALSE)
+	TEST_ASSERT(cyborg_body_visuals_visible(robot), "Righting a tipped-over cyborg did not restore visual eligibility.")
+	// Only tipping over hides the parts; lockdown and other immobilizations leave them showing.
+	robot.set_lockcharge(TRUE)
+	capability = cyborg_part_capability(robot, "penis")
+	TEST_ASSERT(capability["exposed"] && length(cyborg_visual_anatomy_examine_lines(robot, TRUE)), "A locked-down cyborg hid its visual anatomy.")
+	robot.set_lockcharge(FALSE)
+	ADD_TRAIT(robot, TRAIT_IMMOBILIZED, TRAIT_SOURCE_UNIT_TESTS)
+	TEST_ASSERT(cyborg_body_visuals_visible(robot), "An immobilized cyborg that was not tipped over hid its visual anatomy.")
 	REMOVE_TRAIT(robot, TRAIT_IMMOBILIZED, TRAIT_SOURCE_UNIT_TESTS)
-	TEST_ASSERT(cyborg_body_visuals_visible(robot), "Removing immobilization did not restore visual eligibility.")
 	robot.model.cyborg_base_icon = "disguised"
 	capability = cyborg_part_capability(robot, "penis")
 	TEST_ASSERT(!capability["exposed"] && !length(cyborg_visual_anatomy_examine_lines(robot, TRUE)), "A disguised cyborg must hide visual anatomy descriptions.")
