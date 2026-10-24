@@ -566,8 +566,45 @@
 	// tgui sends all of ui_data for an update without data
 	var/list/update = ui.updates[length(ui.updates)] || report.ui_data()
 	for(var/key, value in update)
-		held[key] = value
+		held[key] = bug_report_test_wire(value)
 	return update
+
+/// A value as the window gets it, through JSON, so what it holds is never one of the report's own lists
+/proc/bug_report_test_wire(value)
+	return json_decode(json_encode(list("value" = value)))["value"]
+
+/// The window's data as JSON, without the capture targets only some updates carry or the waits and ages, which read the clock
+/proc/bug_report_test_held_json(list/data)
+	var/list/kept = list()
+	for(var/key, value in data)
+		if(key == "captureTargets")
+			continue
+		value = bug_report_test_wire(value)
+		if(islist(value))
+			var/list/held_list = value
+			switch(key)
+				if("pictures")
+					for(var/list/card as anything in held_list)
+						card -= "takenAgo"
+				if("limit")
+					held_list -= "retryIn"
+				if("result")
+					var/list/receipt = held_list["receipt"]
+					if(islist(receipt))
+						receipt -= "nextAttemptIn"
+		kept[key] = value
+	return json_encode(kept)
+
+/// Sends the report's window an update, merging it as tgui does, and notes when the window then holds anything a whole update wouldn't send
+/proc/bug_report_test_merge(datum/bug_report/test/report, list/held, label, list/failures)
+	bug_report_test_push(report, held)
+	// A whole update resets what the next one counts from, which would hide what this one missed
+	var/list/sources = report.shown
+	var/whole = bug_report_test_held_json(report.ui_data())
+	report.shown = sources
+	var/holds = bug_report_test_held_json(held)
+	if(holds != whole)
+		failures += "[label]: holds [holds] where a whole update sends [whole]"
 
 /// The window gets only the keys that changed since its last update, one that went as null, and all of them after an update it dropped
 /datum/unit_test/bug_report_partial_updates
@@ -619,6 +656,115 @@
 	report.begin_ui_capture(window.id)
 	report.cancel_ui_capture()
 	TEST_ASSERT_EQUAL(length(ui.updates[length(ui.updates)]["captureTargets"]), 1, "A window capture's end didn't send the windows there are to capture now")
+
+/// After every kind of change, what the window holds from merging its updates is what a whole update would send
+/datum/unit_test/bug_report_merged_updates
+
+/datum/unit_test/bug_report_merged_updates/Run()
+	var/datum/bug_report/test/report = bug_report_test_report(src)
+	var/datum/tgui/bug_report_test/ui = allocate(/datum/tgui/bug_report_test)
+	ui.initialized = TRUE
+	LAZYADD(report.open_uis, ui)
+	var/list/held = bug_report_test_wire(report.ui_data())
+	var/list/failures = list()
+	report.status = "Picture added"
+	bug_report_test_merge(report, held, "a status line", failures)
+	report.status = null
+	bug_report_test_merge(report, held, "the line gone", failures)
+	report.busy = TRUE
+	bug_report_test_merge(report, held, "busy", failures)
+	report.busy = FALSE
+	bug_report_test_merge(report, held, "not busy", failures)
+	var/sent = length(ui.updates)
+	report.push_update()
+	if(length(ui.updates) != sent)
+		failures += "an update with nothing new was sent"
+	var/datum/bug_report_picture/first = bug_report_test_picture(report)
+	bug_report_test_merge(report, held, "a picture", failures)
+	var/datum/bug_report_picture/second = bug_report_test_picture(report, "image2", "view")
+	bug_report_test_merge(report, held, "a second", failures)
+	var/datum/bug_report_picture/third = bug_report_test_picture(report, "image3", "window")
+	third.title = "Crew \"monitor\" \\ two"
+	bug_report_test_merge(report, held, "a third with a title", failures)
+	third.title = "Crew monitor (2)"
+	bug_report_test_merge(report, held, "a title moved", failures)
+	first.preview_seen = TRUE
+	bug_report_test_merge(report, held, "a preview seen", failures)
+	first.public_consent = TRUE
+	bug_report_test_merge(report, held, "sharing", failures)
+	second.pending = "rendering"
+	bug_report_test_merge(report, held, "rendering", failures)
+	second.pending = null
+	second.image_state = "processing"
+	bug_report_test_merge(report, held, "processing", failures)
+	second.image_state = null
+	second.reason = "render"
+	bug_report_test_merge(report, held, "failed", failures)
+	second.reason = "invalid"
+	bug_report_test_merge(report, held, "failed for another reason", failures)
+	third.take++
+	third.taken_at = REALTIMEOFDAY
+	bug_report_test_merge(report, held, "a retake", failures)
+	LAZYREMOVE(report.pictures, second)
+	bug_report_test_merge(report, held, "the middle one removed", failures)
+	LAZYREMOVE(report.pictures, first)
+	LAZYREMOVE(report.pictures, third)
+	bug_report_test_merge(report, held, "none left", failures)
+	report.remote_draft = list("revision" = 9)
+	bug_report_test_merge(report, held, "a conflict", failures)
+	report.remote_draft = null
+	bug_report_test_merge(report, held, "the conflict gone", failures)
+	report.polling_paused = TRUE
+	report.unreachable = TRUE
+	bug_report_test_merge(report, held, "paused and unreachable", failures)
+	report.polling_paused = FALSE
+	report.unreachable = FALSE
+	bug_report_test_merge(report, held, "back", failures)
+	report.answered++
+	bug_report_test_merge(report, held, "a Try again answered", failures)
+	report.hold_sending("reports", 3000)
+	bug_report_test_merge(report, held, "a limit", failures)
+	report.hold_sending("sends", 3000)
+	bug_report_test_merge(report, held, "another limit", failures)
+	report.start_time -= 4000
+	bug_report_test_merge(report, held, "the limit let go", failures)
+	report.result = list("kind" = "checking")
+	bug_report_test_merge(report, held, "checking", failures)
+	report.result = list("kind" = "needs_revision", "reasons" = list("vague"))
+	bug_report_test_merge(report, held, "sent back", failures)
+	report.result = list("kind" = "accepted", "receipt" = list("reportId" = "accepted", "screening" = "passed", "publication" = "retryable", "nextAttemptIn" = 300000))
+	report.note_retry()
+	bug_report_test_merge(report, held, "accepted, trying again", failures)
+	report.result = list("kind" = "accepted", "receipt" = list("reportId" = "accepted", "screening" = "passed", "publication" = "retryable", "nextAttemptIn" = 300000))
+	report.note_retry()
+	bug_report_test_merge(report, held, "the same receipt again", failures)
+	report.result = list("kind" = "accepted", "receipt" = list("reportId" = "accepted", "screening" = "passed", "publication" = "published", "issueUrl" = "https://github.com/example/repo/issues/1", "issueNumber" = 1))
+	report.note_retry()
+	bug_report_test_merge(report, held, "published", failures)
+	bug_report_budget(report.context["ckey"], "uploads")
+	bug_report_test_merge(report, held, "an upload spent", failures)
+	GLOB.bug_report_budgets -= "[report.context["ckey"]]:uploads"
+	// A window still loading drops what it's sent
+	ui.initialized = FALSE
+	report.busy = TRUE
+	report.push_update()
+	ui.initialized = TRUE
+	report.status = "After the drop"
+	bug_report_test_merge(report, held, "after a dropped update", failures)
+	// tgui's whole update after an act, sent while our line was B between two As
+	report.busy = FALSE
+	report.status = "A"
+	bug_report_test_merge(report, held, "before the act", failures)
+	report.status = "B"
+	held = bug_report_test_wire(report.ui_data())
+	report.status = "A"
+	bug_report_test_merge(report, held, "after a whole update", failures)
+	for(var/update in ui.updates)
+		if(isnull(update))
+			failures += "an update was null, which tgui sends as all of ui_data"
+			break
+	LAZYREMOVE(report.open_uis, ui)
+	TEST_ASSERT(!length(failures), jointext(failures, " | "))
 
 /// With no bridge configured a report sends nothing, and says so
 /datum/unit_test/bug_report_unconfigured
