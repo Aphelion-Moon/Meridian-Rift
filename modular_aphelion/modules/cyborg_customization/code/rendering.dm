@@ -13,18 +13,22 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 
 /// Pure geometry shared by creator/live rendering. Input has already been normalized.
 /proc/cyborg_resolve_placement(list/entry, direction, pose, arousal, mirrored = FALSE, wide = FALSE)
+	// By cardinal - what LOWER_TEXT(dir2text()) gives, without building text
+	var/static/list/direction_keys = list("north", "south", null, "east", null, null, null, "west")
 	var/cardinal = cyborg_cardinal_direction(direction)
-	var/direction_key = LOWER_TEXT(dir2text(cardinal))
+	var/direction_key = direction_keys[cardinal]
 	var/pose_key = "[pose]_[direction_key]"
 	var/list/advanced = entry["advanced"]
 	var/list/directional = advanced[pose_key] || advanced[direction_key]
 	var/list/override = directional?["arousal"]?[arousal]
 	var/list/resolved = list("visible" = TRUE, "pixel_x" = 0, "pixel_y" = 0, "rotation" = 0, "priority" = 5)
-	for(var/field in resolved)
-		if(!isnull(directional?[field]))
-			resolved[field] = directional[field]
-		if(!isnull(override?[field]))
-			resolved[field] = override[field]
+	// Most parts have no override for this pose and direction, and the arousal override sits inside the directional one
+	if(directional)
+		for(var/field in resolved)
+			if(!isnull(directional[field]))
+				resolved[field] = directional[field]
+			if(!isnull(override?[field]))
+				resolved[field] = override[field]
 	var/group = cardinal == NORTH ? "north" : cardinal == SOUTH ? "south" : "side"
 	var/list/base = wide ? (entry["placement_groups"]?[group] || entry) : entry
 	resolved["pixel_x"] += base["pixel_x"] * (mirrored ? -1 : 1)
