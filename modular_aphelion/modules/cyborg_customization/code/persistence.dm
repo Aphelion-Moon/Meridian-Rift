@@ -111,6 +111,25 @@
 	var/stored = cyborg_layout_store().get_entry("character[slot]")
 	return istext(stored) && !cyborg_layout_text_is_future(stored) ? cyborg_layout_decode(stored) : stored
 
+/**
+ * What a spawning body keeps of the open character's layouts: its active layout and its model defaults. A draft open in
+ * the editor is copied, unsaved edits and all. Otherwise the body keeps the save text and decodes only the active layout
+ * now, and each model default when its chassis first asks for it (see cyborg_appearance_model_default()).
+ * Null when the slot holds a newer schema.
+ */
+/datum/preferences/proc/cyborg_body_snapshot()
+	var/datum/preference_middleware/cyborg_character/editor = cyborg_session()
+	if(editor?.draft && editor.draft_slot == default_slot)
+		return list("active" = cyborg_layout_copy(editor.draft["active"]), "model_defaults" = cyborg_layout_copy(editor.draft["model_defaults"]))
+	var/stored = cyborg_layout_store().get_entry("character[default_slot]")
+	if(cyborg_layout_import_is_future(stored))
+		return null
+	var/list/body = istext(stored) ? cyborg_layout_decode_for_body(stored) : null
+	if(body)
+		return list("active" = body["active"], "text" = stored)
+	var/list/layout = cyborg_layout_from_stored(stored)
+	return list("active" = layout["active"], "model_defaults" = layout["model_defaults"])
+
 /// Stores a character slot's layout and writes the sidecar. Returns FALSE when the write failed, or when the layout is
 /// past CYBORG_LAYOUT_MAX_SLOT_BYTES, which leaves the slot as it was.
 /datum/preferences/proc/write_cyborg_layout(slot, list/layout)

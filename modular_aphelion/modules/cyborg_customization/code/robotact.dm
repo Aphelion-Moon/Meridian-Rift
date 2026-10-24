@@ -19,7 +19,7 @@
 		"viewer_enabled" = !!owner_preferences?.read_preference(/datum/preference/toggle/see_cyborg_genitalia),
 		"body_visible" = cyborg_body_visuals_visible(src),
 		"model_name" = descriptor ? "[descriptor["department"]] / [descriptor["skin"]]" : "Choose a chassis model",
-		"model_default" = !!cyborg_appearance_store["model_defaults"][cyborg_appearance_model],
+		"model_default" = !!cyborg_appearance_model_default(cyborg_appearance_model),
 	)
 
 /// Runtime controls change body usage state only; saved configuration belongs to setup.

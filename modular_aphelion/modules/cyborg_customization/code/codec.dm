@@ -266,14 +266,21 @@
 	encoded[1] = arousal_state ? present : present | (changed << 6)
 	return encoded
 
-/// The normalized tree for a save text, or null when the text is not a save of this format.
-/proc/cyborg_layout_decode(text)
+/// A save text's JSON, or null when the text is not a save of this format.
+/proc/cyborg_layout_codec_parse(text)
 	var/list/encoded
 	try
 		encoded = json_decode(text)
 	catch
 		return null
 	if(!islist(encoded) || !length(encoded) || encoded[1] != CYBORG_CODEC_VERSION)
+		return null
+	return encoded
+
+/// The normalized tree for a save text, or null when the text is not a save of this format.
+/proc/cyborg_layout_decode(text)
+	var/list/encoded = cyborg_layout_codec_parse(text)
+	if(!encoded)
 		return null
 	var/list/raw = list(
 		"schema_version" = CYBORG_LAYOUT_SCHEMA_VERSION,
@@ -308,6 +315,35 @@
 	if(istext(active_preset))
 		raw["active_preset"] = active_preset
 	return cyborg_layout_normalize(raw)
+
+/**
+ * What a body takes from a save text: its active layout and one model default, as cyborg_layout_decode() gives them,
+ * without decoding the rest. Null when the text is not a save of this format.
+ *
+ * Arguments:
+ * * text - the slot's save text
+ * * model_id - optional, the chassis whose default to decode
+ * * with_active - whether to decode the active layout too
+ */
+/proc/cyborg_layout_decode_for_body(text, model_id, with_active = TRUE)
+	var/list/encoded = cyborg_layout_codec_parse(text)
+	if(!encoded)
+		return null
+	var/list/raw = list(
+		"schema_version" = CYBORG_LAYOUT_SCHEMA_VERSION,
+		"active" = with_active ? cyborg_layout_decode_slots(cyborg_layout_codec_element(encoded, 2)) : null,
+		"model_defaults" = list(),
+	)
+	var/list/defaults = model_id ? cyborg_layout_codec_element(encoded, 4) : null
+	if(islist(defaults))
+		for(var/index = 1, index + 2 <= length(defaults), index += 3)
+			var/default_id = defaults[index]
+			if(!istext(default_id))
+				continue
+			// The others only hold their place, so normalizing keeps the same default the full decode keeps.
+			raw["model_defaults"][default_id] = cyborg_canonical_model_id(default_id) == model_id ? cyborg_layout_decode_slots(defaults[index + 1]) : TRUE
+	var/list/normalized = cyborg_layout_normalize(raw, normalize_model_defaults = !!model_id, only_model_default = model_id)
+	return list("active" = with_active ? normalized["active"] : null, "model_default" = model_id ? normalized["model_defaults"][model_id] : null)
 
 /proc/cyborg_layout_decode_slots(list/encoded)
 	var/list/slots = list()

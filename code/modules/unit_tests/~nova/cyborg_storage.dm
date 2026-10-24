@@ -586,3 +586,38 @@
 	TEST_ASSERT_NULL(editor.encoded_parts, "A raw draft update kept the part cache.")
 	editor.commit_draft()
 	TEST_ASSERT_EQUAL(editor.preferences.read_cyborg_layout(1)["model_defaults"][model_b]["penis"]["pixel_x"], 77, "A raw in-place change was saved from cached text.")
+
+/// A body spawned from save text decodes its active layout, and a chassis's default only when that chassis first asks,
+/// each exactly as the whole slot decodes. An open draft is copied instead, unsaved edits and all.
+/datum/unit_test/cyborg_body_snapshot
+	parent_type = /datum/unit_test/cyborg_storage_fixture
+
+/datum/unit_test/cyborg_body_snapshot/Run()
+	var/datum/preference_middleware/cyborg_character/editor = make_editor()
+	var/datum/preferences/preferences = editor.preferences
+	var/list/whole = preferences.read_cyborg_layout(1)
+	editor.discard_draft()
+	var/list/snapshot = preferences.cyborg_body_snapshot()
+	TEST_ASSERT(istext(snapshot["text"]), "A body without an open draft did not keep the save text.")
+	TEST_ASSERT_NULL(editor.draft, "Taking a body snapshot opened a draft.")
+	TEST_ASSERT(deep_compare_list(snapshot["active"], whole["active"]), "The body's active layout differs from the whole slot's.")
+	TEST_ASSERT_NULL(snapshot["model_defaults"], "A body decoded model defaults before its chassis asked.")
+	var/mob/living/silicon/robot/robot = allocate(/mob/living/silicon/robot)
+	robot.cyborg_appearance_store = snapshot
+	for(var/model_id in list(model_a, model_b))
+		TEST_ASSERT(deep_compare_list(robot.cyborg_appearance_model_default(model_id), whole["model_defaults"][model_id]), "The body's default for [model_id] differs from the whole slot's.")
+	var/model_without_default
+	for(var/model_id in cyborg_model_catalog())
+		if(model_id != model_a && model_id != model_b)
+			model_without_default = model_id
+			break
+	TEST_ASSERT_NULL(robot.cyborg_appearance_model_default(model_without_default), "A chassis without a default got one.")
+	TEST_ASSERT(model_without_default in robot.cyborg_appearance_store["model_defaults"], "A chassis without a default would be decoded again on every ask.")
+	// An open draft is what the player sees, so it is what the body takes.
+	var/list/draft = editor.begin_draft()
+	draft["active"]["penis"]["pixel_x"] = 21
+	editor.update_draft(draft)
+	snapshot = preferences.cyborg_body_snapshot()
+	TEST_ASSERT_NULL(snapshot["text"], "A body took the save text over an open draft.")
+	TEST_ASSERT_EQUAL(snapshot["active"]["penis"]["pixel_x"], 21, "A body did not take the open draft's unsaved edit.")
+	TEST_ASSERT(snapshot["active"] != draft["active"], "A body shares the open draft's lists.")

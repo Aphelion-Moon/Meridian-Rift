@@ -46,9 +46,8 @@
 		robot.cyborg_customization_sync_permissions(preferences)
 		robot.cyborg_customization_refresh_model()
 		return
-	var/datum/preference_middleware/cyborg_character/editor = preferences.cyborg_session()
-	var/list/current = editor.begin_draft()
-	if(!current)
+	var/list/snapshot = preferences.cyborg_body_snapshot()
+	if(!snapshot)
 		robot.cyborg_appearance_store = null
 		robot.cyborg_appearance_layout = null
 		robot.cyborg_appearance_active = list()
@@ -61,10 +60,7 @@
 		robot.cyborg_appearance_arousal = list()
 	robot.cyborg_appearance_owner = owner
 	robot.cyborg_appearance_slot = preferences.default_slot
-	robot.cyborg_appearance_store = list(
-		"active" = cyborg_layout_copy(current["active"]),
-		"model_defaults" = cyborg_layout_copy(current["model_defaults"]),
-	)
+	robot.cyborg_appearance_store = snapshot
 	robot.cyborg_appearance_choices = list()
 	for(var/slot in cyborg_layout_supported_slots())
 		robot.cyborg_appearance_choices[slot] = cyborg_preference_value(preferences, "silicon_[slot]_sprite")
@@ -95,7 +91,7 @@
 	var/model_id = model.cyborg_customization_id()
 	if(cyborg_appearance_model != model_id || !cyborg_appearance_layout)
 		cyborg_appearance_model = model_id
-		var/list/model_default = model_id ? cyborg_appearance_store["model_defaults"][model_id] : null
+		var/list/model_default = cyborg_appearance_model_default(model_id)
 		cyborg_appearance_layout = cyborg_layout_copy(model_default || cyborg_appearance_store["active"])
 		cyborg_appearance_choices = cyborg_layout_choices(cyborg_appearance_layout, cyborg_appearance_base_choices || cyborg_appearance_choices)
 		for(var/slot in cyborg_layout_supported_slots())
@@ -104,6 +100,16 @@
 		cyborg_appearance_revision++
 	cyborg_customization_apply_size()
 	cyborg_customization_update_render()
+
+/// The body's saved default for a chassis, or null. A body that kept save text decodes each one the first time it is asked for.
+/mob/living/silicon/robot/proc/cyborg_appearance_model_default(model_id)
+	if(!model_id || !cyborg_appearance_store)
+		return null
+	var/text = cyborg_appearance_store["text"]
+	if(text && !(model_id in cyborg_appearance_store["model_defaults"]))
+		// FALSE remembers that there is none, so asking again decodes nothing.
+		LAZYSET(cyborg_appearance_store["model_defaults"], model_id, cyborg_layout_decode_for_body(text, model_id, with_active = FALSE)?["model_default"] || FALSE)
+	return LAZYACCESS(cyborg_appearance_store["model_defaults"], model_id) || null
 
 /// Old presets inherit character choices; newer presets carry their selected parts.
 /proc/cyborg_layout_choices(list/layout, list/fallback)

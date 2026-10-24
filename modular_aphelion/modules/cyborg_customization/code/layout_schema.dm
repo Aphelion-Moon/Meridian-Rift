@@ -166,7 +166,17 @@
 		normalized[slot] = cyborg_layout_normalize_entry(islist(raw) ? raw[slot] : null, allow_legacy_aliases, slot)
 	return normalized
 
-/proc/cyborg_layout_normalize(raw, normalize_model_defaults = TRUE, allow_legacy_aliases = FALSE)
+/**
+ * A layout tree in its canonical form, or the default tree when `raw` is not one.
+ *
+ * Arguments:
+ * * raw - the tree to normalize
+ * * normalize_model_defaults - whether to keep model defaults at all
+ * * allow_legacy_aliases - whether model ids from older builds are mapped to today's
+ * * only_model_default - optional, a model id: only that default is normalized, the others kept are left as TRUE, for
+ *   callers that read just that one
+ */
+/proc/cyborg_layout_normalize(raw, normalize_model_defaults = TRUE, allow_legacy_aliases = FALSE, only_model_default)
 	if(!islist(raw))
 		return cyborg_layout_default()
 	var/version = raw["schema_version"]
@@ -232,7 +242,7 @@
 		// The editor refuses more, so only an import can reach this; it keeps the first ones like presets do.
 		if(!normalized["model_defaults"][canonical_id] && length(normalized["model_defaults"]) >= CYBORG_LAYOUT_MAX_MODEL_DEFAULTS)
 			break
-		normalized["model_defaults"][canonical_id] = cyborg_layout_normalize_slots(raw_default, allow_legacy_aliases)
+		normalized["model_defaults"][canonical_id] = !only_model_default || canonical_id == only_model_default ? cyborg_layout_normalize_slots(raw_default, allow_legacy_aliases) : TRUE
 		// Follow the accepted snapshot's original key before canonicalizing its assignment.
 		var/raw_name = islist(raw_assignments) ? raw_assignments[model_id] : null
 		var/name = istext(raw_name) ? preset_names[raw_name] : null
