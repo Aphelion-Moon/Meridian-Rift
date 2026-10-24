@@ -70,13 +70,16 @@ test('a rule no face answers goes in as before', () => {
   expect(kept(faces, rules)).toEqual([true, true, true]);
 });
 
-test('rules with the same descriptors all go in when any face of theirs was loaded', () => {
-  const faces = [face('Twin', 'unloaded'), face('Twin', 'loaded')];
+test('rules with the same descriptors all go in when any face of theirs was loaded, whichever the set lists first', () => {
+  const rules = [
+    rule({ 'font-family': 'Twin' }),
+    rule({ 'font-family': 'Twin' }),
+  ];
   expect(
-    kept(faces, [
-      rule({ 'font-family': 'Twin' }),
-      rule({ 'font-family': 'Twin' }),
-    ]),
+    kept([face('Twin', 'unloaded'), face('Twin', 'loaded')], rules),
+  ).toEqual([true, true]);
+  expect(
+    kept([face('Twin', 'loaded'), face('Twin', 'unloaded')], rules),
   ).toEqual([true, true]);
 });
 
@@ -92,6 +95,41 @@ test('faces of one family split by unicode-range are kept or left out each by it
     rule({ 'font-family': 'Legacy', 'unicode-range': 'U+F003' }),
   ];
   expect(kept(faces, rules)).toEqual([false, true, false]);
+});
+
+test('an unloaded part-range face stays in unless a face of its style, weight and stretch drew', () => {
+  const faces = [
+    face('Pair', 'loaded', '400'),
+    face('Pair', 'unloaded', '700', 'normal', 'U+400-4FF'),
+    face('Pair', 'loaded', '900', 'normal', 'U+0-FF'),
+    face('Pair', 'unloaded', '900', 'normal', 'U+100-24F'),
+    face('Pair', 'unloaded', '900', 'italic', 'U+100-24F'),
+  ];
+  const rules = [
+    rule({ 'font-family': 'Pair', 'font-weight': '400' }),
+    rule({
+      'font-family': 'Pair',
+      'font-weight': '700',
+      'unicode-range': 'U+400-4FF',
+    }),
+    rule({
+      'font-family': 'Pair',
+      'font-weight': '900',
+      'unicode-range': 'U+0-FF',
+    }),
+    rule({
+      'font-family': 'Pair',
+      'font-weight': '900',
+      'unicode-range': 'U+100-24F',
+    }),
+    rule({
+      'font-family': 'Pair',
+      'font-weight': '900',
+      'font-style': 'italic',
+      'unicode-range': 'U+100-24F',
+    }),
+  ];
+  expect(kept(faces, rules)).toEqual([true, true, true, false, true]);
 });
 
 test('without a FontFaceSet there is no filter', () => {
