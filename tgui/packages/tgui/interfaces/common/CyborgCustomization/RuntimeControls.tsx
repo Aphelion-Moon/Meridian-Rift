@@ -1,3 +1,4 @@
+// THIS IS AN APHELION UI FILE
 import { Box, NoticeBox, Section, Table } from 'tgui-core/components';
 import type { BooleanLike } from 'tgui-core/react';
 import { EditorButton as Button } from './controls';

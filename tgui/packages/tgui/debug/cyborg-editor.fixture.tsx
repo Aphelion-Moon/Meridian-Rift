@@ -1,3 +1,4 @@
+// THIS IS AN APHELION UI FILE
 // Standalone visual fixture: actual editor components, isolated from player saves.
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';

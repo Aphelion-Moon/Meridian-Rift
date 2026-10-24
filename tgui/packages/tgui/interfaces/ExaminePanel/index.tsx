@@ -1,10 +1,13 @@
 // THIS IS A NOVA SECTOR UI FILE
 import { type ReactNode, useState } from 'react';
 import { Button, Section, Stack } from 'tgui-core/components';
-import { resolveAsset } from '../../assets';
 import { useBackend } from '../../backend';
 import { Window } from '../../layouts';
 import { ByondUi } from '../../layouts/ByondUi';
+import {
+  ExamineHeadshot,
+  hasHeadshot,
+} from '../common/CyborgCustomization/ExamineHeadshot';
 import type { ExaminePanelData } from './data';
 
 function formatURLs(text: string) {
@@ -58,15 +61,12 @@ export function ExaminePanel(props) {
   } = data;
   const [oocNotesIndex, setOocNotesIndex] = useState('SFW');
   const [flavorTextIndex, setFlavorTextIndex] = useState('SFW');
-  const [headshotIndex, setHeadshotIndex] = useState('SFW');
-  const displayedHeadshot =
-    headshotIndex === 'NSFW' ? data.headshot_nsfw : headshot;
   return (
     <Window title={character_name} width={900} height={670} theme="ntos">
       <Window.Content>
         <Stack fill>
           <Stack.Item width="30%">
-            {!headshot && !data.headshot_nsfw ? (
+            {!hasHeadshot(data) ? (
               <Section fill title="Character Preview">
                 <ByondUi
                   height="100%"
@@ -91,32 +91,7 @@ export function ExaminePanel(props) {
                     }}
                   />
                 </Section>
-                <Section
-                  height="310px"
-                  title="Headshot"
-                  buttons={
-                    data.headshot_nsfw && (
-                      <Button
-                        selected={headshotIndex === 'NSFW'}
-                        onClick={() =>
-                          setHeadshotIndex(
-                            headshotIndex === 'SFW' ? 'NSFW' : 'SFW',
-                          )
-                        }
-                      >
-                        {headshotIndex === 'SFW' ? 'Show NSFW' : 'Show SFW'}
-                      </Button>
-                    )
-                  }
-                >
-                  {displayedHeadshot && (
-                    <img
-                      src={resolveAsset(displayedHeadshot)}
-                      height="250px"
-                      width="250px"
-                    />
-                  )}
-                </Section>
+                <ExamineHeadshot headshot={headshot} />
               </>
             )}
           </Stack.Item>

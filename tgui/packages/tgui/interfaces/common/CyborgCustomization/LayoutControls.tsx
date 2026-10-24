@@ -1,6 +1,7 @@
+// THIS IS AN APHELION UI FILE
 import type { ReactNode } from 'react';
 import { Box, Section } from 'tgui-core/components';
-import { AdjustmentSlider } from '../AdjustmentSlider';
+import { AdjustmentSlider } from './AdjustmentSlider';
 import {
   EditorButton as Button,
   ColorControls,

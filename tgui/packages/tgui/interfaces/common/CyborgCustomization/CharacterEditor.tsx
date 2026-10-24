@@ -1,3 +1,4 @@
+// THIS IS AN APHELION UI FILE
 import { type ReactNode, useState } from 'react';
 import { Box, Input, NoticeBox, Section } from 'tgui-core/components';
 import { CyborgPreview } from './CyborgPreview';

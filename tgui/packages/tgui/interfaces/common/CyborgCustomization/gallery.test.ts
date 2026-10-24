@@ -1,3 +1,4 @@
+// THIS IS AN APHELION UI FILE
 import { afterEach, expect, it, spyOn } from 'bun:test';
 import { CyborgGalleryCache } from './gallery';
 import type { CyborgGallery } from './types';

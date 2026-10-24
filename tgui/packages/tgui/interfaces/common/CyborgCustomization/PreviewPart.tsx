@@ -1,3 +1,4 @@
+// THIS IS AN APHELION UI FILE
 import { useMemo, useState } from 'react';
 import { opaqueBounds, pngSize } from './previewGeometry';
 import { type CyborgCustomizationData, editorLabel } from './types';

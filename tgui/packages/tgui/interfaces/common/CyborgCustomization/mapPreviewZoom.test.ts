@@ -1,3 +1,4 @@
+// THIS IS AN APHELION UI FILE
 import { expect, it } from 'bun:test';
 import { mapPreviewZoom, previewDisplayScale } from './mapPreviewZoom';
 

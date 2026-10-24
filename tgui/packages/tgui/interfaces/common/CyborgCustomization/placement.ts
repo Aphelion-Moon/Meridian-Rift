@@ -1,3 +1,4 @@
+// THIS IS AN APHELION UI FILE
 import type { DirectionEntry, LayoutEntry } from './types';
 
 export type PlacementTarget = 'base' | 'pose' | 'arousal';

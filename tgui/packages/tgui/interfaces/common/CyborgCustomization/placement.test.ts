@@ -1,3 +1,4 @@
+// THIS IS AN APHELION UI FILE
 import { expect, it } from 'bun:test';
 import { placementBase, placementGroup } from './placement';
 import type { LayoutEntry } from './types';

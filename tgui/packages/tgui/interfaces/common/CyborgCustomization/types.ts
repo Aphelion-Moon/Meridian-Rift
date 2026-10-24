@@ -1,3 +1,4 @@
+// THIS IS AN APHELION UI FILE
 import type { BooleanLike } from 'tgui-core/react';
 import type { ProfileFieldData } from './ProfileFields';
 

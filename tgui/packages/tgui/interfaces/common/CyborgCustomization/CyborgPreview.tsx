@@ -1,6 +1,7 @@
+// THIS IS AN APHELION UI FILE
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Box } from 'tgui-core/components';
-import { AdjustmentSlider } from '../AdjustmentSlider';
+import { AdjustmentSlider } from './AdjustmentSlider';
 import { EditorButton as Button, EditorSelect } from './controls';
 import { mapPreviewZoom, previewDisplayScale } from './mapPreviewZoom';
 import { PreviewPart } from './PreviewPart';

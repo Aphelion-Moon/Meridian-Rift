@@ -1,3 +1,4 @@
+// THIS IS AN APHELION UI FILE
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Box, Floating, Icon } from 'tgui-core/components';
 import { EditorButton as Button, EditorSelect } from './controls';

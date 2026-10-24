@@ -1,3 +1,4 @@
+// THIS IS AN APHELION UI FILE
 /** TGUI can cancel OS scaling with body zoom when window scaling is disabled. */
 export function previewDisplayScale(pixelRatio: number, bodyZoom = '') {
   const zoom = Number.parseFloat(bodyZoom) / (bodyZoom.endsWith('%') ? 100 : 1);

@@ -1,3 +1,4 @@
+// THIS IS AN APHELION UI FILE
 import { useCallback, useLayoutEffect, useRef } from 'react';
 
 /** Keep high-frequency edits local until quiet; flush on commit or context exit. */

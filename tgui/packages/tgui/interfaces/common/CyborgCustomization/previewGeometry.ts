@@ -1,3 +1,4 @@
+// THIS IS AN APHELION UI FILE
 export type PreviewLayer = {
   icon: string;
   x: number;

@@ -2,7 +2,6 @@
 /// private layouts. Keep file resources and small indexes, not duplicate JSON lists.
 /datum/asset/cyborg_model_gallery
 	early = TRUE
-	early_blocking = TRUE
 	var/list/catalog
 	var/generation
 	var/catalog_asset

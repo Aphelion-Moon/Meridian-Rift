@@ -1,3 +1,4 @@
+// THIS IS AN APHELION UI FILE
 import { afterEach, expect, it, spyOn } from 'bun:test';
 import {
   act,
@@ -7,7 +8,7 @@ import {
   screen,
 } from '@testing-library/react';
 import { useState } from 'react';
-import { AdjustmentSlider } from '../AdjustmentSlider';
+import { AdjustmentSlider } from './AdjustmentSlider';
 import { CyborgCharacterEditor } from './CharacterEditor';
 import { CyborgPreview } from './CyborgPreview';
 import { EditorButton } from './controls';

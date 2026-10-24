@@ -10,7 +10,10 @@ import {
 } from 'tgui-core/components';
 import type { BooleanLike } from 'tgui-core/react';
 import { useBackend } from '../../backend';
-import type { RuntimeCustomization } from '../common/CyborgCustomization/RuntimeControls';
+import {
+  RuntimeTab,
+  RuntimeTabButton,
+} from '../common/CyborgCustomization/RuntimeTabs';
 
 enum InteractionTab {
   Interactions = 0,
@@ -23,11 +26,9 @@ type Interaction = {
   erp_interaction: BooleanLike;
   genital_config: { name: string; ref: string }[];
   underwear_config: { name: string }[];
-  cyborg_runtime?: RuntimeCustomization;
 };
 
 import {
-  CyborgCustomizationTab,
   GenitalLayeringTab,
   InteractionsTab,
   LewdItemsTab,
@@ -38,12 +39,7 @@ export const MainContent = () => {
   const [tabIndex, setTabIndex] = useState(InteractionTab.Interactions);
   const [showCategories, setShowCategories] = useState(true);
   const { data } = useBackend<Interaction>();
-  const {
-    erp_interaction,
-    genital_config = [],
-    underwear_config = [],
-    cyborg_runtime,
-  } = data;
+  const { erp_interaction, genital_config = [], underwear_config = [] } = data;
   const placeholder =
     tabIndex === InteractionTab.Interactions
       ? 'Search for an interaction'
@@ -85,51 +81,45 @@ export const MainContent = () => {
                 Lewd Items
               </Tabs.Tab>
             )}
-            {cyborg_runtime && (
-              <Tabs.Tab
-                selected={tabIndex === InteractionTab.CyborgCustomization}
-                onClick={() => setTabIndex(InteractionTab.CyborgCustomization)}
-              >
-                Genital Options
-              </Tabs.Tab>
-            )}
+            <RuntimeTabButton
+              dataKey="cyborg_runtime"
+              selected={tabIndex === InteractionTab.CyborgCustomization}
+              onClick={() => setTabIndex(InteractionTab.CyborgCustomization)}
+            />
           </Tabs>
         </Stack.Item>
-        {(tabIndex === InteractionTab.Interactions ||
-          tabIndex === InteractionTab.GenitalOptions) && (
-          <Stack.Item>
-            <Stack align="center" fill>
+        <Stack.Item>
+          <Stack align="baseline" fill>
+            <Stack.Item>
+              <Icon name="search" />
+            </Stack.Item>
+            <Stack.Item grow>
+              <Input
+                fluid
+                width="200px"
+                value={searchText}
+                placeholder={placeholder}
+                onChange={(value) => setSearchText(value)}
+              />
+            </Stack.Item>
+            {tabIndex === InteractionTab.Interactions && (
               <Stack.Item>
-                <Icon name="search" />
-              </Stack.Item>
-              <Stack.Item grow>
-                <Input
-                  fluid
-                  value={searchText}
-                  placeholder={placeholder}
-                  onChange={(value) => setSearchText(value)}
+                <Button
+                  icon={showCategories ? 'folder' : 'list'}
+                  color="green"
+                  tooltip={
+                    showCategories ? 'Hide Categories' : 'Show Categories'
+                  }
+                  onClick={() => setShowCategories(!showCategories)}
                 />
               </Stack.Item>
-              {tabIndex === InteractionTab.Interactions && (
-                <Stack.Item>
-                  <Button
-                    icon={showCategories ? 'folder' : 'list'}
-                    color="green"
-                    tooltip={
-                      showCategories ? 'Hide Categories' : 'Show Categories'
-                    }
-                    onClick={() => setShowCategories(!showCategories)}
-                  />
-                </Stack.Item>
-              )}
-            </Stack>
-          </Stack.Item>
-        )}
-        <Stack.Item grow>
+            )}
+          </Stack>
+        </Stack.Item>
+        <Stack.Item grow mb={-1.6}>
           <Section fill>
-            {tabIndex === InteractionTab.CyborgCustomization &&
-            cyborg_runtime ? (
-              <CyborgCustomizationTab />
+            {tabIndex === InteractionTab.CyborgCustomization ? (
+              <RuntimeTab dataKey="cyborg_runtime" action="cyborg_runtime" />
             ) : tabIndex === InteractionTab.LewdItems ? (
               <GenitalLayeringTab />
             ) : tabIndex === InteractionTab.Underwear ? (

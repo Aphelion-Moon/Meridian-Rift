@@ -1,3 +1,4 @@
+// THIS IS AN APHELION UI FILE
 import {
   type ComponentProps,
   type HTMLAttributes,
@@ -6,7 +7,7 @@ import {
   useState,
 } from 'react';
 import { Box, Button, Stack } from 'tgui-core/components';
-import { useDebouncedCommit } from '../useDebouncedCommit';
+import { useDebouncedCommit } from './useDebouncedCommit';
 
 /** Scope missing tgui-core semantics to the editor without changing global controls. */
 function buttonSemantics(

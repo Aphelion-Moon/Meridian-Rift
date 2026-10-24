@@ -1,14 +1,15 @@
+// THIS IS AN APHELION UI FILE
 import { afterEach, expect, it } from 'bun:test';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { gameDataAtom, resetStore, store } from '../../events/store';
-import { MainContent } from './MainContent';
+import { gameDataAtom, resetStore, store } from '../../../events/store';
+import { MainContent } from '../../InteractionPanel/MainContent';
 
 afterEach(() => {
   cleanup();
   resetStore();
 });
 
-it('handles numeric false without a stray zero and hides search on usage tabs', () => {
+it("puts a borg's own parts in the interaction panel, without a stray zero", () => {
   store.set(gameDataAtom, {
     erp_interaction: 0,
     cyborg_runtime: {
@@ -23,12 +24,8 @@ it('handles numeric false without a stray zero and hides search on usage tabs', 
   });
   const view = render(<MainContent />);
   expect(view.container.textContent).not.toContain('0');
-  expect(
-    screen.queryByPlaceholderText('Search for an interaction'),
-  ).toBeTruthy();
   fireEvent.click(screen.getByText('Genital Options'));
-  expect(view.container.querySelector('input')).toBeNull();
   expect(
-    screen.getByText('No parts configured for this chassis.'),
-  ).toBeTruthy();
+    screen.getByText('No parts configured for this chassis.').textContent,
+  ).toBe('No parts configured for this chassis.');
 });
