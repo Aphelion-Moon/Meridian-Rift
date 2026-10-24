@@ -13,7 +13,7 @@ Cyborg customization adds a character-setup page, shared RoboTact and interactio
 | Live appearance and geometry | `code/appearance.dm`, `code/rendering.dm`; a per-owner image holder uses shared static resources |
 | Applying preferences to a body | `transfer_silicon_prefs()`, beside the brain, emote, blooper and chat-color preferences |
 | Accessory data | `code/accessories.dm`; cyborg-only standard and direct accessory catalogs |
-| Animation and occlusion data | `code/animation.dm`, `animation_manifest.json`, generated occlusion resource table |
+| Animation and occlusion data | `code/animation.dm`, `animation_manifest.json`, `code/asset_resources.dm` (the family masks) |
 | Identity and runtime controls | `code/identity.dm`, `code/robotact.dm` |
 | Message interactions | `code/interactions.dm`; audited human/cyborg message-only adapter |
 
@@ -43,7 +43,7 @@ Placement has North, South, and East/West groups for position and rotation. Uned
 
 Fit recalculates preview bounds; Center moves the camera; 1:1 is intended to match the live DreamSeeker map zoom, against the fixed 32-pixel mannequin reference. Ordinary edits and rotation preserve framing. Preview zoom is independent of the saved body size. Requested base sizes are 0.75, 1, 1.6, 2, and 2.5; small chassis cannot shrink below 1, wide/tall chassis cap the base at 1.6, and unsupported special chassis use 1. Hardware scale remains a separate transform factor.
 
-Wide bodies use independently authored North, South, and East/West placement. Animation anchors and view-specific offsets remain literal. Unsupported or ambiguous pose/movement sequences use the recorded fallback and do not borrow another family's animation.
+Wide bodies use independently authored North, South, and East/West placement. Animation anchors and view-specific offsets remain literal. Poses without authored anchors keep static placement and do not borrow another family's animation.
 
 The creator sends private image resources through native static UI data. Ordinary updates carry current transforms, save state, preset names and the selected model's assignment; its saved default layout is sent only while viewing that layout. Saved preset bodies stay on the server. Fixed sprite and size choices use the existing round-wide preference JSON asset. Public gallery metadata and per-department thumbnails use immutable content-addressed JSON assets, acquired only when needed and reused by the browser. Gallery generation and acquisition complete before private state is captured. An absent consent-bound descriptor immediately hides gallery data; unfinished requests are cancelled when their last consumer leaves, and failures expose an explicit retry.
 
@@ -53,9 +53,11 @@ The six cyborg profile text fields preserve their existing UTF-8 byte budgets wi
 
 ## Assets, mapping, and provenance
 
-The offline builder accepts explicitly named local animation families with compatible dimensions, directions, frame counts, and delays, and requires exactly one cyan marker per frame. The generated `animation_manifest.json` uses format version 1: model/state keys reference deduplicated complete animation profiles. Profile IDs are generated deterministically; full canonical profile data resolves digest-prefix collisions. The runtime reader resolves the model reference through the profile table.
+`animation_manifest.json` holds the authored anchors. `models` maps each skin's `<chassis icon>#<base state>` to its family; `profiles.<family>["<pose>:<moving>"]` gives, per direction (`south`, `north`, `east`, `west`), one `{x, y, delay}` per frame of that chassis state. The server reads it from disk once (`GLOB.cyborg_animation_manifest`); it is not compiled into the .rsc, so `tools/deploy.sh` copies it. Six families cover 36 skins. Other skins, and any pose without an entry, keep static manual placement and no occlusion.
 
 Live anchor motion uses a cached one-pixel native DMI per model, with the chassis's states, directions, movement variants and frame delays. Its private owner-relative image supplies a displacement filter on the composed parts. This preserves individual part transforms while BYOND selects movement frames and maintains their phase, including turns and stops. There is no server movement timeout or separate interpolated attachment loop. Transparent padding prevents edge clipping; a displacement size of 127 maps each color-channel step to one pixel. The creator also preserves authored sub-decisecond frame delays.
+
+Occlusion draws the chassis's own sprite again above the parts and cuts it with an alpha filter. The filter's mask is the family's sheet in `icons/occlusion_masks/<family>mask.dmi`, shown to viewers only as a render target beside the motion map, so it follows the chassis's states, directions and movement frames natively. The masks are white; only their alpha counts. The editor preview multiplies the same mask frame into the body (`ICON_MULTIPLY`, cached with the other preview frames). `cyborg_occlusion_mask()` in `code/asset_resources.dm` maps each family to its mask icon and the mask's base state.
 
 | Local skin labels | Donor family |
 | --- | --- |
@@ -66,30 +68,36 @@ Live anchor motion uses a cached one-pixel native DMI per model, with the chassi
 | Hound, Darkhound | hound |
 | Alina | alina |
 
-Catalog construction uses one transient null-location model item per allowed department, then deletes it; BYOND `initial()` does not return list-valued instance initializers. The audited null-host path creates no tools, storage or robot registrations; medical/miner overrides only append type paths before the guard. Cached descriptors hold copied lists and resources, never those items. The creator animates up to 32 frames locally; fallback previews remain static. The live holder follows its owner and maintains viewer attachments through login/logout/preference events.
+Catalog construction uses one transient null-location model item per allowed department, then deletes it; BYOND `initial()` does not return list-valued instance initializers. The audited null-host path creates no tools, storage or robot registrations; medical/miner overrides only append type paths before the guard. Cached descriptors hold copied lists and resources, never those items. The creator animates up to 32 frames locally; poses without anchors preview static. The live holder follows its owner and maintains viewer attachments through login/logout/preference events.
 
 Caches are bounded: 512 body/occlusion preview frames with a 4 MiB encoded-data eviction budget; 128 standard accessory composites with a 2 MiB estimated byte budget; 32 direct-accessory frames. The public gallery creates one catalog JSON resource and one four-direction thumbnail resource per authored department, then releases its transient decoded thumbnail maps. The browser shares pending requests and reuses completed public data for its current catalog generation. Only the catalog and selected department are acquired; private editor updates carry descriptors instead of repeating the gallery. Creator size thumbnails are generated only for the selected part. The estimates exclude BYOND allocator overhead. They are bounds, not measured performance claims.
 
-Current source maps 36 model/state pairs to six unique animation profiles and records 27 fallback cases. These are data-compatibility counts, not visual acceptance. Other catalog skins use manual placement. The offline builder validates marker/mask timing and emits anchors plus a finite occlusion source plan. Runtime registration indexes that metadata without generating occlusion images. The first request for an authored model stages only its supported states and required masks. One serial Rust-g/IconForge worker joins duplicate requests, restores stationary/moving names, forces native construction with `GetPixel`, and fully serializes the model before publishing `fcopy_rsc(file(...))`. The immutable result is reused for the rest of the round; colors, layouts and owners never enter the key. Each job deletes its tracked temporary files and releases intermediate caches when shared asset/character-preview leases permit. A failed key is recorded once and does not block later models. Already admitted public work may finish after its requester changes models. Live holder updates remain synchronous: on first use the customized group appears only when its matching mask is ready; weak completion rechecks owner identity and consent. Runtime does not scan marker pixels or require Pillow.
+### Adding skins
 
-Run from the repository root:
+A chassis state is `<base>` for idle and `<base>-<pose>` otherwise (`rest`, `sit`, `bellyup`, `rest_deep`, `rest_alt`, `sit_alt`); `<pose>:1` is its movement state, `<pose>:0` the still one.
 
-```text
-python tools/cyborg_customization/build_assets.py
-python -m unittest discover -s tools/cyborg_customization -p "test_*.py"
-```
+A new skin of an existing family:
 
-Generated anchors and source plans must be committed with their source inputs and reader changes. `build_assets.py --reference-dir <directory>` additionally writes the offline colored pixel oracle for native parity checks; those reference sheets are not shipped. `--output-dir <directory>` stages the generated manifest and plan separately for review. New hotspot or unknown DMI metadata is rejected by the builder because IconForge cannot preserve it. PNG/DMI container bytes can vary with compression versions; compare decoded pixels and DMI metadata as well as normalized manifest data.
+1. Add `"<chassis icon>#<base state>": "<family>"` to `models`, keys sorted.
+2. Check the timing: every state the family's profile lists must exist in the skin's sheet with four directions and the same frame count and delays as the family's mask state (`<mask base>[-<pose>]`, same movement flag). `rustg_dmi_read_metadata()` or the PNG's `Description` text shows both. If any differ, or the parts sit wrong on it, the skin needs a family of its own.
+3. Open the editor on the skin and turn it: the preview shows the parts placed and cut.
+
+A new family:
+
+1. Markers: a sheet with the chassis state's directions, frames and delays, transparent except one (51, 255, 255, 255) pixel per frame where the parts anchor. In a sheet `width` pixels wide, a marker at one-based `(px, py)` from the bottom left gives `x = px - width / 2`, `y = py - 24`.
+2. Profile: under `profiles.<family>`, `"<pose>:<moving>": {"south": [...], "north": [...], "east": [...], "west": [...]}` with `{"x": x, "y": y, "delay": delay}` per frame, the delay as the sheet has it (deciseconds). Leave out a pose whose markers or mask differ from the chassis's timing; a still pose whose chassis also has a movement state needs that state too.
+3. Mask: `icons/occlusion_masks/<family>mask.dmi` at the sheet's size, with one state per pose the profile authors (`<mask base>` for idle, `<mask base>-<pose>` otherwise) and the movement states it authors, each with the chassis state's directions, frames and delays. Opaque where the chassis covers the parts, clear elsewhere, RGB white.
+4. Add `"<family>" = list('<mask icon>', "<mask base>")` to `cyborg_occlusion_mask()` and the family's skins to `models`.
+
+The current anchors were derived this way from the donor's marker sheets (`modular_zzplurt/icons/mob/cyborg_animation_markers` at the commit below).
 
 Donor source: [SPLURT PR 960](https://github.com/SPLURT-Station/S.P.L.U.R.T-tg/pull/960), pinned to [`090a9cb13722af449567867c720826eb6af215a5`](https://github.com/SPLURT-Station/S.P.L.U.R.T-tg/tree/090a9cb13722af449567867c720826eb6af215a5), open and unmerged when implementation began. Source adaptation follows AGPL-3.0; copied art is from the donor's CC-BY-SA-3.0 collection. Preserve attribution and source paths when redistributing or modifying the art.
 
 | Local directory | Donor directory | Treatment |
 | --- | --- | --- |
-| `icons/animation_markers` | `modular_zzplurt/icons/mob/cyborg_animation_markers` | Selected family sheets |
-| `icons/occlusion_masks` | `modular_zzplurt/icons/mob/cyborg_occlusion_sources` | Selected family masks |
+| `icons/occlusion_masks` | `modular_zzplurt/icons/mob/cyborg_occlusion_sources` | Selected family masks; alpha kept, RGB set to white |
 | `icons/accessories` | `modular_zzplurt/icons/mob/sprite_accessories/genitals` | Selected accessory sheets |
 | `icons/accessories/anus.dmi` | `modular_zzplurt/icons/mob/human/genitals/anus.dmi` | Exact sheet; cyborg-only Donut/Squished choices |
-| Round-shared demand resource cache | Derived locally | Selected model body colors combined with donor masks; temporary files removed after publication |
 
 Dogborg source suffixes expose authored size variants independently of the shared continuous layout scale. Asset metadata supplies matching size icons and only the color channels present in the chosen variant. The massive sheet is an explicit choice. These assets do not modify the human accessory registry. Meridian's non-rendering human anus entry is omitted from this visual catalog.
 
@@ -104,5 +112,6 @@ Module ID: `CYBORG_CUSTOMIZATION`. The core preference save path is untouched; l
 | `modular_nova/modules/synths/code/bodyparts/organs/internal/brain/silicon_alt_brains.dm` | Apply customization in `transfer_silicon_prefs()`; also run it on admin direct control; keep the brain preference from runtiming on positronic processors, which skipped every later step; add the interaction component |
 | `code/modules/mob/living/silicon/robot/robot.dm`, `robot_model.dm` | Holder teardown and facing, shared model list, chosen skin |
 | `code/modules/mob/mob_helpers.dm` | `offer_control()` sends the direct-control signal after a ghost takes the body, as the admin verb does, so silicon preferences apply |
+| `tools/deploy.sh` | Also copy `modular_aphelion`'s `.json` files, so CI and Docker deployments have the manifest the server reads from disk |
 
-Revert the targeted frontend/backend protocol together, the middleware with `code/persistence.dm`, and the generated manifest with its reader. Layouts live in their own sidecar, so rollback leaves `preferences.json` untouched. Shared controls with the separate custom-sprite editor are deferred until both real consumers can be integrated.
+Revert the targeted frontend/backend protocol together, the middleware with `code/persistence.dm`, and the manifest with its reader. Layouts live in their own sidecar, so rollback leaves `preferences.json` untouched. Shared controls with the separate custom-sprite editor are deferred until both real consumers can be integrated.
