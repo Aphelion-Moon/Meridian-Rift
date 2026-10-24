@@ -120,30 +120,6 @@
     overscroll-behavior: contain;
     border: 1px solid rgba(255, 255, 255, 0.12);
   }
-  &__viewControls {
-    padding: 0.65rem;
-  }
-  &__thumbnail {
-    display: block;
-    width: 100%;
-    height: 64px;
-    object-fit: contain;
-    image-rendering: pixelated;
-    margin-top: 0.5rem;
-  }
-  &__disclosure {
-    margin-bottom: 0.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-  }
-  &__disclosure > summary {
-    cursor: pointer;
-    padding: 0.75rem;
-    font-weight: bold;
-  }
-  &__disclosure > summary:focus-visible {
-    outline: 2px solid #69b8ed;
-    outline-offset: -2px;
-  }
   &__profile > .CyborgEditor__inspector {
     grid-column: 2 / span 2;
   }

@@ -600,7 +600,6 @@ it('advances accepted part sizes while rendered size metadata is still stale', (
         {...baseControls}
         store={store}
         part={{
-          effective_size: 2,
           sizes: [2, 3, 4].map((value) => ({ value, label: String(value) })),
           color_channels: [],
         }}
@@ -645,7 +644,6 @@ it('falls back to the first authored size when the selected sprite cannot use th
       {...baseControls}
       store={store}
       part={{
-        effective_size: 4,
         sizes: [2, 3, 4].map((value) => ({ value, label: String(value) })),
         color_channels: [],
       }}
@@ -657,7 +655,6 @@ it('falls back to the first authored size when the selected sprite cannot use th
       {...baseControls}
       store={store}
       part={{
-        effective_size: 1,
         sizes: [1, 5].map((value) => ({ value, label: String(value) })),
         color_channels: [],
       }}

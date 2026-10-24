@@ -84,7 +84,6 @@ export type CyborgCustomizationData = {
   gallery_error?: boolean;
   /** Replaced drafts invalidate commands; ordinary edits only advance revision. */
   context?: number;
-  revision?: number;
   resources_pending?: boolean;
   /** Only body/layer pixel changes interrupt placement; option metadata does not. */
   preview_pending?: boolean;
@@ -102,7 +101,6 @@ export type CyborgCustomizationData = {
   > | null;
   save_status?: {
     pending: boolean;
-    revision: number;
     session_only: boolean;
     error?: string;
   };
@@ -155,7 +153,6 @@ export type CyborgCustomizationData = {
   message?: string;
 };
 export type PartMetadata = {
-  effective_size?: number;
   sizes: { value: number; label: string; icon?: string }[];
   color_channels: number[];
 };

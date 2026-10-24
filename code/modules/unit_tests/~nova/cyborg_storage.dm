@@ -231,20 +231,19 @@
 	store.fail_writes = TRUE
 	store.next_write_at = world.time
 	place(editor, 71)
-	var/pending_revision = editor.draft_revision
 	TEST_ASSERT(!editor.commit_draft(), "The pending fixture unexpectedly saved its revision.")
 	var/list/external = cyborg_layout_default()
 	external["active"]["penis"]["pixel_x"] = 73
 	store.fail_writes = FALSE
 	store.next_write_at = world.time
 	TEST_ASSERT(preferences.write_cyborg_layout(1, external), "The external replacement did not save.")
-	TEST_ASSERT(editor.dirty && editor.saved_revision != pending_revision, "An external replacement falsely acknowledged the superseded editor revision.")
+	TEST_ASSERT(editor.dirty, "An external replacement falsely acknowledged the superseded editor revision.")
 	TEST_ASSERT_EQUAL(editor.staged_revision, -1, "External replacement retained the superseded staging revision.")
 	TEST_ASSERT_EQUAL(preferences.read_cyborg_layout(1)["active"]["penis"]["pixel_x"], 73, "The external replacement was silently overwritten.")
 	store.next_write_at = world.time
 	TEST_ASSERT(editor.commit_draft(), "The next editor commit did not save the retained draft.")
 	TEST_ASSERT_EQUAL(preferences.read_cyborg_layout(1)["active"]["penis"]["placement_groups"]["south"]["pixel_x"], 71, "The next editor commit lost its retained accepted revision.")
-	TEST_ASSERT(!editor.dirty && editor.saved_revision == pending_revision, "The retained revision was not acknowledged after it actually saved.")
+	TEST_ASSERT(!editor.dirty, "The retained revision was not acknowledged after it actually saved.")
 
 /// Root and sprite callbacks must publish new draft roots before staging can track revisions.
 /datum/unit_test/cyborg_stage_model_sprite_callbacks
@@ -281,9 +280,8 @@
 	store.fail_writes = TRUE
 	store.next_write_at = world.time
 	place(editor, 61)
-	var/revision = editor.draft_revision
 	TEST_ASSERT(!editor.commit_draft(), "A failed write was acknowledged.")
-	TEST_ASSERT(editor.dirty && editor.saved_revision != revision, "Failure acknowledged the accepted revision.")
+	TEST_ASSERT(editor.dirty, "Failure acknowledged the accepted revision.")
 	place(editor, 62)
 	editor.commit_draft()
 	TEST_ASSERT_EQUAL(preferences.read_cyborg_layout(1)["active"]["penis"]["placement_groups"]["south"]["pixel_x"], 62, "A changed pending revision was not staged.")
@@ -511,14 +509,13 @@
 	TEST_ASSERT((store in SScyborg_layout_saves.queue) && editor.save_requested, "A save action did not queue the account.")
 	editor.edit_layout(list("operation" = "set_placement", "slot" = "penis", "target" = list("scope" = "base", "direction" = SOUTH), "changes" = list("pixel_x" = 61), "character_slot" = 1, "context" = editor.context_generation), null)
 	TEST_ASSERT(editor.draft_timer, "An edit after a queued save did not schedule its own.")
-	var/revision = editor.draft_revision
 	// The subsystem runs the save on its own, in a later tick.
 	var/deadline = world.time + 5 SECONDS
 	UNTIL(store.write_attempts > writes || world.time > deadline)
 	TEST_ASSERT_EQUAL(store.write_attempts, writes + 1, "SScyborg_layout_saves did not write the queued account exactly once.")
 	TEST_ASSERT_EQUAL(store.last_written["character1"]["active"]["penis"]["placement_groups"]["south"]["pixel_x"], 61, "The queued save wrote an older state than the draft's latest.")
 	TEST_ASSERT(store.last_written["character1"]["presets"]["Queued"], "The queued save lost the preset its action made.")
-	TEST_ASSERT(!editor.dirty && editor.saved_revision == revision, "The written revision was not acknowledged.")
+	TEST_ASSERT(!editor.dirty, "The written revision was not acknowledged.")
 	TEST_ASSERT(length(SScyborg_layout_saves.queue) || !SScyborg_layout_saves.can_fire, "SScyborg_layout_saves kept firing with nothing queued.")
 	// Inside the spacing the account waits, and a newer edit is not acknowledged by the older write.
 	editor.edit_layout(list("operation" = "set_placement", "slot" = "penis", "target" = list("scope" = "base", "direction" = SOUTH), "changes" = list("pixel_x" = 62), "character_slot" = 1, "context" = editor.context_generation), null)

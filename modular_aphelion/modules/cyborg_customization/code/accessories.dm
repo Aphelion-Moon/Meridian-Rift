@@ -98,7 +98,7 @@
 	return result
 
 /proc/cyborg_accessory_metadata(slot, choice, list/colors, arousal, direction, requested_size = 1, include_icons = TRUE)
-	var/list/result = list("sizes" = list(), "color_channels" = cyborg_accessory_color_channels(slot, choice, requested_size, arousal), "effective_size" = cyborg_accessory_effective_size(slot, choice, requested_size))
+	var/list/result = list("sizes" = list(), "color_channels" = cyborg_accessory_color_channels(slot, choice, requested_size, arousal))
 	var/list/size_values = cyborg_accessory_size_values(slot, choice)
 	for(var/sprite_size in size_values)
 		var/list/size_entry = list("value" = sprite_size, "label" = "Size [sprite_size]")

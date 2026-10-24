@@ -99,9 +99,6 @@ async function main() {
         CYBORG_SLOTS.map((slot) => [
           slot,
           {
-            effective_size:
-              layout[slot].sprite_size ??
-              (['penis', 'sheath', 'testicles'].includes(slot) ? 2 : 1),
             sizes: [1, 2, 3, 4, 5].map((value) => ({
               value,
               label: String(value),

@@ -65,8 +65,6 @@
 	var/save_requested = FALSE
 	/// Whether accepted edits still require a successful sidecar write.
 	var/dirty = FALSE
-	/// Last written revision and whether it only reached memory.
-	var/saved_revision = 0
 	/// Revision already encoded into the account tree; failed retries do not encode it again.
 	var/staged_revision = -1
 	/// The draft's parts and layouts with their save text from its last encode (see cyborg_layout_encode()). Edits copy
@@ -74,8 +72,6 @@
 	var/list/encoded_parts
 	/// Why the draft would pass its character's or the account's limit, so it stays unstaged until edits shrink it.
 	var/full_message
-	/// Whether or not the account has no file, so its saves only last this session
-	var/session_only = FALSE
 	/// A retryable write or staging failure, kept across UI close/reopen.
 	var/save_error
 	action_delegations = list("open_cyborg_editor" = PROC_REF(open_editor))
@@ -411,8 +407,7 @@
 		"wide" = wide,
 		"body_scale" = body_scale,
 		"context" = context_generation,
-		"revision" = draft_revision,
-		"save_status" = list("pending" = dirty || preferences.cyborg_layout_store().write_pending, "revision" = saved_revision, "session_only" = session_only, "error" = save_error),
+		"save_status" = list("pending" = dirty || preferences.cyborg_layout_store().write_pending, "session_only" = !preferences.cyborg_layout_savefile?.path, "error" = save_error),
 		"store" = ui_store,
 		"layout_source" = layout_source,
 		"model_default_available" = islist(defaults) && islist(defaults[preview_model]),
@@ -730,7 +725,6 @@
 	discard_draft()
 	draft_slot = preferences.default_slot
 	draft = cyborg_layout_from_stored(stored)
-	session_only = !preferences.cyborg_layout_store().path
 	return draft
 
 /** Accepts canonical data and schedules the existing debounce. Staging encodes the draft, so callers keep their lists.
@@ -822,9 +816,7 @@
 /datum/preference_middleware/cyborg_character/proc/sidecar_write_completed()
 	var/datum/json_savefile/cyborg_customization/store = preferences.cyborg_layout_store()
 	if(!store.write_pending && dirty && staged_revision == draft_revision)
-		saved_revision = draft_revision
 		dirty = FALSE
-	session_only = !store.path
 	save_error = save_problem()
 	SStgui.update_uis(src)
 
@@ -964,7 +956,7 @@
 	preview_pending = FALSE
 	// Set admission before publishing: the forced full update can re-enter ui_data.
 	resource_refresh_at = world.time + 1 SECONDS
-	preview_resources = build_resources(catalog, descriptor, preview_layout, layout_source, layer_keys, part_keys, gallery_descriptor, body_key)
+	preview_resources = build_resources(descriptor, preview_layout, layout_source, layer_keys, part_keys, gallery_descriptor, body_key)
 	resource_layer_keys = layer_keys
 	resource_part_keys = part_keys
 	resource_catalog = catalog
@@ -1009,7 +1001,7 @@
 /** Reuse the current session's unchanged resources, even after shared FIFO eviction.
  * Retention stays bounded to one gallery and six part images/metadata, not edit history.
  */
-/datum/preference_middleware/cyborg_character/proc/build_resources(list/catalog, list/descriptor, list/preview_layout, layout_source, list/layer_keys, list/part_keys, list/gallery_descriptor, body_key)
+/datum/preference_middleware/cyborg_character/proc/build_resources(list/descriptor, list/preview_layout, layout_source, list/layer_keys, list/part_keys, list/gallery_descriptor, body_key)
 	var/list/result = preview_resources ? preview_resources.Copy() : list()
 	if(!preview_resources || !deep_compare_list(preview_resources["gallery"], gallery_descriptor))
 		result["gallery"] = gallery_descriptor

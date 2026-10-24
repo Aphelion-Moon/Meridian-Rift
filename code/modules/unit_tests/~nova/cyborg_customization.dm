@@ -47,9 +47,7 @@
 	store.fail_writes = FALSE
 	TEST_ASSERT(editor.commit_draft(), "Retry after write recovery failed.")
 	TEST_ASSERT(!editor.dirty && !editor.save_error, "Successful retry did not clear pending/error state.")
-	TEST_ASSERT_EQUAL(editor.saved_revision, revision, "Retry acknowledged the wrong revision.")
 	TEST_ASSERT_EQUAL(preferences.read_cyborg_layout(1)["active"]["penis"]["pixel_x"], 19, "Retry lost accepted placement data.")
-	TEST_ASSERT(editor.session_only, "A memory-only sidecar claimed durable saving.")
 	var/list/saved_character = preferences.savefile.get_entry("character1")
 	TEST_ASSERT(!islist(saved_character) || !("silicon_genital_layout_presets" in saved_character), "Layouts must stay out of preferences.json.")
 	// The sidecar is keyed by slot, so a slot change writes the old draft to its own slot.
@@ -295,6 +293,7 @@
 		TEST_ASSERT_NULL(payload["body"], "Ordinary UI updates must not retransmit chassis images.")
 		if(cycle == 1)
 			TEST_NOTICE(src, "Creator payload JSON characters: dynamic [length(json_encode(payload))], private resources [length(json_encode(editor.preview_resources))]. Closed gallery, Drake north, default parts.")
+			TEST_ASSERT(payload["save_status"]["session_only"], "A memory-only sidecar claimed durable saving.")
 		payload += editor.ui_static_data(null)["cyborg_resources"]
 		if(cycle == 1)
 			// The window reads the character whatever page character setup has open
