@@ -159,6 +159,12 @@
 	TEST_ASSERT_EQUAL(cyborg_effective_base_size(2.5, list(TRAIT_R_WIDE)), 1.6, "Wide chassis base size must be capped.")
 	TEST_ASSERT_EQUAL(cyborg_effective_base_size(0.75, list(TRAIT_R_SMALL)), 1, "Small chassis must not shrink further.")
 	TEST_ASSERT_EQUAL(cyborg_effective_base_size(2, list(), FALSE), 1, "Special chassis must not inherit cosmetic size.")
+	// The base chassis every body spawns with has no catalog id; live, job-spawned bodies took 1.6 on it.
+	var/mob/living/silicon/robot/plain = EASY_ALLOCATE()
+	TEST_ASSERT_NULL(plain.model.cyborg_customization_id(), "The fixture's base chassis is in the customization catalog.")
+	plain.cyborg_appearance_requested_size = 1.6
+	plain.cyborg_customization_apply_size()
+	TEST_ASSERT_EQUAL(plain.cyborg_appearance_applied_size, 1, "A chassis outside the catalog took the cosmetic size.")
 
 /datum/unit_test/cyborg_visual_anatomy_capability_respects_exposure/Run()
 	var/mob/living/silicon/robot/robot = EASY_ALLOCATE()

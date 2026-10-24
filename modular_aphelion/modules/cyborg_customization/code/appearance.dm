@@ -133,7 +133,8 @@
 		return
 	var/list/catalog = cyborg_model_catalog()
 	var/model_id = model.cyborg_customization_id()
-	var/effective = cyborg_effective_base_size(cyborg_appearance_requested_size, model.model_features, model_id && !!catalog[model_id])
+	// A null would take the argument's default, TRUE, and give a chassis outside the catalog the cosmetic size.
+	var/effective = cyborg_effective_base_size(cyborg_appearance_requested_size, model.model_features, !!(model_id && catalog[model_id]))
 	if(effective == cyborg_appearance_applied_size)
 		return
 	// Remove only our previous factor. Hardware's existing transform remains intact.
