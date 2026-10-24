@@ -158,6 +158,27 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 	UnregisterSignal(source, COMSIG_MOB_LOGOUT)
 	return ..()
 
+/**
+ * Shows `new_image` to every seer in place of `old_image`. A seer keeps an image it already has, changed in place, so
+ * turns, steps and poses cost no work per seer. Returns the image shown now, or null.
+ */
+/obj/effect/client_image_holder/cyborg_customization/proc/replace_image(image/old_image, image/new_image)
+	if(old_image && new_image)
+		old_image.appearance = new_image
+		// Taking an appearance leaves dir as it was, and the mask and motion map turn with the body.
+		old_image.dir = new_image.dir
+		return old_image
+	if(old_image)
+		for(var/mob/seer as anything in who_sees_us)
+			seer.client?.images -= old_image
+	if(new_image)
+		for(var/mob/seer as anything in who_sees_us)
+			seer.client?.images |= new_image
+	return new_image
+
+/obj/effect/client_image_holder/cyborg_customization/regenerate_image()
+	shown_image = replace_image(shown_image, generate_image())
+
 /obj/effect/client_image_holder/cyborg_customization/generate_image()
 	// Order the whole KEEP_TOGETHER group below the separate chassis mask.
 	// Child priorities only order parts within this group, not against the mask.

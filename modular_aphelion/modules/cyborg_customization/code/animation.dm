@@ -57,19 +57,18 @@
 	update_from_owner()
 
 /obj/effect/client_image_holder/cyborg_customization/proc/update_animation()
-	for(var/mob/seer as anything in who_sees_us)
-		seer.client?.images -= animation_image
-	animation_image = null
-	if(!owner || !shown_image)
-		return
+	animation_image = replace_image(animation_image, owner && shown_image ? build_animation() : null)
+
+/// Pads the parts image for its displacement filter and returns the motion map image that drives it, or null.
+/obj/effect/client_image_holder/cyborg_customization/proc/build_animation()
 	shown_image.filters = null
 	var/list/catalog = cyborg_model_catalog()
 	var/list/descriptor = owner.cyborg_appearance_model ? catalog[owner.cyborg_appearance_model] : null
 	if(!descriptor || !length(render_layers))
-		return
+		return null
 	var/icon/movement_map = cyborg_animation_map(descriptor)
 	if(!movement_map)
-		return
+		return null
 	var/min_x = 0
 	var/min_y = 0
 	var/max_x = 32
@@ -99,37 +98,36 @@
 	padding.pixel_w = min_x - margin
 	padding.pixel_z = min_y - margin
 	shown_image.overlays += padding
-	animation_image = image(movement_map, owner, owner.icon_state, dir = cyborg_cardinal_direction(owner.dir))
-	animation_image.render_target = "*cyborg_motion_[REF(src)]"
-	animation_image.appearance_flags = RESET_TRANSFORM | RESET_COLOR | RESET_ALPHA | PIXEL_SCALE
-	animation_image.transform = matrix().Scale(width + 2, height + 2)
-	SET_PLANE_EXPLICIT(animation_image, GAME_PLANE, owner)
+	var/image/motion = image(movement_map, owner, owner.icon_state, dir = cyborg_cardinal_direction(owner.dir))
+	motion.render_target = "*cyborg_motion_[REF(src)]"
+	motion.appearance_flags = RESET_TRANSFORM | RESET_COLOR | RESET_ALPHA | PIXEL_SCALE
+	motion.transform = matrix().Scale(width + 2, height + 2)
+	SET_PLANE_EXPLICIT(motion, GAME_PLANE, owner)
 	// At size 127, a one-channel increment is exactly one pixel on BYOND 516.
-	shown_image.filters += filter(type = "displace", render_source = animation_image.render_target, size = 127)
-	for(var/mob/seer as anything in who_sees_us)
-		seer.client?.images |= animation_image
+	shown_image.filters += filter(type = "displace", render_source = motion.render_target, size = 127)
+	return motion
 
 /obj/effect/client_image_holder/cyborg_customization/proc/update_occlusion()
-	for(var/mob/seer as anything in who_sees_us)
-		seer.client?.images -= occlusion_image
-	occlusion_image = null
+	occlusion_image = replace_image(occlusion_image, build_occlusion())
+
+/// The chassis mask image for the parts, or null while there is none to show.
+/obj/effect/client_image_holder/cyborg_customization/proc/build_occlusion()
 	if(!owner || !length(render_layers))
-		return
+		return null
 	var/list/catalog = cyborg_model_catalog()
 	var/list/descriptor = owner.cyborg_appearance_model ? catalog[owner.cyborg_appearance_model] : null
 	if(!descriptor || !cyborg_animation_anchor(descriptor, owner.dir, owner.cyborg_customization_pose()))
-		return
+		return null
 	// update_from_owner admits any missing model before publishing this group.
 	// Live image mutation is synchronous and reads only immutable cached output.
 	var/resource = cyborg_occlusion_cached(descriptor["icon"], descriptor["icon_state"])
 	if(!resource)
-		return
-	occlusion_image = image(resource, owner, owner.icon_state, ABOVE_MOB_LAYER + 0.1, cyborg_cardinal_direction(owner.dir))
+		return null
+	var/image/mask = image(resource, owner, owner.icon_state, ABOVE_MOB_LAYER + 0.1, cyborg_cardinal_direction(owner.dir))
 	// Owner-relative mask: inherit its transform and pixel offsets exactly once.
-	occlusion_image.appearance_flags = PIXEL_SCALE
-	SET_PLANE_EXPLICIT(occlusion_image, GAME_PLANE, owner)
-	for(var/mob/seer as anything in who_sees_us)
-		seer.client?.images |= occlusion_image
+	mask.appearance_flags = PIXEL_SCALE
+	SET_PLANE_EXPLICIT(mask, GAME_PLANE, owner)
+	return mask
 
 /**
  * Demand-only immutable resources shared for the round. Registration indexes
