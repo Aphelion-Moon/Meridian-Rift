@@ -566,6 +566,11 @@
 	report.refresh()
 	timer = report._active_timers?[1]
 	TEST_ASSERT(isnull(report.status) && timer?.wait > 2900 && timer.wait <= 3000, "A look that answered after failed ones kept polling within a minute: [report.status], [timer?.wait] ds")
+	// A picture's preview that doesn't come says so on its card, so nothing on the page says to try again while the poll waits out the receipt
+	var/datum/bug_report_picture/picture = bug_report_test_picture(report)
+	report.replies = list(bug_report_test_answer(503, list()))
+	report.load_preview(picture)
+	TEST_ASSERT(isnull(report.status) && !report.unreachable && report.receipt_wait() > 2900, "A preview with no answer put a line on the sent page that its poll doesn't keep: [report.status], [report.receipt_wait()] ds")
 	LAZYREMOVE(report.open_uis, ui)
 
 /// Sends the report's window an update and merges it into what the window holds, as tgui does, returning the update or null with none sent
@@ -1037,6 +1042,10 @@
 	report.load_preview(unconfirmed)
 	preview = ui.updates[length(ui.updates)]["preview"]
 	TEST_ASSERT(preview && isnull(preview["src"]) && report.status == "Picture added", "A preview the service turned down took the status line from its card")
+	report.replies = list(bug_report_test_answer(503, list()))
+	report.load_preview(unconfirmed)
+	preview = ui.updates[length(ui.updates)]["preview"]
+	TEST_ASSERT(preview && isnull(preview["src"]) && report.status == "Picture added" && !report.unreachable, "A preview with no answer took the status line from its card, or put the page out of reach")
 	// Only a preview asks for WebP, since no other reply is an image
 	var/list/seen = list()
 	for(var/list/bridge_request as anything in report.calls)

@@ -325,8 +325,7 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 	try
 		request.begin_async()
 	catch
-		unreachable = TRUE
-		status = "Couldn't reach the report server. Your text is kept. Try again in a minute."
+		// A request that never started comes back as no answer, which bridge_reply says where it belongs
 	UNTIL(request.is_complete())
 	GLOB.bug_report_requests--
 	requesting = FALSE
@@ -339,14 +338,17 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
  *
  * Returns the decoded reply, the response itself for a reply saved to output_file, whose headers say what it
  * holds, or null with status saying why. Only no answer or a 5xx means we couldn't reach the report server. A 4xx
- * is it turning the request down, which sets refused and says why in status, or on a preview's card, except a
- * conflict, which means the draft moved on.
+ * is it turning the request down, which sets refused and says why in status, except a conflict, which means the
+ * draft moved on. A preview says either on its own card, since the page's line and poll are the draft's and receipt's.
  * Arguments:
  * * response - the bridge's answer
  * * output_file - the file rust-g saved the reply into, if any
  */
 /datum/bug_report/proc/bridge_reply(datum/http_response/response, output_file)
 	if(response.errored || response.status_code < 200 || response.status_code >= 500)
+		// A preview that didn't come is its picture's news, and the sent page's poll waits out the receipt under any other line
+		if(output_file)
+			return
 		unreachable = TRUE
 		status = "Couldn't reach the report server. Your text is kept. Try again in a minute."
 		return
