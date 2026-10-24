@@ -26,7 +26,7 @@
 #define BUG_REPORT_UPLOADS_PER_HOUR 5
 /// In-game and window captures per ckey per hour, the service's own cap
 #define BUG_REPORT_CAPTURES_PER_HOUR 30
-/// What the sent page says when the service turns down a look at its receipt, which the next poll asks for again
+/// What the sent page says when the service turns down a look at its receipt or answers one we can't read, which the next poll asks for again
 #define BUG_REPORT_RECEIPT_REFUSED "Your report is sent, but the report server didn't say how it's doing. This window asks again within a minute."
 /// What the sent page says when the report server doesn't answer a look at its receipt, which the next poll asks for again
 #define BUG_REPORT_RECEIPT_UNREACHABLE "Your report is sent, but the report server isn't answering. This window asks again within a minute."
@@ -666,11 +666,10 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 /datum/bug_report/proc/refresh_receipt()
 	var/list/response = bridge_action("receipt")
 	if(!response)
-		// The report's in, so a refusal or no answer here only means its news waits, and keeping the text isn't the worry
-		if(refused)
-			status = BUG_REPORT_RECEIPT_REFUSED
-		else if(unreachable)
-			status = BUG_REPORT_RECEIPT_UNREACHABLE
+		// The sent page's report is in, so a failed look only means its news waits for the next poll, and a published one has nothing left to wait for
+		// A draft read that found the report submitted is still on the unsent page, where nothing polls, so the read's own line stays
+		if(result?["kind"] == "accepted")
+			status = result["receipt"]?["issueUrl"] ? null : (unreachable ? BUG_REPORT_RECEIPT_UNREACHABLE : BUG_REPORT_RECEIPT_REFUSED)
 		poll_failed()
 		return
 	poll_failures = 0
