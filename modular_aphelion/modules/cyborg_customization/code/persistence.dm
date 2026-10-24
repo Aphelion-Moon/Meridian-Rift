@@ -123,7 +123,7 @@
 /datum/preferences/proc/cyborg_body_snapshot()
 	var/datum/preference_middleware/cyborg_character/editor = cyborg_session()
 	if(editor?.draft && editor.draft_slot == default_slot)
-		return list("active" = cyborg_layout_copy(editor.draft["active"]), "model_defaults" = cyborg_layout_copy(editor.draft["model_defaults"]))
+		return list("active" = deep_copy_list(editor.draft["active"]), "model_defaults" = deep_copy_list(editor.draft["model_defaults"]))
 	var/stored = cyborg_layout_store().get_entry("character[default_slot]")
 	if(cyborg_layout_import_is_future(stored))
 		return null
@@ -143,10 +143,6 @@
 	if(editor?.draft_slot == slot)
 		// The account tree no longer holds the editor's revision, so its next commit stages the draft again.
 		editor.staged_revision = -1
-	return stage_cyborg_layout(slot, text)
-
-/// Puts a slot's save text in the account tree and writes the sidecar. Returns whether the write succeeded.
-/datum/preferences/proc/stage_cyborg_layout(slot, text)
 	var/datum/json_savefile/cyborg_customization/store = cyborg_layout_store()
 	store.set_entry("character[slot]", text)
 	store.write_pending = TRUE

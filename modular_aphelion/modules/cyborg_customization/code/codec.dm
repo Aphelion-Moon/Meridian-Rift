@@ -162,7 +162,7 @@
 /// A deep copy of a layout whose parts keep the save text of the parts they copy. A part without text in `encoded_parts`
 /// is encoded here, once for it and its copy.
 /proc/cyborg_layout_copy_encoded(list/layout, list/encoded_parts)
-	var/list/copy = cyborg_layout_copy(layout)
+	var/list/copy = deep_copy_list(layout)
 	if(!encoded_parts)
 		return copy
 	// A preset or default keeps its parts' texts with its own; the active layout's parts are kept on their own.

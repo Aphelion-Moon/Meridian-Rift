@@ -59,15 +59,10 @@
 	render_key = null
 	update_from_owner()
 
-/// Swaps in the motion map image for the current parts, or takes it away when there is none
-/obj/effect/client_image_holder/cyborg_customization/proc/update_animation()
-	animation_image = replace_image(animation_image, owner && shown_image ? build_animation() : null)
-
 /// Pads the parts image for its displacement filter and returns the motion map image that drives it, or null.
 /obj/effect/client_image_holder/cyborg_customization/proc/build_animation()
 	shown_image.filters = null
-	var/list/catalog = cyborg_model_catalog()
-	var/list/descriptor = owner.cyborg_appearance_model ? catalog[owner.cyborg_appearance_model] : null
+	var/list/descriptor = owner.cyborg_appearance_model ? cyborg_model_catalog()[owner.cyborg_appearance_model] : null
 	if(!descriptor || !length(render_layers))
 		return null
 	var/icon/movement_map = cyborg_animation_map(descriptor)
@@ -111,16 +106,11 @@
 	shown_image.filters += filter(type = "displace", render_source = motion.render_target, size = 127)
 	return motion
 
-/// Swaps in the chassis mask image for the current parts, or takes it away when there is none
-/obj/effect/client_image_holder/cyborg_customization/proc/update_occlusion()
-	occlusion_image = replace_image(occlusion_image, build_occlusion())
-
 /// The chassis mask image for the parts, or null while there is none to show.
 /obj/effect/client_image_holder/cyborg_customization/proc/build_occlusion()
 	if(!owner || !length(render_layers))
 		return null
-	var/list/catalog = cyborg_model_catalog()
-	var/list/descriptor = owner.cyborg_appearance_model ? catalog[owner.cyborg_appearance_model] : null
+	var/list/descriptor = owner.cyborg_appearance_model ? cyborg_model_catalog()[owner.cyborg_appearance_model] : null
 	if(!descriptor || !cyborg_animation_anchor(descriptor, owner.dir, owner.cyborg_customization_pose()))
 		return null
 	// update_from_owner admits any missing model before publishing this group.

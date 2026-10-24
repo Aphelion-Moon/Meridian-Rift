@@ -94,9 +94,8 @@
 /proc/cyborg_model_legacy_id(alias)
 	if(!istext(alias))
 		return null
-	var/list/catalog = cyborg_model_catalog()
 	var/match
-	for(var/id, descriptor in catalog)
+	for(var/id, descriptor in cyborg_model_catalog())
 		if(LOWER_TEXT(alias) != LOWER_TEXT("[descriptor["department"]]#[descriptor["skin"]]") && LOWER_TEXT(alias) != LOWER_TEXT(descriptor["icon_state"]))
 			continue
 		if(match)

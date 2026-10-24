@@ -122,6 +122,10 @@
 	var/byte_limit = maximum_value_length - 1
 	return list("maximum_length" = byte_limit, "maximum_bytes" = byte_limit)
 
+/// Read directly by examine, so there is nothing to apply to a human. Nova's silicon flavor texts keep their own
+/datum/preference/text/cyborg_profile/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
+	return
+
 /datum/preference/text/silicon_flavor_text
 	parent_type = /datum/preference/text/cyborg_profile
 
@@ -137,10 +141,6 @@
 	should_update_preview = FALSE
 	can_randomize = FALSE
 
-/// Read directly by examine, so there is nothing to apply to a human
-/datum/preference/text/custom_species_silicon/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
-	return
-
 /datum/preference/text/custom_species_lore_silicon
 	parent_type = /datum/preference/text/cyborg_profile
 	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
@@ -150,10 +150,6 @@
 	should_update_preview = FALSE
 	can_randomize = FALSE
 
-/// Read directly by examine, so there is nothing to apply to a human
-/datum/preference/text/custom_species_lore_silicon/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
-	return
-
 /datum/preference/text/ooc_notes_silicon
 	parent_type = /datum/preference/text/cyborg_profile
 	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
@@ -162,10 +158,6 @@
 	maximum_value_length = MAX_FLAVOR_LEN
 	should_update_preview = FALSE
 	can_randomize = FALSE
-
-/// Read directly by examine, so there is nothing to apply to a human
-/datum/preference/text/ooc_notes_silicon/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
-	return
 
 /datum/preference/text/ooc_notes_silicon/nsfw
 	savefile_key = "ooc_notes_silicon_nsfw"

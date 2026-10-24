@@ -28,13 +28,13 @@
 	draft["active_model"] = model_a
 	draft["active"]["penis"]["sprite"] = "Dogborg Knotted"
 	draft["active"]["penis"]["advanced"]["south"] = list("pixel_y" = 7, "arousal" = list("full" = list("pixel_y" = 13)))
-	draft["presets"]["Alpha"] = cyborg_layout_copy(draft["active"])
-	draft["presets"]["Beta"] = cyborg_layout_copy(draft["active"])
+	draft["presets"]["Alpha"] = deep_copy_list(draft["active"])
+	draft["presets"]["Beta"] = deep_copy_list(draft["active"])
 	draft["presets"]["Beta"]["penis"]["pixel_x"] = 17
 	draft["preset_models"]["Alpha"] = model_a
 	draft["preset_models"]["Beta"] = model_a
-	draft["model_defaults"][model_a] = cyborg_layout_copy(draft["active"])
-	draft["model_defaults"][model_b] = cyborg_layout_copy(draft["active"])
+	draft["model_defaults"][model_a] = deep_copy_list(draft["active"])
+	draft["model_defaults"][model_b] = deep_copy_list(draft["active"])
 	draft["model_defaults"][model_b]["penis"]["pixel_x"] = 33
 	draft["model_presets"][model_a] = "Alpha"
 	editor.update_draft(draft)
@@ -108,11 +108,11 @@
 		"sit_east" = list("arousal" = list("none" = list("rotation" = 10))),
 	)
 	layout["active"]["breasts"]["colors"] = list("#123456", "#ffffff", "#ffffff")
-	layout["presets"]["Alpha"] = cyborg_layout_copy(layout["active"])
+	layout["presets"]["Alpha"] = deep_copy_list(layout["active"])
 	layout["presets"]["Beta"] = cyborg_layout_default_slots()
 	layout["preset_models"]["Alpha"] = model_a
 	layout["active_preset"] = "Alpha"
-	layout["model_defaults"][model_a] = cyborg_layout_copy(layout["presets"]["Alpha"])
+	layout["model_defaults"][model_a] = deep_copy_list(layout["presets"]["Alpha"])
 	layout["model_presets"][model_a] = "Alpha"
 	layout["model_defaults"][model_b] = cyborg_layout_default_slots()
 	layout["model_defaults"][model_b]["vagina"]["rotation"] = 30
@@ -434,7 +434,7 @@
 		if(length(defaults) >= CYBORG_LAYOUT_MAX_MODEL_DEFAULTS)
 			spare_model = model_id
 			break
-		defaults[model_id] = cyborg_layout_copy(draft["active"])
+		defaults[model_id] = deep_copy_list(draft["active"])
 	editor.update_draft(draft)
 	editor.preview_model = spare_model
 	var/limit_message = "This character already has [CYBORG_LAYOUT_MAX_MODEL_DEFAULTS] model defaults. Delete one first."

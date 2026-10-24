@@ -10,11 +10,7 @@
 /proc/cyborg_preferences_for(mob/owner)
 	if(!owner)
 		return null
-	var/datum/client_interface/mock_client = owner.mock_client
-	if(mock_client)
-		return mock_client.prefs
-	var/client/live_client = owner.client
-	return live_client?.prefs
+	return owner.mock_client ? owner.mock_client.prefs : owner.client?.prefs
 
 /datum/preference/text/headshot/silicon_nsfw
 	savefile_key = "silicon_headshot_nsfw"

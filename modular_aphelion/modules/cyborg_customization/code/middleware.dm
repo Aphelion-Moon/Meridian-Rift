@@ -374,8 +374,6 @@
 	var/body_scale = descriptor ? cyborg_effective_base_size(cyborg_preference_value(preferences, "cyborg_size"), descriptor["features"]) : 1
 	if(!preview_pending && preview_resources)
 		var/list/layers = cyborg_preview_layers(preferences, descriptor, preview_layout, preview_direction, preview_pose, preview_arousal, layout_source == "model_default", preview_resources["layer_icons"])
-		for(var/list/layer as anything in layers)
-			layer -= "icon"
 		rendered_preview = list(
 			"model" = preview_model, "pose" = preview_pose, "direction" = preview_direction,
 			"arousal" = preview_arousal, "moving" = preview_moving,
@@ -750,15 +748,13 @@
 
 /// Rearm the save for this context without creating a revision for view-only changes.
 /datum/preference_middleware/cyborg_character/proc/schedule_draft_save()
-	if(draft_timer)
-		deltimer(draft_timer)
+	deltimer(draft_timer)
 	draft_timer = addtimer(CALLBACK(src, PROC_REF(flush_timer), draft_slot, context_generation, draft_revision), 2 SECONDS, TIMER_STOPPABLE)
 
 /// Asks SScyborg_layout_saves to stage the draft and write the account, which happens outside this action or timer.
 /datum/preference_middleware/cyborg_character/proc/request_save()
-	if(draft_timer)
-		deltimer(draft_timer)
-		draft_timer = null
+	deltimer(draft_timer)
+	draft_timer = null
 	var/datum/json_savefile/cyborg_customization/store = preferences.cyborg_layout_store()
 	if(!dirty && !store.write_pending)
 		return
@@ -801,9 +797,8 @@
  * other slots' pending writes still go out.
  */
 /datum/preference_middleware/cyborg_character/proc/commit_draft()
-	if(draft_timer)
-		deltimer(draft_timer)
-		draft_timer = null
+	deltimer(draft_timer)
+	draft_timer = null
 	var/datum/json_savefile/cyborg_customization/store = preferences.cyborg_layout_savefile
 	if(!dirty && !store?.write_pending)
 		return TRUE
@@ -833,9 +828,8 @@
 
 /** Releases draft ownership on explicit replacement or teardown, never on write failure. */
 /datum/preference_middleware/cyborg_character/proc/discard_draft()
-	if(draft_timer)
-		deltimer(draft_timer)
-		draft_timer = null
+	deltimer(draft_timer)
+	draft_timer = null
 	clear_preview_resources()
 	draft = null
 	draft_slot = null
@@ -874,9 +868,8 @@
 /// Cancel work and release private pixels immediately, without resetting admission time.
 /datum/preference_middleware/cyborg_character/proc/clear_preview_resources()
 	resource_generation++
-	if(resource_timer)
-		deltimer(resource_timer)
-		resource_timer = null
+	deltimer(resource_timer)
+	resource_timer = null
 	resources_pending = FALSE
 	preview_pending = FALSE
 	preview_resources = null
@@ -926,9 +919,8 @@
 	var/body_key = json_encode(list(preview_model, preview_direction, preview_pose, preview_moving))
 	var/new_key = json_encode(list(gallery_descriptor, body_key, layer_keys, part_keys))
 	if(new_key == resource_key && resource_catalog == catalog)
-		if(resource_timer)
-			deltimer(resource_timer)
-			resource_timer = null
+		deltimer(resource_timer)
+		resource_timer = null
 		resources_pending = FALSE
 		preview_pending = FALSE
 		return FALSE
@@ -954,9 +946,8 @@
 			occlusion_loading = TRUE
 			INVOKE_ASYNC(GLOBAL_PROC, GLOBAL_PROC_REF(cyborg_complete_editor_occlusion), WEAKREF(src), descriptor["icon"], descriptor["icon_state"])
 		return publish_gallery
-	if(resource_timer)
-		deltimer(resource_timer)
-		resource_timer = null
+	deltimer(resource_timer)
+	resource_timer = null
 	resources_pending = FALSE
 	preview_pending = FALSE
 	// Set admission before publishing: the forced full update can re-enter ui_data.

@@ -228,9 +228,9 @@
 	return result
 
 /**
- * Returns the editor preview's part layers, placed as the live renderer places them.
+ * Returns the editor preview's part layers without their art, placed as the live renderer places them.
  *
- * Every part shows, all in one arousal state.
+ * Every part shows, all in one arousal state. The window has the art in its resources already.
  *
  * Arguments:
  * * preferences - the character's preferences, for its part sprites
@@ -257,4 +257,5 @@
 	var/list/layers = cyborg_build_appearance(descriptor, layout, list("choices" = choices, "active" = active, "arousal" = arousal, "direction" = direction, "pose" = pose, "cached_icons" = cached_icons))
 	for(var/list/layer as anything in layers)
 		layer -= "resource"
+		layer -= "icon"
 	return layers

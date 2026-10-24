@@ -113,7 +113,7 @@
 	if(cyborg_appearance_model != model_id || !cyborg_appearance_layout)
 		cyborg_appearance_model = model_id
 		var/list/model_default = cyborg_appearance_model_default(model_id)
-		cyborg_appearance_layout = cyborg_layout_copy(model_default || cyborg_appearance_store["active"])
+		cyborg_appearance_layout = deep_copy_list(model_default || cyborg_appearance_store["active"])
 		cyborg_appearance_choices = cyborg_layout_choices(cyborg_appearance_layout, cyborg_appearance_base_choices || cyborg_appearance_choices)
 		for(var/slot in cyborg_layout_supported_slots())
 			if(isnull(LAZYACCESS(cyborg_appearance_active, slot)) && cyborg_appearance_choices[slot] && cyborg_appearance_choices[slot] != SPRITE_ACCESSORY_NONE)
@@ -154,10 +154,9 @@
 /mob/living/silicon/robot/proc/cyborg_customization_apply_size()
 	if(!model || HAS_TRAIT(src, TRAIT_NO_TRANSFORM))
 		return
-	var/list/catalog = cyborg_model_catalog()
 	var/model_id = model.cyborg_customization_id()
 	// A null would take the argument's default, TRUE, and give a chassis outside the catalog the cosmetic size.
-	var/effective = cyborg_effective_base_size(cyborg_appearance_requested_size, model.model_features, !!(model_id && catalog[model_id]))
+	var/effective = cyborg_effective_base_size(cyborg_appearance_requested_size, model.model_features, !!(model_id && cyborg_model_catalog()[model_id]))
 	if(effective == cyborg_appearance_applied_size)
 		return
 	// Remove only our previous factor. Hardware's existing transform remains intact.
@@ -194,8 +193,7 @@
 /proc/cyborg_body_visuals_visible(mob/living/silicon/robot/robot)
 	if(!robot || !robot.model || !robot.cyborg_appearance_allowed || CONFIG_GET(flag/disable_erp_preferences) || robot.stat == DEAD || HAS_TRAIT_FROM(robot, TRAIT_IMMOBILIZED, TIPPED_OVER))
 		return FALSE
-	var/list/catalog = cyborg_model_catalog()
-	var/list/descriptor = robot.cyborg_appearance_model ? catalog[robot.cyborg_appearance_model] : null
+	var/list/descriptor = robot.cyborg_appearance_model ? cyborg_model_catalog()[robot.cyborg_appearance_model] : null
 	if(!descriptor || robot.icon != descriptor["icon"] || robot.model.cyborg_base_icon != descriptor["icon_state"])
 		return FALSE
 	var/expected_state = descriptor["icon_state"]

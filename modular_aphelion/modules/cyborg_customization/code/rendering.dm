@@ -239,8 +239,7 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 	if(new_key == render_key)
 		return
 	render_key = new_key
-	var/list/catalog = cyborg_model_catalog()
-	var/list/descriptor = owner.cyborg_appearance_model ? catalog[owner.cyborg_appearance_model] : null
+	var/list/descriptor = owner.cyborg_appearance_model ? cyborg_model_catalog()[owner.cyborg_appearance_model] : null
 	// Disguises and non-player chassis do not reveal the underlying customization.
 	var/visible = cyborg_body_visuals_visible(owner)
 	render_layers = visible ? cyborg_build_appearance(descriptor, owner.cyborg_appearance_layout, list(
@@ -256,8 +255,8 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 			occlusion_loading = TRUE
 			INVOKE_ASYNC(GLOBAL_PROC, GLOBAL_PROC_REF(cyborg_complete_holder_occlusion), WEAKREF(src), descriptor["icon"], descriptor["icon_state"])
 	regenerate_image()
-	update_occlusion()
-	update_animation()
+	occlusion_image = replace_image(occlusion_image, build_occlusion())
+	animation_image = replace_image(animation_image, build_animation())
 
 /// Resolve the holder only after waiting. No owner, layout, or old image is captured.
 /proc/cyborg_complete_holder_occlusion(datum/weakref/holder_ref, source_file, base_state)

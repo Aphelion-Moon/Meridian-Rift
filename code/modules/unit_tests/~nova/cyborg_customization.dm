@@ -258,9 +258,9 @@
 	var/model_id = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")
 	var/list/store = cyborg_layout_default()
 	store["active"]["penis"]["pixel_x"] = 9
-	store["presets"]["Original"] = cyborg_layout_copy(store["active"])
+	store["presets"]["Original"] = deep_copy_list(store["active"])
 	store["preset_models"]["Original"] = model_id
-	store["model_defaults"][model_id] = cyborg_layout_copy(store["active"])
+	store["model_defaults"][model_id] = deep_copy_list(store["active"])
 	store["model_presets"][model_id] = "Original"
 	var/before = json_encode(store)
 	for(var/operation in list("set", "reset_position", "reset_colors", "reset_overrides", "reset", "save", "load", "delete", "assign_default", "save_default", "load_default", "delete_default"))
@@ -382,12 +382,12 @@
 	TEST_ASSERT(editor.set_preview(list("context" = editor.context_generation, "model" = model_id), null), "Selecting the model was rejected.")
 	var/list/draft = preferences.cyborg_session().begin_draft()
 	draft["active"]["penis"]["pixel_x"] = 7
-	var/list/model_default = cyborg_layout_copy(draft["active"])
+	var/list/model_default = deep_copy_list(draft["active"])
 	model_default["penis"]["pixel_x"] = 31
 	draft["model_defaults"][model_id] = model_default
 	var/unrelated_model = cyborg_appearance_model_id(/obj/item/robot_model/medical, "Drake")
-	draft["model_defaults"][unrelated_model] = cyborg_layout_copy(model_default)
-	draft["presets"]["Saved"] = cyborg_layout_copy(model_default)
+	draft["model_defaults"][unrelated_model] = deep_copy_list(model_default)
+	draft["presets"]["Saved"] = deep_copy_list(model_default)
 	TEST_ASSERT(preferences.cyborg_session().update_draft(draft), "The model-default fixture was not accepted.")
 	var/list/payload = editor.ui_data(null)["cyborg_customization"]
 	TEST_ASSERT_EQUAL(payload["store"]["presets"]["Saved"], TRUE, "The UI must receive preset names without saved layout bodies.")
@@ -425,7 +425,7 @@
 	payload = editor.ui_data(null)["cyborg_customization"]
 	TEST_ASSERT_EQUAL(payload["layout_source"], "active", "Deleting the selected model default did not fall back to the active source.")
 	draft = preferences.cyborg_session().begin_draft()
-	model_default = cyborg_layout_copy(draft["active"])
+	model_default = deep_copy_list(draft["active"])
 	model_default["penis"]["pixel_x"] = 31
 	draft["model_defaults"][model_id] = model_default
 	TEST_ASSERT(preferences.cyborg_session().update_draft(draft), "The model-default fixture could not be restored.")
@@ -627,7 +627,7 @@
 	TEST_ASSERT(!cyborg_runtime_actor_is_owner(robot, robot, 2), "A body bound to another owner must be rejected.")
 	robot.cyborg_appearance_owner = robot.ckey
 	robot.cyborg_appearance_store = cyborg_layout_default()
-	robot.cyborg_appearance_layout = cyborg_layout_copy(robot.cyborg_appearance_store["active"])
+	robot.cyborg_appearance_layout = deep_copy_list(robot.cyborg_appearance_store["active"])
 	LAZYSET(robot.cyborg_appearance_active, "penis", FALSE)
 	var/list/runtime_activate = list("operation" = "activate", "slot" = "penis", "value" = TRUE, "character_slot" = 1)
 	TEST_ASSERT(!robot.cyborg_runtime_action(runtime_activate, human), "A different actor must not enter the cyborg runtime action.")
@@ -839,10 +839,10 @@
 	var/list/draft = preferences.cyborg_session().begin_draft()
 	draft["active"]["penis"]["pixel_x"] = 11
 	var/other_model = cyborg_appearance_model_id(/obj/item/robot_model/service, "Drake")
-	var/list/other_default = cyborg_layout_copy(draft["active"])
+	var/list/other_default = deep_copy_list(draft["active"])
 	other_default["penis"]["pixel_x"] = 22
 	draft["model_defaults"][other_model] = other_default
-	draft["presets"]["Editor only"] = cyborg_layout_copy(draft["active"])
+	draft["presets"]["Editor only"] = deep_copy_list(draft["active"])
 	apply_cyborg_customization(robot, preferences)
 	TEST_ASSERT_NULL(robot.cyborg_appearance_store["presets"], "Spawn retained the editor's unused preset library.")
 	var/starting_size = robot.cyborg_appearance_requested_size
@@ -958,7 +958,7 @@
 	TEST_ASSERT_EQUAL(store["active_preset"], full_name, "Roundtrip lost the active preset name.")
 	TEST_ASSERT_EQUAL(store["model_presets"][model_a], full_name, "Roundtrip lost the named spawn assignment.")
 	var/before_copy = json_encode(store)
-	var/list/copied = cyborg_layout_copy(store)
+	var/list/copied = deep_copy_list(store)
 	copied["active"]["penis"]["pixel_x"] = 88
 	copied["model_defaults"][model_a]["penis"]["pixel_x"] = 99
 	TEST_ASSERT_EQUAL(json_encode(store), before_copy, "The stored copy aliased the editor draft.")

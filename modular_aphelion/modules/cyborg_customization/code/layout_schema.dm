@@ -74,10 +74,6 @@
 		slots[slot] = cyborg_layout_default_entry(slot)
 	return slots
 
-/// Returns a deep copy of a layout or layout tree
-/proc/cyborg_layout_copy(layout)
-	return deep_copy_list(layout)
-
 /// Returns a number clamped to its range and rounded to its step, or the default when it isn't one. Text numbers are read too
 /proc/cyborg_layout_number(value, minimum, maximum, default_value, step = 0.01)
 	if(istext(value))
@@ -87,10 +83,6 @@
 	// sanitize_float intentionally substitutes its default for out-of-range values.
 	// Layout input instead clamps at its declared schema boundary before rounding.
 	return sanitize_float(clamp(value, minimum, maximum), minimum, maximum, step, default_value)
-
-/// Returns a valid hex color, white when it isn't one
-/proc/cyborg_layout_color(value)
-	return sanitize_hexcolor(value, default = "#ffffff")
 
 /// Returns a part entry in canonical form, every field bounded and filled in, or the slot's defaults when raw isn't a list
 /proc/cyborg_layout_normalize_entry(raw, allow_legacy_aliases = FALSE, slot = null)
@@ -124,7 +116,7 @@
 	var/list/raw_colors = raw["colors"]
 	for(var/index in 1 to 3)
 		var/color = islist(raw_colors) && length(raw_colors) >= index ? raw_colors[index] : null
-		entry["colors"] += cyborg_layout_color(color)
+		entry["colors"] += sanitize_hexcolor(color, default = "#ffffff")
 	return entry
 
 /// Returns a part's overrides in canonical form. An import also expands donor pose-wide entries to each direction
@@ -139,14 +131,11 @@
 			normalized[key] = entry
 	if(allow_legacy_aliases)
 		// Donor files used one pose-wide entry. Import expands only recognized aliases.
+		var/static/list/pose_aliases = list("belly_up" = "bellyup", "deep_rest" = "rest_deep")
 		for(var/legacy_pose in list("rest", "sit", "bellyup", "belly_up", "rest_deep", "deep_rest", "rest_alt", "sit_alt"))
 			if((legacy_pose in supported) || !islist(raw[legacy_pose]))
 				continue
-			var/pose = legacy_pose
-			if(pose == "belly_up")
-				pose = "bellyup"
-			else if(pose == "deep_rest")
-				pose = "rest_deep"
+			var/pose = pose_aliases[legacy_pose] || legacy_pose
 			var/list/legacy_entry = cyborg_layout_normalize_advanced_entry(raw[legacy_pose])
 			if(!legacy_entry)
 				continue
@@ -290,14 +279,12 @@
 /proc/cyborg_identity_import_sanitize_slot(list/slot)
 	if(!islist(slot))
 		return
-	if("headshot_silicon" in slot)
-		if(!("silicon_headshot" in slot))
-			slot["silicon_headshot"] = slot["headshot_silicon"]
-		slot -= "headshot_silicon"
-	if("headshot_silicon_nsfw" in slot)
-		if(!("silicon_headshot_nsfw" in slot))
-			slot["silicon_headshot_nsfw"] = slot["headshot_silicon_nsfw"]
-		slot -= "headshot_silicon_nsfw"
+	for(var/donor_key, key in list("headshot_silicon" = "silicon_headshot", "headshot_silicon_nsfw" = "silicon_headshot_nsfw"))
+		if(!(donor_key in slot))
+			continue
+		if(!(key in slot))
+			slot[key] = slot[donor_key]
+		slot -= donor_key
 	slot -= "silicon_genital_layout_presets"
 
 #undef CYBORG_LAYOUT_MIN_ROTATION
