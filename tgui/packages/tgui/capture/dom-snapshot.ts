@@ -1,6 +1,7 @@
 // THIS IS AN APHELION UI FILE
 
 import type { Reason } from './overlay';
+import { createStyleCopier } from './style-copy';
 import { cloneNode } from './vendor/clone-node';
 import { embedImages } from './vendor/embed-images';
 import { embedWebFonts } from './vendor/embed-webfonts';
@@ -82,20 +83,22 @@ export async function renderUiSnapshot(
   // A stuck snapshot can still be drawing, so we mark with values of our own and take off only the marks still ours
   const snapshot = ++snapshots;
   const marks = scrolling.map((_, index) => `${snapshot}-${index}`);
+  // Computed values already have every var() filled in, so a variable only adds size, and the Aphelion
+  // theme's inherited images made that 125 KB a node
+  const names = Array.from(getComputedStyle(document.documentElement)).filter(
+    (name) =>
+      !name.startsWith('--') &&
+      !STILL_IRRELEVANT.test(name) &&
+      !LEGACY_SHORTHANDS.has(name),
+  );
+  // Each clone carries only what its SVG wouldn't compute anyway, which made the SVG about a tenth the size
+  const copier = createStyleCopier(root, nodes, names);
   const options: Options = {
     width,
     height,
     pixelRatio: 1,
-    // Computed values already have every var() filled in, so a variable only adds size, and the Aphelion
-    // theme's inherited images made that 125 KB a node
-    includeStyleProperties: Array.from(
-      getComputedStyle(document.documentElement),
-    ).filter(
-      (name) =>
-        !name.startsWith('--') &&
-        !STILL_IRRELEVANT.test(name) &&
-        !LEGACY_SHORTHANDS.has(name),
-    ),
+    includeStyleProperties: names,
+    copier,
     fetchRequestInit: { signal: controller.signal, credentials: 'same-origin' },
     filter: (node) =>
       !['SCRIPT', 'IFRAME', 'VIDEO'].includes(node.tagName) &&
@@ -154,6 +157,7 @@ export async function renderUiSnapshot(
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
     return canvas;
   } finally {
+    copier?.release();
     clearTimeout(timeout);
     scrolling.forEach((node, index) => {
       if (node.getAttribute(SCROLL_MARKER) === marks[index]) {

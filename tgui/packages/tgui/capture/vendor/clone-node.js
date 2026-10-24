@@ -56,12 +56,15 @@ async function cloneChildren(nativeNode, clonedNode, options) {
         return clonedNode;
     }
     let children = [];
+    // Meridian: the node a child inherits from, for the style copier; an iframe's body children start afresh
+    let inheritsFrom = nativeNode;
     if (isSlotElement(nativeNode) && nativeNode.assignedNodes) {
         children = toArray(nativeNode.assignedNodes());
     }
     else if (isInstanceOfElement(nativeNode, HTMLIFrameElement) &&
         ((_a = nativeNode.contentDocument) === null || _a === void 0 ? void 0 : _a.body)) {
         children = toArray(nativeNode.contentDocument.body.childNodes);
+        inheritsFrom = null;
     }
     else {
         children = toArray(((_b = nativeNode.shadowRoot) !== null && _b !== void 0 ? _b : nativeNode).childNodes);
@@ -71,7 +74,7 @@ async function cloneChildren(nativeNode, clonedNode, options) {
         return clonedNode;
     }
     await children.reduce((deferred, child) => deferred
-        .then(() => cloneNode(child, options))
+        .then(() => cloneNode(child, options, false, inheritsFrom))
         .then((clonedChild) => {
         if (clonedChild) {
             clonedNode.appendChild(clonedChild);
@@ -79,7 +82,22 @@ async function cloneChildren(nativeNode, clonedNode, options) {
     }), Promise.resolve());
     return clonedNode;
 }
-function cloneCSSStyle(nativeNode, clonedNode, options) {
+function writeStyle(clonedNode, isFrame, name, value, priority) {
+    if (name === 'font-size' && value.endsWith('px')) {
+        const reducedFont = Math.floor(parseFloat(value.substring(0, value.length - 2))) - 0.1;
+        value = `${reducedFont}px`;
+    }
+    if (isFrame &&
+        name === 'display' &&
+        value === 'inline') {
+        value = 'block';
+    }
+    if (name === 'd' && clonedNode.getAttribute('d')) {
+        value = `path(${clonedNode.getAttribute('d')})`;
+    }
+    clonedNode.style.setProperty(name, value, priority);
+}
+function cloneCSSStyle(nativeNode, clonedNode, options, parentNode) {
     const targetStyle = clonedNode.style;
     if (!targetStyle) {
         return;
@@ -88,25 +106,26 @@ function cloneCSSStyle(nativeNode, clonedNode, options) {
     if (sourceStyle.cssText) {
         targetStyle.cssText = sourceStyle.cssText;
         targetStyle.transformOrigin = sourceStyle.transformOrigin;
+        return;
     }
-    else {
-        getStyleProperties(options).forEach((name) => {
-            let value = sourceStyle.getPropertyValue(name);
-            if (name === 'font-size' && value.endsWith('px')) {
-                const reducedFont = Math.floor(parseFloat(value.substring(0, value.length - 2))) - 0.1;
-                value = `${reducedFont}px`;
-            }
-            if (isInstanceOfElement(nativeNode, HTMLIFrameElement) &&
-                name === 'display' &&
-                value === 'inline') {
-                value = 'block';
-            }
-            if (name === 'd' && clonedNode.getAttribute('d')) {
-                value = `path(${clonedNode.getAttribute('d')})`;
-            }
-            targetStyle.setProperty(name, value, sourceStyle.getPropertyPriority(name));
+    // Meridian: asked once a node; it was asked once a property, walking the prototype chain each time
+    const isFrame = isInstanceOfElement(nativeNode, HTMLIFrameElement);
+    // Meridian: with a style copier, only the properties the SVG wouldn't compute anyway
+    const list = options.copier
+        ? options.copier.element(nativeNode, clonedNode, parentNode || null)
+        : null;
+    if (list) {
+        list.drop.forEach((name) => {
+            targetStyle.removeProperty(name);
         });
+        list.names.forEach((name, index) => {
+            writeStyle(clonedNode, isFrame, name, list.values[index], '');
+        });
+        return;
     }
+    getStyleProperties(options).forEach((name) => {
+        writeStyle(clonedNode, isFrame, name, sourceStyle.getPropertyValue(name), sourceStyle.getPropertyPriority(name));
+    });
 }
 function cloneInputValue(nativeNode, clonedNode) {
     if (isInstanceOfElement(nativeNode, HTMLTextAreaElement)) {
@@ -125,12 +144,15 @@ function cloneSelectValue(nativeNode, clonedNode) {
         }
     }
 }
-function decorate(nativeNode, clonedNode, options) {
+function decorate(nativeNode, clonedNode, options, parentNode) {
     if (isInstanceOfElement(clonedNode, Element)) {
-        cloneCSSStyle(nativeNode, clonedNode, options);
+        cloneCSSStyle(nativeNode, clonedNode, options, parentNode);
         clonePseudoElements(nativeNode, clonedNode, options);
         cloneInputValue(nativeNode, clonedNode);
         cloneSelectValue(nativeNode, clonedNode);
+        if (options.copier) {
+            options.copier.done(nativeNode);
+        }
     }
     return clonedNode;
 }
@@ -171,14 +193,14 @@ async function ensureSVGSymbols(clone, options) {
     }
     return clone;
 }
-export async function cloneNode(node, options, isRoot) {
+export async function cloneNode(node, options, isRoot, parentNode) {
     if (!isRoot && options.filter && !options.filter(node)) {
         return null;
     }
     return Promise.resolve(node)
         .then((clonedNode) => cloneSingleNode(clonedNode, options))
         .then((clonedNode) => cloneChildren(node, clonedNode, options))
-        .then((clonedNode) => decorate(node, clonedNode, options))
+        .then((clonedNode) => decorate(node, clonedNode, options, isRoot ? null : parentNode))
         .then((clonedNode) => ensureSVGSymbols(clonedNode, options));
 }
 //# sourceMappingURL=clone-node.js.map

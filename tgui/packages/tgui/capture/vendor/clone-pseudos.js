@@ -19,12 +19,22 @@ function getPseudoElementStyle(className, pseudo, style, options) {
         : formatCSSProperties(style, options);
     return document.createTextNode(`${selector}{${cssText}}`);
 }
+// Meridian: the copier's properties in the rule text formatCSSProperties writes
+function formatCopyList(list) {
+    return list.names.map((name, index) => `${name}: ${list.values[index]};`).join(' ');
+}
 function clonePseudoElement(nativeNode, clonedNode, pseudo, options) {
+    const copier = options.copier;
+    // Meridian: no style could give this pseudo-element content, so its style isn't computed
+    if (copier && !copier.mayHave(nativeNode, pseudo)) {
+        return;
+    }
     const style = window.getComputedStyle(nativeNode, pseudo);
     const content = style.getPropertyValue('content');
     if (content === '' || content === 'none') {
         return;
     }
+    const list = copier && !style.cssText ? copier.pseudo(nativeNode, clonedNode, pseudo, style) : null;
     const className = uuid();
     try {
         clonedNode.className = `${clonedNode.className} ${className}`;
@@ -33,7 +43,9 @@ function clonePseudoElement(nativeNode, clonedNode, pseudo, options) {
         return;
     }
     const styleElement = document.createElement('style');
-    styleElement.appendChild(getPseudoElementStyle(className, pseudo, style, options));
+    styleElement.appendChild(list
+        ? document.createTextNode(`.${className}:${pseudo}{${formatCopyList(list)}}`)
+        : getPseudoElementStyle(className, pseudo, style, options));
     clonedNode.appendChild(styleElement);
 }
 export function clonePseudoElements(nativeNode, clonedNode, options) {

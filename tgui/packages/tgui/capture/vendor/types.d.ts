@@ -1,4 +1,9 @@
+import type { StyleCopier } from '../style-copy';
 export interface Options {
+    /**
+     * Meridian: which computed styles each clone carries; without it every kept property is copied onto every node
+     */
+    copier?: StyleCopier | null;
     /**
      * Width in pixels to be applied to node before rendering.
      */
