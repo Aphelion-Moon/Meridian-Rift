@@ -88,34 +88,36 @@ export const MainContent = () => {
             />
           </Tabs>
         </Stack.Item>
-        <Stack.Item>
-          <Stack align="baseline" fill>
-            <Stack.Item>
-              <Icon name="search" />
-            </Stack.Item>
-            <Stack.Item grow>
-              <Input
-                fluid
-                width="200px"
-                value={searchText}
-                placeholder={placeholder}
-                onChange={(value) => setSearchText(value)}
-              />
-            </Stack.Item>
-            {tabIndex === InteractionTab.Interactions && (
+        {tabIndex !== InteractionTab.CyborgCustomization && (
+          <Stack.Item>
+            <Stack align="baseline" fill>
               <Stack.Item>
-                <Button
-                  icon={showCategories ? 'folder' : 'list'}
-                  color="green"
-                  tooltip={
-                    showCategories ? 'Hide Categories' : 'Show Categories'
-                  }
-                  onClick={() => setShowCategories(!showCategories)}
+                <Icon name="search" />
+              </Stack.Item>
+              <Stack.Item grow>
+                <Input
+                  fluid
+                  width="200px"
+                  value={searchText}
+                  placeholder={placeholder}
+                  onChange={(value) => setSearchText(value)}
                 />
               </Stack.Item>
-            )}
-          </Stack>
-        </Stack.Item>
+              {tabIndex === InteractionTab.Interactions && (
+                <Stack.Item>
+                  <Button
+                    icon={showCategories ? 'folder' : 'list'}
+                    color="green"
+                    tooltip={
+                      showCategories ? 'Hide Categories' : 'Show Categories'
+                    }
+                    onClick={() => setShowCategories(!showCategories)}
+                  />
+                </Stack.Item>
+              )}
+            </Stack>
+          </Stack.Item>
+        )}
         <Stack.Item grow mb={-1.6}>
           <Section fill>
             {tabIndex === InteractionTab.CyborgCustomization ? (

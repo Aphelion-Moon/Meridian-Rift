@@ -52,6 +52,10 @@
 		robot.cyborg_appearance_layout = null
 		robot.cyborg_appearance_active = list()
 		QDEL_NULL(robot.cyborg_appearance_holder)
+		// The borg's own interaction panel has no controls left to show, so we close it. A null src_object would close every window it has open
+		var/datum/component/interactable/panel = robot.GetComponent(/datum/component/interactable)
+		if(panel)
+			SStgui.close_user_uis(robot, panel)
 		robot.cyborg_customization_message = "This character has a newer layout schema. Its saved data has been preserved."
 		return
 	var/same_owner = robot.cyborg_appearance_owner == owner && robot.cyborg_appearance_slot == preferences.default_slot
