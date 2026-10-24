@@ -305,6 +305,9 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 	if(preference == "see_cyborg_genitalia")
 		for(var/obj/effect/client_image_holder/cyborg_customization/holder as anything in GLOB.cyborg_customization_holders)
 			holder.refresh_viewer(user)
+	// Character setup and the editor's window can both change what the editor shows, so we refresh it last, after the draft
+	if(editor_open)
+		SStgui.update_uis(src)
 
 /// A configuration reload must revoke existing images, including idle owners.
 /datum/controller/configuration/admin_reload()

@@ -167,11 +167,6 @@
 	// post_set_preference() already refreshed this window
 	return FALSE
 
-/datum/preference_middleware/cyborg_character/post_set_preference(mob/user, preference, value)
-	// Character setup and this window can both change what the editor shows
-	if(editor_open)
-		SStgui.update_uis(src)
-
 /// The values of the editor's preferences, as character setup sends them. A preference this character can't have is left out.
 /datum/preference_middleware/cyborg_character/proc/editor_preference_values(mob/user)
 	var/list/values
