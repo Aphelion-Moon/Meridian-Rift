@@ -522,6 +522,11 @@
 	TEST_ASSERT(cyborg_test_run_queued_save(store), "A due save did not run.")
 	TEST_ASSERT_EQUAL(store.last_written["character1"]["active"]["penis"]["placement_groups"]["south"]["pixel_x"], 62, "The due save did not write the latest edit.")
 	TEST_ASSERT(!editor.dirty, "The due save was not acknowledged.")
+	// A store that goes writes what it has and leaves the queue.
+	var/datum/json_savefile/cyborg_customization/leaving = new(null)
+	leaving.request_save()
+	qdel(leaving)
+	TEST_ASSERT(!(leaving in SScyborg_layout_saves.queue), "A destroyed store stayed in the save queue.")
 
 /// The part cache never changes what is saved: action results reuse unchanged parts' text, and raw draft updates drop it.
 /datum/unit_test/cyborg_encode_cache

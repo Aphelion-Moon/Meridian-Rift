@@ -39,8 +39,6 @@ SUBSYSTEM_DEF(cyborg_layout_saves)
 	while(index < length(queue) && overrun_budget > 0)
 		index++
 		var/datum/json_savefile/cyborg_customization/store = queue[index]
-		if(QDELETED(store))
-			continue
 		if(store.path && time < store.next_write_at)
 			LAZYADD(spaced, store)
 			continue

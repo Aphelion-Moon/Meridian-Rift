@@ -32,7 +32,9 @@
 	write_oversized = FALSE
 	return ..()
 
+/// A store that goes owes no queued save - it writes what it has here
 /datum/json_savefile/cyborg_customization/Destroy()
+	SScyborg_layout_saves.queue -= src
 	flush_pending(force = TRUE)
 	preferences_ref = null
 	return ..()
