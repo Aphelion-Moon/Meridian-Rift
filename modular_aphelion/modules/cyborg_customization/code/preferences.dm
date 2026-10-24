@@ -7,6 +7,7 @@
 	should_update_preview = FALSE
 	can_randomize = FALSE
 	abstract_type = /datum/preference/choiced/cyborg_sprite
+	/// The organ slot whose sprite accessories this preference offers
 	var/accessory_slot
 
 /datum/preference/choiced/cyborg_sprite/init_possible_values()

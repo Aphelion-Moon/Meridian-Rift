@@ -1,12 +1,19 @@
 /// Real admission/queue/cleanup with a yielding, instrumented generation operation.
 /datum/asset/cyborg_occlusion/demand_test
 	abstract_type = /datum/asset/cyborg_occlusion/demand_test
+	/// How many times each model key was generated
 	var/list/calls = list()
+	/// Every staging file the jobs made, so the test can check they're gone
 	var/list/temporary_paths = list()
+	/// Model keys whose generation throws
 	var/list/fail_keys = list()
+	/// How many jobs are running right now
 	var/active_jobs = 0
+	/// The most jobs that ever ran at once
 	var/max_active_jobs = 0
+	/// Whether or not a job was ever handed another model's states
 	var/foreign_state_seen = FALSE
+	/// How many failures reached report_generation_failure()
 	var/reported_failures = 0
 
 /datum/asset/cyborg_occlusion/demand_test/generate_model(list/model, prefix, list/temporary_files)
@@ -50,9 +57,13 @@
 	qdel(asset)
 
 /datum/unit_test/cyborg_occlusion_demand_concurrency
+	/// How many requests finished, with a resource or a failure
 	var/completions = 0
+	/// How many requests got a resource
 	var/successes = 0
+	/// How many requests got a failure
 	var/failures = 0
+	/// The exception the last failed request caught
 	var/exception/last_failure
 
 /datum/unit_test/cyborg_occlusion_demand_concurrency/proc/request(datum/asset/cyborg_occlusion/asset, list/model)

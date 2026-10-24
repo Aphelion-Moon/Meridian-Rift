@@ -17,6 +17,7 @@
 	return length(frames) ? frames[1] : null
 
 /obj/effect/client_image_holder/cyborg_customization
+	/// The chassis mask image viewers see with the parts, null while there is none
 	var/image/occlusion_image
 	/// Private native DMI carrier; its movement frames run on the chassis's client clock.
 	var/image/animation_image
@@ -135,12 +136,19 @@
  * The queue/cache never retain owners, preferences, callbacks or color variants.
  */
 /datum/asset/cyborg_occlusion
+	/// The finished mask of each chassis by its icon#state key, kept for the round
 	var/list/resources
+	/// What each chassis's mask is built from (source file, base state, size and states) by its icon#state key
 	var/list/model_sources
+	/// Keys of the masks being built or queued, so a second request waits instead of building again
 	var/list/pending = list()
+	/// The exception each failed mask threw by its key, thrown again to later requests
 	var/list/failures = list()
+	/// Keys waiting for the worker, oldest first
 	var/list/queue = list()
+	/// Whether or not the worker is running, so a new request only queues
 	var/worker_running = FALSE
+	/// Counts the worker's jobs, which keeps each job's temporary file names apart
 	var/job_serial = 0
 
 /datum/asset/cyborg_occlusion/register()

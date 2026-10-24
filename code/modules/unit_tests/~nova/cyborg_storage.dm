@@ -2,7 +2,9 @@
 /datum/unit_test/cyborg_storage_fixture
 	parent_type = /datum/unit_test/cyborg_mock_preferences
 	abstract_type = /datum/unit_test/cyborg_storage_fixture
+	/// Catalog id of the engineering Drake chassis, set by make_editor()
 	var/model_a
+	/// Catalog id of the service Drake chassis, set by make_editor()
 	var/model_b
 
 /// With a sidecar path the editor saves through the real store; without one, to a double that records its writes.
@@ -350,6 +352,7 @@
 /// last good contents until there is room; save() refuses a bigger tree whatever put it there.
 /datum/unit_test/cyborg_sidecar_size_limit
 	parent_type = /datum/unit_test/cyborg_storage_fixture
+	/// The test's own sidecar file, deleted before and after it runs
 	var/sidecar_path = "data/cyborg_sidecar_size_limit_test.json"
 
 /datum/unit_test/cyborg_sidecar_size_limit/Destroy()
@@ -386,6 +389,7 @@
 /// A sidecar already past the limit on disk is neither decoded nor written over, and the editor says why.
 /datum/unit_test/cyborg_sidecar_refuses_oversized_file
 	parent_type = /datum/unit_test/cyborg_storage_fixture
+	/// The test's own sidecar file, deleted after it runs
 	var/sidecar_path = "data/cyborg_sidecar_oversized_file_test.json"
 
 /datum/unit_test/cyborg_sidecar_refuses_oversized_file/Destroy()
@@ -452,6 +456,7 @@
 /// An import replaces every character's layouts: the old ones go, and one too big for its character is left out.
 /datum/unit_test/cyborg_import_replaces_old_layouts
 	parent_type = /datum/unit_test/cyborg_storage_fixture
+	/// The test's own account folder, deleted after it runs
 	var/account_path = "data/player_saves/c/cyborgimportlimittest/"
 
 /datum/unit_test/cyborg_import_replaces_old_layouts/Destroy()

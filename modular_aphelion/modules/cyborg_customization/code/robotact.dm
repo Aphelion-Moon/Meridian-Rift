@@ -1,4 +1,5 @@
 /mob/living/silicon/robot
+	/// What the borg's own part controls tell it, like why they can't be used
 	var/cyborg_customization_message
 
 /mob/living/silicon/robot/proc/cyborg_runtime_data()

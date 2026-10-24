@@ -3,33 +3,51 @@
 	key = "cyborg_character"
 	/// Whether the editor's window is open
 	var/editor_open = FALSE
+	/// Catalog id of the chassis the preview shows
 	var/preview_model
+	/// Which layout the preview shows - active, or the chassis's model_default
 	var/preview_layout_source = "active"
+	/// The direction the preview faces
 	var/preview_direction = SOUTH
+	/// The pose the preview shows, like idle or rest
 	var/preview_pose = "idle"
+	/// The arousal state the preview shows the parts in
 	var/preview_arousal = "none"
+	/// Whether or not the preview shows the chassis moving
 	var/preview_moving = FALSE
+	/// Whether or not the model gallery is open
 	var/gallery_open = FALSE
+	/// The department the model gallery shows
 	var/gallery_department
+	/// The part slot the editor's controls are on
 	var/selected_part = "penis"
+	/// What the editor tells the player about their last edit, like why it was refused
 	var/status_message
 	/// Per-session private resource payload and its pixel-only dependency key.
 	var/list/preview_resources
+	/// Everything the preview resources were built from, or denied or unsupported while we show none
 	var/resource_key
 	/// Only the current six images/metadata are retained; shared FIFO eviction is harmless.
 	var/list/resource_layer_keys
+	/// Each part slot's key in the current resources, so an unchanged part keeps its art
 	var/list/resource_part_keys
+	/// The model catalog the current resources were built from
 	var/list/resource_catalog
+	/// The chassis, direction, pose and movement the current resources show
 	var/resource_body_key
 	/// One latest-state refresh, with a deadline that survives close/reopen and slot changes.
 	var/resource_timer
+	/// Goes up whenever the resources are cleared, so older waits and timers give up
 	var/resource_generation = 0
+	/// The earliest world.time the next resource build may run, a second after the last one
 	var/resource_refresh_at = 0
+	/// Whether or not newer resources are waiting to be built, which the editor shows
 	var/resources_pending = FALSE
 	/// Metadata/gallery work must not interrupt placement against unchanged stage pixels.
 	var/preview_pending = FALSE
 	/// One public model load per editor; survives close/slot changes until it finishes.
 	var/occlusion_loading = FALSE
+	/// The icon#state key of a chassis whose mask failed to build, so we say so instead of trying again
 	var/occlusion_failed_key
 	/// Bounded view fields keep the old pixels and geometry coherent during a refresh.
 	var/list/rendered_preview
@@ -56,6 +74,7 @@
 	var/list/encoded_parts
 	/// Why the draft would pass its character's or the account's limit, so it stays unstaged until edits shrink it.
 	var/full_message
+	/// Whether or not the account has no file, so its saves only last this session
 	var/session_only = FALSE
 	/// A retryable write or staging failure, kept across UI close/reopen.
 	var/save_error

@@ -2,13 +2,19 @@
 /// private layouts. Keep file resources and small indexes, not duplicate JSON lists.
 /datum/asset/cyborg_model_gallery
 	early = TRUE
+	/// The model catalog the gallery was last built from
 	var/list/catalog
+	/// Hash of the gallery's contents, which names its asset files
 	var/generation
+	/// Asset name of the gallery's model list
 	var/catalog_asset
+	/// Asset name of each department's thumbnails, by department
 	var/list/department_assets = list()
 	/// Owned resources are registered only on acquisition, avoiding global preloading.
 	var/list/assets = list()
+	/// Whether or not a build is running, so everyone else waits for it
 	var/generating = FALSE
+	/// The exception the last build threw, thrown again to everyone who waits on the gallery
 	var/exception/generation_failure
 
 /datum/asset/cyborg_model_gallery/register()

@@ -2,12 +2,15 @@
 /datum/json_savefile/cyborg_customization
 	/// Pending durability belongs to the account, not whichever character is open now.
 	var/write_pending = FALSE
+	/// Whether or not the last write failed, which leaves the tree pending
 	var/write_failed = FALSE
 	/// The last write was refused because the whole tree encodes past CYBORG_LAYOUT_MAX_SIDECAR_BYTES.
 	var/write_oversized = FALSE
 	/// The file on disk was past CYBORG_LAYOUT_MAX_SIDECAR_BYTES, so it was not read and is never overwritten.
 	var/read_refused = FALSE
+	/// The earliest world.time the next write may run, CYBORG_LAYOUT_SAVE_SPACING after the last one
 	var/next_write_at = 0
+	/// The preferences that own this store, so a finished write can tell their editor
 	var/datum/weakref/preferences_ref
 
 /// Writes the tree now if it has unsaved changes. Inside the account's spacing, SScyborg_layout_saves writes it later

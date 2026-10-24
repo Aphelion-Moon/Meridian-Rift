@@ -1,3 +1,4 @@
+/// Every borg's part image holder, so a viewer's preference or a config reload reaches them all
 GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 
 /// Diagonals deterministically use the north/south component, then east/west.
@@ -104,11 +105,15 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 
 /obj/effect/client_image_holder/cyborg_customization
 	persist_without_seers = TRUE
+	/// The borg whose parts we show
 	var/mob/living/silicon/robot/owner
+	/// Everything the parts were last drawn from, so an update that changes none of it does nothing
 	var/render_key
+	/// The part layers last built for the owner, empty while they're hidden or waiting on a mask
 	var/list/render_layers = list()
 	/// At most one weak completion is outstanding, regardless of appearance churn.
 	var/occlusion_loading = FALSE
+	/// The icon#state key of a chassis whose mask failed to build, so we don't try it again
 	var/occlusion_failed_key
 
 /obj/effect/client_image_holder/cyborg_customization/Initialize(mapload, list/mobs_which_see_us)

@@ -3,7 +3,9 @@
 /// Counts preference reads and saves, so rejected requests can be shown to do no work.
 /datum/preferences/cyborg_save_failure_test
 	parent_type = /datum/preferences/preferences_import_test
+	/// How many times save_preferences() ran
 	var/save_preferences_calls = 0
+	/// How many times a cyborg sprite preference was read
 	var/sprite_reads = 0
 
 /datum/preferences/cyborg_save_failure_test/read_preference(preference_type)
@@ -17,6 +19,7 @@
 
 /// Injects sidecar write failures without touching player files.
 /datum/json_savefile/cyborg_customization/write_failure_test
+	/// Whether or not save() fails
 	var/fail_writes = FALSE
 
 /datum/json_savefile/cyborg_customization/write_failure_test/save()
@@ -117,9 +120,13 @@
 /// Keep mock connections out of real registries and detach them on every exit path.
 /datum/unit_test/cyborg_mock_preferences
 	abstract_type = /datum/unit_test/cyborg_mock_preferences
+	/// GLOB.preferences_datums from before the test, so we can put it back
 	var/list/previous_preferences
+	/// GLOB.directory from before the test, so we can put it back
 	var/list/previous_directory
+	/// GLOB.persistent_clients_by_ckey from before the test, so we can put it back
 	var/list/previous_persistent_clients
+	/// GLOB.persistent_clients from before the test, so we can put it back
 	var/list/previous_persistent_client_list
 
 /datum/unit_test/cyborg_mock_preferences/New()
@@ -1026,8 +1033,11 @@
 
 /// Regression coverage for failed-write ownership, backend close and forced model installation.
 /datum/json_savefile/cyborg_customization/review_failure_store
+	/// Whether or not save() fails
 	var/fail_writes = FALSE
+	/// How many times save() ran
 	var/write_attempts = 0
+	/// How many of those writes went through
 	var/successful_writes = 0
 	/// Character key -> the tree that write held, save text decoded.
 	var/list/last_written
@@ -1404,9 +1414,13 @@
 /// Pause public resource readiness without native jobs or retained private state.
 /datum/asset/cyborg_occlusion/consumer_wait_test
 	abstract_type = /datum/asset/cyborg_occlusion/consumer_wait_test
+	/// Whether or not waiting requests may finish
 	var/released = FALSE
+	/// How many readiness requests came in
 	var/calls = 0
+	/// Whether or not a request throws once it's released
 	var/fail = FALSE
+	/// The resource each icon#state key gets once released
 	var/list/ready_resources
 
 /datum/asset/cyborg_occlusion/consumer_wait_test/ensure_model_ready(source_file, base_state)
@@ -1745,8 +1759,11 @@
 /// Force the native acquisition wait without network clients or private snapshots.
 /datum/asset/cyborg_model_gallery/acquisition_wait_test
 	abstract_type = /datum/asset/cyborg_model_gallery/acquisition_wait_test
+	/// Whether or not waiting sends may finish
 	var/released = FALSE
+	/// How many sends came in
 	var/calls = 0
+	/// The department the last send asked for
 	var/last_department
 
 /datum/asset/cyborg_model_gallery/acquisition_wait_test/register()

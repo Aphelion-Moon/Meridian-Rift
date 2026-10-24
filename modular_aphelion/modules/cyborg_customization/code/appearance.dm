@@ -1,18 +1,33 @@
 /mob/living/silicon/robot
+	/// The spawn snapshot of the character's layouts (see cyborg_body_snapshot()), null when the slot holds a newer schema
 	var/list/cyborg_appearance_store
+	/// The layout the body shows now - its chassis's saved default, or else the active layout
 	var/list/cyborg_appearance_layout
+	/// The sprite each part slot shows, from the current layout or else the character's preferences
 	var/list/cyborg_appearance_choices
+	/// The sprite for each part slot from the character's preferences, for layouts that don't carry their own
 	var/list/cyborg_appearance_base_choices
+	/// Which part slots the borg has turned on, by slot
 	var/list/cyborg_appearance_active = list()
+	/// The arousal state of each part slot, by slot. A slot that isn't here is none
 	var/list/cyborg_appearance_arousal = list()
+	/// Catalog id of the chassis the current layout was picked for
 	var/cyborg_appearance_model
+	/// The body size the character's preferences ask for
 	var/cyborg_appearance_requested_size = 1
+	/// The size factor we last applied to the transform, so a change undoes only ours
 	var/cyborg_appearance_applied_size = 1
+	/// The character slot the spawn snapshot came from
 	var/cyborg_appearance_slot
+	/// Ckey of the player whose preferences the spawn snapshot came from
 	var/cyborg_appearance_owner
+	/// Goes up with every change that needs the parts redrawn, and is part of the holder's render key
 	var/cyborg_appearance_revision = 0
+	/// Whether or not the parts may show at all - the config, the character's genitals toggle and the player's ERP preference together
 	var/cyborg_appearance_allowed = FALSE
+	/// Whether or not the spawn character allows genitals
 	var/cyborg_appearance_character_allowed = FALSE
+	/// The image holder that shows the parts to viewers
 	var/obj/effect/client_image_holder/cyborg_customization/cyborg_appearance_holder
 
 /// Read by canonical savefile key without introducing a second preference registry.

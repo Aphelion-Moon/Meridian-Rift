@@ -12,20 +12,30 @@
  * Unset trailing fields are left out everywhere. Appending to these orders is fine; reordering breaks saved slots.
  */
 
+/// Save text format version, the first value in every slot's text
 #define CYBORG_CODEC_VERSION 2
 
+/// Mask bit - the part's pixel_x follows
 #define CYBORG_PART_PIXEL_X (1<<0)
+/// Mask bit - the part's pixel_y follows
 #define CYBORG_PART_PIXEL_Y (1<<1)
+/// Mask bit - the part's rotation follows
 #define CYBORG_PART_ROTATION (1<<2)
+/// Mask bit - the part's scale follows
 #define CYBORG_PART_SCALE (1<<3)
+/// Mask bit - the part's sprite size follows, when it isn't its slot's default
 #define CYBORG_PART_SPRITE_SIZE (1<<4)
 /// No value follows; the bit alone turns mirror_sides off.
 #define CYBORG_PART_NO_MIRROR (1<<5)
 /// No value follows; the bit alone turns reuse_south on.
 #define CYBORG_PART_REUSE_SOUTH (1<<6)
+/// Mask bit - the part's three colors follow, when they aren't all white
 #define CYBORG_PART_COLORS (1<<7)
+/// Mask bit - the part's north, south and side placement group positions follow
 #define CYBORG_PART_GROUPS (1<<8)
+/// Mask bit - the part's encoded overrides follow
 #define CYBORG_PART_ADVANCED (1<<9)
+/// Mask bit - the part's own sprite choice follows
 #define CYBORG_PART_SPRITE (1<<10)
 
 /// Override fields in header bit order, with what the editor fills a new override with.

@@ -1,3 +1,16 @@
+/// The lowest rotation a part can have, in degrees
+#define CYBORG_LAYOUT_MIN_ROTATION -180
+/// The highest rotation a part can have, in degrees
+#define CYBORG_LAYOUT_MAX_ROTATION 180
+/// The smallest scale a part can have, as a multiple of its art's size
+#define CYBORG_LAYOUT_MIN_SCALE 0.25
+/// The largest scale a part can have, as a multiple of its art's size
+#define CYBORG_LAYOUT_MAX_SCALE 2
+/// The lowest layer order a part can have, which draws it under the other parts
+#define CYBORG_LAYOUT_MIN_PRIORITY 1
+/// The highest layer order a part can have, which draws it over the other parts
+#define CYBORG_LAYOUT_MAX_PRIORITY 10
+
 /// Save texts store parts by their place here, so only append.
 /proc/cyborg_layout_supported_slots()
 	return list("penis", "sheath", "testicles", "vagina", "anus", "breasts")
@@ -274,3 +287,10 @@
 			slot["silicon_headshot_nsfw"] = slot["headshot_silicon_nsfw"]
 		slot -= "headshot_silicon_nsfw"
 	slot -= "silicon_genital_layout_presets"
+
+#undef CYBORG_LAYOUT_MIN_ROTATION
+#undef CYBORG_LAYOUT_MAX_ROTATION
+#undef CYBORG_LAYOUT_MIN_SCALE
+#undef CYBORG_LAYOUT_MAX_SCALE
+#undef CYBORG_LAYOUT_MIN_PRIORITY
+#undef CYBORG_LAYOUT_MAX_PRIORITY
