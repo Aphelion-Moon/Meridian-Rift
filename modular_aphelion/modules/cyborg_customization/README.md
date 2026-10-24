@@ -106,7 +106,3 @@ Module ID: `CYBORG_CUSTOMIZATION`. The core preference save path is untouched; l
 | `code/modules/mob/mob_helpers.dm` | `offer_control()` sends the direct-control signal after a ghost takes the body, as the admin verb does, so silicon preferences apply |
 
 Revert the targeted frontend/backend protocol together, the middleware with `code/persistence.dm`, and the generated manifest with its reader. Layouts live in their own sidecar, so rollback leaves `preferences.json` untouched. Shared controls with the separate custom-sprite editor are deferred until both real consumers can be integrated.
-
-## Verification
-
-Use [VERIFICATION.md](VERIFICATION.md) for the current evidence checklist. Asset generation, focused tests, TGUI/build checks, native compilation, two-client visual acceptance, hosted CI, and matched performance evidence are distinct. A passing asset builder or UI test does not establish native visual acceptance or release readiness. Cache limits and estimated byte budgets are bounds, not measured performance claims.
