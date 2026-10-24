@@ -9,7 +9,7 @@ GLOBAL_LIST_INIT(cyborg_animation_manifest, json_decode(file2text("modular_aphel
 		return null
 	var/list/model = GLOB.cyborg_animation_manifest["profiles"][family]
 	var/list/state = model?["[pose]:[moving ? 1 : 0]"]
-	return state?[LOWER_TEXT(dir2text(cyborg_cardinal_direction(direction)))]
+	return state?[LOWER_TEXT(dir2text(CYBORG_CARDINAL_DIRECTION(direction)))]
 
 /// Returns the still frame a chassis's parts are placed against in this direction and pose, or null when it has no authored animation
 /proc/cyborg_animation_anchor(list/descriptor, direction, pose)
@@ -98,7 +98,7 @@ GLOBAL_LIST_INIT(cyborg_animation_manifest, json_decode(file2text("modular_aphel
 	padding.pixel_w = min_x - margin
 	padding.pixel_z = min_y - margin
 	shown_image.overlays += padding
-	var/image/motion = image(movement_map, owner, owner.icon_state, dir = cyborg_cardinal_direction(owner.dir))
+	var/image/motion = image(movement_map, owner, owner.icon_state, dir = CYBORG_CARDINAL_DIRECTION(owner.dir))
 	motion.render_target = "*cyborg_motion_[REF(src)]"
 	motion.appearance_flags = RESET_TRANSFORM | RESET_COLOR | RESET_ALPHA | PIXEL_SCALE
 	motion.transform = matrix().Scale(width + 2, height + 2)
@@ -115,7 +115,7 @@ GLOBAL_LIST_INIT(cyborg_animation_manifest, json_decode(file2text("modular_aphel
 	// Parts only show on the pose's own sprite, so its mask state is the family's with the same suffix
 	var/list/occlusion_mask = length(render_layers) && cyborg_animation_anchor(descriptor, owner.dir, pose) ? cyborg_occlusion_mask(descriptor) : null
 	if(occlusion_mask)
-		var/direction = cyborg_cardinal_direction(owner.dir)
+		var/direction = CYBORG_CARDINAL_DIRECTION(owner.dir)
 		mask = image(occlusion_mask[1], owner, occlusion_mask[2] + (pose == "idle" ? "" : "-[pose]"), dir = direction)
 		mask.render_target = "*cyborg_mask_[REF(src)]"
 		// The filter cuts the sprite before the owner's transform, color and alpha apply, so the mask takes none of them

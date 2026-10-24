@@ -22,3 +22,5 @@
 #define CYBORG_LAYOUT_MIN_SPRITE_SIZE 1
 /// The largest sprite size a part can pick
 #define CYBORG_LAYOUT_MAX_SPRITE_SIZE 16
+/// The cardinal a part is drawn for - a diagonal takes its north or south, then its east or west
+#define CYBORG_CARDINAL_DIRECTION(direction) (((direction) & NORTH) ? NORTH : (((direction) & SOUTH) ? SOUTH : (((direction) & EAST) ? EAST : WEST)))

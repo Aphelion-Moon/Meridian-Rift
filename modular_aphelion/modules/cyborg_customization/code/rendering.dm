@@ -1,21 +1,11 @@
 /// Every borg's part image holder, so a viewer's preference or a config reload reaches them all
 GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 
-/// Diagonals deterministically use the north/south component, then east/west.
-/proc/cyborg_cardinal_direction(direction)
-	if(direction & NORTH)
-		return NORTH
-	if(direction & SOUTH)
-		return SOUTH
-	if(direction & EAST)
-		return EAST
-	return WEST
-
 /// Pure geometry shared by creator/live rendering. Input has already been normalized.
 /proc/cyborg_resolve_placement(list/entry, direction, pose, arousal, mirrored = FALSE, wide = FALSE)
 	// By cardinal - what LOWER_TEXT(dir2text()) gives, without building text
 	var/static/list/direction_keys = list("north", "south", null, "east", null, null, null, "west")
-	var/cardinal = cyborg_cardinal_direction(direction)
+	var/cardinal = CYBORG_CARDINAL_DIRECTION(direction)
 	var/direction_key = direction_keys[cardinal]
 	var/pose_key = "[pose]_[direction_key]"
 	var/list/advanced = entry["advanced"]
@@ -43,11 +33,11 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 
 /// Whether a part's placement is mirrored - a wide chassis facing west, unless the part opts out
 /proc/cyborg_mirror_placement(list/descriptor, list/entry, direction)
-	return (TRAIT_R_WIDE in descriptor["features"]) && entry["mirror_sides"] && cyborg_cardinal_direction(direction) == WEST
+	return (TRAIT_R_WIDE in descriptor["features"]) && entry["mirror_sides"] && CYBORG_CARDINAL_DIRECTION(direction) == WEST
 
 /// Returns the direction of a part's art - a wide chassis facing north may reuse its south art
 /proc/cyborg_part_sprite_direction(list/descriptor, list/entry, direction)
-	var/cardinal = cyborg_cardinal_direction(direction)
+	var/cardinal = CYBORG_CARDINAL_DIRECTION(direction)
 	if(cardinal == NORTH && (TRAIT_R_WIDE in descriptor["features"]) && entry["reuse_south"])
 		return SOUTH
 	return cardinal
