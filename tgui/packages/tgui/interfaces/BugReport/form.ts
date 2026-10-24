@@ -24,7 +24,7 @@ export type FieldName = 'title' | 'steps' | 'expected';
 
 export type FieldError = { field: FieldName; page: Page; text: string };
 
-// Only Unicode White_Space and the BOM count as nothing, as DM's trimtext() does
+// Only Unicode White_Space and the BOM count as nothing, the same rule DM and the reporting service use
 const BLANK = /^[\p{White_Space}﻿]*$/u;
 // The numbering DM counts steps by, and the one joinSteps() writes
 const NUMBERED = /^[ \t]*\d{1,3}\.[ \t]?(.*)$/;

@@ -10,11 +10,11 @@ leaves the old GitHub link. **Recent bug reports** (OOC) reopens one of the last
 session, and **Report a /tg/station bug** (OOC) opens /tg/station's GitHub form. The bridge, the
 reporting service and their limits are documented with the backend; this module is the game's side.
 
-- **Four short pages**: Report title, Picture, Steps (numbered, with what should have happened) and
-  Review report, then whatever the service answers: checking, sent back to the page it's about, too
-  many this hour, couldn't reach the server, or sent with the GitHub link. The title, the steps and
-  what should have happened are required, and the window and DM agree on empty: whitespace or a
-  bare "1." counts as nothing.
+- **Four short pages**: Report title, Picture, Steps (numbered, with what should have happened, what
+  it's about and how much it gets in the way) and Review report, then whatever the service answers:
+  checking, sent back to the page it's about, too many this hour, couldn't reach the server, or sent
+  with the GitHub link. The title, the steps and what should have happened are required, and the
+  window and DM agree on empty: whitespace or a bare "1." counts as nothing.
 - **Context is frozen when the window opens**: round, map, mob, area, versions, build and test merges,
   captured in `New()` before anything can yield. None of it goes to the window; the bridge gets it.
 - **Typing never reaches the server.** Unsent text is kept in the browser's tgui storage per report,
@@ -31,8 +31,8 @@ reporting service and their limits are documented with the backend; this module 
 - **Hourly allowances mirror the service**, per ckey for the round, so a reconnect doesn't refill them:
   5 accepted reports, 10 submissions with new text, 20 new reports (the service allows 30, and
   refusing one there stalls everyone's registration), 5 uploads of your own screenshots and 30
-  captures. Acts that reach the bridge wait a second between them, Try again five, a window capture
-  ten and an in-game capture thirty.
+  captures. Acts that reach the bridge wait a second between them, Try again five, a picture's
+  preview and a window capture ten, and an in-game capture thirty.
 - **Pictures**, up to three a report (`BUG_REPORT_MAX_PICTURES`, the service's cap), each a tick box:
   - **In-game capture**: the server develops the reporter's whole view the way the photo camera
     does (`/obj/item/camera/bug_report`, through tg's `camera_get_icon`, which yields between turfs
@@ -45,7 +45,8 @@ reporting service and their limits are documented with the backend; this module 
   - **Your own screenshot**: BYOND's file prompt, PNG, JPEG, WebP or GIF to 10 MiB (`AllowUpload`
     lifts the limit for that one image).
 
-  DM never decodes or holds an image; the bridge decodes and checks it. The private preview comes
+  DM never decodes a file or a window's snapshot, it only stages their bytes; the in-game capture is
+  the one picture it draws, and the bridge decodes and checks them all. The private preview comes
   back as a data URL (`rustg_hash_file`), never `browse_rsc`, which would keep every image in the
   player's BYOND cache for good. DM asks for a WebP on the preview call only and labels the data URL
   by the reply's `Content-Type`, so a bridge that only makes PNGs still works. Sharing a picture
