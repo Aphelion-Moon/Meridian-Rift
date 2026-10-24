@@ -2,7 +2,8 @@
 /proc/cyborg_animation_frames(list/descriptor, direction, pose, moving = FALSE)
 	var/static/list/manifest
 	if(isnull(manifest))
-		manifest = json_decode(file2text('modular_aphelion/modules/cyborg_customization/animation_manifest.json'))
+		// We read it from disk, not the .rsc, so clients never download it
+		manifest = json_decode(file2text("modular_aphelion/modules/cyborg_customization/animation_manifest.json"))
 	var/list/models = manifest["models"]
 	var/profile_id = models["[descriptor["icon"]]#[descriptor["icon_state"]]"]
 	if(isnull(profile_id))
