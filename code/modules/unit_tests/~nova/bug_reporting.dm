@@ -97,6 +97,10 @@
 /datum/bug_report_test_sender
 	var/datum/client_interface/bug_report/client
 
+/// Something a window can be for that isn't an atom but has a name, like a team or an action
+/datum/bug_report_test_named
+	var/name = "\proper Station records"
+
 /// Makes a report owned by a fresh mock connection, its context already with the bridge
 /proc/bug_report_test_report(datum/unit_test/test)
 	var/datum/client_interface/bug_report/reporter = test.allocate(/datum/client_interface/bug_report)
@@ -922,6 +926,26 @@
 	TEST_ASSERT_EQUAL(titles["tgui-window-2"], "Vending machine", "The first of two shared titles got a number")
 	TEST_ASSERT_EQUAL(titles["tgui-window-3"], "Crew monitor", "A title of its own got a number")
 	TEST_ASSERT_EQUAL(titles["tgui-window-4"], "Vending machine (2)", "The second shared title didn't get (2)")
+	// A window with no title goes by the name of what it's for, as players see it, or a plain word, never its interface's id
+	var/obj/item/machine = allocate(/obj/item)
+	machine.name = "\improper SecTech"
+	var/list/objects = list("tgui-window-6" = machine, "tgui-window-7" = new /datum/bug_report_test_named, "tgui-window-8" = new /datum/bug_report_test_sender, "tgui-window-9" = null)
+	for(var/id, object in objects)
+		var/datum/tgui_window/bug_report_test/window = bug_report_test_window(report, id)
+		window.locked_by.title = null
+		window.locked_by.src_object = object
+	bug_report_test_window(report, "tgui-window-10", "\improper NanoMed Plus")
+	titles.Cut()
+	for(var/list/target as anything in report.capture_targets())
+		titles[target["id"]] = target["title"]
+	TEST_ASSERT_EQUAL(titles["tgui-window-6"], "SecTech", "A window with no title didn't go by its object's name")
+	TEST_ASSERT_EQUAL(titles["tgui-window-7"], "Station records", "A window with no title didn't go by its datum's name")
+	TEST_ASSERT_EQUAL(titles["tgui-window-8"], "Untitled window", "A window for something with no name didn't say so plainly")
+	TEST_ASSERT_EQUAL(titles["tgui-window-9"], "Untitled window (2)", "A window for nothing didn't say so plainly")
+	TEST_ASSERT_EQUAL(titles["tgui-window-10"], "NanoMed Plus", "A title kept its text macro")
+	report.begin_ui_capture("tgui-window-6")
+	TEST_ASSERT_EQUAL(report.capture_picture?.title, "SecTech", "A capture of a window with no title wasn't captioned with its object's name")
+	report.cancel_ui_capture()
 
 /// A report takes three pictures, each with its own sharing, and a retake swaps the image under the same card
 /datum/unit_test/bug_report_pictures

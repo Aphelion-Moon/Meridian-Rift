@@ -43,9 +43,18 @@
 		LAZYADD(targets, list(list("id" = id, "title" = repeats[title] > 1 ? "[title] ([repeats[title]])" : title)))
 	return targets
 
-/// The title a window shows the reporter, for the picker and its picture's caption
+/// The title a window shows the reporter, for the picker and its picture's caption - its UI's title, or the name of what it's for, never the interface's id
 /datum/bug_report/proc/window_title(datum/tgui_window/window)
-	return window.locked_by.title || window.locked_by.interface
+	var/datum/tgui/ui = window.locked_by
+	var/title = ui.title
+	if(!title)
+		// Atoms have a name, and some datums do
+		var/datum/object = ui.src_object
+		if(object && ("name" in object.vars))
+			title = object.vars["name"]
+	// As players see names, without the text macros some carry
+	title = istext(title) ? format_text(title) : null
+	return length(title) ? title : "Untitled window"
 
 /// Whether a window is one of the reporter's own visible TGUIs, and not a bug report
 /datum/bug_report/proc/capture_window_allowed(datum/tgui_window/window)
