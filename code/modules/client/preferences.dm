@@ -104,6 +104,7 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	QDEL_NULL(custom_sprite_savefile) // APHELION EDIT ADDITION
 	QDEL_NULL(character_preview_view)
 	QDEL_LIST(middleware)
+	QDEL_NULL(cyborg_layout_savefile) // APHELION EDIT ADDITION - Flush account-owned cyborg writes after draft teardown
 	value_cache = null
 	return ..()
 
@@ -379,6 +380,7 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 
 /datum/preferences/ui_close(mob/user)
 	close_custom_sprite_editors() // APHELION EDIT ADDITION - Flush before the parent preview disappears
+	cyborg_session()?.close_editor() // APHELION EDIT ADDITION - CYBORG_CUSTOMIZATION
 	save_character()
 	save_preferences()
 	QDEL_NULL(character_preview_view)

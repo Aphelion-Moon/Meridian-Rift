@@ -75,6 +75,7 @@ GAME_VERB_PROC_DESC(/client, import_preferences, "Import Character Preferences",
 		return
 
 	var/filesize = upload["filesize"]
+	var/list/cyborg_layouts = cyborg_layouts_from_import(upload["tree"]) // read before pass one strips them
 	var/list/json_tree = prefs_import_pass1(upload["tree"], import_prefs.savefile.get_entry())
 
 	if(!prefs_import_available(import_prefs))
@@ -95,6 +96,7 @@ GAME_VERB_PROC_DESC(/client, import_preferences, "Import Character Preferences",
 		log_game("Preferences import for [ckey] was not installed: [install_error]")
 		return
 
+	cyborg_customization_after_import(ckey, cyborg_layouts)
 	prefs_import_invalidate_cache(ckey)
 
 	log_admin("[key_name(src)] imported their own preferences ([filesize] bytes).")
