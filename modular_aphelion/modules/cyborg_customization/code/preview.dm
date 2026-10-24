@@ -90,7 +90,8 @@
 	var/resource
 	var/exception/failure
 	try
-		var/write_error = write_json(json_encode(data), filename)
+		// rust-g reports a failed write as nonempty text, not a success boolean
+		var/write_error = rustg_file_write(json_encode(data), filename)
 		if(length(write_error))
 			throw EXCEPTION("Could not write public cyborg gallery asset: [write_error]")
 		resource = fcopy_rsc(filename)
@@ -102,10 +103,6 @@
 	if(!resource)
 		throw EXCEPTION("Could not create public cyborg gallery asset")
 	return resource
-
-/// rust-g reports write failures as nonempty text, not a success boolean.
-/datum/asset/cyborg_model_gallery/proc/write_json(encoded_data, filename)
-	return rustg_file_write(encoded_data, filename)
 
 /// Reuse an identical current item without registering new global/preload entries.
 /datum/asset/cyborg_model_gallery/proc/owned_asset(asset_name, resource, content_hash)

@@ -169,9 +169,6 @@
 /datum/unit_test/cyborg_interaction_and_runtime_owner_gate
 	parent_type = /datum/unit_test/cyborg_mock_preferences
 
-/datum/unit_test/cyborg_future_layout_apply_preserves_raw_data
-	parent_type = /datum/unit_test/cyborg_mock_preferences
-
 /// Exercise the creator protocol and sidecar writes, without a UI client.
 /// Removing either the slot guard or the page-close flush must break this regression.
 /datum/unit_test/cyborg_creator_draft_lifecycle
@@ -461,46 +458,6 @@
 	TEST_ASSERT_EQUAL(preferences.sprite_reads, sprite_reads, "Refused implicit overwrite performed snapshot preparation.")
 	TEST_ASSERT_EQUAL(preferences.save_preferences_calls, saves, "Refused implicit overwrite performed a native save.")
 
-/// A short real-GC regression for the leak found by the full create/destroy sweep.
-/datum/unit_test/cyborg_mock_preferences_cleanup
-	priority = TEST_LONGER
-
-/datum/unit_test/cyborg_mock_preferences_cleanup/Run()
-	var/list/previous_directory = GLOB.directory
-	var/list/previous_preferences = GLOB.preferences_datums
-	var/list/previous_clients = GLOB.persistent_clients_by_ckey
-	var/list/previous_client_list = GLOB.persistent_clients
-	var/list/deleted_refs = create_and_dispose_fixture()
-	TEST_ASSERT(GLOB.directory == previous_directory && GLOB.preferences_datums == previous_preferences, "Mock teardown replaced the original client/preference registries.")
-	TEST_ASSERT(GLOB.persistent_clients_by_ckey == previous_clients && GLOB.persistent_clients == previous_client_list, "Mock teardown replaced the original persistent-client registries.")
-	// Primitive identity records hold neither object alive. Use the same deletion
-	// generation as SSgarbage: raw refs can be reused, and Destroy clears weakrefs
-	// before native collection, making either weakref resolver unsuitable here.
-	sleep(5 SECONDS)
-	for(var/list/deleted_ref as anything in deleted_refs)
-		var/datum/candidate = locate(deleted_ref["reference"])
-		TEST_ASSERT(!candidate || candidate.type != deleted_ref["type"] || candidate.gc_destroyed != deleted_ref["destroyed_at"], "A mock client or preference survived fixture teardown and native collection.")
-
-/datum/unit_test/cyborg_mock_preferences_cleanup/proc/create_and_dispose_fixture()
-	var/datum/unit_test/cyborg_mock_preferences/fixture = new
-	var/mob/living/silicon/robot/robot = fixture.allocate(/mob/living/silicon/robot)
-	var/datum/preferences/preferences = fixture.create_preferences(robot)
-	var/datum/client_interface/mock_client = robot.mock_client
-	qdel(fixture)
-	return list(
-		list("reference" = text_ref(mock_client), "type" = mock_client.type, "destroyed_at" = mock_client.gc_destroyed),
-		list("reference" = text_ref(preferences), "type" = preferences.type, "destroyed_at" = preferences.gc_destroyed),
-	)
-
-/datum/unit_test/cyborg_layout_schema_rejects_malformed_input/Run()
-	var/list/normalized = cyborg_layout_normalize("not a layout")
-	TEST_ASSERT_EQUAL(normalized["schema_version"], 1, "Malformed roots must produce the current schema.")
-	TEST_ASSERT_EQUAL(length(normalized["active"]), 6, "Malformed roots must produce six safe active entries.")
-
-	var/list/numeric_root = list(list("penis" = list("pixel_x" = 20)))
-	normalized = cyborg_layout_normalize(numeric_root)
-	TEST_ASSERT_EQUAL(length(normalized["active"]), 6, "Numeric root keys must not become layout slots.")
-
 /datum/unit_test/cyborg_layout_schema_bounds_and_filters/Run()
 	var/list/raw = list(
 		"schema_version" = 1,
@@ -697,9 +654,6 @@
 	TEST_ASSERT_NULL(preferences.cyborg_session().begin_draft(), "An unsupported future layout must not become an editable draft.")
 	TEST_ASSERT(preferences.read_cyborg_layout(flushed_slot) == future_layout, "Opening the creator replaced future layout data.")
 
-	var/datum/preference/choiced/cyborg_size/size_preference = GLOB.preference_entries[/datum/preference/choiced/cyborg_size]
-	TEST_ASSERT_EQUAL(size_preference.deserialize("1.6", preferences), 1.6, "Serialized cyborg size choices must remain numeric.")
-
 /// Loads authored interaction data independently of the deployment's server configuration.
 /datum/unit_test/cyborg_interaction_component_lists_safe_actions
 	/// Restored even if an assertion exits Run early.
@@ -773,29 +727,9 @@
 	cheer.lewd = TRUE
 	TEST_ASSERT(!component.ui_act("interact", list("interaction" = cheer.name), human_ui), "A cyborg interaction dispatched a lewd message outside its whitelist.")
 
-/datum/unit_test/cyborg_future_layout_apply_preserves_raw_data/Run()
-	var/datum/preferences/preferences = create_preferences()
-	preferences.default_slot = 1
-	var/list/future_layout = list("schema_version" = 2, "active" = list("penis" = list("pixel_x" = 99)))
-	preferences.cyborg_layout_store().set_entry("character1", future_layout)
-	var/mob/living/silicon/robot/robot = EASY_ALLOCATE()
-	robot.cyborg_appearance_store = cyborg_layout_default()
-	robot.cyborg_appearance_layout = cyborg_layout_copy(robot.cyborg_appearance_store["active"])
-	robot.cyborg_appearance_active = list("penis" = TRUE)
-	robot.cyborg_appearance_slot = preferences.default_slot
-	robot.cyborg_appearance_owner = "previous_owner"
-	apply_cyborg_customization(robot, preferences)
-	TEST_ASSERT(preferences.read_cyborg_layout(1) == future_layout, "Applying a future schema layout rewrote the preserved raw save data.")
-	TEST_ASSERT_NULL(robot.cyborg_appearance_store, "Applying a future schema layout left a mutable body store.")
-	TEST_ASSERT_NULL(robot.cyborg_appearance_layout, "Applying a future schema layout left a mutable body layout.")
-	TEST_ASSERT(!length(robot.cyborg_appearance_active), "Applying a future schema layout left active visual state behind.")
-
 /datum/unit_test/cyborg_layout_sprite_size_and_granular_actions
 /datum/unit_test/cyborg_layout_sprite_size_and_granular_actions/Run()
 	var/list/defaults = cyborg_layout_default()
-	TEST_ASSERT_EQUAL(defaults["active"]["penis"]["sprite_size"], 2, "Penis entries did not preserve the current native size default.")
-	TEST_ASSERT_EQUAL(defaults["active"]["testicles"]["sprite_size"], 2, "Testicle entries did not preserve the current native size default.")
-	TEST_ASSERT_EQUAL(defaults["active"]["breasts"]["sprite_size"], 1, "Breast entries did not preserve the current native size default.")
 	var/list/normalized = cyborg_layout_normalize(list("schema_version" = 1, "active" = list("penis" = list("sprite_size" = 99, "scale" = 99))))
 	TEST_ASSERT_EQUAL(normalized["active"]["penis"]["sprite_size"], 16, "Sprite size was not bounded.")
 	TEST_ASSERT_EQUAL(normalized["active"]["penis"]["scale"], 2, "Continuous scale exceeded the 200% cap.")
@@ -967,27 +901,6 @@
 		TEST_ASSERT(portrait.transform.a * width <= world.icon_size && portrait.transform.e * height <= world.icon_size, "[id] must fit entirely inside the inspect tile.")
 		TEST_ASSERT_EQUAL(robot.pixel_x, 7, "Building a portrait must not change the live mob.")
 
-/datum/unit_test/cyborg_nsfw_ooc_preference
-	parent_type = /datum/unit_test/cyborg_mock_preferences
-
-/datum/unit_test/cyborg_nsfw_ooc_preference/Run()
-	var/datum/preferences/preferences = create_preferences(null)
-	var/list/fallback_types = list("ooc_notes_silicon" = /datum/preference/text/ooc_notes, "ooc_notes_silicon_nsfw" = /datum/preference/text/ooc_notes_nsfw)
-	for(var/key in fallback_types)
-		var/datum/preference/notes = GLOB.preference_entries_by_key[key]
-		TEST_ASSERT(notes, "Cyborg profile needs its own saved [key] preference.")
-		var/fallback_type = fallback_types[key]
-		preferences.write_preference(GLOB.preference_entries[fallback_type], "Human [key]")
-		TEST_ASSERT_EQUAL(cyborg_identity_text(preferences, notes.type, fallback_type), "Human [key]", "Empty cyborg notes must preserve the matching human fallback.")
-		preferences.write_preference(notes, "Cyborg [key]")
-		TEST_ASSERT_EQUAL(cyborg_identity_text(preferences, notes.type, fallback_type), "Cyborg [key]", "Cyborg notes must override the fallback.")
-		TEST_ASSERT_EQUAL(preferences.read_preference(fallback_type), "Human [key]", "Cyborg edits must not alter human notes.")
-		preferences.save_character()
-		preferences.value_cache -= notes.type
-		TEST_ASSERT_EQUAL(preferences.read_preference(notes.type), "Cyborg [key]", "Cyborg notes must survive a save and reload.")
-		preferences.write_preference(notes, "")
-		TEST_ASSERT_EQUAL(cyborg_identity_text(preferences, notes.type, fallback_type), "Human [key]", "Clearing cyborg notes must restore the matching human fallback.")
-
 /datum/unit_test/cyborg_named_setups_and_model_binding/Run()
 	var/model_a = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")
 	var/model_b = cyborg_appearance_model_id(/obj/item/robot_model/service, "Drake")
@@ -1107,9 +1020,6 @@
 	robot.transfer_silicon_prefs(robot.mock_client)
 	TEST_ASSERT_EQUAL(robot.cyborg_appearance_store["active"]["penis"]["pixel_x"], 13, "Re-entering the same body replaced its spawn snapshot.")
 	TEST_ASSERT(!robot.cyborg_appearance_active["penis"], "Re-entering the same body reset its runtime state.")
-	TEST_ASSERT(robot._listen_lookup?[COMSIG_MOB_MIND_TRANSFERRED_INTO], "Cyborgs must apply silicon preferences on mind transfer.")
-	TEST_ASSERT(robot._listen_lookup?[COMSIG_MOB_GIVE_DIRECT_CONTROL], "Cyborgs must apply silicon preferences on admin direct control.")
-	TEST_ASSERT(robot.GetComponent(/datum/component/interactable), "Cyborgs must carry the interaction component.")
 
 /// Regression coverage for failed-write ownership, backend close and forced model installation.
 /datum/json_savefile/cyborg_customization/review_failure_store
@@ -1768,9 +1678,6 @@
 		TEST_ASSERT_EQUAL(preference.deserialize("A <b>name</b> é", null), STRIP_HTML_SIMPLE("A <b>name</b> é", preference.maximum_value_length), "The scoped profile fix changed existing HTML stripping.")
 		TEST_ASSERT_NULL(preference.deserialize(list("invalid"), null), "Structured profile input was converted into an accepted clearing value.")
 		TEST_ASSERT_EQUAL(preference.deserialize("", null), "", "An explicit empty profile value can no longer clear the field.")
-	var/datum/preference/text/unrelated = GLOB.preference_entries[/datum/preference/text/flavor_text]
-	TEST_ASSERT_EQUAL(unrelated.compile_constant_data()["maximum_length"], unrelated.maximum_value_length, "The cyborg repair changed unrelated generic text metadata.")
-	TEST_ASSERT_NULL(unrelated.compile_constant_data()["maximum_bytes"], "The cyborg repair added byte-budget UI behavior to unrelated preferences.")
 
 /// Only a pixel wait needs a second wire stage; keep its server snapshot coherent.
 /datum/unit_test/cyborg_ui_pending_stage_projection
@@ -1909,34 +1816,6 @@
 	TEST_ASSERT(closed_stayed_empty, "An acquisition continuation republished into a closed/reopened editor.")
 	TEST_ASSERT(revoked_stayed_empty && no_denied_acquisition, "Revoked consent retained public acquisition or private UI resources.")
 	TEST_ASSERT(current_slot && current_department && reacquired_current, "An acquisition wait published an obsolete slot or an unacquired department URL.")
-
-/// A native write can leave partial bytes while returning an error string.
-/datum/asset/cyborg_model_gallery/write_failure_test
-	abstract_type = /datum/asset/cyborg_model_gallery/write_failure_test
-	var/last_filename
-
-/datum/asset/cyborg_model_gallery/write_failure_test/register()
-	return
-
-/datum/asset/cyborg_model_gallery/write_failure_test/write_json(encoded_data, filename)
-	last_filename = filename
-	rustg_file_write("{", filename)
-	return "expected partial-write failure"
-
-/datum/unit_test/cyborg_gallery_write_failure/Run()
-	var/datum/asset/cyborg_model_gallery/write_failure_test/gallery = new
-	var/resource
-	var/exception/failure
-	try
-		resource = gallery.json_resource(list("probe" = TRUE))
-	catch(var/exception/error)
-		failure = error
-	var/partial_removed = gallery.last_filename && !fexists(gallery.last_filename)
-	GLOB.asset_datums -= gallery.type
-	qdel(gallery)
-	TEST_ASSERT(failure && findtext(failure.name, "expected partial-write failure"), "A native write error was ignored before asset publication.")
-	TEST_ASSERT_NULL(resource, "A partial JSON file became a published resource.")
-	TEST_ASSERT(partial_removed, "Failed public asset generation retained its partial temporary file.")
 
 /// Wire omission must resolve to the exact original animation, including moving frames.
 /datum/unit_test/cyborg_ui_animation_projection

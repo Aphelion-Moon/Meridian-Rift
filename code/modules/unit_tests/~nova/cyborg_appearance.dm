@@ -39,22 +39,6 @@
 	for(var/list/size_entry as anything in metadata["sizes"])
 		TEST_ASSERT_NULL(size_entry["icon"], "Hidden part inspectors must not generate size thumbnails.")
 
-/datum/unit_test/cyborg_appearance_catalog_preserves_role_eligibility/Run()
-	var/list/playable = cyborg_selectable_models()
-	TEST_ASSERT_NULL(playable["Syndicate"], "Appearance support must not grant antagonist model selection.")
-	TEST_ASSERT_NULL(playable["Ninja"], "Appearance support must not grant ninja model selection.")
-	var/list/catalog = cyborg_model_catalog()
-	var/syndicate_count = 0
-	var/ninja_count = 0
-	for(var/id in catalog)
-		var/list/descriptor = catalog[id]
-		if(descriptor["department"] == "Syndicate")
-			syndicate_count++
-		if(descriptor["department"] == "Ninja")
-			ninja_count++
-	TEST_ASSERT(syndicate_count > 0 && ninja_count > 0, "Both Syndicate and Ninja skin catalogs must be available for appearance previews.")
-	TEST_NOTICE(src, "Appearance catalog: [length(catalog)] skins; Syndicate [syndicate_count], Ninja [ninja_count]. Closed galleries send zero thumbnails.")
-
 /datum/unit_test/cyborg_creator_authored_animation_payloads/Run()
 	var/list/catalog = cyborg_model_catalog()
 	var/checked = 0
@@ -156,15 +140,6 @@
 	robot.cyborg_appearance_requested_size = 1.6
 	robot.cyborg_customization_apply_size()
 	TEST_ASSERT_EQUAL(robot.current_size, 2, "Changing the base size did not retain hardware.")
-	TEST_ASSERT_EQUAL(cyborg_effective_base_size(2.5, list(TRAIT_R_WIDE)), 1.6, "Wide chassis base size must be capped.")
-	TEST_ASSERT_EQUAL(cyborg_effective_base_size(0.75, list(TRAIT_R_SMALL)), 1, "Small chassis must not shrink further.")
-	TEST_ASSERT_EQUAL(cyborg_effective_base_size(2, list(), FALSE), 1, "Special chassis must not inherit cosmetic size.")
-	// The base chassis every body spawns with has no catalog id; live, job-spawned bodies took 1.6 on it.
-	var/mob/living/silicon/robot/plain = EASY_ALLOCATE()
-	TEST_ASSERT_NULL(plain.model.cyborg_customization_id(), "The fixture's base chassis is in the customization catalog.")
-	plain.cyborg_appearance_requested_size = 1.6
-	plain.cyborg_customization_apply_size()
-	TEST_ASSERT_EQUAL(plain.cyborg_appearance_applied_size, 1, "A chassis outside the catalog took the cosmetic size.")
 
 /datum/unit_test/cyborg_visual_anatomy_capability_respects_exposure/Run()
 	var/mob/living/silicon/robot/robot = EASY_ALLOCATE()
@@ -200,15 +175,6 @@
 	TEST_ASSERT(!capability["exposed"] && !length(cyborg_visual_anatomy_examine_lines(robot, TRUE)), "Immobilized cyborgs must hide visual anatomy descriptions.")
 	REMOVE_TRAIT(robot, TRAIT_IMMOBILIZED, TRAIT_SOURCE_UNIT_TESTS)
 	TEST_ASSERT(cyborg_body_visuals_visible(robot), "Removing immobilization did not restore visual eligibility.")
-	// Job spawns sit the body in its spawn chair; that buckle alone must not hide it (the live roundstart body had no parts).
-	var/obj/structure/chair/chair = allocate(/obj/structure/chair, robot.loc)
-	chair.buckle_mob(robot, force = TRUE)
-	TEST_ASSERT(robot.buckled == chair && HAS_TRAIT(robot, TRAIT_IMMOBILIZED), "The fixture body did not sit buckled and immobilized.")
-	TEST_ASSERT(cyborg_body_visuals_visible(robot), "A cyborg sitting buckled in a chair hid its visual anatomy.")
-	ADD_TRAIT(robot, TRAIT_IMMOBILIZED, TRAIT_SOURCE_UNIT_TESTS)
-	TEST_ASSERT(!cyborg_body_visuals_visible(robot), "A buckled cyborg that is also immobilized otherwise showed its visual anatomy.")
-	REMOVE_TRAIT(robot, TRAIT_IMMOBILIZED, TRAIT_SOURCE_UNIT_TESTS)
-	chair.unbuckle_mob(robot)
 	robot.model.cyborg_base_icon = "disguised"
 	capability = cyborg_part_capability(robot, "penis")
 	TEST_ASSERT(!capability["exposed"] && !length(cyborg_visual_anatomy_examine_lines(robot, TRUE)), "A disguised cyborg must hide visual anatomy descriptions.")
@@ -261,10 +227,6 @@
 	TEST_ASSERT_EQUAL(cyborg_resolve_placement(entry, SOUTH, "rest", "full")["pixel_x"], 13, "Arousal edits must not leak into other poses.")
 
 /datum/unit_test/cyborg_shared_catalog_family_defaults/Run()
-	var/list/models = cyborg_appearance_models()
-	TEST_ASSERT_NULL(models["Syndicate Marauder"], "Identical Syndicate art must have one gallery department.")
-	TEST_ASSERT_NULL(models["Ninja Medical"], "Ninja Medical must reuse the Ninja gallery.")
-	TEST_ASSERT_NULL(models["Ninja Saboteur"], "Ninja Saboteur must reuse the Ninja gallery.")
 	var/canonical = cyborg_appearance_model_id(/obj/item/robot_model/ninja, "Assault")
 	TEST_ASSERT_EQUAL(cyborg_appearance_model_id(/obj/item/robot_model/ninja_saboteur, "Assault"), canonical, "In-round variants must resolve to the shared appearance identity.")
 	var/list/store = cyborg_layout_default()

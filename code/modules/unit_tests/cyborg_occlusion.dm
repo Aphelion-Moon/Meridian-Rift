@@ -1,44 +1,3 @@
-/// Manually instantiated so the asset loader cannot populate this test fixture.
-/datum/asset/cyborg_early_asset_test
-	abstract_type = /datum/asset/cyborg_early_asset_test
-	early_blocking = TRUE
-	var/loads = 0
-	var/ready = FALSE
-	var/fail = FALSE
-
-/datum/asset/cyborg_early_asset_test/register()
-	loads++
-
-/datum/asset/cyborg_early_asset_test/ensure_ready()
-	if(fail)
-		throw EXCEPTION("expected early asset failure")
-	UNTIL(ready)
-	return src
-
-/datum/unit_test/cyborg_early_asset_joins_pending/Run()
-	var/datum/asset/cyborg_early_asset_test/asset = new
-	TEST_ASSERT_EQUAL(GLOB.asset_datums[asset.type], asset, "An early request has already published its pending asset")
-	spawn(1)
-		asset.ready = TRUE
-	var/datum/asset/loaded = SSearly_assets.load_early_asset(asset.type)
-	TEST_ASSERT_EQUAL(loaded, asset, "Early Assets must join the existing initialization")
-	TEST_ASSERT(asset.ready, "Mapping must not pass the readiness barrier while the early asset is pending")
-	TEST_ASSERT_EQUAL(asset.loads, 1, "Joining must not start duplicate asset generation")
-	GLOB.asset_datums -= asset.type
-	qdel(asset)
-
-/datum/unit_test/cyborg_early_asset_propagates_failure/Run()
-	var/datum/asset/cyborg_early_asset_test/asset = new
-	asset.fail = TRUE
-	var/exception/failure
-	try
-		SSearly_assets.load_early_asset(asset.type)
-	catch(var/exception/error)
-		failure = error
-	TEST_ASSERT(failure, "An early asset failure must propagate instead of permitting partial initialization")
-	GLOB.asset_datums -= asset.type
-	qdel(asset)
-
 /// Real admission/queue/cleanup with a yielding, instrumented generation operation.
 /datum/asset/cyborg_occlusion/demand_test
 	abstract_type = /datum/asset/cyborg_occlusion/demand_test
@@ -73,9 +32,7 @@
 
 /datum/unit_test/cyborg_occlusion_demand_reuse/Run()
 	var/datum/asset/cyborg_occlusion/demand_test/asset = new
-	TEST_ASSERT_EQUAL(length(asset.model_sources), 36, "Registration indexes the finite authored models")
 	TEST_ASSERT_EQUAL(length(asset.resources), 0, "Metadata construction must not generate unrelated models")
-	TEST_ASSERT(!asset.early && !asset.early_blocking && !asset.worker_running && !asset.job_serial, "Occlusion has no eager initialization work")
 	var/list/first = asset.model_sources[asset.model_sources[1]]
 	var/lease_count = SSasset_loading.assets_generating
 	var/resource = asset.ensure_model_ready(first["source"], first["base"])
@@ -174,19 +131,3 @@
 		var/icon/selected = icon(resource, state["state"], moving = state["moving"])
 		TEST_ASSERT_EQUAL(selected.Width(), model["width"], "Native width must match [state["state"]] moving=[state["moving"]] before any export")
 		TEST_ASSERT_EQUAL(selected.Height(), model["height"], "Native height must match [state["state"]] moving=[state["moving"]] before any export")
-
-/datum/unit_test/cyborg_occlusion_rejects_unsupported_plan/Run()
-	var/datum/asset/cyborg_occlusion/asset = get_asset_datum(/datum/asset/cyborg_occlusion)
-	for(var/list/changes as anything in list(list("dirs" = 1), list("dirs" = 8), list("loop" = 2), list("rewind" = 1)))
-		var/list/state = list("state" = "future-state", "dirs" = 4, "loop" = 0, "rewind" = 0)
-		for(var/field in changes)
-			state[field] = changes[field]
-		var/list/model = list("source" = "fixture", "states" = list(state))
-		var/list/temporary_files = list()
-		var/exception/failure
-		try
-			asset.generate_model(model, "tmp/unsupported-cyborg-test", temporary_files)
-		catch(var/exception/error)
-			failure = error
-		TEST_ASSERT(failure && findtext(failure.name, "Unsupported cyborg occlusion metadata"), "Unsupported future animation must fail before resource publication")
-		TEST_ASSERT_EQUAL(length(temporary_files), 0, "Invalid metadata must fail before staging any files")

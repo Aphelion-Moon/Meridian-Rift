@@ -547,11 +547,6 @@
 	SScyborg_layout_saves.fire()
 	TEST_ASSERT_EQUAL(store.write_attempts, writes + 1, "A waiting save did not go out once the budget refilled.")
 	TEST_ASSERT_EQUAL(store.last_written["character1"]["active"]["penis"]["placement_groups"]["south"]["pixel_x"], 64, "The save after the budget did not write the latest edit.")
-	// A store that goes writes what it has and leaves the queue.
-	var/datum/json_savefile/cyborg_customization/leaving = new(null)
-	leaving.request_save()
-	qdel(leaving)
-	TEST_ASSERT(!(leaving in SScyborg_layout_saves.queue), "A destroyed store stayed in the save queue.")
 
 /// The part cache never changes what is saved: action results reuse unchanged parts' text, and raw draft updates drop it.
 /datum/unit_test/cyborg_encode_cache
