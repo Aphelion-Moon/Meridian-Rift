@@ -34,7 +34,7 @@
 	var/list/cached_sizes = size_cache[cache_key]
 	if(cached_sizes)
 		return cached_sizes.Copy()
-	var/list/direct = cyborg_direct_accessories(slot)[choice]
+	var/list/direct = cyborg_direct_accessories(slot)?[choice]
 	if(direct)
 		var/list/direct_sizes = direct["sizes"]
 		direct_sizes = direct_sizes ? direct_sizes.Copy() : list(cyborg_layout_default_sprite_size(slot))
@@ -65,7 +65,7 @@
 
 /// Returns the color channels an accessory's art uses at this size and arousal state, by channel number
 /proc/cyborg_accessory_color_channels(slot, choice, sprite_size = 1, arousal = "none")
-	var/list/direct = cyborg_direct_accessories(slot)[choice]
+	var/list/direct = cyborg_direct_accessories(slot)?[choice]
 	if(direct)
 		var/list/direct_channels = direct["channels"]
 		var/list/direct_result = list()
@@ -119,8 +119,7 @@
 	var/static/list/states_by_icon = list()
 	var/static/cache_bytes = 0
 	var/effective_size = cyborg_accessory_effective_size(slot, choice, cyborg_layout_sprite_size(sprite_size, slot))
-	var/list/direct_catalog = cyborg_direct_accessories(slot)
-	var/list/direct = direct_catalog[choice]
+	var/list/direct = cyborg_direct_accessories(slot)?[choice]
 	if(direct)
 		return cyborg_direct_accessory_render(direct, colors, arousal, direction, effective_size)
 	var/cache_key = "[slot]|[choice]|[colors.Join(",")]|[arousal]|[direction]|[effective_size]"
@@ -168,7 +167,7 @@
 	cache_bytes += bytes
 	return result
 
-/// Separate silicon catalog: these donor sheets never enter human accessory selection.
+/// The silicon-only accessories of a slot by name, null for a slot without any - these donor sheets never enter human accessory selection
 /proc/cyborg_direct_accessories(slot)
 	var/static/list/catalog = list(
 		"penis" = list(
@@ -187,7 +186,7 @@
 			"Squished" = list("icon" = 'modular_aphelion/modules/cyborg_customization/icons/accessories/anus.dmi', "state" = "m_anus_squished_SIZE_FRONT", "channels" = list("primary"), "sizes" = list(1, 2, 3, 4, 5, 6, 7, 8)),
 		),
 	)
-	return catalog[slot] || list()
+	return catalog[slot]
 
 /// Returns a silicon-only accessory's colored art as an icon and its base64, or null when it has none. Keeps the last 32
 /proc/cyborg_direct_accessory_render(list/descriptor, list/colors, arousal, direction, sprite_size = 1)
