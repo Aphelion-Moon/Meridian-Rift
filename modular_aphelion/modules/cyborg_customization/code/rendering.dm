@@ -246,7 +246,7 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 	render_key = new_key
 	var/list/descriptor = owner.cyborg_appearance_model ? cyborg_model_catalog()[owner.cyborg_appearance_model] : null
 	// Disguises and non-player chassis do not reveal the underlying customization.
-	var/visible = cyborg_body_visuals_visible(owner)
+	var/visible = cyborg_body_visuals_visible(owner, descriptor)
 	render_layers = visible ? cyborg_build_appearance(descriptor, owner.cyborg_appearance_layout, list(
 		"choices" = owner.cyborg_appearance_choices, "active" = owner.cyborg_appearance_active,
 		"arousal" = owner.cyborg_appearance_arousal, "direction" = owner.dir, "pose" = owner.cyborg_customization_pose(),

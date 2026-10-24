@@ -189,11 +189,11 @@
 	var/list/directional = placement ? cyborg_resolve_placement(placement, robot.dir, robot.cyborg_customization_pose(), LAZYACCESS(robot.cyborg_appearance_arousal, slot) || "none") : null
 	return list("configured" = !!configured, "enabled" = !!enabled, "exposed" = !!(enabled && directional?["visible"] && cyborg_body_visuals_visible(robot)))
 
-/// Rendering and examine share this - death, a disguise or being tipped over hide the parts, lockdown and stuns do not
-/proc/cyborg_body_visuals_visible(mob/living/silicon/robot/robot)
+/// Rendering and examine share this - death, a disguise or being tipped over hide the parts, lockdown and stuns do not. A redraw passes the chassis's catalog entry it already has
+/proc/cyborg_body_visuals_visible(mob/living/silicon/robot/robot, list/descriptor)
 	if(!robot || !robot.model || !robot.cyborg_appearance_allowed || CONFIG_GET(flag/disable_erp_preferences) || robot.stat == DEAD || HAS_TRAIT_FROM(robot, TRAIT_IMMOBILIZED, TIPPED_OVER))
 		return FALSE
-	var/list/descriptor = robot.cyborg_appearance_model ? cyborg_model_catalog()[robot.cyborg_appearance_model] : null
+	descriptor ||= (robot.cyborg_appearance_model ? cyborg_model_catalog()[robot.cyborg_appearance_model] : null)
 	if(!descriptor || robot.icon != descriptor["icon"] || robot.model.cyborg_base_icon != descriptor["icon_state"])
 		return FALSE
 	var/expected_state = descriptor["icon_state"]
