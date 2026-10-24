@@ -46,11 +46,11 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 		return SOUTH
 	return cardinal
 
-/// Generates only the changed appearance, never creates organs or reads preferences.
+/// Generates only the changed appearance, never creates organs or reads preferences. Returns null when no part shows
 /proc/cyborg_build_appearance(list/descriptor, list/layout, list/runtime_state)
-	var/list/layers = list()
+	var/list/layers
 	if(!descriptor || !layout)
-		return layers
+		return null
 	var/list/choices = runtime_state["choices"]
 	var/list/active = runtime_state["active"]
 	var/list/arousal = runtime_state["arousal"]
@@ -59,9 +59,9 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 	var/list/cached_icons = runtime_state["cached_icons"]
 	var/list/anchor = cyborg_animation_anchor(descriptor, runtime_state["direction"], runtime_state["pose"])
 	for(var/slot in cyborg_layout_supported_slots())
-		if(!active[slot] || !choices[slot] || choices[slot] == SPRITE_ACCESSORY_NONE)
+		if(!LAZYACCESS(active, slot) || !choices[slot] || choices[slot] == SPRITE_ACCESSORY_NONE)
 			continue
-		var/state = arousal[slot] || "none"
+		var/state = LAZYACCESS(arousal, slot) || "none"
 		var/list/entry = layout[slot]
 		var/mirrored = cyborg_mirror_placement(descriptor, entry, runtime_state["direction"])
 		var/list/placement = cyborg_resolve_placement(entry, runtime_state["direction"], runtime_state["pose"], state, mirrored, TRAIT_R_WIDE in descriptor["features"])
@@ -79,12 +79,12 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 			pixels = rendered?["base64"]
 		if(!pixels)
 			continue
-		layers += list(list(
+		LAZYADD(layers, list(list(
 			"slot" = slot, "icon" = pixels, "resource" = rendered?["icon"],
 			"x" = placement["pixel_x"], "y" = placement["pixel_y"],
 			"rotation" = placement["rotation"], "scale" = placement["scale"], "priority" = placement["priority"],
 			"mirror_x" = mirrored ? -1 : 1,
-		))
+		)))
 	return layers
 
 /mob/living/silicon/robot/proc/cyborg_customization_update_render()
@@ -109,8 +109,8 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 	var/mob/living/silicon/robot/owner
 	/// Everything the parts were last drawn from, so an update that changes none of it does nothing
 	var/render_key
-	/// The part layers last built for the owner, empty while they're hidden or waiting on a mask
-	var/list/render_layers = list()
+	/// The part layers last built for the owner, null while none show - hidden, turned off or waiting on a mask
+	var/list/render_layers
 	/// At most one weak completion is outstanding, regardless of appearance churn.
 	var/occlusion_loading = FALSE
 	/// The icon#state key of a chassis whose mask failed to build, so we don't try it again
@@ -231,11 +231,11 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 	render_layers = visible ? cyborg_build_appearance(descriptor, owner.cyborg_appearance_layout, list(
 		"choices" = owner.cyborg_appearance_choices, "active" = owner.cyborg_appearance_active,
 		"arousal" = owner.cyborg_appearance_arousal, "direction" = owner.dir, "pose" = owner.cyborg_customization_pose(),
-	)) : list()
+	)) : null
 	if(length(render_layers) && cyborg_occlusion_has_model(descriptor["icon"], descriptor["icon_state"]) && !cyborg_occlusion_cached(descriptor["icon"], descriptor["icon_state"]))
 		// Never attach parts without their matching chassis mask. A first use
 		// prepares the pair asynchronously; subsequent owners reuse the resource.
-		render_layers = list()
+		LAZYNULL(render_layers)
 		var/model_key = "[descriptor["icon"]]#[descriptor["icon_state"]]"
 		if(!occlusion_loading && occlusion_failed_key != model_key)
 			occlusion_loading = TRUE
@@ -262,7 +262,7 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 		return
 	var/has_active_part = FALSE
 	for(var/slot in cyborg_layout_supported_slots())
-		if(holder.owner.cyborg_appearance_active[slot] && holder.owner.cyborg_appearance_choices[slot] && holder.owner.cyborg_appearance_choices[slot] != SPRITE_ACCESSORY_NONE)
+		if(LAZYACCESS(holder.owner.cyborg_appearance_active, slot) && holder.owner.cyborg_appearance_choices[slot] && holder.owner.cyborg_appearance_choices[slot] != SPRITE_ACCESSORY_NONE)
 			has_active_part = TRUE
 			break
 	if(!has_active_part)

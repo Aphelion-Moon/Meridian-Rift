@@ -12,7 +12,7 @@
 		var/choice = cyborg_appearance_choices?[slot]
 		if(!choice || choice == SPRITE_ACCESSORY_NONE)
 			continue
-		parts += list(list("slot" = slot, "choice" = choice, "active" = !!cyborg_appearance_active[slot], "arousal" = cyborg_appearance_arousal[slot] || "none", "can_arouse" = (slot in list("penis", "testicles", "vagina", "breasts"))))
+		parts += list(list("slot" = slot, "choice" = choice, "active" = !!LAZYACCESS(cyborg_appearance_active, slot), "arousal" = LAZYACCESS(cyborg_appearance_arousal, slot) || "none", "can_arouse" = (slot in list("penis", "testicles", "vagina", "breasts"))))
 	var/list/descriptor = cyborg_model_catalog()[cyborg_appearance_model]
 	return list(
 		"parts" = parts, "message" = cyborg_customization_message,
@@ -53,15 +53,15 @@
 		return FALSE
 	if(operation == "activate")
 		var/value = params["value"] == TRUE
-		if(!!cyborg_appearance_active[slot] == value)
+		if(!!LAZYACCESS(cyborg_appearance_active, slot) == value)
 			cyborg_customization_message = null
 			return TRUE
-		cyborg_appearance_active[slot] = value
+		LAZYSET(cyborg_appearance_active, slot, value)
 	else if((slot in list("penis", "testicles", "vagina", "breasts")) && (params["value"] in list("none", "partial", "full")))
-		if((cyborg_appearance_arousal[slot] || "none") == params["value"])
+		if((LAZYACCESS(cyborg_appearance_arousal, slot) || "none") == params["value"])
 			cyborg_customization_message = null
 			return TRUE
-		cyborg_appearance_arousal[slot] = params["value"]
+		LAZYSET(cyborg_appearance_arousal, slot, params["value"])
 	else
 		return FALSE
 	cyborg_customization_message = null

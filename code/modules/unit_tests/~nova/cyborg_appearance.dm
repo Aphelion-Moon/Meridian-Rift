@@ -156,8 +156,8 @@
 	robot.cyborg_appearance_allowed = TRUE
 	robot.cyborg_appearance_character_allowed = TRUE
 	robot.cyborg_appearance_choices = list("penis" = "Visual Fixture")
-	robot.cyborg_appearance_active = list("penis" = TRUE)
-	robot.cyborg_appearance_arousal = list("penis" = "none")
+	LAZYSET(robot.cyborg_appearance_active, "penis", TRUE)
+	LAZYSET(robot.cyborg_appearance_arousal, "penis", "none")
 	robot.cyborg_appearance_layout = cyborg_layout_default()["active"]
 	var/list/capability = cyborg_part_capability(robot, "penis")
 	TEST_ASSERT(cyborg_body_visuals_visible(robot), "The real active model fixture was not eligible for visual rendering.")

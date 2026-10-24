@@ -8,9 +8,9 @@
 	/// The sprite for each part slot from the character's preferences, for layouts that don't carry their own
 	var/list/cyborg_appearance_base_choices
 	/// Which part slots the borg has turned on, by slot
-	var/list/cyborg_appearance_active = list()
+	var/list/cyborg_appearance_active
 	/// The arousal state of each part slot, by slot. A slot that isn't here is none
-	var/list/cyborg_appearance_arousal = list()
+	var/list/cyborg_appearance_arousal
 	/// Catalog id of the chassis the current layout was picked for
 	var/cyborg_appearance_model
 	/// The body size the character's preferences ask for
@@ -65,7 +65,7 @@
 	if(!snapshot)
 		robot.cyborg_appearance_store = null
 		robot.cyborg_appearance_layout = null
-		robot.cyborg_appearance_active = list()
+		LAZYNULL(robot.cyborg_appearance_active)
 		QDEL_NULL(robot.cyborg_appearance_holder)
 		// The borg's own interaction panel has no controls left to show, so we close it. A null src_object would close every window it has open
 		var/datum/component/interactable/panel = robot.GetComponent(/datum/component/interactable)
@@ -75,8 +75,8 @@
 		return
 	var/same_owner = robot.cyborg_appearance_owner == owner && robot.cyborg_appearance_slot == preferences.default_slot
 	if(!same_owner)
-		robot.cyborg_appearance_active = list()
-		robot.cyborg_appearance_arousal = list()
+		LAZYNULL(robot.cyborg_appearance_active)
+		LAZYNULL(robot.cyborg_appearance_arousal)
 	robot.cyborg_appearance_owner = owner
 	robot.cyborg_appearance_slot = preferences.default_slot
 	robot.cyborg_appearance_store = snapshot
@@ -114,8 +114,8 @@
 		cyborg_appearance_layout = cyborg_layout_copy(model_default || cyborg_appearance_store["active"])
 		cyborg_appearance_choices = cyborg_layout_choices(cyborg_appearance_layout, cyborg_appearance_base_choices || cyborg_appearance_choices)
 		for(var/slot in cyborg_layout_supported_slots())
-			if(isnull(cyborg_appearance_active[slot]) && cyborg_appearance_choices[slot] && cyborg_appearance_choices[slot] != SPRITE_ACCESSORY_NONE)
-				cyborg_appearance_active[slot] = TRUE
+			if(isnull(LAZYACCESS(cyborg_appearance_active, slot)) && cyborg_appearance_choices[slot] && cyborg_appearance_choices[slot] != SPRITE_ACCESSORY_NONE)
+				LAZYSET(cyborg_appearance_active, slot, TRUE)
 		cyborg_appearance_revision++
 	cyborg_customization_apply_size()
 	cyborg_customization_update_render()
@@ -179,9 +179,9 @@
 
 /proc/cyborg_part_capability(mob/living/silicon/robot/robot, slot)
 	var/configured = robot.cyborg_appearance_allowed && robot.cyborg_appearance_choices?[slot] && robot.cyborg_appearance_choices[slot] != SPRITE_ACCESSORY_NONE
-	var/enabled = configured && robot.cyborg_appearance_active[slot]
+	var/enabled = configured && LAZYACCESS(robot.cyborg_appearance_active, slot)
 	var/list/placement = robot.cyborg_appearance_layout?[slot]
-	var/list/directional = placement ? cyborg_resolve_placement(placement, robot.dir, robot.cyborg_customization_pose(), robot.cyborg_appearance_arousal[slot] || "none") : null
+	var/list/directional = placement ? cyborg_resolve_placement(placement, robot.dir, robot.cyborg_customization_pose(), LAZYACCESS(robot.cyborg_appearance_arousal, slot) || "none") : null
 	return list("configured" = !!configured, "enabled" = !!enabled, "exposed" = !!(enabled && directional?["visible"] && cyborg_body_visuals_visible(robot)))
 
 /// Rendering and examine share this - death, a disguise or being tipped over hide the parts, lockdown and stuns do not

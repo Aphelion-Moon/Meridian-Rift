@@ -139,16 +139,18 @@ export type CyborgCustomizationData = {
   direction: number;
   arousal: string;
   body: string | null;
-  layers?: {
-    mirror_x?: number;
-    slot?: CyborgSlot;
-    icon: string;
-    x: number;
-    y: number;
-    rotation: number;
-    scale: number;
-    priority: number;
-  }[];
+  layers?:
+    | {
+        mirror_x?: number;
+        slot?: CyborgSlot;
+        icon: string;
+        x: number;
+        y: number;
+        rotation: number;
+        scale: number;
+        priority: number;
+      }[]
+    | null;
   store: CyborgEditorStore;
   message?: string;
 };

@@ -209,7 +209,7 @@
 	robot.icon_state = descriptor["icon_state"]
 	apply_cyborg_customization(robot, preferences)
 	TEST_ASSERT_EQUAL(robot.cyborg_appearance_choices["penis"], "Dogborg Knotted", "Spawn must restore the model's saved sprite instead of the current None preference.")
-	TEST_ASSERT(robot.cyborg_appearance_active["penis"], "A configured part must start active on a new body.")
+	TEST_ASSERT(LAZYACCESS(robot.cyborg_appearance_active, "penis"), "A configured part must start active on a new body.")
 	TEST_ASSERT(length(robot.cyborg_appearance_holder.render_layers), "The configured model must produce native render layers on spawn.")
 	var/list/runtime_data = robot.cyborg_runtime_data()
 	TEST_ASSERT_NULL(runtime_data["store"], "Runtime data must not expose editable saved layouts.")
@@ -232,7 +232,7 @@
 	TEST_ASSERT(robot.cyborg_appearance_holder.shown_image == unchanged_image, "Identical usage controls replaced the image.")
 	TEST_ASSERT_EQUAL(preferences.save_preferences_calls, saves, "Identical viewer controls wrote the whole preference file.")
 	apply_cyborg_customization(robot, preferences)
-	TEST_ASSERT(!robot.cyborg_appearance_active["penis"], "Reconnect must preserve an explicit hidden state.")
+	TEST_ASSERT(!LAZYACCESS(robot.cyborg_appearance_active, "penis"), "Reconnect must preserve an explicit hidden state.")
 	TEST_ASSERT_EQUAL(robot.cyborg_appearance_choices["penis"], "Dogborg Knotted", "Reconnect must preserve the model's saved sprite.")
 	TEST_ASSERT(middleware.edit_layout(list("operation" = "load_default", "character_slot" = 2, "context" = middleware.context_generation), robot), "Creator must load the saved default.")
 	TEST_ASSERT_EQUAL(preferences.read_preference(/datum/preference/choiced/cyborg_sprite/penis), "Dogborg Knotted", "Loading a default must restore the sprite selector too.")
@@ -613,20 +613,20 @@
 	robot.cyborg_appearance_owner = robot.ckey
 	robot.cyborg_appearance_store = cyborg_layout_default()
 	robot.cyborg_appearance_layout = cyborg_layout_copy(robot.cyborg_appearance_store["active"])
-	robot.cyborg_appearance_active = list("penis" = FALSE)
+	LAZYSET(robot.cyborg_appearance_active, "penis", FALSE)
 	var/list/runtime_activate = list("operation" = "activate", "slot" = "penis", "value" = TRUE, "character_slot" = 1)
 	TEST_ASSERT(!robot.cyborg_runtime_action(runtime_activate, human), "A different actor must not enter the cyborg runtime action.")
 	TEST_ASSERT(robot.cyborg_runtime_action(runtime_activate, robot), "A slot-mismatched runtime request must return a visible refusal.")
-	TEST_ASSERT(!robot.cyborg_appearance_active["penis"], "A mismatched runtime slot changed the body state.")
+	TEST_ASSERT(!LAZYACCESS(robot.cyborg_appearance_active, "penis"), "A mismatched runtime slot changed the body state.")
 	runtime_activate["character_slot"] = 2
 	robot.cyborg_appearance_owner = "wrong_owner"
 	TEST_ASSERT(robot.cyborg_runtime_action(runtime_activate, robot), "An owner-mismatched runtime request must return a visible refusal.")
-	TEST_ASSERT(!robot.cyborg_appearance_active["penis"], "An owner-mismatched runtime request changed the body state.")
+	TEST_ASSERT(!LAZYACCESS(robot.cyborg_appearance_active, "penis"), "An owner-mismatched runtime request changed the body state.")
 	robot.cyborg_appearance_owner = robot.ckey
 	var/datum/preference/toggle/allow_genitals/genitals_preference = GLOB.preference_entries[/datum/preference/toggle/allow_genitals]
 	preferences.write_preference(genitals_preference, FALSE)
 	TEST_ASSERT(robot.cyborg_runtime_action(runtime_activate, robot), "A consent-disabled runtime request must return visible feedback.")
-	TEST_ASSERT(!robot.cyborg_appearance_active["penis"], "A consent-disabled runtime request changed the body state.")
+	TEST_ASSERT(!LAZYACCESS(robot.cyborg_appearance_active, "penis"), "A consent-disabled runtime request changed the body state.")
 
 	var/list/draft = preferences.cyborg_session().begin_draft()
 	var/list/draft_active = islist(draft) ? draft["active"] : null
@@ -851,7 +851,7 @@
 		TEST_ASSERT_EQUAL(holder.animation_image.icon_state, robot.icon_state, "The carrier must select the chassis pose.")
 		TEST_ASSERT_EQUAL(holder.animation_image.dir, direction, "Turning must select the matching native direction.")
 		TEST_ASSERT_EQUAL(holder.shown_image.filters[1]:size, 127, "Native displacement must stay aligned to whole pixels.")
-		var/list/layer = holder.render_layers[1]
+		var/list/layer = LAZYACCESS(holder.render_layers, 1)
 		var/mutable_appearance/part = holder.shown_image.overlays[1]
 		var/icon/art = layer["resource"]
 		TEST_ASSERT_EQUAL(part.pixel_w, layer["x"] + (dimensions["width"] - art.Width()) / 2, "Screen-space part X must use the preview's centered canvas origin.")
@@ -1023,12 +1023,12 @@
 	TEST_ASSERT_EQUAL(robot.cyborg_appearance_store["active"]["penis"]["pixel_x"], 13, "The applied snapshot did not come from the layout sidecar.")
 	TEST_ASSERT_EQUAL(robot.cyborg_appearance_choices["penis"], "Dogborg Knotted", "The applied snapshot lost the sprite preference.")
 	// A second pass, as when a job spawn is followed by its mind transfer, keeps the body's snapshot.
-	robot.cyborg_appearance_active["penis"] = FALSE
+	LAZYSET(robot.cyborg_appearance_active, "penis", FALSE)
 	layout["active"]["penis"]["pixel_x"] = 99
 	preferences.write_cyborg_layout(preferences.default_slot, layout)
 	robot.transfer_silicon_prefs(robot.mock_client)
 	TEST_ASSERT_EQUAL(robot.cyborg_appearance_store["active"]["penis"]["pixel_x"], 13, "Re-entering the same body replaced its spawn snapshot.")
-	TEST_ASSERT(!robot.cyborg_appearance_active["penis"], "Re-entering the same body reset its runtime state.")
+	TEST_ASSERT(!LAZYACCESS(robot.cyborg_appearance_active, "penis"), "Re-entering the same body reset its runtime state.")
 
 /// Regression coverage for failed-write ownership, backend close and forced model installation.
 /datum/json_savefile/cyborg_customization/review_failure_store
@@ -1216,7 +1216,7 @@
 	var/list/runtime = list("choices" = list("penis" = "Dogborg Knotted"), "active" = list("penis" = TRUE), "arousal" = list("penis" = "none"), "direction" = SOUTH, "pose" = "idle", "cached_icons" = cached)
 	var/list/layers = cyborg_build_appearance(descriptor, layout, runtime)
 	TEST_ASSERT_EQUAL(length(layers), 1, "Cached preview geometry lost its visible part.")
-	var/list/layer = layers[1]
+	var/list/layer = LAZYACCESS(layers, 1)
 	TEST_ASSERT_EQUAL(layer["icon"], cached["penis"], "A geometry-only preview regenerated pixels instead of reusing its owned PNG.")
 	TEST_ASSERT_NULL(layer["resource"], "Preview-only reuse retained a native icon unnecessarily.")
 	var/list/anchor = cyborg_animation_anchor(descriptor, SOUTH, "idle")
