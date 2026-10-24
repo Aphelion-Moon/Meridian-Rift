@@ -677,6 +677,9 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 	if(status == BUG_REPORT_RECEIPT_REFUSED)
 		status = null
 	if(islist(response["receipt"]))
+		// A line from the unsent page, like a look turned down there, doesn't belong under the receipt that turns it sent
+		if(result?["kind"] != "accepted")
+			status = null
 		result = drop_unix_times(list("kind" = "accepted", "receipt" = response["receipt"]))
 		note_retry()
 

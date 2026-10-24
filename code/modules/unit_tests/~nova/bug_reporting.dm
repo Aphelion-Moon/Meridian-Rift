@@ -469,16 +469,27 @@
 	report.replies = list(bug_report_test_answer(200, list("receipt" = list("reportId" = "accepted"))))
 	report.refresh()
 	TEST_ASSERT_NULL(report.status, "The receipt came and the line about the reply we couldn't read stayed")
-	// A published report's page already has its issue and polls for nothing more, so a look out of reach has nothing to say
+	// A published report's page already has its issue and polls for nothing more, so a look out of reach or turned down has nothing to say
 	report.result = list("kind" = "accepted", "receipt" = list("reportId" = "accepted", "issueUrl" = "https://example.invalid/issues/1"))
 	report.replies = list(bug_report_test_answer(503, list()))
 	report.refresh()
 	TEST_ASSERT_NULL(report.status, "A published report out of reach said it would ask again, which nothing does")
+	report.replies = list(bug_report_test_answer(404, list("error" = "receipt_not_found")))
+	report.refresh()
+	TEST_ASSERT_NULL(report.status, "A published report's look turned down said it would ask again, which nothing does")
 	// A draft read that finds the report submitted is still on the unsent page, where nothing polls, so it keeps the read's own line
 	report.result = null
 	report.replies = list(list("draft" = list("revision" = report.revision, "fields" = report.fields, "intake" = "submitted")), bug_report_test_answer(503, list()))
 	report.refresh()
 	TEST_ASSERT_EQUAL(report.status, "Couldn't reach the report server. Your text is kept. Try again in a minute.", "The unsent page took the sent page's line, which promises a poll nothing arms there")
+	// A look turned down there keeps its line too, until the receipt comes and the page it was about is gone
+	report.replies = list(list("draft" = list("revision" = report.revision, "fields" = report.fields, "intake" = "submitted")), bug_report_test_answer(404, list("error" = "receipt_not_found")))
+	report.refresh()
+	TEST_ASSERT_EQUAL(report.status, "The report server turned that down. Your text is kept.", "The unsent page lost the line saying its receipt look was turned down")
+	report.replies = list(list("draft" = list("revision" = report.revision, "fields" = report.fields, "intake" = "submitted")), bug_report_test_answer(200, list("receipt" = list("reportId" = "accepted"))))
+	report.refresh()
+	TEST_ASSERT(report.result?["kind"] == "accepted" && isnull(report.status), "The receipt turned the page sent and a line from the unsent page stayed under it")
+	report.result = null
 	for(var/tick in 1 to 4)
 		report.replies = list(bug_report_test_answer(429, list("error" = "draft_request_limit")))
 		report.refresh()
