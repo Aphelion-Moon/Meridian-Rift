@@ -103,9 +103,12 @@ function drag(from: [number, number], to: [number, number], corner?: string) {
   });
 }
 
-/** Lets the transfer's first chunk go, which waits on a timer */
+/** Lets the transfer's first chunk go, which waits on a timer that starts once the encode settles */
 const tick = () =>
   act(async () => {
+    // A timer runs only after every settled promise, so the chunk's timer is set before ours and goes first
+    // however late a busy box runs them
+    await new Promise((resolve) => setTimeout(resolve, 0));
     await new Promise((resolve) => setTimeout(resolve, 5));
   });
 
