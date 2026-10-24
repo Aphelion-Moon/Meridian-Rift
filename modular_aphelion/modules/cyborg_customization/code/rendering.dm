@@ -235,7 +235,8 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 /obj/effect/client_image_holder/cyborg_customization/proc/update_from_owner()
 	if(!owner)
 		return
-	var/new_key = "[owner.cyborg_appearance_revision]|[owner.dir]|[owner.icon]|[owner.icon_state]|[owner.stat]|[owner.transform]|[HAS_TRAIT_FROM(owner, TRAIT_IMMOBILIZED, TIPPED_OVER)]|[CONFIG_GET(flag/disable_erp_preferences)]|[owner.cyborg_appearance_allowed]"
+	// No transform here - a matrix in text is always "/matrix", so on_owner_transform() clears the key instead
+	var/new_key = "[owner.cyborg_appearance_revision]|[owner.dir]|[owner.icon]|[owner.icon_state]|[owner.stat]|[HAS_TRAIT_FROM(owner, TRAIT_IMMOBILIZED, TIPPED_OVER)]|[CONFIG_GET(flag/disable_erp_preferences)]|[owner.cyborg_appearance_allowed]"
 	if(new_key == render_key)
 		return
 	render_key = new_key
