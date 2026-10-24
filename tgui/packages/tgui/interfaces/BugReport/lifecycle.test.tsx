@@ -605,6 +605,18 @@ test('a focus answer keeps a picture’s time', () => {
   }).toEqual({ before: true, after: true, moved: false });
 });
 
+test('pictures that come after the window opened read the time they came', () => {
+  let now = new Date(2026, 9, 23, 14, 0, 0).getTime();
+  spies.push(spyOn(Date, 'now').mockImplementation(() => now));
+  openAt(2);
+  now += 10 * 60000;
+  setData({ pictures: [{ ...picture, takenAgo: 0 }] });
+  expect({
+    came: hasText(/In-game capture · 14:10/),
+    opened: hasText(/14:00/),
+  }).toEqual({ came: true, opened: false });
+});
+
 test('a focus answer keeps the sent page’s retry clock', () => {
   let now = new Date(2026, 9, 23, 14, 0, 0).getTime();
   spies.push(spyOn(Date, 'now').mockImplementation(() => now));
@@ -625,6 +637,28 @@ test('a focus answer keeps the sent page’s retry clock', () => {
   expect({ before, after: hasText(/tries again at 14:15/) }).toEqual({
     before: true,
     after: true,
+  });
+});
+
+test('a later result counts its own wait from when it came', () => {
+  let now = new Date(2026, 9, 23, 14, 0, 0).getTime();
+  spies.push(spyOn(Date, 'now').mockImplementation(() => now));
+  const retrying = (nextAttemptIn: number) => ({
+    kind: 'accepted',
+    receipt: { screening: 'passed', publication: 'retryable', nextAttemptIn },
+  });
+  show();
+  setData({ result: retrying(15 * 60000) });
+  const first = hasText(/tries again at 14:15/);
+  now += 10 * 60000;
+  setData({ result: retrying(5 * 60000) });
+  const same = hasText(/tries again at 14:15/);
+  now += 60000;
+  setData({ result: retrying(10 * 60000) });
+  expect({ first, same, later: hasText(/tries again at 14:21/) }).toEqual({
+    first: true,
+    same: true,
+    later: true,
   });
 });
 
