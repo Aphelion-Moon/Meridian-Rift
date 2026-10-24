@@ -39,10 +39,12 @@
 	editor.commit_draft()
 	return editor
 
+/// An editor action, then the account save it queued, as SScyborg_layout_saves runs it on its next fire.
 /datum/unit_test/cyborg_storage_fixture/proc/command(datum/preference_middleware/cyborg_character/editor, list/params)
 	params["character_slot"] = editor.preferences.default_slot
 	params["context"] = editor.context_generation
-	return editor.edit_layout(params, null)
+	. = editor.edit_layout(params, null)
+	cyborg_test_run_queued_save(editor.preferences.cyborg_layout_store())
 
 /datum/unit_test/cyborg_storage_fixture/proc/place(datum/preference_middleware/cyborg_character/editor, value)
 	return command(editor, list("operation" = "set_placement", "slot" = "penis", "target" = list("scope" = "base", "direction" = SOUTH), "changes" = list("pixel_x" = value)))
@@ -484,3 +486,39 @@
 	TEST_ASSERT(length(file(sidecar_path)) <= CYBORG_LAYOUT_MAX_SIDECAR_BYTES, "An import wrote a file past the account limit.")
 	cyborg_customization_after_import("cyborgimportlimittest", list("character2" = cyborg_layout_normalize(too_big)))
 	TEST_ASSERT(!fexists(sidecar_path), "Old layouts stayed behind when every imported layout was too big.")
+
+/// Editor actions only ask for a save. The queued save stages the latest draft, writes once, acknowledges the revision it
+/// wrote, and waits out the account's spacing in the queue.
+/datum/unit_test/cyborg_save_queue
+	parent_type = /datum/unit_test/cyborg_storage_fixture
+
+/datum/unit_test/cyborg_save_queue/Run()
+	var/datum/preference_middleware/cyborg_character/editor = make_editor()
+	var/datum/json_savefile/cyborg_customization/review_failure_store/store = editor.preferences.cyborg_layout_store()
+	store.path = "review-storage-counter-no-file"
+	store.next_write_at = world.time
+	var/writes = store.write_attempts
+	var/staged = store.get_entry("character1")
+	editor.edit_layout(list("operation" = "save", "name" = "Queued", "character_slot" = 1, "context" = editor.context_generation), null)
+	TEST_ASSERT_EQUAL(store.write_attempts, writes, "A save action wrote the account inside the action.")
+	TEST_ASSERT_EQUAL(store.get_entry("character1"), staged, "A save action encoded the draft inside the action.")
+	TEST_ASSERT((store in SScyborg_layout_saves.queue) && editor.save_requested, "A save action did not queue the account.")
+	editor.edit_layout(list("operation" = "set_placement", "slot" = "penis", "target" = list("scope" = "base", "direction" = SOUTH), "changes" = list("pixel_x" = 61), "character_slot" = 1, "context" = editor.context_generation), null)
+	TEST_ASSERT(editor.draft_timer, "An edit after a queued save did not schedule its own.")
+	var/revision = editor.draft_revision
+	// The subsystem runs the save on its own, in a later tick.
+	var/deadline = world.time + 5 SECONDS
+	UNTIL(store.write_attempts > writes || world.time > deadline)
+	TEST_ASSERT_EQUAL(store.write_attempts, writes + 1, "SScyborg_layout_saves did not write the queued account exactly once.")
+	TEST_ASSERT_EQUAL(store.last_written["character1"]["active"]["penis"]["placement_groups"]["south"]["pixel_x"], 61, "The queued save wrote an older state than the draft's latest.")
+	TEST_ASSERT(store.last_written["character1"]["presets"]["Queued"], "The queued save lost the preset its action made.")
+	TEST_ASSERT(!editor.dirty && editor.saved_revision == revision, "The written revision was not acknowledged.")
+	// Inside the spacing the account waits, and a newer edit is not acknowledged by the older write.
+	editor.edit_layout(list("operation" = "set_placement", "slot" = "penis", "target" = list("scope" = "base", "direction" = SOUTH), "changes" = list("pixel_x" = 62), "character_slot" = 1, "context" = editor.context_generation), null)
+	editor.request_save()
+	TEST_ASSERT(!cyborg_test_run_queued_save(store), "A queued save ran inside the account's spacing.")
+	TEST_ASSERT(editor.dirty && (store in SScyborg_layout_saves.queue), "A save waiting out its spacing lost its place.")
+	store.next_write_at = world.time
+	TEST_ASSERT(cyborg_test_run_queued_save(store), "A due save did not run.")
+	TEST_ASSERT_EQUAL(store.last_written["character1"]["active"]["penis"]["placement_groups"]["south"]["pixel_x"], 62, "The due save did not write the latest edit.")
+	TEST_ASSERT(!editor.dirty, "The due save was not acknowledged.")

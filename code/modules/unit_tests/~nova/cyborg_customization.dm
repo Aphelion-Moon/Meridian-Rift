@@ -320,10 +320,11 @@
 		var/stale_context = editor.context_generation - 1
 		TEST_ASSERT(!editor.set_preview(list("context" = stale_context, "model" = model_id), null), "A replaced context accepted a stale model action.")
 		TEST_ASSERT(preferences.cyborg_session().draft_timer, "A creator edit did not schedule persistence.")
-		// Leaving the cyborg page saves without waiting for the debounce.
+		// Leaving the cyborg page asks for a save without waiting for the debounce.
 		editor.set_page(list("active" = FALSE), null)
 		TEST_ASSERT(!editor.page_active && !length(editor.get_ui_data(null)), "Leaving the page left the creator active.")
 		TEST_ASSERT_NULL(preferences.cyborg_session().draft_timer, "Leaving the page retained a deferred write callback.")
+		TEST_ASSERT(cyborg_test_run_queued_save(preferences.cyborg_layout_store()), "Leaving the page did not queue a save.")
 		TEST_ASSERT(!preferences.cyborg_session().dirty, "Leaving the page left accepted edits unsaved.")
 		var/list/saved = preferences.read_cyborg_layout(1)
 		TEST_ASSERT_EQUAL(saved["active"]["penis"]["placement_groups"]["north"]["pixel_x"], cycle, "Leaving the page lost the last creator edit.")
@@ -386,6 +387,7 @@
 	TEST_ASSERT(editor.draft_timer && editor.draft_timer != pending_timer, "Changing preview source did not reschedule its stale-context save callback.")
 	deltimer(editor.draft_timer)
 	editor.flush_timer(editor.draft_slot, editor.context_generation, editor.draft_revision)
+	cyborg_test_run_queued_save(preferences.cyborg_layout_store())
 	TEST_ASSERT(!editor.dirty, "Changing preview source invalidated the active draft's pending autosave.")
 	var/other_model
 	for(var/candidate in cyborg_model_catalog())
@@ -1124,6 +1126,14 @@
 		last_written[key] = istext(stored) ? cyborg_layout_decode(stored) : deep_copy_list(stored)
 	return TRUE
 
+/// Runs the save SScyborg_layout_saves would run for `store` on its next fire. Returns FALSE while none is due.
+/proc/cyborg_test_run_queued_save(datum/json_savefile/cyborg_customization/store)
+	if(!(store in SScyborg_layout_saves.queue) || (store.path && world.time < store.next_write_at))
+		return FALSE
+	SScyborg_layout_saves.queue -= store
+	store.run_save()
+	return TRUE
+
 /datum/unit_test/cyborg_review_failed_slot_write_retry
 	parent_type = /datum/unit_test/cyborg_mock_preferences
 
@@ -1176,6 +1186,7 @@
 	preferences.ui_close(null)
 	TEST_ASSERT(!editor.page_active, "Backend UI close left the cyborg editor active.")
 	TEST_ASSERT_NULL(editor.preview_resources, "Backend UI close retained private preview resources.")
+	TEST_ASSERT(cyborg_test_run_queued_save(preferences.cyborg_layout_store()), "Backend UI close did not queue a save.")
 	TEST_ASSERT(!editor.dirty && !editor.draft_timer, "Backend UI close did not flush an accepted layout edit.")
 	TEST_ASSERT_EQUAL(preferences.read_cyborg_layout()["active"]["penis"]["pixel_x"], 17, "Backend UI close lost the accepted layout.")
 
@@ -1196,26 +1207,32 @@
 	editor.begin_draft()
 	var/list/command = list("operation" = "save_default", "character_slot" = preferences.default_slot, "context" = editor.context_generation)
 	editor.edit_layout(command, null)
+	TEST_ASSERT_EQUAL(store.write_attempts, 0, "An explicit save wrote the account inside its action.")
+	TEST_ASSERT(cyborg_test_run_queued_save(store), "An explicit save did not queue the account's save.")
 	TEST_ASSERT_EQUAL(store.successful_writes, 1, "The initial explicit save was not durable.")
 	var/revision = editor.draft_revision
 	for(var/index in 1 to 20)
 		editor.edit_layout(command, null)
+	store.next_write_at = world.time
+	cyborg_test_run_queued_save(store)
 	TEST_ASSERT_EQUAL(store.write_attempts, 1, "Identical explicit saves repeated the whole-account write.")
+	store.next_write_at = world.time + 2 SECONDS
 	TEST_ASSERT_EQUAL(editor.draft_revision, revision, "An identical save created a new edit revision.")
 	var/list/draft = editor.begin_draft()
 	draft["active"]["penis"]["pixel_x"] = 12
 	editor.update_draft(draft)
 	editor.edit_layout(command, null)
+	TEST_ASSERT(!cyborg_test_run_queued_save(store), "A changed save ran inside the account write interval.")
 	TEST_ASSERT_EQUAL(store.write_attempts, 1, "A changed save bypassed the account write interval.")
-	TEST_ASSERT(store.write_pending && store.write_timer && editor.dirty, "A coalesced write lost its pending ownership.")
+	TEST_ASSERT((store in SScyborg_layout_saves.queue) && editor.save_requested && editor.dirty, "A coalesced save lost its pending ownership.")
 	editor.close_editor()
 	TEST_ASSERT_EQUAL(store.write_attempts, 1, "Closing the editor bypassed the account write interval.")
-	TEST_ASSERT_NULL(editor.draft_timer, "Backend close retained the editor debounce instead of the account write.")
-	TEST_ASSERT_EQUAL(preferences.read_cyborg_layout()["active"]["penis"]["pixel_x"], 12, "The latest accepted edit was not staged before close.")
+	TEST_ASSERT_NULL(editor.draft_timer, "Backend close retained the editor debounce instead of the queued save.")
 	store.next_write_at = world.time
-	store.flush_pending()
+	TEST_ASSERT(cyborg_test_run_queued_save(store), "The due account save was no longer queued.")
+	TEST_ASSERT_EQUAL(preferences.read_cyborg_layout()["active"]["penis"]["pixel_x"], 12, "The queued save did not stage the latest accepted edit.")
 	TEST_ASSERT_EQUAL(store.successful_writes, 2, "The due account write did not save the latest state.")
-	TEST_ASSERT(!store.write_pending && !store.write_timer && !editor.dirty, "A successful delayed write left false pending state.")
+	TEST_ASSERT(!store.write_pending && !editor.dirty, "A successful delayed write left false pending state.")
 	TEST_ASSERT_EQUAL(store.last_written["character[preferences.default_slot]"]["active"]["penis"]["pixel_x"], 12, "Coalescing saved an earlier revision.")
 	// Both unnamed and named snapshots have idempotent explicit save semantics.
 	store.next_write_at = world.time
@@ -1224,10 +1241,13 @@
 	command["context"] = editor.context_generation
 	editor.set_page(list("active" = TRUE), null)
 	editor.edit_layout(command, null)
+	cyborg_test_run_queued_save(store)
 	var/named_writes = store.write_attempts
 	command["overwrite"] = TRUE
 	for(var/index in 1 to 20)
 		editor.edit_layout(command, null)
+	store.next_write_at = world.time
+	cyborg_test_run_queued_save(store)
 	TEST_ASSERT_EQUAL(store.write_attempts, named_writes, "Identical named preset overwrites repeated account writes.")
 
 /datum/unit_test/cyborg_failed_retry_is_paced_across_slots
@@ -1260,7 +1280,7 @@
 	TEST_ASSERT_EQUAL(store.successful_writes, 1, "Recovered storage did not flush the old pending slot.")
 	TEST_ASSERT_EQUAL(store.last_written["character1"]["active"]["penis"]["pixel_x"], 27, "Retry after slot replacement lost its accepted edit.")
 	TEST_ASSERT_NULL(store.last_written["character2"], "Retry wrote a clean unrelated slot.")
-	TEST_ASSERT(!editor.save_error && !store.write_pending && !store.write_timer, "Recovery retained false pending or error state.")
+	TEST_ASSERT(!editor.save_error && !store.write_pending, "Recovery retained false pending or error state.")
 
 // Focused behavior probes for cached geometry and bounded latest-state refresh.
 /datum/unit_test/cyborg_cached_preview_geometry/Run()

@@ -42,6 +42,8 @@
 	var/context_generation = 0
 	/// Stoppable two-second autosave callback.
 	var/draft_timer
+	/// Whether the account's next queued save should stage the draft first.
+	var/save_requested = FALSE
 	/// Whether accepted edits still require a successful sidecar write.
 	var/dirty = FALSE
 	/// Last written revision and whether it only reached memory.
@@ -82,7 +84,7 @@
 	page_active = FALSE
 	gallery_open = FALSE
 	gallery_department = null
-	commit_draft()
+	request_save()
 	context_generation++
 	clear_preview_resources()
 
@@ -154,7 +156,7 @@
 	if(user && user.client && user.client != preferences.parent)
 		return FALSE
 	if(params["operation"] == "retry_save")
-		commit_draft()
+		request_save()
 		return TRUE
 	if(!cyborg_visuals_allowed(preferences))
 		status_message = "Enable the relevant character preferences first."
@@ -209,10 +211,10 @@
 		if(params["operation"] in list("load", "load_default", "delete_default"))
 			preview_layout_source = "active"
 		if(result["immediate"])
-			commit_draft()
+			request_save()
 	else if(result["immediate"])
 		// An idempotent save may still need to flush an earlier accepted edit.
-		commit_draft()
+		request_save()
 	return TRUE
 
 /datum/preference_middleware/cyborg_character/get_ui_data(mob/user)
@@ -607,7 +609,10 @@
 		return draft
 	if(draft)
 		// A failed disk write is still staged under its original slot; only a slot past its limit loses unsaved edits.
-		commit_draft()
+		// The draft is about to go, so it is staged now; the account's write still waits for its turn.
+		stage_draft()
+		if(preferences.cyborg_layout_store().write_pending)
+			preferences.cyborg_layout_store().request_save()
 	var/stored = preferences.cyborg_layout_store().get_entry("character[preferences.default_slot]")
 	if(cyborg_layout_import_is_future(stored))
 		return null
@@ -633,36 +638,56 @@
 		deltimer(draft_timer)
 	draft_timer = addtimer(CALLBACK(src, PROC_REF(flush_timer), draft_slot, context_generation, draft_revision), 2 SECONDS, TIMER_STOPPABLE)
 
-/** Encodes the draft into its slot and writes the sidecar. A failed write keeps the draft dirty for retry, and a draft
- * past CYBORG_LAYOUT_MAX_SLOT_BYTES stays unstaged until edits shrink it.
- */
-/datum/preference_middleware/cyborg_character/proc/commit_draft()
-	if(!dirty && !preferences.cyborg_layout_savefile?.write_pending)
-		return TRUE
-	var/datum/json_savefile/cyborg_customization/store = preferences.cyborg_layout_store()
+/// Asks SScyborg_layout_saves to stage the draft and write the account, which happens outside this action or timer.
+/datum/preference_middleware/cyborg_character/proc/request_save()
 	if(draft_timer)
 		deltimer(draft_timer)
 		draft_timer = null
-	if(dirty && staged_revision != draft_revision)
-		var/text = cyborg_layout_encode(draft)
-		var/problem
-		if(length(text) > CYBORG_LAYOUT_MAX_SLOT_BYTES)
-			problem = cyborg_layout_slot_full_message()
-		else if(store.bytes_with("character[draft_slot]", text) > CYBORG_LAYOUT_MAX_SIDECAR_BYTES)
-			problem = cyborg_layout_account_full_message()
-		if(problem != full_message)
-			full_message = problem
-			save_error = save_problem()
-		if(full_message)
-			// Other slots' pending writes still go out.
-			store.flush_pending()
-			return FALSE
-		// Set before the synchronous completion callback can acknowledge this revision.
-		staged_revision = draft_revision
-		preferences.stage_cyborg_layout(draft_slot, text)
-	else
-		store.flush_pending()
-	return !store.write_pending
+	var/datum/json_savefile/cyborg_customization/store = preferences.cyborg_layout_store()
+	if(!dirty && !store.write_pending)
+		return
+	save_requested = TRUE
+	store.request_save()
+
+/** Encodes the draft into its slot of the account tree, unless that revision is already there. Returns FALSE while the
+ * draft is past CYBORG_LAYOUT_MAX_SLOT_BYTES or the account's limit, which leaves it unstaged until edits shrink it.
+ */
+/datum/preference_middleware/cyborg_character/proc/stage_draft()
+	save_requested = FALSE
+	if(!dirty || staged_revision == draft_revision)
+		return TRUE
+	var/datum/json_savefile/cyborg_customization/store = preferences.cyborg_layout_store()
+	var/text = cyborg_layout_encode(draft)
+	var/problem
+	if(length(text) > CYBORG_LAYOUT_MAX_SLOT_BYTES)
+		problem = cyborg_layout_slot_full_message()
+	else if(store.bytes_with("character[draft_slot]", text) > CYBORG_LAYOUT_MAX_SIDECAR_BYTES)
+		problem = cyborg_layout_account_full_message()
+	if(problem != full_message)
+		full_message = problem
+		save_error = save_problem()
+	if(full_message)
+		return FALSE
+	staged_revision = draft_revision
+	store.set_entry("character[draft_slot]", text)
+	store.write_pending = TRUE
+	return TRUE
+
+/** Stages the draft and writes the account now, for teardown and slot changes that can't wait for SScyborg_layout_saves.
+ * A failed write keeps the draft dirty for retry, and a draft past a limit stays unstaged until edits shrink it, while
+ * other slots' pending writes still go out.
+ */
+/datum/preference_middleware/cyborg_character/proc/commit_draft()
+	if(draft_timer)
+		deltimer(draft_timer)
+		draft_timer = null
+	var/datum/json_savefile/cyborg_customization/store = preferences.cyborg_layout_savefile
+	if(!dirty && !store?.write_pending)
+		return TRUE
+	var/staged = stage_draft()
+	store = preferences.cyborg_layout_store()
+	store.flush_pending()
+	return staged && !store.write_pending
 
 /// What the save status shows, null when everything is saved or on its way.
 /datum/preference_middleware/cyborg_character/proc/save_problem()
@@ -683,7 +708,7 @@
 	if(slot != draft_slot || context != context_generation || revision != draft_revision)
 		return
 	draft_timer = null
-	commit_draft()
+	request_save()
 
 /** Releases draft ownership on explicit replacement or teardown, never on write failure. */
 /datum/preference_middleware/cyborg_character/proc/discard_draft()
@@ -694,6 +719,7 @@
 	draft = null
 	draft_slot = null
 	dirty = FALSE
+	save_requested = FALSE
 	full_message = null
 	staged_revision = -1
 	save_error = save_problem()

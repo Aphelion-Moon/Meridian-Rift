@@ -8,36 +8,25 @@
 	/// The file on disk was past CYBORG_LAYOUT_MAX_SIDECAR_BYTES, so it was not read and is never overwritten.
 	var/read_refused = FALSE
 	var/next_write_at = 0
-	var/write_timer
 	var/datum/weakref/preferences_ref
 
-/// Coalesce disk writes across every editor exit/save route. One callback retains the latest tree.
+/// Writes the tree now if it has unsaved changes. Inside the account's spacing, SScyborg_layout_saves writes it later
+/// instead, with whatever the tree holds by then; `force` writes regardless, for teardown.
 /datum/json_savefile/cyborg_customization/proc/flush_pending(force = FALSE)
 	if(!write_pending)
 		return TRUE
 	if(!force && path && world.time < next_write_at)
-		if(!write_timer)
-			write_timer = addtimer(CALLBACK(src, PROC_REF(flush_timer)), next_write_at - world.time, TIMER_STOPPABLE)
+		request_save()
 		return FALSE
-	if(write_timer)
-		deltimer(write_timer)
-		write_timer = null
-	next_write_at = world.time + 2 SECONDS
+	next_write_at = world.time + CYBORG_LAYOUT_SAVE_SPACING
 	write_failed = !save()
 	write_pending = write_failed
 	var/datum/preferences/preferences = preferences_ref?.resolve()
 	preferences?.cyborg_session()?.sidecar_write_completed()
 	return !write_pending
 
-/datum/json_savefile/cyborg_customization/proc/flush_timer()
-	write_timer = null
-	flush_pending()
-
-/// Import replacement must cancel work owned by the superseded tree.
+/// Import replacement must cancel work owned by the superseded tree. A queued save then finds nothing to write.
 /datum/json_savefile/cyborg_customization/wipe()
-	if(write_timer)
-		deltimer(write_timer)
-		write_timer = null
 	write_pending = FALSE
 	write_failed = FALSE
 	write_oversized = FALSE
@@ -45,9 +34,6 @@
 
 /datum/json_savefile/cyborg_customization/Destroy()
 	flush_pending(force = TRUE)
-	if(write_timer)
-		deltimer(write_timer)
-		write_timer = null
 	preferences_ref = null
 	return ..()
 

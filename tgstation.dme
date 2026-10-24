@@ -7417,6 +7417,7 @@
 #include "modular_aphelion\modules\cyborg_customization\code\preview.dm"
 #include "modular_aphelion\modules\cyborg_customization\code\rendering.dm"
 #include "modular_aphelion\modules\cyborg_customization\code\robotact.dm"
+#include "modular_aphelion\modules\cyborg_customization\code\save_queue.dm"
 #include "modular_aphelion\modules\department_ooc\code\department_ooc.dm"
 #include "modular_aphelion\modules\department_ooc\code\department_ooc_preference.dm"
 #include "modular_aphelion\modules\headphones\code\greyscale_configs.dm"

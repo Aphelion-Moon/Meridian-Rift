@@ -9,6 +9,8 @@
 /// The account's whole cyborg_customization.json, shared by all its characters. A character that would take it past
 /// this is not saved, and a bigger file is neither written nor read.
 #define CYBORG_LAYOUT_MAX_SIDECAR_BYTES (1024 * 1024)
+/// The shortest time between two writes of one account's cyborg layouts. Saves asked for sooner wait, and write the latest state.
+#define CYBORG_LAYOUT_SAVE_SPACING (2 SECONDS)
 /// Preview identifiers include model type paths and skin names from the server catalog.
 #define CYBORG_PREVIEW_MAX_IDENTIFIER_LENGTH 256
 #define CYBORG_LAYOUT_MIN_PIXEL_OFFSET -128
