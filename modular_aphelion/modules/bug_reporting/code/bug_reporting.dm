@@ -808,8 +808,16 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 		return
 	if(restart)
 		poll_delay = BUG_REPORT_POLL_MIN
-	addtimer(CALLBACK(src, PROC_REF(poll)), poll_delay, TIMER_UNIQUE|TIMER_OVERRIDE|TIMER_NO_HASH_WAIT)
+	// A sent report's receipt holds still until the service's next try at it, so its poll waits for that
+	addtimer(CALLBACK(src, PROC_REF(poll)), max(poll_delay, receipt_wait()), TIMER_UNIQUE|TIMER_OVERRIDE|TIMER_NO_HASH_WAIT)
 	poll_delay = min(poll_delay * 1.5, BUG_REPORT_POLL_MAX)
+
+/// How long until the service's next try at the sent report, in deciseconds, or 0 with nothing to wait for
+/datum/bug_report/proc/receipt_wait()
+	if(!receipt_arrival)
+		return 0
+	var/wait = result?["receipt"]?["nextAttemptIn"]
+	return isnum(wait) ? wait / 100 - (REALTIMEOFDAY - receipt_arrival) : 0
 
 /// The background poll - waits out anything else talking to the bridge, and stops once the window closes
 /datum/bug_report/proc/poll()

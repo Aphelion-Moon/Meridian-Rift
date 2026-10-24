@@ -522,6 +522,25 @@
 		report.refresh()
 	TEST_ASSERT(report.polling_paused && findtext(report.status, "Lost touch"), "Four polls with no answer didn't pause polling")
 
+/// A sent report's receipt says when the service tries it again, so its poll waits for that rather than a minute
+/datum/unit_test/bug_report_receipt_pace
+
+/datum/unit_test/bug_report_receipt_pace/Run()
+	var/datum/bug_report/test/report = bug_report_test_report(src)
+	var/datum/tgui/bug_report_test/ui = allocate(/datum/tgui/bug_report_test)
+	LAZYADD(report.open_uis, ui)
+	report.result = list("kind" = "accepted", "receipt" = list("reportId" = "accepted", "publication" = "retryable", "nextAttemptIn" = 300000))
+	report.note_retry()
+	report.schedule_poll()
+	var/datum/timedevent/timer = report._active_timers?[1]
+	TEST_ASSERT(timer?.wait > 2900 && timer.wait <= 3000, "A receipt that tries again in five minutes was polled before then")
+	report.result = list("kind" = "accepted", "receipt" = list("reportId" = "accepted", "publication" = "queued"))
+	report.note_retry()
+	report.schedule_poll(restart = TRUE)
+	timer = report._active_timers?[1]
+	TEST_ASSERT_EQUAL(timer?.wait, 2 SECONDS, "A receipt with no time to wait for was polled later than before")
+	LAZYREMOVE(report.open_uis, ui)
+
 /// Sends the report's window an update and merges it into what the window holds, as tgui does, returning the update or null with none sent
 /proc/bug_report_test_push(datum/bug_report/test/report, list/held)
 	var/datum/tgui/bug_report_test/ui = report.open_uis[1]
