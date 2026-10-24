@@ -48,33 +48,74 @@
 	encoded.len = kept
 	return encoded
 
-/// The save text for a character slot.
-/proc/cyborg_layout_encode(list/layout)
+/**
+ * The save text for a character slot, built from the save text of each part.
+ *
+ * Arguments:
+ * * layout - the slot's layout tree
+ * * cached_parts - optional, the kept_parts of an earlier encode: a part list found there with its text is not encoded
+ *   again. Only pass it when every part list it holds is unchanged since, as copy-on-write edits leave them.
+ * * kept_parts - optional, an empty list that is filled with this layout's parts and their text, for the next encode
+ */
+/proc/cyborg_layout_encode(list/layout, list/cached_parts, list/kept_parts)
 	var/list/presets = list()
 	var/list/preset_models = layout["preset_models"]
 	for(var/name, preset in layout["presets"])
-		presets[++presets.len] = name
-		presets[++presets.len] = cyborg_layout_encode_slots(preset)
-		presets[++presets.len] = preset_models?[name] || 0
+		presets += json_encode(name)
+		presets += cyborg_layout_encode_slots(preset, cached_parts, kept_parts)
+		presets += json_encode(preset_models?[name] || 0)
 	var/list/defaults = list()
 	var/list/model_presets = layout["model_presets"]
 	for(var/model_id, model_default in layout["model_defaults"])
-		defaults[++defaults.len] = model_id
-		defaults[++defaults.len] = cyborg_layout_encode_slots(model_default)
-		defaults[++defaults.len] = model_presets?[model_id] || 0
-	var/list/encoded = list(CYBORG_CODEC_VERSION)
-	encoded[++encoded.len] = cyborg_layout_encode_slots(layout["active"])
-	encoded[++encoded.len] = presets
-	encoded[++encoded.len] = defaults
-	encoded[++encoded.len] = layout["active_model"] || 0
-	encoded[++encoded.len] = layout["active_preset"] || 0
-	return json_encode(cyborg_layout_codec_trim(encoded))
+		defaults += json_encode(model_id)
+		defaults += cyborg_layout_encode_slots(model_default, cached_parts, kept_parts)
+		defaults += json_encode(model_presets?[model_id] || 0)
+	var/list/encoded = list(
+		"[CYBORG_CODEC_VERSION]",
+		cyborg_layout_encode_slots(layout["active"], cached_parts, kept_parts),
+		"\[[jointext(presets, ",")]]",
+		"\[[jointext(defaults, ",")]]",
+		json_encode(layout["active_model"] || 0),
+		json_encode(layout["active_preset"] || 0),
+	)
+	return "\[[jointext(cyborg_layout_codec_trim_text(encoded), ",")]]"
 
-/proc/cyborg_layout_encode_slots(list/slots)
+/// Drops unset trailing elements from a list of element texts, as cyborg_layout_codec_trim() does before encoding.
+/proc/cyborg_layout_codec_trim_text(list/encoded)
+	var/kept = length(encoded)
+	while(kept && (encoded[kept] == "0" || encoded[kept] == "\[]"))
+		kept--
+	encoded.len = kept
+	return encoded
+
+/// A layout's parts as save text, in cyborg_layout_supported_slots() order. See cyborg_layout_encode() for the caches.
+/proc/cyborg_layout_encode_slots(list/slots, list/cached_parts, list/kept_parts)
 	var/list/encoded = list()
 	for(var/slot in cyborg_layout_supported_slots())
-		encoded[++encoded.len] = cyborg_layout_encode_part(islist(slots) ? slots[slot] : null, slot)
-	return cyborg_layout_codec_trim(encoded)
+		var/list/entry = islist(slots) ? slots[slot] : null
+		if(!islist(entry))
+			encoded += "0"
+			continue
+		var/key = text_ref(entry)
+		var/list/cached = cached_parts?[key]
+		if(cached?[1] != entry)
+			cached = list(entry, json_encode(cyborg_layout_encode_part(entry, slot)))
+		if(kept_parts)
+			kept_parts[key] = cached
+		encoded += cached[2]
+	return "\[[jointext(cyborg_layout_codec_trim_text(encoded), ",")]]"
+
+/// A deep copy of a layout whose parts keep the save text of the parts they copy, when `encoded_parts` holds it.
+/proc/cyborg_layout_copy_encoded(list/layout, list/encoded_parts)
+	var/list/copy = cyborg_layout_copy(layout)
+	if(!encoded_parts)
+		return copy
+	for(var/slot, entry in layout)
+		var/list/cached = encoded_parts[text_ref(entry)]
+		if(cached?[1] == entry)
+			var/list/copied_entry = copy[slot]
+			encoded_parts[text_ref(copied_entry)] = list(copied_entry, cached[2])
+	return copy
 
 /// Fields are read the way cyborg_layout_normalize_entry() reads them, so leaving one out decodes to the same value.
 /proc/cyborg_layout_encode_part(list/entry, slot)

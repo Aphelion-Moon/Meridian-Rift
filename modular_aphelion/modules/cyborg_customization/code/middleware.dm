@@ -50,6 +50,9 @@
 	var/saved_revision = 0
 	/// Revision already encoded into the account tree; failed retries do not encode it again.
 	var/staged_revision = -1
+	/// The draft's parts with their save text from its last encode (see cyborg_layout_encode()). Edits copy a part
+	/// before changing it, so these still match; raw draft updates drop them.
+	var/list/encoded_parts
 	/// Why the draft would pass its character's or the account's limit, so it stays unstaged until edits shrink it.
 	var/full_message
 	var/session_only = FALSE
@@ -111,7 +114,7 @@
 		if(draft && draft["active_model"] != preview_model)
 			draft = draft.Copy()
 			draft["active_model"] = preview_model
-			update_draft(draft)
+			update_draft(draft, copied_on_write = TRUE)
 		preview_pose = "idle"
 	if(params["direction"] in GLOB.cardinals)
 		preview_direction = params["direction"]
@@ -180,19 +183,21 @@
 	if(full_message && !(params["operation"] in list("delete", "delete_default", "reset", "reset_position", "reset_colors", "reset_overrides", "inherit_placement")))
 		status_message = full_message
 		return TRUE
-	var/list/result = cyborg_layout_action(store, params, preview_model, preferences)
+	var/list/result = cyborg_layout_action(store, params, preview_model, preferences, encoded_parts)
 	if(result["model"] && !catalog[result["model"]])
 		status_message = "This preset's chassis is no longer available."
 		return TRUE
 	// These copy a whole layout, so the result must fit before it is taken.
 	if(result["store"] && (params["operation"] in list("save", "save_default", "assign_default", "load", "load_default")))
-		var/text = cyborg_layout_encode(result["store"])
+		var/list/kept_parts = list()
+		var/text = cyborg_layout_encode(result["store"], encoded_parts, kept_parts)
 		if(length(text) > CYBORG_LAYOUT_MAX_SLOT_BYTES)
 			status_message = "That would put this character's cyborg setups over the [CYBORG_LAYOUT_MAX_SLOT_BYTES / 1024] KB limit. Delete presets or model defaults you no longer need."
 			return TRUE
 		if(sidecar.bytes_with("character[preferences.default_slot]", text) > CYBORG_LAYOUT_MAX_SIDECAR_BYTES)
 			status_message = "That would put your cyborg setups over the limit all your characters share. Delete presets or model defaults you no longer need, on this character or another."
 			return TRUE
+		encoded_parts = kept_parts
 	status_message = result["message"]
 	if(result["store"])
 		if(params["operation"] in list("load", "load_default", "reset"))
@@ -207,7 +212,7 @@
 				var/datum/preference/preference = GLOB.preference_entries_by_key["silicon_[part_slot]_sprite"]
 				if(!isnull(sprite) && preference.is_valid(sprite, preferences))
 					preferences.update_preference(preference, sprite)
-		update_draft(result["store"])
+		update_draft(result["store"], copied_on_write = TRUE)
 		if(params["operation"] in list("load", "load_default", "delete_default"))
 			preview_layout_source = "active"
 		if(result["immediate"])
@@ -340,8 +345,9 @@
 /** Creator action protocol; the middleware owns slot and actor checks.
  * The result takes over draft ownership. Unchanged branches may be shared with
  * the old draft; mutation copies its branch, and saved/body snapshots stay deep copies.
+ * With `encoded_parts` (see cyborg_layout_encode()), layouts it copies keep their parts' save text.
  */
-/proc/cyborg_layout_action(list/store, list/params, model_id, datum/preferences/preferences)
+/proc/cyborg_layout_action(list/store, list/params, model_id, datum/preferences/preferences, list/encoded_parts)
 	var/message = "Working setup updated."
 	var/restored_model
 	var/operation = params["operation"]
@@ -401,8 +407,12 @@
 		// Snapshot selected art only after admission, keeping the source draft untouched.
 		for(var/part_slot in cyborg_layout_supported_slots())
 			var/list/entry = active[part_slot]
+			var/sprite = cyborg_preference_value(preferences, "silicon_[part_slot]_sprite")
+			// A part already holding its sprite stays as it is, and so keeps its save text.
+			if(entry["sprite"] == sprite && !isnull(sprite))
+				continue
 			entry = entry.Copy()
-			entry["sprite"] = cyborg_preference_value(preferences, "silicon_[part_slot]_sprite")
+			entry["sprite"] = sprite
 			next["active"][part_slot] = entry
 	// Compare only the six-part snapshot, never encode/copy the complete account to
 	// discover that a repeated Save button made no change.
@@ -463,7 +473,7 @@
 		if("save", "load", "delete")
 			var/list/presets = next["presets"]
 			if(operation == "save")
-				presets[name] = cyborg_layout_copy(next["active"])
+				presets[name] = cyborg_layout_copy_encoded(next["active"], encoded_parts)
 				if(model_id && cyborg_model_catalog()[model_id])
 					next["preset_models"][name] = model_id
 				else
@@ -473,13 +483,13 @@
 					if(assigned_name != name)
 						continue
 					if(assigned_model == model_id)
-						next["model_defaults"][assigned_model] = cyborg_layout_copy(presets[name])
+						next["model_defaults"][assigned_model] = cyborg_layout_copy_encoded(presets[name], encoded_parts)
 					else
 						next["model_presets"] -= assigned_model
 				message = "Preset saved."
 			else
 				if(operation == "load")
-					next["active"] = cyborg_layout_copy(presets[name])
+					next["active"] = cyborg_layout_copy_encoded(presets[name], encoded_parts)
 					next["active_preset"] = name
 					restored_model = next["preset_models"][name]
 					if(restored_model)
@@ -499,7 +509,7 @@
 			if(preset_model && preset_model != model_id)
 				return list("message" = "Load this preset to switch to its chassis first.")
 			next["preset_models"][name] = model_id
-			next["model_defaults"][model_id] = cyborg_layout_copy(next["presets"][name])
+			next["model_defaults"][model_id] = cyborg_layout_copy_encoded(next["presets"][name], encoded_parts)
 			next["model_presets"][model_id] = name
 			message = "[name] will load when a new body selects this chassis."
 		if("save_default", "load_default", "delete_default")
@@ -507,11 +517,11 @@
 			if(operation in list("save_default", "delete_default"))
 				next["model_presets"] -= model_id
 			if(operation == "save_default")
-				defaults[model_id] = cyborg_layout_copy(next["active"])
+				defaults[model_id] = cyborg_layout_copy_encoded(next["active"], encoded_parts)
 			else if(operation == "delete_default")
 				defaults -= model_id
 			else if(defaults[model_id])
-				next["active"] = cyborg_layout_copy(defaults[model_id])
+				next["active"] = cyborg_layout_copy_encoded(defaults[model_id], encoded_parts)
 				next["active_preset"] = next["model_presets"][model_id]
 			else
 				return list("message" = "This model has no saved default.")
@@ -622,10 +632,17 @@
 	session_only = !preferences.cyborg_layout_store().path
 	return draft
 
-/** Accepts canonical data and schedules the existing debounce. Staging encodes the draft, so callers keep their lists. */
-/datum/preference_middleware/cyborg_character/proc/update_draft(list/layout)
+/** Accepts canonical data and schedules the existing debounce. Staging encodes the draft, so callers keep their lists.
+ *
+ * Arguments:
+ * * layout - the new draft
+ * * copied_on_write - whether every part list `layout` shares with the old draft is unchanged, as action results leave them
+ */
+/datum/preference_middleware/cyborg_character/proc/update_draft(list/layout, copied_on_write = FALSE)
 	if(!draft || draft_slot != preferences.default_slot || !islist(layout) || layout["schema_version"] != CYBORG_LAYOUT_SCHEMA_VERSION)
 		return FALSE
+	if(!copied_on_write)
+		encoded_parts = null
 	draft = layout
 	draft_revision++
 	dirty = TRUE
@@ -657,7 +674,9 @@
 	if(!dirty || staged_revision == draft_revision)
 		return TRUE
 	var/datum/json_savefile/cyborg_customization/store = preferences.cyborg_layout_store()
-	var/text = cyborg_layout_encode(draft)
+	var/list/kept_parts = list()
+	var/text = cyborg_layout_encode(draft, encoded_parts, kept_parts)
+	encoded_parts = kept_parts
 	var/problem
 	if(length(text) > CYBORG_LAYOUT_MAX_SLOT_BYTES)
 		problem = cyborg_layout_slot_full_message()
@@ -718,6 +737,7 @@
 	clear_preview_resources()
 	draft = null
 	draft_slot = null
+	encoded_parts = null
 	dirty = FALSE
 	save_requested = FALSE
 	full_message = null

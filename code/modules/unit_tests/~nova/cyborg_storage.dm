@@ -522,3 +522,37 @@
 	TEST_ASSERT(cyborg_test_run_queued_save(store), "A due save did not run.")
 	TEST_ASSERT_EQUAL(store.last_written["character1"]["active"]["penis"]["placement_groups"]["south"]["pixel_x"], 62, "The due save did not write the latest edit.")
 	TEST_ASSERT(!editor.dirty, "The due save was not acknowledged.")
+
+/// The part cache never changes what is saved: action results reuse unchanged parts' text, and raw draft updates drop it.
+/datum/unit_test/cyborg_encode_cache
+	parent_type = /datum/unit_test/cyborg_storage_fixture
+
+/datum/unit_test/cyborg_encode_cache/Run()
+	var/datum/preference_middleware/cyborg_character/editor = make_editor()
+	var/datum/json_savefile/cyborg_customization/store = editor.preferences.cyborg_layout_store()
+	var/list/operations = list(
+		list("operation" = "set_placement", "slot" = "penis", "target" = list("scope" = "base", "direction" = NORTH), "changes" = list("pixel_x" = 5)),
+		list("operation" = "save", "name" = "Alpha", "overwrite" = TRUE),
+		list("operation" = "set", "slot" = "sheath", "field" = "colors", "value" = list("#112233")),
+		list("operation" = "save_default"),
+		list("operation" = "reset_overrides", "slot" = "penis"),
+		list("operation" = "assign_default", "name" = "Beta"),
+		list("operation" = "load", "name" = "Alpha"),
+		list("operation" = "reset_position", "slot" = "penis"),
+		list("operation" = "delete", "name" = "Beta"),
+		list("operation" = "load_default"),
+		list("operation" = "delete_default"),
+	)
+	for(var/list/params as anything in operations)
+		command(editor, params)
+		// Ordinary edits wait for their debounce; save each one now.
+		editor.request_save()
+		cyborg_test_run_queued_save(store)
+		TEST_ASSERT_EQUAL(store.get_entry("character1"), cyborg_layout_encode(editor.draft), "After [params["operation"]] the staged text differs from an uncached encode.")
+	TEST_ASSERT(length(editor.encoded_parts), "Copy-on-write edits dropped the part cache.")
+	var/list/raw = editor.begin_draft()
+	raw["model_defaults"][model_b]["penis"]["pixel_x"] = 77
+	editor.update_draft(raw)
+	TEST_ASSERT_NULL(editor.encoded_parts, "A raw draft update kept the part cache.")
+	editor.commit_draft()
+	TEST_ASSERT_EQUAL(editor.preferences.read_cyborg_layout(1)["model_defaults"][model_b]["penis"]["pixel_x"], 77, "A raw in-place change was saved from cached text.")

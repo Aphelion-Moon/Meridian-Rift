@@ -265,7 +265,7 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 			var/list/entry = active[slot]
 			draft["active"][slot] = entry.Copy()
 			draft["active"][slot]["sprite"] = cyborg_preference_value(preferences, preference)
-			update_draft(draft)
+			update_draft(draft, copied_on_write = TRUE)
 	if(iscyborg(user))
 		var/mob/living/silicon/robot/robot = user
 		robot.cyborg_customization_sync_permissions(preferences)
