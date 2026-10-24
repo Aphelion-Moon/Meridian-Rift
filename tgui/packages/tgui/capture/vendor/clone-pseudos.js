@@ -34,6 +34,7 @@ function clonePseudoElement(nativeNode, clonedNode, pseudo, options) {
     if (content === '' || content === 'none') {
         return;
     }
+    // Meridian: the copier's list for this pseudo-element, or null to copy every kept property
     const list = copier && !style.cssText ? copier.pseudo(nativeNode, clonedNode, pseudo, style) : null;
     const className = uuid();
     try {
@@ -43,6 +44,7 @@ function clonePseudoElement(nativeNode, clonedNode, pseudo, options) {
         return;
     }
     const styleElement = document.createElement('style');
+    // Meridian: with a list, the rule holds only its properties
     styleElement.appendChild(list
         ? document.createTextNode(`.${className}:${pseudo}{${formatCopyList(list)}}`)
         : getPseudoElementStyle(className, pseudo, style, options));

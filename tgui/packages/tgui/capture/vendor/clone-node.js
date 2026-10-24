@@ -56,7 +56,7 @@ async function cloneChildren(nativeNode, clonedNode, options) {
         return clonedNode;
     }
     let children = [];
-    // Meridian: the node a child inherits from, for the style copier; an iframe's body children start afresh
+    // Meridian: the node a child inherits from, for the style copier (an iframe's body children start afresh)
     let inheritsFrom = nativeNode;
     if (isSlotElement(nativeNode) && nativeNode.assignedNodes) {
         children = toArray(nativeNode.assignedNodes());
@@ -82,6 +82,7 @@ async function cloneChildren(nativeNode, clonedNode, options) {
     }), Promise.resolve());
     return clonedNode;
 }
+// Meridian: one property's write, with the font-size, iframe and d fixes moved here unchanged from cloneCSSStyle
 function writeStyle(clonedNode, isFrame, name, value, priority) {
     if (name === 'font-size' && value.endsWith('px')) {
         const reducedFont = Math.floor(parseFloat(value.substring(0, value.length - 2))) - 0.1;
@@ -97,6 +98,7 @@ function writeStyle(clonedNode, isFrame, name, value, priority) {
     }
     clonedNode.style.setProperty(name, value, priority);
 }
+// Meridian: parentNode is the native node this one inherits from, for the style copier
 function cloneCSSStyle(nativeNode, clonedNode, options, parentNode) {
     const targetStyle = clonedNode.style;
     if (!targetStyle) {
@@ -106,9 +108,10 @@ function cloneCSSStyle(nativeNode, clonedNode, options, parentNode) {
     if (sourceStyle.cssText) {
         targetStyle.cssText = sourceStyle.cssText;
         targetStyle.transformOrigin = sourceStyle.transformOrigin;
+        // Meridian: returns here, where the package had an else around the rest
         return;
     }
-    // Meridian: asked once a node; it was asked once a property, walking the prototype chain each time
+    // Meridian: asked once a node, since asking once a property walked the prototype chain each time
     const isFrame = isInstanceOfElement(nativeNode, HTMLIFrameElement);
     // Meridian: with a style copier, only the properties the SVG wouldn't compute anyway
     const list = options.copier
@@ -123,6 +126,7 @@ function cloneCSSStyle(nativeNode, clonedNode, options, parentNode) {
         });
         return;
     }
+    // Meridian: without a copier's list, every kept property as before, through writeStyle
     getStyleProperties(options).forEach((name) => {
         writeStyle(clonedNode, isFrame, name, sourceStyle.getPropertyValue(name), sourceStyle.getPropertyPriority(name));
     });
@@ -144,6 +148,7 @@ function cloneSelectValue(nativeNode, clonedNode) {
         }
     }
 }
+// Meridian: parentNode goes on to cloneCSSStyle, and the copier hears when a node is done
 function decorate(nativeNode, clonedNode, options, parentNode) {
     if (isInstanceOfElement(clonedNode, Element)) {
         cloneCSSStyle(nativeNode, clonedNode, options, parentNode);
@@ -193,6 +198,7 @@ async function ensureSVGSymbols(clone, options) {
     }
     return clone;
 }
+// Meridian: parentNode is the native node the clone inherits from, which a root has none of
 export async function cloneNode(node, options, isRoot, parentNode) {
     if (!isRoot && options.filter && !options.filter(node)) {
         return null;

@@ -1,7 +1,8 @@
+// Meridian: the style copier's type
 import type { StyleCopier } from '../style-copy';
 export interface Options {
     /**
-     * Meridian: which computed styles each clone carries; without it every kept property is copied onto every node
+     * Meridian: which computed styles each clone carries (without it, every kept property is copied onto every node)
      */
     copier?: StyleCopier | null;
     /**
