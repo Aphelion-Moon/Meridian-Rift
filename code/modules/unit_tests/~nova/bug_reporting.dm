@@ -522,7 +522,7 @@
 		report.refresh()
 	TEST_ASSERT(report.polling_paused && findtext(report.status, "Lost touch"), "Four polls with no answer didn't pause polling")
 
-/// A sent report's receipt says when the service tries it again, so its poll waits for that rather than a minute
+/// A sent report's receipt says when the service tries it again, so its poll waits for that rather than a minute, except after a look that failed, which says it asks again within a minute
 /datum/unit_test/bug_report_receipt_pace
 
 /datum/unit_test/bug_report_receipt_pace/Run()
@@ -539,6 +539,21 @@
 	report.schedule_poll(restart = TRUE)
 	timer = report._active_timers?[1]
 	TEST_ASSERT_EQUAL(timer?.wait, 2 SECONDS, "A receipt with no time to wait for was polled later than before")
+	// Trying again in five minutes, two of them gone when its looks start failing
+	report.result = list("kind" = "accepted", "receipt" = list("reportId" = "accepted", "publication" = "retryable", "nextAttemptIn" = 300000))
+	report.note_retry()
+	report.receipt_arrival -= 2 MINUTES
+	for(var/label, answer in list("with no answer" = bug_report_test_answer(503, list()), "turned down" = bug_report_test_answer(404, list("error" = "receipt_not_found"))))
+		report.replies = list(answer)
+		report.refresh()
+		timer = report._active_timers?[1]
+		TEST_ASSERT(findtext(report.status, "within a minute"), "A look [label] didn't say it asks again within a minute: [report.status]")
+		TEST_ASSERT(isnum(timer?.wait) && timer.wait <= 1 MINUTES, "A look [label] says it asks again within a minute, but the next poll waits [timer?.wait] ds")
+	// The look that answers brings back the receipt's own pace
+	report.replies = list(list("receipt" = list("reportId" = "accepted", "publication" = "retryable", "nextAttemptIn" = 300000)))
+	report.refresh()
+	timer = report._active_timers?[1]
+	TEST_ASSERT(isnull(report.status) && timer?.wait > 2900 && timer.wait <= 3000, "A look that answered after failed ones kept polling within a minute: [report.status], [timer?.wait] ds")
 	LAZYREMOVE(report.open_uis, ui)
 
 /// Sends the report's window an update and merges it into what the window holds, as tgui does, returning the update or null with none sent

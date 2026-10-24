@@ -814,7 +814,8 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 
 /// How long until the service's next try at the sent report, in deciseconds, or 0 with nothing to wait for
 /datum/bug_report/proc/receipt_wait()
-	if(!receipt_arrival)
+	// A failed look tells the reporter we ask again within a minute, so the old receipt's wait doesn't hold the poll back
+	if(!receipt_arrival || status == BUG_REPORT_RECEIPT_REFUSED || status == BUG_REPORT_RECEIPT_UNREACHABLE)
 		return 0
 	var/wait = result?["receipt"]?["nextAttemptIn"]
 	return isnum(wait) ? wait / 100 - (REALTIMEOFDAY - receipt_arrival) : 0
