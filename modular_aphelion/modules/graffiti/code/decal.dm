@@ -373,17 +373,18 @@
 		refresh(TRUE)
 
 /**
- * Marks the decal as a painter's work as they finish a piece on it: their hidden print, and once only the art element,
- * which every piece stacked on the tile shares.
+ * Marks graffiti as a painter's work as they finish a piece on it: their hidden print, and once only the art element,
+ * which every piece stacked on a tile, or sprayed over a poster, shares.
  *
  * Arguments:
+ * - art: The decal or poster the piece is on.
  * - user: The painter.
  */
-/obj/effect/decal/cleanable/crayon/custom/proc/credit_painter(mob/user)
-	add_hiddenprint(user)
+/proc/graffiti_credit_painter(atom/art, mob/user)
+	art.add_hiddenprint(user)
 	var/datum/element/art/element = SSdcs.GetElement(list(/datum/element/art, GOOD_ART))
-	if(!element._signal_procs?[src])
-		AddElement(/datum/element/art, GOOD_ART)
+	if(!element._signal_procs?[art])
+		art.AddElement(/datum/element/art, GOOD_ART)
 
 /**
  * Takes a placement off the stack, and the decal off its tile once nothing is left.

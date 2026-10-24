@@ -1806,7 +1806,7 @@ export const CustomSpriteEditor = ({
                       />
                     </Stack.Item>
                   )}
-                  {graffitiMode && !!graffiti && (
+                  {graffitiMode && !!graffiti && !graffiti.oneTile && (
                     <Stack.Item>
                       <GraffitiFields
                         graffiti={graffiti}

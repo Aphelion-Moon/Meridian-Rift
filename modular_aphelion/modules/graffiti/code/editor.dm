@@ -250,7 +250,8 @@
 	editor_data["serverPalette"] = colors
 	// Any colour can be painted until the paint uses GRAFFITI_MAX_COLORS of them, and then only those.
 	.["availableColors"] = length(used) >= GRAFFITI_MAX_COLORS ? used : colors | .["customPalette"]
-	.["drawBounds"] = list("2" = list(0, 0, canvas.width - 1, GRAFFITI_HEIGHT - 1))
+	// A poster's canvas keeps to the poster's own pixels.
+	.["drawBounds"] = canvas.draw_bounds || list("2" = list(0, 0, canvas.width - 1, GRAFFITI_HEIGHT - 1))
 	// Glow is per layer, in the layer list.
 	. -= "emissive"
 	// Sent once, so the window switches to a layer it was just given.
@@ -546,6 +547,17 @@
 		return "You can't paint like this."
 	if(!user.Adjacent(surface))
 		return "You're too far away to keep painting."
+	return surface_problem()
+
+/**
+ * Returns why a surface session's surface can't take its paint any more: it no longer takes graffiti, or the piece is
+ * gone from it.
+ *
+ * Returns:
+ * - text: Why the session ends, to tell the painter.
+ * - null: The surface still takes it.
+ */
+/datum/custom_sprite_editor/graffiti/proc/surface_problem()
 	if(workspace.width == GRAFFITI_WIDE_WIDTH ? !graffiti_wide_ok(surface) : !graffiti_surface_ok(surface))
 		return "There's nothing left to paint on."
 	if((placement && !SSgraffiti.shown[placement]) || (placement2 && !SSgraffiti.shown[placement2]))
@@ -579,18 +591,7 @@
 	var/datum/graffiti_library/library = graffiti_library(user?.ckey)
 	take_library_names(library)
 	var/list/piece = canvas.serialize_piece(piece_name, piece_desc)
-	var/list/resume
-	if(kind == "surface")
-		if(keep)
-			// Before the last composite, which a loose pane skips: it would place a half that has none yet and charge
-			// for it.
-			var/loose = graffiti_drop_loose_paint(surface, canvas.width, list(placement, placement2))
-			var/list/kept = leave_surface(user, loose ? null : piece)
-			// progress -1 marks a freehand draft rather than a stopped paint job. The width is the piece's: one tile
-			// when nothing is painted on the right one, where leave_surface() leaves no placement.
-			if(length(kept) && !loose)
-				resume = list("map" = SSmapping.current_map.map_name, "anchor" = graffiti_resume_anchor(surface, kept[1]), "pid" = SSgraffiti.unpack(kept[1])["pid"], "progress" = -1, "width" = piece["width"])
-		graffiti_release_merges(surface, canvas.width)
+	var/list/resume = kind == "surface" ? end_surface(user, piece, keep) : null
 	if(keep && piece && json_encode(piece) != saved_encoding)
 		var/error = library ? library.set_unfinished(piece, resume, TRUE) : "Your graffiti library isn't available."
 		if(error)
@@ -599,6 +600,31 @@
 	// A window closing because the editor is being deleted ends the session from inside Destroy().
 	if(!QDELETED(src))
 		qdel(src)
+
+/**
+ * Ends a surface session on its surface. A kept piece stays there through leave_surface(), unless a pane loosened under
+ * it, which drops all of its paint first. Either way the tiles' decals let go of their merges.
+ *
+ * Arguments:
+ * - user: The painter.
+ * - piece: The piece as it ends, or null when nothing is painted.
+ * - keep: Whether the piece is kept, as end_session() takes it.
+ *
+ * Returns:
+ * - list: Where the Unfinished piece resumes: the map, its left tile's anchor and its placement id.
+ * - null: It resumes nowhere.
+ */
+/datum/custom_sprite_editor/graffiti/proc/end_surface(mob/user, list/piece, keep)
+	var/datum/sprite_editor_workspace/custom_sprite/graffiti/canvas = workspace
+	if(keep)
+		// Before the last composite, which a loose pane skips: it would place a half that has none yet and charge for it.
+		var/loose = graffiti_drop_loose_paint(surface, canvas.width, list(placement, placement2))
+		var/list/kept = leave_surface(user, loose ? null : piece)
+		// progress -1 marks a freehand draft rather than a stopped paint job. The width is the piece's: one tile when
+		// nothing is painted on the right one, where leave_surface() leaves no placement.
+		if(length(kept) && !loose)
+			. = list("map" = SSmapping.current_map.map_name, "anchor" = graffiti_resume_anchor(surface, kept[1]), "pid" = SSgraffiti.unpack(kept[1])["pid"], "progress" = -1, "width" = piece["width"])
+	graffiti_release_merges(surface, canvas.width)
 
 /**
  * Leaves a surface session's piece on the surface as the session ends: composited one last time, without an empty piece
@@ -635,7 +661,8 @@
 		can?.use_charges(user, GRAFFITI_COST * (HAS_TRAIT(user, TRAIT_TAGGER) ? 0.5 : 1), FALSE)
 	for(var/packed in .)
 		var/obj/effect/decal/cleanable/crayon/custom/decal = SSgraffiti.shown[packed]
-		decal?.credit_painter(user)
+		if(decal)
+			graffiti_credit_painter(decal, user)
 	user.client?.give_award(/datum/award/achievement/misc/custom_graffiti_painted, user)
 	log_game("[key_name(user)] painted freehand graffiti, placement [SSgraffiti.unpack(.[1])["pid"]], at [AREACOORD(surface)]")
 
@@ -743,19 +770,31 @@
 	var/list/art = graffiti_flatten_records(canvas.layer_records(), canvas.width, 0, 0, record)
 	// The ids of the painter's own placements that made room, both halves' together.
 	var/list/evicted = list()
-	if(canvas.width == GRAFFITI_WIDTH)
-		placement = place_tile(placement, surface, art, 0, user, record, evicted)
-	else
-		var/list/halves = list()
-		var/list/arts = graffiti_split_wide(art, record, halves)
-		placement = place_tile(placement, surface, arts[1], 1, user, halves[1], evicted)
-		placement2 = place_tile(placement2, get_step(surface, EAST), arts[2], 2, user, halves[2], evicted)
+	place_art(user, art, record, evicted)
 	SSgraffiti.spend_composite(started)
 	// A two-tile piece's halves share an id, so the pieces are counted once.
 	var/count = length(unique_list(evicted))
 	if(count)
 		notify(count == 1 ? "Your oldest graffiti on this map went to make room for this piece." : "Your [count] oldest pieces of graffiti on this map went to make room for this one.")
 		push()
+
+/**
+ * Puts the piece, flattened, on each of its tiles (place_tile()).
+ *
+ * Arguments:
+ * - user: The painter.
+ * - art: The flattened piece.
+ * - decoded: The art's graffiti_art_decode().
+ * - evicted: Filled with the ids of the painter's own placements a new one took past their caps.
+ */
+/datum/custom_sprite_editor/graffiti/proc/place_art(mob/user, list/art, list/decoded, list/evicted)
+	if(workspace.width == GRAFFITI_WIDTH)
+		placement = place_tile(placement, surface, art, 0, user, decoded, evicted)
+		return
+	var/list/halves = list()
+	var/list/arts = graffiti_split_wide(art, decoded, halves)
+	placement = place_tile(placement, surface, arts[1], 1, user, halves[1], evicted)
+	placement2 = place_tile(placement2, get_step(surface, EAST), arts[2], 2, user, halves[2], evicted)
 
 /**
  * Puts one tile's art of the piece on the surface: as new art for the tile's placement, or as a new placement once the
@@ -832,19 +871,21 @@
  * - piece: The canonical piece to open, a copy the editor may keep, or null for a blank piece.
  * - piece_id: The library piece it is, or null.
  * - can: The spray can it is opened from, or null.
- * - surface: The wall, floor or window tile to paint live, or null for a studio session.
+ * - surface: The wall, floor or window tile to paint live, or a poster's tile, or null for a studio session.
+ * - poster: The poster to paint live, on `surface`, or null.
  *
  * Returns:
  * - /datum/custom_sprite_editor/graffiti: The editor, without its window yet.
  */
-/proc/graffiti_editor_for(mob/user, list/piece, piece_id, obj/item/toy/crayon/spraycan/can, turf/surface)
+/proc/graffiti_editor_for(mob/user, list/piece, piece_id, obj/item/toy/crayon/spraycan/can, turf/surface, obj/structure/sign/poster/poster)
 	var/datum/custom_sprite_editor/graffiti/editor = SSgraffiti.editors[user.ckey]
 	editor?.end_session(user)
-	editor = new(GLOB.preferences_datums[user.ckey], piece, piece_id, can, surface)
+	var/datum/preferences/preferences = GLOB.preferences_datums[user.ckey]
+	editor = poster ? new /datum/custom_sprite_editor/graffiti/poster(preferences, piece, piece_id, can, surface, poster) : new(preferences, piece, piece_id, can, surface)
 	SSgraffiti.editors[user.ckey] = editor
 	if(surface)
 		graffiti_shake(user)
-		log_game("[key_name(user)] started freehand graffiti at [AREACOORD(surface)]")
+		log_game("[key_name(user)] started freehand graffiti [poster ? "on [poster] " : ""]at [AREACOORD(surface)]")
 	return editor
 
 /**

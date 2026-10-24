@@ -530,10 +530,12 @@ SUBSYSTEM_DEF(custom_sprite_work)
  * A stroke's points from its compact mask: CUSTOM_SPRITE_INDEX_ALPHABET characters, six canvas
  * pixels each, row-major from the top left, lowest bit first. A whole view fits in one short string,
  * so a long stroke reaches the server as one message instead of a point list tgui splits into many.
+ * With `allowed`, the mask's six-pixel slots in the same layout, each character is cut down to the
+ * pixels its slot allows as it is read, which checks the points for a canvas that paints only those.
  *
  * Returns list(list(x, y), ...), or null when the mask isn't exactly this canvas's size.
  */
-/proc/custom_sprite_mask_points(mask, width, height)
+/proc/custom_sprite_mask_points(mask, width, height, list/allowed = null)
 	var/cells = width * height
 	if(!istext(mask) || length(mask) != CEILING(cells / 6, 1))
 		return null
@@ -548,6 +550,8 @@ SUBSYSTEM_DEF(custom_sprite_work)
 		var/bits = code < 128 ? values[code + 1] : null
 		if(isnull(bits))
 			return null
+		if(allowed)
+			bits &= allowed[index]
 		if(!bits)
 			continue
 		var/start = (index - 1) * 6

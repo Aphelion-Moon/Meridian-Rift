@@ -7,7 +7,8 @@ Module ID: GRAFFITI
 Players paint their own layered pixel-art graffiti onto the station's walls, floors and full-tile windows with a spray
 can, keep their pieces in a library on their account, and the art stays on its map from round to round. A piece is
 painted live on the wall in the graffiti editor (freehand), or prepared in the editor and sprayed on in stages from the
-can. A tile stacks up to five pieces. Admins find, view and delete graffiti in the Graffiti Manager.
+can. A tile stacks up to five pieces. Admins find, view and delete graffiti in the Graffiti Manager. Hung posters take
+graffiti too, over their own pixels only, for the round.
 
 #### Pieces and art
 
@@ -65,11 +66,12 @@ can. A tile stacks up to five pieces. Admins find, view and delete graffiti in t
 - **Arming.** Paint, Freehand and Resume arm the can (`graffiti_armed`: a piece id, `"freehand"` or `"unfinished"`), and
   its examine tells its holder what it is set to paint; anyone else reads only that it is set to paint a piece of
   graffiti, since the piece is from the holder's library. The next click on an adjacent wall, floor or full-tile window
-  fastened down, or on graffiti on one, starts a paint job of the piece, opens a freehand session there, or resumes the
-  Unfinished piece; a click on such a window stands for its tile, and an unarmed can still tints it. While the
-  Unfinished piece's paint still shows on this map (`graffiti_resume_tile()`, found by its placement id), the armed can
-  resumes it only there, a click on either tile of a two-tile piece standing for its left one: a click on any other
-  surface is refused with "wrong wall!" ("wrong floor!", "wrong window!"), keeps the can armed and starts no cooldown.
+  fastened down, on graffiti on one, or on a poster (see Posters), starts a paint job of the piece, opens a freehand
+  session there, or resumes the Unfinished piece; a click on such a window stands for its tile, and an unarmed can still
+  tints it. While the Unfinished piece's paint still shows on this map (`graffiti_resume_tile()`, found by its
+  placement id), the armed can resumes it only there, a click on either tile of a two-tile piece standing for its left
+  one: a click on any other surface is refused with "wrong wall!" ("wrong floor!", "wrong window!", "wrong poster!"),
+  keeps the can armed and starts no cooldown.
   Each attempt waits out `GRAFFITI_START_COOLDOWN` (3 s) from the last, refused or not, and is refused before any costly
   work: by an empty can, a paint job already running, or a two-tile piece without a matching tile to its right (the can
   stays armed); a two-tile piece that paints nothing on its right tile paints one tile (`graffiti_trim_wide()`). A
@@ -160,6 +162,36 @@ can. A tile stacks up to five pieces. Admins find, view and delete graffiti in t
   refused (see Arming). Once that paint is gone it starts over wherever it is clicked. A job stopped by a pane loosened
   under it drops the paint it revealed for good, both halves of a two-tile piece, and its piece goes in the slot with
   nowhere to resume (`graffiti_drop_loose_paint()`).
+
+#### Posters
+
+- A hung poster that isn't ripped takes graffiti over its own pixels. An armed can paints it as it paints a wall:
+  Freehand opens the editor on the poster, and Paint or Resume sprays the piece in stages. The static-station rule
+  applies where the poster hangs. One painter works on a poster at a time ("someone's painting it!"). A two-tile piece
+  is refused ("too wide!"), and so is a piece that paints none of the poster's pixels ("won't show on the poster!"); the
+  can stays armed for the first.
+- **Its own pixels.** `graffiti_poster_look()` reads a poster's icon state once, pixel by pixel, and keeps what it read
+  for each icon and state (`GRAFFITI_POSTER_LOOKS`, 32; a wanted poster's runtime icon is read each time): the pixels
+  it shows, as the editor's draw mask and bounds, and the poster itself as an art. The editor on a poster
+  (`/datum/custom_sprite_editor/graffiti/poster`) puts them on its workspace, as the hair and markings editors keep paint
+  to the body: the window shades the rest and its tools refuse it, and the workspace refuses it too
+  (`is_point_allowed()`). The window draws the poster and its graffiti beneath the canvas, hides the width toggle
+  (`oneTile`) and says the paint lasts the round. A paint job on a poster (`/datum/graffiti_paint_job/poster`) clips the
+  piece's layers to the same pixels as it is set up (`graffiti_clip_record()`), so its time counts only the paint that
+  shows.
+- **On the poster, not the map.** The poster keeps its graffiti itself (`graffiti`): every piece painted on it merged
+  into one art, a new piece over the older ones as on a wall's stack, without a stack cap. None of it goes in
+  `SSgraffiti`'s registry, the map file, the sheets or the Graffiti Manager, so it lasts the round at most, as examine
+  says. It draws from the art and glow icon caches the walls use, by art hash, so the same art on any number of posters
+  and walls is drawn once. Its composites and job steps count against the painter's pace and every painter's composite
+  share, as a wall's do.
+- **Saving.** Save writes the piece to the library as on a wall. A piece left unsaved goes in the Unfinished slot as a
+  plain draft, with nowhere to resume, so Resume sprays it again from the start.
+- **Taken down and hung again.** Ripping the poster or taking down its wall deletes it with its graffiti. Taking it down
+  with wirecutters rolls it up with the graffiti finished on it, out of sight (`"rolled"`), and hanging it again shows
+  the graffiti once the poster is up (`on_placed_poster()`), clipped to the pixels the poster shows then. A piece still
+  being painted stays behind, and its session or job ends. Cleaning washes poster graffiti off
+  (`CLEAN_TYPE_LIGHT_DECAL`), which ends a painter's work there.
 
 #### Tiles and stacks
 
@@ -360,13 +392,14 @@ can. A tile stacks up to five pieces. Admins find, view and delete graffiti in t
 
 #### Tests
 
-`code/modules/unit_tests/~nova/graffiti/` holds 29 tests in six files: the codec, piece validation, the alpha ceiling
+`code/modules/unit_tests/~nova/graffiti/` holds 31 tests in seven files: the codec, piece validation, the alpha ceiling
 and floor and the narrowing of two-tile pieces (`codec.dm`), surface and studio sessions (`editor.dm`), the library's
 caps, write pacing and import, and the backup and files a deletion leaves (`library.dm`), the registry's round trip and
 miss drops, map files whose placements still carry names, cleaning, cleaned art leaving the map file, its backup and the
 icon caches, admin deletes, halves, rank with connected owners first, caps with burying and the byte budget, on loading
-too, sheets and the static-station rule (`persistence.dm`), paint jobs, arming and window surfaces (`placement.dm`), and
-the workspace's layers, colour counts and alpha-00 refusal (`workspace.dm`). `graffiti_registry_caps` and
+too, sheets and the static-station rule (`persistence.dm`), paint jobs, arming and window surfaces (`placement.dm`),
+freehand and paint jobs on posters, kept to the poster's pixels, through a roll-up, a rehanging and a wash, two posters
+sharing one art's icon (`poster.dm`), and the workspace's layers, colour counts and alpha-00 refusal (`workspace.dm`). `graffiti_registry_caps` and
 `graffiti_library_caps`, about 1.1 s and 1.7 s, run with `TEST_LONGER`. The module adds type vars and globals, and
 var-cap diagnostics are ignored. The unit-test build still tipped into a bogus `invalid variable` error three times. The
 first was cleared by moving a new static into an existing one; each of the other two took one more `~nova` test file out
@@ -408,6 +441,9 @@ benchmarks' first runs for file sizes:
 | A hundred studio editors at the topic limit (a 300-pixel stroke every 0.3 s, two tiles, four layers) | 736 ms/s of strokes and their window updates, 2.0 MB/s of updates, +2.0% time dilation |
 | A hundred freehand sessions at the topic limit (one tile, four layers) | 546 composites a minute at 11.2 ms, each painter's 10 s apart, 102 ms/s of composites and 587 ms/s of strokes and updates, +3.0% time dilation; with the composite share held open on the same build, 3,867 a minute, 670 ms/s and +57.2% (+78% when first measured) |
 | A paint job step: two tiles adversarial / two tiles dense / one tile adversarial / typical | 52.7 / 25.6 / 30.7 / 14.2 ms; setting a job up 8.2 ms |
+| Posters, 2026-10-23, against a wall on the same build, one layer of 63 random colours: a stroke of 300 pixels on the poster / 300 anywhere, about half of them off it / every pixel | 0.80 / 0.54 / 1.12 ms against 0.77 / 0.81 / 1.96 ms; 1.81 / 1.45 / 4.29 ms while each point was checked, before strokes were cut down to the poster as they are read |
+| Posters: a composite with nothing beneath / over a dense piece; a dense one-tile paint job step | 3.6 / 5.9 ms against 4.6 / 8.6 ms; 2.9 ms against 4.9 ms, setting the job up 1.9 ms on both |
+| Posters: reading a poster's look; the editor's static data over a dense piece; hanging a rolled-up poster's graffiti on the look it was painted for / on a changed one; its overlays | 13 ms the first time for each icon state, 2 µs after; 2.5 ms, once as the editor opens; 0.27 / 1.8 ms; 35 µs with its icon cached, 14 µs without graffiti |
 | Twenty two-tile adversarial paint jobs at once | 289 ms/s of step work in spare tick time, 13.4 ms/s past the tick limit, +1.8% time dilation |
 | A library save, 50 pieces: typical / 49 dense and 1 adversarial / 50 adversarial | mean 33 / 68 / 150 ms, max 43 / 146 / 223 ms; files 94 KB / 744 KB / 1.70 MB; static data 97 KB / 343 KB / 1.49 MB |
 | Memory over 50 cycles: 10 tiles painted and cleaned / 10 paint jobs finished or stopped / 10 studio editors of 20 strokes / 10 freehand sessions of 20 strokes | private bytes +0.07 / +0.17 / 0 / +1.9 MB from cycles 5-10 to 50, with every registry, editor, job and queue count back where it started each cycle; the freehand sessions' slow growth, about 4 KB a session, is in no list the module keeps |
@@ -502,6 +538,12 @@ Registration:
   `prepare_selection_placement()`, `sanitize_transaction()`, `transact()` and `reverse_transact()`.
 - `code/placement.dm`: `/datum/graffiti_paint_job`, a `/datum/custom_sprite_work_owner`: `costly_work_due()` and
   `run_deferred_work()`.
+- `code/poster.dm`: `/obj/structure/sign/poster`'s `update_overlays()`, `examine()`, `wash()`, `roll_and_drop()` and
+  `on_placed_poster()`; `/datum/custom_sprite_editor/graffiti/poster` and `/datum/graffiti_paint_job/poster`, the
+  editor and the paint job on a poster, overriding their parents' surface hooks (`surface_problem()`, `place_art()`,
+  `end_surface()`, `leave_surface()`, `tile_background()`; `piece_records()`, `surface_valid()`, `paint()`,
+  `credit_surface()`, `release_surface()`, `stopped_resume()`) and `New()`, `Destroy()`, `window_title()`, `ui_data()`,
+  `editor_act()` and `start()`.
 
 ### Defines:
 
@@ -512,7 +554,8 @@ one file's code uses sits at the top of that file and is undefined at its end: t
 debounce, the sheet states, the per-ckey unique cap, the read versions and the decode budget in `registry.dm`; the
 reveal's timing in `placement.dm`; the alpha floor and the flat colour cap in `piece.dm`; the start cooldown in
 `spraycan.dm`, the spray length in `sounds.dm`, the library's size limit in `library.dm`, the icon caches' size in
-`render.dm` and the window layer in `decal.dm`. The budget defines and where their values come from:
+`render.dm`, the window layer in `decal.dm` and the poster looks kept in `poster.dm`. The budget defines and where their
+values come from:
 
 - `GRAFFITI_MAP_UNIQUE_CAP` 2,000: 2,000 dense art records of 3,670 bytes take 7.3 MB.
 - `GRAFFITI_MAP_ART_BYTES` 5 MiB: the bytes of art a map keeps, each unique art's `pal`, `grid` and `glow` text counted
@@ -602,7 +645,9 @@ Custom sprites code changed for this module (Aphelion's own, unmarked):
   than it has pixels, before it is encoded whole, so a hair appendage's hidden view, which the window isn't sent, holds
   no more however long a modified client paints it.
 - `modular_aphelion/modules/custom_sprites/code/limits.dm`: compact stroke masks read by character code through
-  `custom_sprite_mask_tables()`.
+  `custom_sprite_mask_tables()`, and cut down to the slots a canvas allows as they are read
+  (`custom_sprite_mask_points()`'s `allowed`, from the workspace's `stroke_mask_slots()`, null but on a poster's
+  canvas), so a poster's strokes need no check of each point.
 
 Used as they are:
 
@@ -615,8 +660,8 @@ Used as they are:
 
 Tests and tgui:
 
-- `code/modules/unit_tests/~nova/graffiti/`: `codec.dm`, `editor.dm`, `library.dm`, `persistence.dm`, `placement.dm`
-  and `workspace.dm`.
+- `code/modules/unit_tests/~nova/graffiti/`: `codec.dm`, `editor.dm`, `library.dm`, `persistence.dm`, `placement.dm`,
+  `poster.dm` and `workspace.dm`.
 - `tgui/packages/tgui/interfaces/CrayonGraffitiTab.tsx` (the spray can's tabs), `GraffitiEditor.tsx` (the editor in
   graffiti mode) and `GraffitiAdminPanel.tsx` (the Graffiti Manager), with tests of the first and last.
 - `tgui/packages/tgui/interfaces/common/CustomSpriteEditor/`: `AlphaBar.tsx`, `GraffitiFields.tsx`,

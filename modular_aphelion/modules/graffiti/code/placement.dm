@@ -204,7 +204,7 @@
 	src.surface = surface
 	src.piece = piece
 	src.piece_id = piece_id
-	layer_records = graffiti_layer_records(piece)
+	layer_records = piece_records(piece)
 	var/total = graffiti_reveal_units(piece)["total"]
 	// The pixels the whole piece paints, as graffiti_art_pixels() counts them in its flattened art: those some layer paints
 	// in a colour that shows.
@@ -295,9 +295,31 @@
 /datum/graffiti_paint_job/proc/still_valid()
 	if(QDELETED(src) || !user?.is_holding(can) || can.is_capped || user.incapacitated)
 		return FALSE
+	return surface_valid()
+
+/**
+ * Whether the surface still takes the job's paint: both tiles of a two-tile piece and of one kind, still taking
+ * graffiti, with the paint revealed so far still on them.
+ *
+ * Returns:
+ * - TRUE/FALSE
+ */
+/datum/graffiti_paint_job/proc/surface_valid()
 	if(piece["width"] == GRAFFITI_WIDE_WIDTH ? !graffiti_wide_ok(surface) : !graffiti_surface_ok(surface))
 		return FALSE
 	return ((!placement || SSgraffiti.shown[placement]) && (!placement2 || SSgraffiti.shown[placement2])) ? TRUE : FALSE
+
+/**
+ * Returns the piece's layers decoded, once, for the steps to merge.
+ *
+ * Arguments:
+ * - piece: The canonical piece.
+ *
+ * Returns:
+ * - list: graffiti_layer_records() of the piece.
+ */
+/datum/graffiti_paint_job/proc/piece_records(list/piece)
+	return graffiti_layer_records(piece)
 
 /**
  * The step timer's tick: the next strips are due, and the job asks SScustom_sprite_work to reveal them as costly work.
@@ -353,9 +375,7 @@
 		return
 	can.use_charges(user, GRAFFITI_COST * (HAS_TRAIT(user, TRAIT_TAGGER) ? 0.5 : 1), FALSE)
 	log_game("[key_name(user)] painted graffiti piece [piece_id] at [AREACOORD(surface)]")
-	for(var/packed in list(placement, placement2))
-		var/obj/effect/decal/cleanable/crayon/custom/decal = SSgraffiti.shown[packed]
-		decal?.credit_painter(user)
+	credit_surface()
 	user.client?.give_award(/datum/award/achievement/misc/custom_graffiti_painted, user)
 	if(piece_id == "unfinished")
 		var/datum/graffiti_library/library = graffiti_library(owner_ckey())
@@ -364,8 +384,35 @@
 			library.discard_unfinished(TRUE)
 		if(can.graffiti_armed == "unfinished")
 			can.graffiti_armed = null
-	graffiti_release_merges(surface, piece["width"])
+	release_surface()
 	qdel(src)
+
+/// Marks each tile the finished piece is on as the painter's work (graffiti_credit_painter()).
+/datum/graffiti_paint_job/proc/credit_surface()
+	for(var/packed in list(placement, placement2))
+		var/obj/effect/decal/cleanable/crayon/custom/decal = SSgraffiti.shown[packed]
+		if(decal)
+			graffiti_credit_painter(decal, user)
+
+/// Lets go of the surface as the job ends: its tiles' decals let go of their merges.
+/datum/graffiti_paint_job/proc/release_surface()
+	graffiti_release_merges(surface, piece["width"])
+
+/**
+ * Returns where a stopped piece resumes: on its tiles while the paint revealed so far is still there. A pane loosened
+ * under the piece drops all of that paint, both halves of a two-tile piece, and it resumes nowhere.
+ *
+ * Returns:
+ * - list: The Unfinished slot's resume data.
+ * - null: It resumes nowhere, and starts over wherever it is next painted.
+ */
+/datum/graffiti_paint_job/proc/stopped_resume()
+	var/loose = graffiti_drop_loose_paint(surface, piece["width"], list(placement, placement2))
+	var/packed = placement || placement2
+	// Paint that went, cleaned, buried or dropped from a loosened pane, leaves nothing to resume.
+	if(loose || !packed || (placement && !SSgraffiti.shown[placement]) || (placement2 && !SSgraffiti.shown[placement2]))
+		return null
+	return list("map" = SSmapping.current_map.map_name, "anchor" = graffiti_resume_anchor(surface, packed), "pid" = SSgraffiti.unpack(packed)["pid"], "progress" = reveal["progress"], "width" = piece["width"])
 
 /**
  * Stops the job, leaving the paint revealed so far. The piece goes in the painter's Unfinished slot, with where to resume
@@ -379,20 +426,14 @@
 	deltimer(step_timer)
 	step_timer = null
 	if(keep)
-		var/loose = graffiti_drop_loose_paint(surface, piece["width"], list(placement, placement2))
-		var/packed = placement || placement2
-		// Paint that went, cleaned, buried or dropped from a loosened pane, leaves nothing to resume.
-		if(loose || (placement && !SSgraffiti.shown[placement]) || (placement2 && !SSgraffiti.shown[placement2]))
-			packed = null
-		var/list/resume = packed ? list("map" = SSmapping.current_map.map_name, "anchor" = graffiti_resume_anchor(surface, packed), "pid" = SSgraffiti.unpack(packed)["pid"], "progress" = reveal["progress"], "width" = piece["width"]) : null
 		var/datum/graffiti_library/library = graffiti_library(owner_ckey())
-		var/error = library ? library.set_unfinished(piece, resume, TRUE) : "Your graffiti library isn't available."
+		var/error = library ? library.set_unfinished(piece, stopped_resume(), TRUE) : "Your graffiti library isn't available."
 		if(error)
 			to_chat(user, span_warning("Your unfinished graffiti couldn't be kept: [error]"))
 	else
 		to_chat(user, span_warning("Your graffiti is gone from the surface."))
 	log_game("[key_name(user)] stopped painting graffiti piece [piece_id] at [AREACOORD(surface)], strip [reveal["progress"]] of [reveal["total"]]")
-	graffiti_release_merges(surface, piece["width"])
+	release_surface()
 	qdel(src)
 
 /**

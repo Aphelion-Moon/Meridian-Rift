@@ -17,6 +17,9 @@
 	/// Layer id -> its layer_records() record, kept until the layer's pixels or glow change, so a surface session's
 	/// composite reads only the layers painted since the last one. Studio sessions never composite, so never fill it.
 	var/list/layer_record_cache
+	/// The draw mask as a compact stroke mask's slots, a bit for each pixel that takes paint, as a poster's canvas has it,
+	/// or null. A stroke is cut down to it as its points are read (stroke_mask_slots()), so none needs checking.
+	var/list/draw_mask_bits
 
 /**
  * Opens a piece with a layer for each of its own, or a blank one-tile piece.
@@ -399,6 +402,22 @@
 			editor.notify("Paste isn't allowed on a surface. Paint it by hand.")
 			return FALSE
 	return TRUE
+
+/**
+ * Returns draw_mask_bits, which a stroke's compact mask is cut down to as it is read: a check of each point costs about
+ * as much as the rest of the stroke (measured). A canvas with a draw mask holds no paint outside it, so an eraser loses
+ * nothing by it.
+ *
+ * Returns:
+ * - list: The slots, for a one-tile canvas with a draw mask.
+ * - null: The canvas paints everywhere.
+ */
+/datum/sprite_editor_workspace/custom_sprite/graffiti/stroke_mask_slots()
+	return (draw_mask_bits && length(draw_mask_bits) == CEILING(width * height / 6, 1)) ? draw_mask_bits : null
+
+/// A stroke read from a compact mask cut down to the draw mask lands only where paint may go.
+/datum/sprite_editor_workspace/custom_sprite/graffiti/all_points_allowed(direction)
+	return (mask_stroke && stroke_mask_slots()) || ..()
 
 /**
  * Also writes a stroke's colour as the nine-character pixel it paints, in graffiti_color()'s form, so every pixel value

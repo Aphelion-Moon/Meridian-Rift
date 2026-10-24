@@ -454,6 +454,17 @@
 /datum/sprite_editor_workspace/custom_sprite/all_points_allowed(direction)
 	return isnull(draw_bounds) && isnull(draw_mask)
 
+/**
+ * Returns the slots a compact stroke mask is cut down to as it is read (custom_sprite_mask_points()'s `allowed`), for a
+ * canvas whose mask strokes then need no check of each point.
+ *
+ * Returns:
+ * - list: The slots.
+ * - null: Strokes are read whole and checked point by point.
+ */
+/datum/sprite_editor_workspace/custom_sprite/proc/stroke_mask_slots()
+	return null
+
 /// Whether a pixel of `layer` holds opaque paint.
 /datum/sprite_editor_workspace/custom_sprite/proc/is_painted(x, y, direction, layer = current_layer)
 	var/list/frame = layers[layer]["data"][direction]
@@ -473,7 +484,7 @@
 	current_layer = valid_layer(layer) ? layer : 1
 	// Windows send strokes as a compact mask; the history keeps point lists.
 	if(islist(transaction) && ("mask" in transaction))
-		transaction["points"] = custom_sprite_mask_points(transaction["mask"], width, height)
+		transaction["points"] = custom_sprite_mask_points(transaction["mask"], width, height, stroke_mask_slots())
 		mask_stroke = TRUE
 	. = ..()
 	erasing = FALSE

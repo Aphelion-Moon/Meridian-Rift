@@ -80,6 +80,8 @@ export type GraffitiData = {
   libraryCap: number;
   /** The surface isn't one graffiti stays on past the round. */
   roundOnly: BooleanLike;
+  /** The surface takes one tile only, as a poster does, so the width never changes. */
+  oneTile?: BooleanLike;
   /** The library piece this is, once saved. */
   pieceId: string | null;
 };

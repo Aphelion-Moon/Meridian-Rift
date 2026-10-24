@@ -2,7 +2,7 @@
 #define GRAFFITI_START_COOLDOWN (3 SECONDS)
 
 /obj/item/toy/crayon/spraycan
-	/// What a click on a wall, a floor or a full-tile window paints: null for the stencil, "freehand" for a live editor on it, "unfinished" for the Unfinished slot's piece, or a library piece's id.
+	/// What a click on a wall, a floor, a full-tile window or a poster paints: null for the stencil, "freehand" for a live editor on it, "unfinished" for the Unfinished slot's piece, or a library piece's id.
 	var/graffiti_armed
 	/// The window's tab: "stencils" or "graffiti".
 	var/graffiti_tab = "stencils"
@@ -203,8 +203,9 @@
  * another surface is refused ("wrong wall!") and starts no cooldown. Each attempt waits out GRAFFITI_START_COOLDOWN
  * from the last, refused or not, and is refused before any costly work: by an empty can, a paint job already running,
  * or a two-tile piece without a surface like this one to the right. A two-tile piece that paints nothing on its right
- * tile paints one tile. A click on anything else clears the arming and sprays as usual, as does an unarmed can, which
- * tints a window.
+ * tile paints one tile. A click on a poster that isn't ripped paints over the poster itself, one painter at a time, and
+ * only on its own pixels; it takes no two-tile piece ("too wide!"), and nothing resumes there. A click on anything else
+ * clears the arming and sprays as usual, as does an unarmed can, which tints a window or a poster.
  *
  * Arguments:
  * - target: What was clicked.
@@ -217,30 +218,34 @@
 /obj/item/toy/crayon/spraycan/use_on(atom/target, mob/user, list/modifiers)
 	if(!graffiti_armed || !graffiti_enabled())
 		return ..()
+	var/obj/structure/sign/poster/poster = istype(target, /obj/structure/sign/poster) ? target : null
 	var/obj/structure/window/window = target
-	// Graffiti and a full-tile window stand for the tile they are on.
-	var/turf/surface = (istype(target, /obj/effect/decal/cleanable) || (istype(window) && window.fulltile)) ? target.loc : target
+	// Graffiti, a full-tile window and a poster stand for the tile they are on.
+	var/turf/surface = (poster || istype(target, /obj/effect/decal/cleanable) || (istype(window) && window.fulltile)) ? target.loc : target
+	// Where refusals show: the poster, or the tile.
+	var/atom/spot = poster || surface
 	var/datum/graffiti_library/library = graffiti_library(user.ckey)
-	if(!library || !isturf(surface) || !graffiti_surface_kind(surface) || !user.Adjacent(surface))
+	if(!library || !isturf(surface) || !(poster || graffiti_surface_kind(surface)) || !user.Adjacent(surface))
 		graffiti_armed = null
 		balloon_alert(user, "graffiti disarmed")
 		return ..()
 	if(is_capped)
 		return ..()
-	// The map's graffiti loads in the background from the lobby on, and nothing is placed before it has.
-	if(!SSgraffiti.loaded)
+	// The map's graffiti loads in the background from the lobby on, and nothing is placed before it has. A poster's never
+	// goes in the map's.
+	if(!poster && !SSgraffiti.loaded)
 		surface.balloon_alert(user, "graffiti still loading!")
 		return ITEM_INTERACT_BLOCKING
 	// Graffiti goes on the station as the map built it only: not other levels, ruins, bitrunning or maploaded rooms.
-	if(!graffiti_surface_ok(surface))
-		surface.balloon_alert(user, "can't paint here!")
+	if(poster ? (poster.ruined || !graffiti_static_station(surface)) : !graffiti_surface_ok(surface))
+		spot.balloon_alert(user, "can't paint here!")
 		return ITEM_INTERACT_BLOCKING
 	// While the Unfinished piece's paint still shows, it resumes there and nowhere else: either tile of a wide one.
 	if(graffiti_armed == "unfinished")
 		var/turf/home = graffiti_resume_tile(library.unfinished?["resume"], user.ckey)
-		if(home && surface != home)
-			if(surface != get_step(home, EAST) || library.unfinished["resume"]["width"] != GRAFFITI_WIDE_WIDTH || !user.Adjacent(home))
-				surface.balloon_alert(user, "wrong [graffiti_surface_kind(surface)]!")
+		if(home && (poster || surface != home))
+			if(poster || surface != get_step(home, EAST) || library.unfinished["resume"]["width"] != GRAFFITI_WIDE_WIDTH || !user.Adjacent(home))
+				spot.balloon_alert(user, "wrong [poster ? "poster" : graffiti_surface_kind(surface)]!")
 				return ITEM_INTERACT_BLOCKING
 			surface = home
 	if(world.time < SSgraffiti.start_cooldowns[user.ckey])
@@ -252,12 +257,21 @@
 	if(SSgraffiti.paint_jobs[user.ckey])
 		balloon_alert(user, "already painting!")
 		return ITEM_INTERACT_BLOCKING
+	if(poster)
+		// One painter at a time; the painter's own session there gives way to the new one.
+		if(poster.graffiti_painter && poster.graffiti_painter != SSgraffiti.editors[user.ckey])
+			poster.balloon_alert(user, "someone's painting it!")
+			return ITEM_INTERACT_BLOCKING
+		// Read from the poster's icon, after the cooldown, as it reads every pixel the first time.
+		if(!graffiti_poster_look(poster))
+			poster.balloon_alert(user, "can't paint here!")
+			return ITEM_INTERACT_BLOCKING
 	var/list/piece
 	var/list/resume
 	switch(graffiti_armed)
 		if("freehand")
 			graffiti_armed = null
-			graffiti_open_editor(user, null, null, surface)
+			graffiti_open_editor(user, null, null, surface, null, poster)
 			return ITEM_INTERACT_SUCCESS
 		if("unfinished")
 			piece = library.unfinished?["piece"]
@@ -268,12 +282,14 @@
 			resume = library.unfinished["resume"]
 			// A freehand draft goes back in the editor, and continues only on its own tile, so it never appears at once on another.
 			if(resume?["progress"] == -1)
-				var/list/art = graffiti_flatten(piece)
-				var/list/kept = graffiti_resume_placements(resume, surface, piece["width"] == GRAFFITI_WIDE_WIDTH ? graffiti_split_wide(art) : list(art))
+				var/list/kept
+				if(!poster)
+					var/list/art = graffiti_flatten(piece)
+					kept = graffiti_resume_placements(resume, surface, piece["width"] == GRAFFITI_WIDE_WIDTH ? graffiti_split_wide(art) : list(art))
 				if(kept)
 					log_game("[key_name(user)] resumed freehand graffiti, placement [resume["pid"]], at [AREACOORD(surface)]")
 				graffiti_armed = null
-				graffiti_open_editor(user, kept && graffiti_copy_piece(piece), null, surface, kept)
+				graffiti_open_editor(user, kept && graffiti_copy_piece(piece), null, surface, kept, poster)
 				return ITEM_INTERACT_SUCCESS
 		else
 			piece = library.piece(graffiti_armed)
@@ -281,12 +297,12 @@
 				graffiti_armed = null
 				balloon_alert(user, "that graffiti is gone!")
 				return ITEM_INTERACT_BLOCKING
-	// A two-tile piece with nothing on its right tile paints one.
+	// A two-tile piece with nothing on its right tile paints one. A poster takes one tile.
 	piece = graffiti_trim_wide(piece)
-	if(piece["width"] == GRAFFITI_WIDE_WIDTH && !graffiti_wide_ok(surface))
-		surface.balloon_alert(user, "no room!")
+	if(piece["width"] == GRAFFITI_WIDE_WIDTH && (poster || !graffiti_wide_ok(surface)))
+		spot.balloon_alert(user, poster ? "too wide!" : "no room!")
 		return ITEM_INTERACT_BLOCKING
-	var/datum/graffiti_paint_job/job = new(user, src, surface, graffiti_copy_piece(piece), resume, graffiti_armed)
+	var/datum/graffiti_paint_job/job = poster ? new /datum/graffiti_paint_job/poster(user, src, surface, graffiti_copy_piece(piece), resume, graffiti_armed, poster) : new(user, src, surface, graffiti_copy_piece(piece), resume, graffiti_armed)
 	if(!job.start())
 		qdel(job)
 		return ITEM_INTERACT_BLOCKING
@@ -310,7 +326,7 @@
 		. += span_notice("It is set to paint a piece of graffiti.")
 		return
 	var/label = graffiti_armed == "freehand" ? "freehand" : (graffiti_armed_name(user) || "a piece of graffiti")
-	. += span_notice("It is set to paint [label] — click a wall, floor or full-tile window.")
+	. += span_notice("It is set to paint [label] — click a wall, floor, full-tile window or poster.")
 
 /**
  * Swaps the can's window for a graffiti editor, which reuses its place on screen.
@@ -319,13 +335,14 @@
  * - user: The player.
  * - piece: A copy of the canonical piece to open, or null for a blank one.
  * - piece_id: The library piece it is, or null.
- * - surface: The wall, floor or window tile to paint live, or null for a studio session.
+ * - surface: The wall, floor or window tile to paint live, or a poster's tile, or null for a studio session.
  * - kept: The placements a freehand draft left on the surface, from graffiti_resume_placements(), which the session goes
  *   on painting, or null.
+ * - poster: The poster to paint live, or null.
  */
-/obj/item/toy/crayon/spraycan/proc/graffiti_open_editor(mob/user, list/piece, piece_id, turf/surface = null, list/kept = null)
+/obj/item/toy/crayon/spraycan/proc/graffiti_open_editor(mob/user, list/piece, piece_id, turf/surface = null, list/kept = null, obj/structure/sign/poster/poster = null)
 	SStgui.close_uis(src)
-	var/datum/custom_sprite_editor/graffiti/editor = graffiti_editor_for(user, piece, piece_id, src, surface)
+	var/datum/custom_sprite_editor/graffiti/editor = graffiti_editor_for(user, piece, piece_id, src, surface, poster)
 	if(kept)
 		editor.placement = kept[1]
 		editor.placement2 = kept[2]
