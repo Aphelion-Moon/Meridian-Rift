@@ -179,17 +179,16 @@
 	var/cache_key = "[descriptor["id"]]|[direction]|[pose]|[occlusion]|[frame]|[moving]"
 	if(use_cache && images[cache_key])
 		return images[cache_key]
-	var/state = descriptor["icon_state"]
-	if(pose != "idle")
-		state += "-[pose]"
-	var/resource = descriptor["icon"]
+	var/suffix = pose == "idle" ? "" : "-[pose]"
+	var/list/occlusion_mask
 	if(occlusion)
-		if(!cyborg_animation_anchor(descriptor, direction, pose))
+		occlusion_mask = cyborg_animation_anchor(descriptor, direction, pose) ? cyborg_occlusion_mask(descriptor) : null
+		if(!occlusion_mask)
 			return null
-		resource = cyborg_occlusion_cached(resource, descriptor["icon_state"])
-		if(!resource)
-			return null
-	var/icon/body = icon(resource, state, direction, frame, moving)
+	var/icon/body = icon(descriptor["icon"], descriptor["icon_state"] + suffix, direction, frame, moving)
+	if(occlusion_mask)
+		// White masks keep the body's colors, so multiplying cuts only its alpha
+		body.Blend(icon(occlusion_mask[1], occlusion_mask[2] + suffix, direction, frame, moving), ICON_MULTIPLY)
 	var/data = icon2base64(body)
 	if(!use_cache)
 		return data

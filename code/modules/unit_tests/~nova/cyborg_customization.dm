@@ -163,13 +163,8 @@
 	previous_persistent_clients = null
 	previous_persistent_client_list = null
 
-/// Returns memory-only preferences on a mock client, linked to robot when given. Readies the three Drake masks first
+/// Returns memory-only preferences on a mock client, linked to robot when given
 /datum/unit_test/cyborg_mock_preferences/proc/create_preferences(mob/living/silicon/robot/robot, preference_type = /datum/preferences/preferences_import_test)
-	// These existing layout/lifecycle tests exercise ready resources. Cold demand
-	// and superseded completion have dedicated tests with an empty controlled cache.
-	for(var/model_type in list(/obj/item/robot_model/engineering, /obj/item/robot_model/medical, /obj/item/robot_model/service))
-		var/list/descriptor = cyborg_model_catalog()[cyborg_appearance_model_id(model_type, "Drake")]
-		cyborg_occlusion_ensure_model_ready(descriptor["icon"], descriptor["icon_state"])
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	// Reuse the native memory-only preference fixture and its parent-link teardown.
 	var/datum/preferences/preferences = allocate(preference_type, mock_client)
@@ -869,6 +864,9 @@
 		TEST_ASSERT_EQUAL(holder.animation_image.loc, robot, "The carrier must follow the same native movement as the chassis.")
 		TEST_ASSERT_EQUAL(holder.animation_image.icon_state, robot.icon_state, "The carrier must select the chassis pose.")
 		TEST_ASSERT_EQUAL(holder.animation_image.dir, direction, "Turning must select the matching native direction.")
+		TEST_ASSERT_EQUAL(holder.mask_image?.loc, robot, "The occlusion mask must follow the same native movement as the chassis.")
+		TEST_ASSERT_EQUAL(holder.mask_image.dir, direction, "Turning must turn the occlusion mask with the chassis.")
+		TEST_ASSERT_EQUAL(holder.occlusion_image.filters[1]:render_source, holder.mask_image.render_target, "The chassis sprite must be cut by its own mask.")
 		TEST_ASSERT_EQUAL(holder.shown_image.filters[1]:size, 127, "Native displacement must stay aligned to whole pixels.")
 		var/list/layer = LAZYACCESS(holder.render_layers, 1)
 		var/mutable_appearance/part = holder.shown_image.overlays[1]
@@ -881,12 +879,14 @@
 	// Emulate companion images retained from a previous plane-offset level.
 	// RuntimeStation has no stacked levels; exercise the native transition hook directly.
 	holder.occlusion_image.plane = GET_NEW_PLANE(GAME_PLANE, 1)
+	holder.mask_image.plane = GET_NEW_PLANE(GAME_PLANE, 1)
 	holder.animation_image.plane = GET_NEW_PLANE(GAME_PLANE, 1)
 	var/turf/current_turf = get_turf(robot)
 	holder.on_changed_z_level(current_turf, current_turf, FALSE)
 	var/current_plane = MUTATE_PLANE(GAME_PLANE, current_turf)
 	TEST_ASSERT_EQUAL(holder.shown_image.plane, current_plane, "A plane transition left the part image on another plane.")
 	TEST_ASSERT_EQUAL(holder.occlusion_image.plane, current_plane, "A plane transition left the occlusion mask behind.")
+	TEST_ASSERT_EQUAL(holder.mask_image.plane, current_plane, "A plane transition left the mask's render target behind.")
 	TEST_ASSERT_EQUAL(holder.animation_image.plane, current_plane, "A plane transition left the movement carrier behind.")
 	TEST_ASSERT(length(holder.shown_image.filters), "A plane transition discarded the native animation filter.")
 	TEST_ASSERT_EQUAL(holder.shown_image.filters[1]:size, 127, "A plane transition changed animation displacement.")
@@ -1419,177 +1419,6 @@
 	TEST_ASSERT_EQUAL(current["direction"], NORTH, "A shared asset wait captured obsolete preview state.")
 	TEST_ASSERT_EQUAL(editor.rendered_preview["direction"], NORTH, "A shared asset wait retained obsolete stage geometry.")
 
-/// Pause public resource readiness without native jobs or retained private state.
-/datum/asset/cyborg_occlusion/consumer_wait_test
-	abstract_type = /datum/asset/cyborg_occlusion/consumer_wait_test
-	/// Whether or not waiting requests may finish
-	var/released = FALSE
-	/// How many readiness requests came in
-	var/calls = 0
-	/// Whether or not a request throws once it's released
-	var/fail = FALSE
-	/// The resource each icon#state key gets once released
-	var/list/ready_resources
-
-/// Waits until the test releases it, then hands over its ready resource or throws
-/datum/asset/cyborg_occlusion/consumer_wait_test/ensure_model_ready(source_file, base_state)
-	calls++
-	UNTIL(released)
-	if(fail)
-		throw EXCEPTION("expected consumer readiness failure")
-	var/key = "[source_file]#[base_state]"
-	resources[key] = ready_resources[key]
-	return resources[key]
-
-/datum/unit_test/cyborg_demand_editor_latest_state
-	parent_type = /datum/unit_test/cyborg_mock_preferences
-
-/// A missing mask keeps the old preview showing, waits once per editor and ends on the latest model
-/datum/unit_test/cyborg_demand_editor_latest_state/Run()
-	var/datum/preferences/preferences = create_preferences()
-	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/master_erp_preferences], TRUE)
-	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_genitals], TRUE)
-	var/datum/preference_middleware/cyborg_character/editor = preferences.cyborg_session()
-	editor.begin_session()
-	editor.set_preview(list("context" = editor.context_generation, "model" = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")), null)
-	editor.ui_data(null)
-	var/list/old_resources = editor.preview_resources
-	var/list/old_stage = editor.rendered_preview
-	var/datum/asset/cyborg_occlusion/original = get_asset_datum(/datum/asset/cyborg_occlusion)
-	var/datum/asset/cyborg_occlusion/consumer_wait_test/paused = new
-	paused.ready_resources = original.resources
-	GLOB.asset_datums[/datum/asset/cyborg_occlusion] = paused
-	editor.resource_refresh_at = world.time
-	editor.set_preview(list("context" = editor.context_generation, "direction" = NORTH), null)
-	for(var/repeat in 1 to 20)
-		editor.ui_data(null)
-	var/nonblocking = editor.occlusion_loading && editor.preview_pending && editor.preview_resources == old_resources && editor.rendered_preview == old_stage
-	sleep(1)
-	var/one_waiter = paused.calls == 1
-	var/latest_model = cyborg_appearance_model_id(/obj/item/robot_model/medical, "Drake")
-	editor.set_preview(list("context" = editor.context_generation, "model" = latest_model), null)
-	editor.ui_data(null)
-	var/still_one_waiter = paused.calls == 1
-	paused.released = TRUE
-	UNTIL(!editor.occlusion_loading)
-	editor.ui_data(null)
-	UNTIL(!editor.occlusion_loading)
-	var/list/latest = editor.ui_data(null)["cyborg_customization"]
-	var/latest_correct = latest["model"] == latest_model && editor.rendered_preview?["model"] == latest_model && !latest["preview_pending"]
-	// Close while a different first-use request is pending; completion cannot revive it.
-	paused.released = FALSE
-	paused.resources = list()
-	var/calls_before_close = paused.calls
-	editor.resource_refresh_at = world.time
-	editor.set_preview(list("context" = editor.context_generation, "direction" = SOUTH), null)
-	editor.ui_data(null)
-	editor.close_editor()
-	paused.released = TRUE
-	UNTIL(!editor.occlusion_loading)
-	var/closed_stayed_empty = !editor.preview_resources && !length(editor.ui_data(null))
-	var/close_skipped_admission = paused.calls == calls_before_close
-	GLOB.asset_datums[/datum/asset/cyborg_occlusion] = original
-	GLOB.asset_datums -= paused.type
-	qdel(paused)
-	TEST_ASSERT(nonblocking, "A missing model blocked UI reads or split the previous coherent stage.")
-	TEST_ASSERT(one_waiter && still_one_waiter, "Repeated reads or model changes retained multiple editor continuations.")
-	TEST_ASSERT(latest_correct, "An obsolete completion failed to prepare and publish the latest model.")
-	TEST_ASSERT(closed_stayed_empty, "A public resource completion resurrected a closed private preview.")
-	TEST_ASSERT(close_skipped_admission, "Closing before admission still generated an obsolete model.")
-
-/datum/unit_test/cyborg_demand_holder_revocation
-	parent_type = /datum/unit_test/cyborg_mock_preferences
-
-/// A missing mask hides the live parts until it is ready, waits once per holder and respects consent and deletion
-/datum/unit_test/cyborg_demand_holder_revocation/Run()
-	var/mob/living/silicon/robot/robot = EASY_ALLOCATE()
-	var/datum/preferences/preferences = create_preferences(robot)
-	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/master_erp_preferences], TRUE)
-	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_genitals], TRUE)
-	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/cyborg_sprite/penis], "Dogborg Knotted")
-	var/model_id = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")
-	var/list/descriptor = cyborg_model_catalog()[model_id]
-	QDEL_NULL(robot.model)
-	robot.model = new /obj/item/robot_model/engineering(robot)
-	robot.model.cyborg_customization_skin = "Drake"
-	robot.model.cyborg_base_icon = descriptor["icon_state"]
-	robot.icon = descriptor["icon"]
-	robot.icon_state = descriptor["icon_state"]
-	apply_cyborg_customization(robot, preferences)
-	var/obj/effect/client_image_holder/cyborg_customization/holder = robot.cyborg_appearance_holder
-	var/datum/asset/cyborg_occlusion/original = get_asset_datum(/datum/asset/cyborg_occlusion)
-	var/datum/asset/cyborg_occlusion/consumer_wait_test/paused = new
-	paused.ready_resources = original.resources
-	GLOB.asset_datums[/datum/asset/cyborg_occlusion] = paused
-	for(var/repeat in 1 to 20)
-		holder.render_key = null
-		holder.update_from_owner()
-	var/coherent_empty = holder.occlusion_loading && !length(holder.render_layers) && !length(holder.shown_image.overlays) && !holder.occlusion_image && !holder.animation_image
-	sleep(1)
-	var/one_waiter = paused.calls == 1
-	robot.cyborg_appearance_allowed = FALSE
-	paused.released = TRUE
-	UNTIL(!holder.occlusion_loading)
-	var/revoked = !length(holder.render_layers) && !holder.occlusion_image && !holder.animation_image
-	paused.resources = list()
-	paused.released = FALSE
-	var/calls_before_delete = paused.calls
-	robot.cyborg_appearance_allowed = TRUE
-	holder.render_key = null
-	holder.update_from_owner()
-	var/datum/weakref/holder_ref = WEAKREF(holder)
-	QDEL_NULL(robot.cyborg_appearance_holder)
-	paused.released = TRUE
-	sleep(2)
-	var/deleted_stayed_empty = !holder_ref.resolve() && !robot.cyborg_appearance_holder
-	var/delete_skipped_admission = paused.calls == calls_before_delete
-	GLOB.asset_datums[/datum/asset/cyborg_occlusion] = original
-	GLOB.asset_datums -= paused.type
-	qdel(paused)
-	TEST_ASSERT(coherent_empty, "A first-use live model exposed parts before its matching mask was ready.")
-	TEST_ASSERT(one_waiter, "Owner churn created duplicate live resource continuations.")
-	TEST_ASSERT(revoked, "A delayed resource completion ignored current owner consent.")
-	TEST_ASSERT(deleted_stayed_empty, "A delayed completion revived a deleted holder.")
-	TEST_ASSERT(delete_skipped_admission, "Deleting before admission still generated an obsolete model.")
-
-/datum/unit_test/cyborg_demand_first_open_failure
-	parent_type = /datum/unit_test/cyborg_mock_preferences
-
-/// A mask that fails to build leaves the model picker usable, and a ready model clears the failure
-/datum/unit_test/cyborg_demand_first_open_failure/Run()
-	var/datum/preferences/preferences = create_preferences()
-	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/master_erp_preferences], TRUE)
-	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_genitals], TRUE)
-	var/datum/preference_middleware/cyborg_character/editor = preferences.cyborg_session()
-	var/datum/asset/cyborg_occlusion/original = get_asset_datum(/datum/asset/cyborg_occlusion)
-	var/datum/asset/cyborg_occlusion/consumer_wait_test/paused = new
-	paused.ready_resources = original.resources
-	paused.fail = TRUE
-	GLOB.asset_datums[/datum/asset/cyborg_occlusion] = paused
-	editor.begin_session()
-	editor.set_preview(list("context" = editor.context_generation, "model" = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")), null)
-	editor.ui_data(null)
-	var/can_choose_pending = editor.preview_resources?["gallery"]?["catalog_url"] && !editor.preview_resources?["models"]
-	editor.set_preview(list("context" = editor.context_generation, "gallery_open" = TRUE, "gallery_department" = "Medical"), null)
-	editor.ui_data(null)
-	var/can_switch_pending = editor.preview_resources?["gallery"]?["department"] == "Medical" && editor.preview_resources?["gallery"]?["thumbnails_url"]
-	paused.released = TRUE
-	UNTIL(!editor.occlusion_loading)
-	var/list/failed = editor.ui_data(null)["cyborg_customization"]
-	var/can_choose_failed = editor.preview_resources?["gallery"]?["catalog_url"] && findtext(failed["message"], "Choose another model")
-	paused.fail = FALSE
-	var/healthy_model = cyborg_appearance_model_id(/obj/item/robot_model/medical, "Drake")
-	editor.set_preview(list("context" = editor.context_generation, "model" = healthy_model), null)
-	editor.ui_data(null)
-	UNTIL(!editor.occlusion_loading)
-	var/list/healthy = editor.ui_data(null)["cyborg_customization"]
-	var/recovered = healthy["model"] == healthy_model && editor.rendered_preview?["model"] == healthy_model && !healthy["preview_pending"] && !findtext(healthy["message"], "could not be prepared")
-	GLOB.asset_datums[/datum/asset/cyborg_occlusion] = original
-	GLOB.asset_datums -= paused.type
-	qdel(paused)
-	TEST_ASSERT(can_choose_pending && can_switch_pending && can_choose_failed, "First-use generation failure trapped the user without a usable model picker.")
-	TEST_ASSERT(recovered, "Switching to a ready model retained obsolete failure state or failed to publish the stage.")
-
 /// UI assignment projection must not expose or mutate unrelated saved chassis assignments.
 /datum/unit_test/cyborg_ui_assignment_projection
 	parent_type = /datum/unit_test/cyborg_mock_preferences
@@ -1854,7 +1683,6 @@
 	var/datum/preference_middleware/cyborg_character/editor = preferences.cyborg_session()
 	var/model_id = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")
 	var/list/descriptor = cyborg_model_catalog()[model_id]
-	cyborg_occlusion_ensure_model_ready(descriptor["icon"], descriptor["icon_state"])
 	editor.begin_session()
 	var/omitted_fields = 0
 	var/distinct_fields = 0

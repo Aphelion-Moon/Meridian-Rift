@@ -118,12 +118,8 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 	var/mob/living/silicon/robot/owner
 	/// Everything the parts were last drawn from, so an update that changes none of it does nothing
 	var/render_key
-	/// The part layers last built for the owner, null while none show - hidden, turned off or waiting on a mask
+	/// The part layers last built for the owner, null while none show - hidden or turned off
 	var/list/render_layers
-	/// At most one weak completion is outstanding, regardless of appearance churn.
-	var/occlusion_loading = FALSE
-	/// The icon#state key of a chassis whose mask failed to build, so we don't try it again
-	var/occlusion_failed_key
 
 /// Starts showing the parts to every player who opted in, now and as they log in, and follows the borg's transform
 /obj/effect/client_image_holder/cyborg_customization/Initialize(mapload, list/mobs_which_see_us)
@@ -135,12 +131,14 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 	for(var/mob/player as anything in GLOB.player_list)
 		refresh_viewer(player)
 
-/// Takes the mask and motion map images back from every viewer
+/// Takes the occlusion, mask and motion map images back from every viewer
 /obj/effect/client_image_holder/cyborg_customization/Destroy(force)
 	for(var/mob/seer as anything in who_sees_us)
 		seer.client?.images -= occlusion_image
+		seer.client?.images -= mask_image
 		seer.client?.images -= animation_image
 	occlusion_image = null
+	mask_image = null
 	animation_image = null
 	UnregisterSignal(owner, COMSIG_LIVING_POST_UPDATE_TRANSFORM)
 	GLOB.cyborg_customization_holders -= src
@@ -170,18 +168,21 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 	else if(!allowed && (player in who_sees_us))
 		remove_seer(player)
 
-/// Also shows a new viewer the mask and motion map images, and stops showing them when they log out
+/// Also shows a new viewer the occlusion, mask and motion map images, and stops showing them when they log out
 /obj/effect/client_image_holder/cyborg_customization/add_seer(mob/new_seer)
 	. = ..()
 	RegisterSignal(new_seer, COMSIG_MOB_LOGOUT, PROC_REF(remove_seer))
+	if(mask_image)
+		new_seer.client?.images |= mask_image
 	if(occlusion_image)
 		new_seer.client?.images |= occlusion_image
 	if(animation_image)
 		new_seer.client?.images |= animation_image
 
-/// Also takes the mask and motion map images from a viewer
+/// Also takes the occlusion, mask and motion map images from a viewer
 /obj/effect/client_image_holder/cyborg_customization/remove_seer(mob/source)
 	source.client?.images -= occlusion_image
+	source.client?.images -= mask_image
 	source.client?.images -= animation_image
 	UnregisterSignal(source, COMSIG_MOB_LOGOUT)
 	return ..()
@@ -235,7 +236,7 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 		result.overlays += part
 	return result
 
-/// Redraws the parts when the render key changed. Parts wait, hidden, until their chassis mask is ready
+/// Redraws the parts when the render key changed
 /obj/effect/client_image_holder/cyborg_customization/proc/update_from_owner()
 	if(!owner)
 		return
@@ -251,59 +252,9 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 		"choices" = owner.cyborg_appearance_choices, "active" = owner.cyborg_appearance_active,
 		"arousal" = owner.cyborg_appearance_arousal, "direction" = owner.dir, "pose" = owner.cyborg_customization_pose(),
 	)) : null
-	if(length(render_layers) && cyborg_occlusion_has_model(descriptor["icon"], descriptor["icon_state"]) && !cyborg_occlusion_cached(descriptor["icon"], descriptor["icon_state"]))
-		// Never attach parts without their matching chassis mask. A first use
-		// prepares the pair asynchronously; subsequent owners reuse the resource.
-		LAZYNULL(render_layers)
-		var/model_key = "[descriptor["icon"]]#[descriptor["icon_state"]]"
-		if(!occlusion_loading && occlusion_failed_key != model_key)
-			occlusion_loading = TRUE
-			INVOKE_ASYNC(GLOBAL_PROC, GLOBAL_PROC_REF(cyborg_complete_holder_occlusion), WEAKREF(src), descriptor["icon"], descriptor["icon_state"])
 	regenerate_image()
-	occlusion_image = replace_image(occlusion_image, build_occlusion())
+	update_occlusion(descriptor)
 	animation_image = replace_image(animation_image, build_animation())
-
-/// Resolve the holder only after waiting. No owner, layout, or old image is captured.
-/proc/cyborg_complete_holder_occlusion(datum/weakref/holder_ref, source_file, base_state)
-	// Finish the synchronous hide before a ready/failed completion can rebuild.
-	sleep(0)
-	var/obj/effect/client_image_holder/cyborg_customization/holder = holder_ref.resolve()
-	if(QDELETED(holder))
-		return
-	if(QDELETED(holder.owner) || holder.owner.cyborg_appearance_holder != holder)
-		holder.occlusion_loading = FALSE
-		return
-	var/list/current = cyborg_model_catalog()[holder.owner.cyborg_appearance_model]
-	if(!cyborg_body_visuals_visible(holder.owner) || !current || current["icon"] != source_file || current["icon_state"] != base_state)
-		holder.occlusion_loading = FALSE
-		holder.render_key = null
-		holder.update_from_owner()
-		return
-	var/has_active_part = FALSE
-	for(var/slot in cyborg_layout_supported_slots())
-		if(LAZYACCESS(holder.owner.cyborg_appearance_active, slot) && holder.owner.cyborg_appearance_choices[slot] && holder.owner.cyborg_appearance_choices[slot] != SPRITE_ACCESSORY_NONE)
-			has_active_part = TRUE
-			break
-	if(!has_active_part)
-		holder.occlusion_loading = FALSE
-		return
-	holder = null
-	current = null
-	var/exception/failure
-	try
-		cyborg_occlusion_ensure_model_ready(source_file, base_state)
-	catch(var/exception/error)
-		failure = error
-	holder = holder_ref.resolve()
-	if(QDELETED(holder))
-		return
-	holder.occlusion_loading = FALSE
-	if(failure)
-		holder.occlusion_failed_key = "[source_file]#[base_state]"
-	if(QDELETED(holder.owner) || holder.owner.cyborg_appearance_holder != holder)
-		return
-	holder.render_key = null
-	holder.update_from_owner()
 
 /// Called after a preference changes - puts a new part sprite in the draft, updates the borg's permissions and viewers, then refreshes the window
 /datum/preference_middleware/cyborg_character/post_set_preference(mob/user, preference, value)

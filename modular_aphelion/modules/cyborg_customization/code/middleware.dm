@@ -45,10 +45,6 @@
 	var/resources_pending = FALSE
 	/// Metadata/gallery work must not interrupt placement against unchanged stage pixels.
 	var/preview_pending = FALSE
-	/// One public model load per editor; survives close/slot changes until it finishes.
-	var/occlusion_loading = FALSE
-	/// The icon#state key of a chassis whose mask failed to build, so we say so instead of trying again
-	var/occlusion_failed_key
 	/// Bounded view fields keep the old pixels and geometry coherent during a refresh.
 	var/list/rendered_preview
 	/// Canonical session-owned store, isolated from presets and the preference cache.
@@ -415,7 +411,7 @@
 		"layers" = rendered_preview?["layers"] || list(),
 		"resources_pending" = resources_pending,
 		"preview_pending" = preview_pending,
-		"message" = descriptor && "[descriptor["icon"]]#[descriptor["icon_state"]]" == occlusion_failed_key ? "This model's preview could not be prepared. Choose another model." : status_message,
+		"message" = status_message,
 	))
 	// The nested customization object is replaced on every update. Only a pixel
 	// wait needs a second stage on the wire; keep the server snapshot for later waits.
@@ -930,22 +926,6 @@
 		if(!resource_timer)
 			resource_timer = addtimer(CALLBACK(src, PROC_REF(refresh_resources_timer), resource_generation, draft_slot), resource_refresh_at - world.time, TIMER_STOPPABLE)
 		return FALSE
-	// A first model use may yield in Rust-g. Keep all private snapshots in this
-	// synchronous request and show the previous coherent stage until it completes.
-	if(descriptor && cyborg_occlusion_has_model(descriptor["icon"], descriptor["icon_state"]) && !cyborg_occlusion_cached(descriptor["icon"], descriptor["icon_state"]))
-		resources_pending = TRUE
-		preview_pending = TRUE
-		// First-use failure must still leave the public model picker usable.
-		// No private pixels or geometry are published in this metadata-only payload.
-		var/publish_gallery = !preview_resources || !deep_compare_list(preview_resources["gallery"], gallery_descriptor)
-		if(publish_gallery)
-			preview_resources = preview_resources ? preview_resources.Copy() : list()
-			preview_resources["gallery"] = gallery_descriptor
-		var/model_key = "[descriptor["icon"]]#[descriptor["icon_state"]]"
-		if(!occlusion_loading && occlusion_failed_key != model_key)
-			occlusion_loading = TRUE
-			INVOKE_ASYNC(GLOBAL_PROC, GLOBAL_PROC_REF(cyborg_complete_editor_occlusion), WEAKREF(src), descriptor["icon"], descriptor["icon_state"])
-		return publish_gallery
 	deltimer(resource_timer)
 	resource_timer = null
 	resources_pending = FALSE
@@ -959,40 +939,6 @@
 	resource_body_key = body_key
 	resource_key = new_key
 	return TRUE
-
-/// Only public authored identity crosses the wait; deleted editors are not retained.
-/proc/cyborg_complete_editor_occlusion(datum/weakref/editor_ref, source_file, base_state)
-	// Even an immediately cached/failed result must finish after this UI read.
-	sleep(0)
-	var/datum/preference_middleware/cyborg_character/editor = editor_ref.resolve()
-	if(QDELETED(editor))
-		return
-	if(QDELETED(editor.preferences) || !editor.editor_open || !cyborg_visuals_allowed(editor.preferences))
-		editor.occlusion_loading = FALSE
-		return
-	var/list/current = cyborg_model_catalog()[editor.preview_model]
-	if(!current || current["icon"] != source_file || current["icon_state"] != base_state)
-		editor.occlusion_loading = FALSE
-		SStgui.update_uis(editor)
-		return
-	// Only weak identity and public source values survive the actual wait.
-	editor = null
-	current = null
-	var/exception/failure
-	try
-		cyborg_occlusion_ensure_model_ready(source_file, base_state)
-	catch(var/exception/error)
-		failure = error
-	editor = editor_ref.resolve()
-	if(QDELETED(editor))
-		return
-	editor.occlusion_loading = FALSE
-	if(failure)
-		editor.occlusion_failed_key = "[source_file]#[base_state]"
-	if(QDELETED(editor.preferences) || !editor.editor_open)
-		return
-	// The next read resolves the current slot, model, consent, and layout afresh.
-	SStgui.update_uis(editor)
 
 /** Reuse the current session's unchanged resources, even after shared FIFO eviction.
  * Retention stays bounded to one gallery and six part images/metadata, not edit history.

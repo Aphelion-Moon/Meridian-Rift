@@ -2,45 +2,45 @@
   "format_version": 1,
   "source_sha": "090a9cb13722af449567867c720826eb6af215a5",
   "models": {
-    "modular_nova/modules/borgs/icons/widerobot_eng.dmi#alina-eng": "profile-ff025fae40a5082b",
-    "modular_nova/modules/borgs/icons/widerobot_eng.dmi#borgi-eng": "profile-cb5442bb7cd0a40f",
-    "modular_nova/modules/borgs/icons/widerobot_eng.dmi#drakeeng": "profile-2d3f5f62e786b472",
-    "modular_nova/modules/borgs/icons/widerobot_eng.dmi#engihound": "profile-75a62461e5e6162f",
-    "modular_nova/modules/borgs/icons/widerobot_eng.dmi#engihounddark": "profile-75a62461e5e6162f",
-    "modular_nova/modules/borgs/icons/widerobot_eng.dmi#otiee": "profile-a7a1e22db3dd7146",
-    "modular_nova/modules/borgs/icons/widerobot_eng.dmi#valeeng": "profile-79ffcc6995d30243",
-    "modular_nova/modules/borgs/icons/widerobot_jani.dmi#J9": "profile-79ffcc6995d30243",
-    "modular_nova/modules/borgs/icons/widerobot_jani.dmi#borgi-jani": "profile-cb5442bb7cd0a40f",
-    "modular_nova/modules/borgs/icons/widerobot_jani.dmi#drakejanit": "profile-2d3f5f62e786b472",
-    "modular_nova/modules/borgs/icons/widerobot_jani.dmi#otiej": "profile-a7a1e22db3dd7146",
-    "modular_nova/modules/borgs/icons/widerobot_mine.dmi#cargohound": "profile-75a62461e5e6162f",
-    "modular_nova/modules/borgs/icons/widerobot_mine.dmi#cargohounddark": "profile-75a62461e5e6162f",
-    "modular_nova/modules/borgs/icons/widerobot_mine.dmi#drakemine": "profile-2d3f5f62e786b472",
-    "modular_nova/modules/borgs/icons/widerobot_mine.dmi#otiec": "profile-a7a1e22db3dd7146",
-    "modular_nova/modules/borgs/icons/widerobot_mine.dmi#valemine": "profile-79ffcc6995d30243",
-    "modular_nova/modules/borgs/icons/widerobot_pk.dmi#borgi": "profile-cb5442bb7cd0a40f",
-    "modular_nova/modules/borgs/icons/widerobot_pk.dmi#drakepeace": "profile-2d3f5f62e786b472",
-    "modular_nova/modules/borgs/icons/widerobot_pk.dmi#valepeace": "profile-79ffcc6995d30243",
-    "modular_nova/modules/borgs/icons/widerobot_sec.dmi#alina-sec": "profile-ff025fae40a5082b",
-    "modular_nova/modules/borgs/icons/widerobot_sec.dmi#borgi-sec": "profile-cb5442bb7cd0a40f",
-    "modular_nova/modules/borgs/icons/widerobot_sec.dmi#drakesec": "profile-2d3f5f62e786b472",
-    "modular_nova/modules/borgs/icons/widerobot_sec.dmi#k9": "profile-75a62461e5e6162f",
-    "modular_nova/modules/borgs/icons/widerobot_sec.dmi#k9dark": "profile-75a62461e5e6162f",
-    "modular_nova/modules/borgs/icons/widerobot_sec.dmi#oties": "profile-a7a1e22db3dd7146",
-    "modular_nova/modules/borgs/icons/widerobot_sec.dmi#valesec": "profile-79ffcc6995d30243",
-    "modular_nova/modules/borgs/icons/widerobot_serv.dmi#borgi-serv": "profile-cb5442bb7cd0a40f",
-    "modular_nova/modules/borgs/icons/widerobot_serv.dmi#drakeserv": "profile-2d3f5f62e786b472",
-    "modular_nova/modules/borgs/icons/widerobot_serv.dmi#k50": "profile-75a62461e5e6162f",
-    "modular_nova/modules/borgs/icons/widerobot_serv.dmi#valeserv": "profile-79ffcc6995d30243",
-    "modular_nova/modules/borgs/icons/widerobot_serv.dmi#valeservdark": "profile-79ffcc6995d30243",
-    "modular_nova/modules/borgs/icons/widerobots_cargo.dmi#borgi-cargo": "profile-cb5442bb7cd0a40f",
-    "modular_nova/modules/borgs/icons/widerobots_cargo.dmi#cargohound": "profile-75a62461e5e6162f",
-    "modular_nova/modules/borgs/icons/widerobots_cargo.dmi#cargohounddark": "profile-75a62461e5e6162f",
-    "modular_nova/modules/borgs/icons/widerobots_cargo.dmi#drakecargo": "profile-2d3f5f62e786b472",
-    "modular_nova/modules/borgs/icons/widerobots_cargo.dmi#valecargo": "profile-79ffcc6995d30243"
+    "modular_nova/modules/borgs/icons/widerobot_eng.dmi#alina-eng": "alina",
+    "modular_nova/modules/borgs/icons/widerobot_eng.dmi#borgi-eng": "borgi",
+    "modular_nova/modules/borgs/icons/widerobot_eng.dmi#drakeeng": "drake",
+    "modular_nova/modules/borgs/icons/widerobot_eng.dmi#engihound": "hound",
+    "modular_nova/modules/borgs/icons/widerobot_eng.dmi#engihounddark": "hound",
+    "modular_nova/modules/borgs/icons/widerobot_eng.dmi#otiee": "otie",
+    "modular_nova/modules/borgs/icons/widerobot_eng.dmi#valeeng": "vale",
+    "modular_nova/modules/borgs/icons/widerobot_jani.dmi#J9": "vale",
+    "modular_nova/modules/borgs/icons/widerobot_jani.dmi#borgi-jani": "borgi",
+    "modular_nova/modules/borgs/icons/widerobot_jani.dmi#drakejanit": "drake",
+    "modular_nova/modules/borgs/icons/widerobot_jani.dmi#otiej": "otie",
+    "modular_nova/modules/borgs/icons/widerobot_mine.dmi#cargohound": "hound",
+    "modular_nova/modules/borgs/icons/widerobot_mine.dmi#cargohounddark": "hound",
+    "modular_nova/modules/borgs/icons/widerobot_mine.dmi#drakemine": "drake",
+    "modular_nova/modules/borgs/icons/widerobot_mine.dmi#otiec": "otie",
+    "modular_nova/modules/borgs/icons/widerobot_mine.dmi#valemine": "vale",
+    "modular_nova/modules/borgs/icons/widerobot_pk.dmi#borgi": "borgi",
+    "modular_nova/modules/borgs/icons/widerobot_pk.dmi#drakepeace": "drake",
+    "modular_nova/modules/borgs/icons/widerobot_pk.dmi#valepeace": "vale",
+    "modular_nova/modules/borgs/icons/widerobot_sec.dmi#alina-sec": "alina",
+    "modular_nova/modules/borgs/icons/widerobot_sec.dmi#borgi-sec": "borgi",
+    "modular_nova/modules/borgs/icons/widerobot_sec.dmi#drakesec": "drake",
+    "modular_nova/modules/borgs/icons/widerobot_sec.dmi#k9": "hound",
+    "modular_nova/modules/borgs/icons/widerobot_sec.dmi#k9dark": "hound",
+    "modular_nova/modules/borgs/icons/widerobot_sec.dmi#oties": "otie",
+    "modular_nova/modules/borgs/icons/widerobot_sec.dmi#valesec": "vale",
+    "modular_nova/modules/borgs/icons/widerobot_serv.dmi#borgi-serv": "borgi",
+    "modular_nova/modules/borgs/icons/widerobot_serv.dmi#drakeserv": "drake",
+    "modular_nova/modules/borgs/icons/widerobot_serv.dmi#k50": "hound",
+    "modular_nova/modules/borgs/icons/widerobot_serv.dmi#valeserv": "vale",
+    "modular_nova/modules/borgs/icons/widerobot_serv.dmi#valeservdark": "vale",
+    "modular_nova/modules/borgs/icons/widerobots_cargo.dmi#borgi-cargo": "borgi",
+    "modular_nova/modules/borgs/icons/widerobots_cargo.dmi#cargohound": "hound",
+    "modular_nova/modules/borgs/icons/widerobots_cargo.dmi#cargohounddark": "hound",
+    "modular_nova/modules/borgs/icons/widerobots_cargo.dmi#drakecargo": "drake",
+    "modular_nova/modules/borgs/icons/widerobots_cargo.dmi#valecargo": "vale"
   },
   "profiles": {
-    "profile-2d3f5f62e786b472": {
+    "drake": {
       "idle:0": {
         "south": [{"x": 0.0, "y": -20, "delay": 10.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}],
         "north": [{"x": 0.0, "y": -19, "delay": 10.0}, {"x": 0.0, "y": -19, "delay": 1.0}, {"x": 0.0, "y": -19, "delay": 1.0}, {"x": 0.0, "y": -19, "delay": 1.0}, {"x": 0.0, "y": -19, "delay": 1.0}, {"x": 0.0, "y": -19, "delay": 1.0}, {"x": 0.0, "y": -19, "delay": 1.0}, {"x": 0.0, "y": -19, "delay": 1.0}, {"x": 0.0, "y": -19, "delay": 1.0}, {"x": 0.0, "y": -19, "delay": 1.0}],
@@ -72,7 +72,7 @@
         "west": [{"x": 3.0, "y": -14, "delay": 1.0}]
       }
     },
-    "profile-75a62461e5e6162f": {
+    "hound": {
       "idle:0": {
         "south": [{"x": 0.0, "y": -14, "delay": 1.0}],
         "north": [{"x": 0.0, "y": -14, "delay": 1.0}],
@@ -104,7 +104,7 @@
         "west": [{"x": 10.0, "y": -11, "delay": 1.0}]
       }
     },
-    "profile-79ffcc6995d30243": {
+    "vale": {
       "idle:0": {
         "south": [{"x": 0.0, "y": -14, "delay": 1.0}],
         "north": [{"x": 0.0, "y": -15, "delay": 1.0}],
@@ -136,7 +136,7 @@
         "west": [{"x": 10.0, "y": -10, "delay": 1.0}]
       }
     },
-    "profile-a7a1e22db3dd7146": {
+    "otie": {
       "idle:0": {
         "south": [{"x": 0.0, "y": -18, "delay": 1.0}],
         "north": [{"x": 0.0, "y": -17, "delay": 1.0}],
@@ -150,7 +150,7 @@
         "west": [{"x": 8.0, "y": -14, "delay": 0.9}, {"x": 8.0, "y": -15, "delay": 0.9}, {"x": 8.0, "y": -16, "delay": 0.9}, {"x": 9.0, "y": -16, "delay": 0.9}, {"x": 10.0, "y": -15, "delay": 0.9}, {"x": 9.0, "y": -14, "delay": 0.9}]
       }
     },
-    "profile-cb5442bb7cd0a40f": {
+    "borgi": {
       "idle:0": {
         "south": [{"x": 0.0, "y": -22, "delay": 1.0}],
         "north": [{"x": 0.0, "y": -21, "delay": 1.0}],
@@ -182,7 +182,7 @@
         "west": [{"x": 8.0, "y": -13, "delay": 1.0}]
       }
     },
-    "profile-ff025fae40a5082b": {
+    "alina": {
       "idle:0": {
         "south": [{"x": 0.0, "y": -16, "delay": 1.0}],
         "north": [{"x": 0.0, "y": -17, "delay": 1.0}],
