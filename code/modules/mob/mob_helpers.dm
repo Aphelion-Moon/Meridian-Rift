@@ -388,6 +388,7 @@
 		M.ghostize(FALSE)
 		M.PossessByPlayer(chosen_one.key)
 		M.client?.init_verbs()
+		SEND_SIGNAL(M, COMSIG_MOB_GIVE_DIRECT_CONTROL) // APHELION EDIT ADDITION - CYBORG_CUSTOMIZATION - a ghost given control takes it as an admin's direct control does; no mind transfer runs here
 		return TRUE
 	else
 		to_chat(M, "There were no ghosts willing to take control.")

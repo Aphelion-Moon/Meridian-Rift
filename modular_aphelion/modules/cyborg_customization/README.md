@@ -31,7 +31,7 @@ The middleware binds edits and debounce timers to the draft's character slot, pa
 
 New presets snapshot selected sprites as well as layout. Older layout-only records keep their geometry and use current sprite preferences until resaved. Bound presets remember their chassis; legacy unbound presets and anonymous defaults remain loadable. The editor's model selection does not alter character model eligibility.
 
-Configured appearance and size are captured for the body when `transfer_silicon_prefs()` runs: job spawns, ghost cafe and mapped ghost roles, mind transfers, and admin Give Direct Control. The same player re-entering the body keeps its snapshot; editor edits and reconnect do not replace it. Owner consent and the server ERP preference gate display; each viewer separately opts in through `see_cyborg_genitalia`, which defaults off. Runtime controls affect visibility and arousal, not the saved setup.
+Configured appearance and size are captured for the body when `transfer_silicon_prefs()` runs: job spawns, ghost cafe and mapped ghost roles, mind transfers, admin Give Direct Control, and a ghost accepting control offered to ghosts. The same player re-entering the body keeps its snapshot; editor edits and reconnect do not replace it. Owner consent and the server ERP preference gate display; each viewer separately opts in through `see_cyborg_genitalia`, which defaults off. Runtime controls affect visibility and arousal, not the saved setup.
 
 Visual slots do not create physical organs or grant anatomy-dependent actions. Supported message interactions are Cheer by cyborg actors and Cheer, Beckon, Headpat, and Pat by humans targeting cyborgs, under the audited distance and hand requirements. Surgery, insertion, vore, and anatomy-dependent sexual effects are not implied by visual configuration.
 
@@ -103,6 +103,7 @@ Module ID: `CYBORG_CUSTOMIZATION`. The core preference save path is untouched; l
 | `modular_nova/modules/preferences_import/code/import_verb.dm`, `_sanitise.dm` | Carry imported layouts into the sidecar; strip them and donor identity aliases from `preferences.json` |
 | `modular_nova/modules/synths/code/bodyparts/organs/internal/brain/silicon_alt_brains.dm` | Apply customization in `transfer_silicon_prefs()`; also run it on admin direct control; keep the brain preference from runtiming on positronic processors, which skipped every later step; add the interaction component |
 | `code/modules/mob/living/silicon/robot/robot.dm`, `robot_model.dm` | Holder teardown and facing, shared model list, chosen skin |
+| `code/modules/mob/mob_helpers.dm` | `offer_control()` sends the direct-control signal after a ghost takes the body, as the admin verb does, so silicon preferences apply |
 
 Revert the targeted frontend/backend protocol together, the middleware with `code/persistence.dm`, and the generated manifest with its reader. Layouts live in their own sidecar, so rollback leaves `preferences.json` untouched. Shared controls with the separate custom-sprite editor are deferred until both real consumers can be integrated.
 
