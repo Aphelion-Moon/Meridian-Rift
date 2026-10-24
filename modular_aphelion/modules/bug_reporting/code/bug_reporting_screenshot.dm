@@ -268,9 +268,10 @@
  * * public_consent - for consent, whether the image may go public with the issue
  * * encoding - base64 when an upload's file holds a capture's base64
  * * source - for an upload, where the image came from - view, window or file
+ * * wanted_type - for a preview, the image type we'd rather have, which a bridge that can't make it ignores
  */
-/datum/bug_report/proc/attachment_call(operation, attachment_id, body_file, output_file, public_consent = FALSE, encoding, source)
-	return bridge_call(operation == "upload" ? "attachment" : "attachment/[operation]", "", list(
+/datum/bug_report/proc/attachment_call(operation, attachment_id, body_file, output_file, public_consent = FALSE, encoding, source, wanted_type)
+	var/list/headers = list(
 		"Content-Type" = "application/octet-stream",
 		"x-report-ckey" = context["ckey"],
 		"x-report-session" = session_id,
@@ -279,7 +280,10 @@
 		"x-public-consent" = public_consent ? "true" : "false",
 		"x-report-encoding" = encoding || "",
 		"x-report-source" = source || "",
-	), body_file, output_file, 30)
+	)
+	if(wanted_type)
+		headers["Accept"] = wanted_type
+	return bridge_call(operation == "upload" ? "attachment" : "attachment/[operation]", "", headers, body_file, output_file, 30)
 
 /// The service's pictures in a saved draft, from its list or from an older bridge's one attachment
 /datum/bug_report/proc/draft_attachments(list/draft)
@@ -398,15 +402,19 @@
 	COOLDOWN_START(picture, preview_cooldown, 10 SECONDS)
 	INVOKE_ASYNC(src, PROC_REF(load_preview), picture)
 
-/// Fetches a picture's private preview PNG into a data URL - never browse_rsc, which keeps every image in the player's cache for good
+/// Fetches a picture's private preview into a data URL, a WebP from a bridge that makes them and a PNG from any other - never browse_rsc, which keeps every image in the player's cache for good
 /datum/bug_report/proc/load_preview(datum/bug_report_picture/picture)
 	var/attachment_id = picture.attachment_id
 	var/take = picture.take
 	var/path = bug_report_temporary_path("preview")
 	var/data_url
-	// Only TRUE means the preview was saved, a conflict's answer is a list
-	if(attachment_call("preview", attachment_id, output_file = path) == TRUE && fexists(path))
-		data_url = "data:image/png;base64,[rustg_hash_file(RUSTG_HASH_BASE64, path)]"
+	// Only the reply itself means the preview was saved, a conflict's answer is a list
+	var/datum/http_response/saved = attachment_call("preview", attachment_id, output_file = path, wanted_type = "image/webp")
+	if(istype(saved, /datum/http_response) && fexists(path))
+		var/content_type = saved.headers?["content-type"]
+		content_type = istext(content_type) ? LOWER_TEXT(trim(copytext(content_type, 1, findtext(content_type, ";")))) : null
+		// An older bridge ignores what we asked for and sends a PNG, so we show anything it doesn't call WebP as one
+		data_url = "data:[content_type == "image/webp" ? content_type : "image/png"];base64,[rustg_hash_file(RUSTG_HASH_BASE64, path)]"
 	fdel(path)
 	// A retake while we waited makes this the last image's preview
 	if(!valid_owner() || picture.attachment_id != attachment_id || picture.take != take)

@@ -293,7 +293,7 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 /**
  * Sends one request to the reporting bridge and waits for it.
  *
- * Returns the decoded reply, TRUE for a reply saved to output_file, or null with status saying why.
+ * Returns the decoded reply, the response itself for a reply saved to output_file, or null with status saying why.
  * One request runs per report and BUG_REPORT_MAX_REQUESTS across the server, so nothing a reporter does
  * can pile up rust-g jobs. We skip SShttp on purpose, it would log the bearer token and the report text.
  * Arguments:
@@ -337,9 +337,10 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 /**
  * Reads the bridge's answer to one request.
  *
- * Returns the decoded reply, TRUE for a reply saved to output_file, or null with status saying why. Only no
- * answer or a 5xx means we couldn't reach the report server. A 4xx is it turning the request down, which sets
- * refused and says why in status, or on a preview's card, except a conflict, which means the draft moved on.
+ * Returns the decoded reply, the response itself for a reply saved to output_file, whose headers say what it
+ * holds, or null with status saying why. Only no answer or a 5xx means we couldn't reach the report server. A 4xx
+ * is it turning the request down, which sets refused and says why in status, or on a preview's card, except a
+ * conflict, which means the draft moved on.
  * Arguments:
  * * response - the bridge's answer
  * * output_file - the file rust-g saved the reply into, if any
@@ -382,7 +383,7 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 		return
 	if(response.status_code < 300)
 		if(output_file)
-			return TRUE
+			return response
 		try
 			data = json_decode(response.body)
 		catch

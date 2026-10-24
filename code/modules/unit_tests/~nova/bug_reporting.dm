@@ -43,6 +43,14 @@
 	answer.body = json_encode(body)
 	return answer
 
+/// The bridge's answer to a preview it saved, which says the file holds this type, or no type with none
+/proc/bug_report_test_preview(content_type)
+	var/datum/http_response/answer = new
+	answer.status_code = 200
+	// rust-g gives header names in lower case
+	answer.headers = content_type ? list("content-type" = content_type) : list()
+	return answer
+
 /// An open report window with nobody behind it, keeping what it was sent
 /datum/tgui/bug_report_test
 	var/list/updates = list()
@@ -1009,18 +1017,37 @@
 
 	var/datum/tgui/bug_report_test/ui = allocate(/datum/tgui/bug_report_test)
 	LAZYADD(report.open_uis, ui)
-	report.replies = list(list("revisionConflict" = TRUE), TRUE)
+	report.replies = list(list("revisionConflict" = TRUE))
 	report.load_preview(unconfirmed)
 	var/list/preview = ui.updates[length(ui.updates)]["preview"]
 	TEST_ASSERT(preview && isnull(preview["src"]), "A preview the bridge answered with a conflict was shown")
+	// The reply's type labels a saved preview, and anything that isn't WebP is a PNG, as an older bridge sends
+	var/list/labels = list("image/png" = "image/png", "image/webp" = "image/webp", "Image/WebP ; charset=binary" = "image/webp", "image/webpx" = "image/png", "junk" = "image/png")
+	for(var/content_type, expected in labels)
+		report.replies = list(bug_report_test_preview(content_type))
+		report.load_preview(unconfirmed)
+		preview = ui.updates[length(ui.updates)]["preview"]
+		TEST_ASSERT(findtext(preview?["src"], "data:[expected];base64,") == 1, "A preview the bridge called [content_type] wasn't shown as [expected]")
+	report.replies = list(bug_report_test_preview())
 	report.load_preview(unconfirmed)
 	preview = ui.updates[length(ui.updates)]["preview"]
-	TEST_ASSERT(findtext(preview?["src"], "data:image/png;base64,") == 1, "A saved preview wasn't shown")
+	TEST_ASSERT(findtext(preview?["src"], "data:image/png;base64,") == 1, "A preview the bridge gave no type for wasn't shown as a PNG")
 	report.status = "Picture added"
 	report.replies = list(bug_report_test_answer(404, list("error" = "attachment_not_found")))
 	report.load_preview(unconfirmed)
 	preview = ui.updates[length(ui.updates)]["preview"]
 	TEST_ASSERT(preview && isnull(preview["src"]) && report.status == "Picture added", "A preview the service turned down took the status line from its card")
+	// Only a preview asks for WebP, since no other reply is an image
+	var/list/seen = list()
+	for(var/list/bridge_request as anything in report.calls)
+		var/list/headers = bridge_request["headers"]
+		var/route = bridge_request["route"]
+		seen[route] = TRUE
+		if(route == "attachment/preview")
+			TEST_ASSERT_EQUAL(headers["Accept"], "image/webp", "A preview didn't ask for WebP")
+		else
+			TEST_ASSERT(!("Accept" in headers), "The [route] call asked for WebP")
+	TEST_ASSERT(seen["attachment"] && seen["attachment/remove"] && seen["action"], "The calls that mustn't ask for WebP weren't made")
 	LAZYREMOVE(report.open_uis, ui)
 
 /// The in-game capture waits between captures, holds to two across the server, says when there's nothing to see, and renders the view it sees

@@ -29,8 +29,9 @@ the backend; this module is the game's side.
   rebuilds itself with html-to-image, shows a preview to crop, and sends the image back in 32 KiB
   acknowledged chunks that DM appends to a generated file with rust-g, never decoding or holding it.
   The bridge decodes and validates. The private preview comes back as a data URL (`rustg_hash_file`),
-  never `browse_rsc`, which would keep every image in the player's BYOND cache for good. Public sharing
-  needs the reporter to have seen that attachment's preview.
+  never `browse_rsc`, which would keep every image in the player's BYOND cache for good. DM asks for
+  a WebP and labels the data URL by the reply's `Content-Type`, so a bridge that only makes PNGs still
+  works. Public sharing needs the reporter to have seen that attachment's preview.
 - **Snapshot limits**: the clone copies computed values, which already have every `var()` filled in,
   so CSS variables stay out (Aphelion's inherited base64 images made them 125 KB a node, and the
   Changelog's SVG 213 M characters, which killed its 32-bit renderer). `dom-snapshot.ts` refuses an SVG
