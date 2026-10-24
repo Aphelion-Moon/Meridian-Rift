@@ -40,6 +40,11 @@ const ENCODINGS: [string, number | undefined][] = [
  */
 const STILL_IRRELEVANT =
   /^(-webkit-)?(animation|transition|will-change|cursor|caret|pointer-events|user-select|user-modify|user-drag|touch-action|scroll-(behavior|margin|padding|snap|timeline|initial-target|marker|target)|overscroll|view-transition|view-timeline|timeline-scope|speak|page-break|break-(after|before|inside)|orphans|widows|interactivity|interpolate-size|app-region|tap-highlight-color|print-color-adjust|anchor-name|anchor-scope|position-anchor|position-try|reading-flow|reading-order)/;
+/**
+ * Legacy shorthands Chromium lists among the computed longhands. Written back, `-webkit-border-image` means `fill`,
+ * so the Scavenger frame's border image covered the whole snapshot with its texture
+ */
+const LEGACY_SHORTHANDS = new Set(['-webkit-border-image']);
 const SCROLL_MARKER = 'data-meridian-report-scroll';
 const LAYOUT_STYLES = [
   'display',
@@ -85,7 +90,12 @@ export async function renderUiSnapshot(
     // theme's inherited images made that 125 KB a node
     includeStyleProperties: Array.from(
       getComputedStyle(document.documentElement),
-    ).filter((name) => !name.startsWith('--') && !STILL_IRRELEVANT.test(name)),
+    ).filter(
+      (name) =>
+        !name.startsWith('--') &&
+        !STILL_IRRELEVANT.test(name) &&
+        !LEGACY_SHORTHANDS.has(name),
+    ),
     fetchRequestInit: { signal: controller.signal, credentials: 'same-origin' },
     filter: (node) =>
       !['SCRIPT', 'IFRAME', 'VIDEO'].includes(node.tagName) &&

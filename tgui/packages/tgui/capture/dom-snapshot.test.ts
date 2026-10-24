@@ -10,6 +10,7 @@ import {
   svgDataUrl,
 } from './dom-snapshot';
 import * as cloning from './vendor/clone-node';
+import type { Options } from './vendor/types';
 
 const PREFIX = 'data:image/svg+xml;charset=utf-8,';
 
@@ -206,4 +207,29 @@ test('a snapshot the renderer cannot decode is refused instead of drawing foreve
     decode.mockRestore();
   }
   expect(marked(root)).toBe(0);
+});
+
+test("the clone never copies Chromium's legacy -webkit-border-image, which written back fills a border image's middle", async () => {
+  const real = globalThis.getComputedStyle;
+  const listed = spyOn(globalThis, 'getComputedStyle').mockImplementation(((
+    element: Element,
+    pseudo?: string | null,
+  ) =>
+    element === document.documentElement
+      ? ([
+          'color',
+          'border-image-source',
+          '-webkit-border-image',
+          '--texture',
+        ] as unknown as CSSStyleDeclaration)
+      : real(element, pseudo)) as typeof getComputedStyle);
+  let copied: string[] | undefined;
+  const clone = cloneBy((async (_node: HTMLElement, options: Options) => {
+    copied = options.includeStyleProperties;
+    throw new Error('stop here');
+  }) as never);
+  expect(await outcome(scrolledWindow())).toBe('failed');
+  expect(copied).toEqual(['color', 'border-image-source']);
+  listed.mockRestore();
+  clone.mockRestore();
 });
