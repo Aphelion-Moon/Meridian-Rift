@@ -86,6 +86,10 @@
 		"previewSeen" = preview_seen,
 	)
 
+/// What the window's card for this picture is made from - its age goes by when it was taken, which only a new take moves
+/datum/bug_report_picture/proc/card_source()
+	return "[id] [take] [source] [pending || image_state || "failed"] [reason] [public_consent] [preview_seen] [json_encode(title)]"
+
 /// Takes the service's view of the image, returning whether it just became ready
 /datum/bug_report_picture/proc/update_attachment(list/attachment)
 	var/was_ready = image_state == "ready"

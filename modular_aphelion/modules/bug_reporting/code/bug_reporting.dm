@@ -231,6 +231,8 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 	var/receipt_arrival = 0
 	/// The window's Try agains that have their answer, from zero each time it opens, which it waits on to say how it went
 	var/answered = 0
+	/// What the window holds, as what each of its keys was made from, so an update sends only the keys that changed - null when we don't know
+	var/list/shown
 	/// The idempotency key of the submission being checked
 	var/submission_key
 	/// Failed polls in a row, which pause polling at four
@@ -596,6 +598,12 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 		return null
 	return list("kind" = limit_kind, "retryIn" = wait * 100)
 
+/// What the hourly limit holding sending is made from while it holds, or null once it lets go
+/datum/bug_report/proc/limit_source()
+	if(!limit_kind || wait_time - (REALTIMEOFDAY - start_time) <= 0)
+		return null
+	return "[limit_kind] [num2text(start_time, 20)] [num2text(wait_time, 20)]"
+
 /// Saves and submits the report, then checks it until the service answers
 /datum/bug_report/proc/submit_fields()
 	if(busy)
@@ -810,14 +818,68 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 		return
 	refresh()
 
-/// Sends the window this report's data now, plus any keys only sent on request
+/// Sends the window what changed since it was last sent, plus any keys only sent on request
 /datum/bug_report/proc/push_update(list/extra)
 	if(!LAZYLEN(open_uis))
 		return
-	var/list/data = ui_data(owner?.mob)
+	var/list/data = shown ? changed_data() : ui_data(owner?.mob)
 	if(extra)
 		data += extra
 	send_partial(data)
+	// A window still loading drops what it's sent, so the next update sends it everything
+	for(var/datum/tgui/ui as anything in open_uis)
+		if(!ui.initialized)
+			shown = null
+
+/**
+ * What each of the window's keys is made from, which changes whenever the key does.
+ *
+ * The waits and ages in a key count from the update that sent it, so they aren't part of what it's made from.
+ */
+/datum/bug_report/proc/data_sources()
+	var/cards
+	for(var/datum/bug_report_picture/picture as anything in pictures)
+		cards = "[cards][picture.card_source()]\n"
+	return list(
+		"status" = status,
+		"busy" = busy,
+		// A receipt polled again is a new list saying the same, and its wait counts from when it came
+		"result" = result ? "[num2text(receipt_arrival, 20)] [json_encode(result)]" : null,
+		"conflict" = !!remote_draft,
+		"pollingPaused" = polling_paused,
+		"unreachable" = unreachable,
+		"refreshAnswered" = answered,
+		"limit" = limit_source(),
+		"pictures" = cards,
+		"uploadsLeft" = bug_report_uses_left(context["ckey"], "uploads"),
+	)
+
+/// The window's keys that changed since it was last sent, noting that it holds them now
+/datum/bug_report/proc/changed_data()
+	var/list/sources = data_sources()
+	var/list/data = list()
+	for(var/key, source in sources)
+		if(source == shown[key])
+			continue
+		switch(key)
+			if("result")
+				data[key] = result_data()
+			if("limit")
+				data[key] = limit_data()
+			if("pictures")
+				data[key] = picture_data()
+			else
+				data[key] = source
+	shown = sources
+	data["captureTargets"] = capture_targets()
+	return data
+
+/// The report's pictures as the window shows them, or null with none
+/datum/bug_report/proc/picture_data()
+	var/list/cards
+	for(var/datum/bug_report_picture/picture as anything in pictures)
+		LAZYADD(cards, list(picture.window_data()))
+	return cards
 
 /**
  * Ends the reporter's action, saying how it went when there's news, and shows the window where things stand.
@@ -883,22 +945,14 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 	)
 
 /datum/bug_report/ui_data(mob/user)
-	var/list/picture_data
-	for(var/datum/bug_report_picture/picture as anything in pictures)
-		LAZYADD(picture_data, list(picture.window_data()))
-	return list(
-		"status" = status,
-		"busy" = busy,
-		"result" = result_data(),
-		"conflict" = !!remote_draft,
-		"pollingPaused" = polling_paused,
-		"unreachable" = unreachable,
-		"refreshAnswered" = answered,
-		"limit" = limit_data(),
-		"pictures" = picture_data,
-		"uploadsLeft" = bug_report_uses_left(context["ckey"], "uploads"),
-		"captureTargets" = capture_targets(),
-	)
+	// tgui sends the window all of it, so it holds all of it
+	shown = data_sources()
+	var/list/data = shown.Copy()
+	data["result"] = result_data()
+	data["limit"] = limit_data()
+	data["pictures"] = picture_data()
+	data["captureTargets"] = capture_targets()
+	return data
 
 /datum/bug_report/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
 	. = ..()
