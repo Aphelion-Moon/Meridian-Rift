@@ -317,7 +317,7 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 			draft["active"] = active.Copy()
 			var/list/entry = active[slot]
 			draft["active"][slot] = entry.Copy()
-			draft["active"][slot]["sprite"] = cyborg_preference_value(preferences, preference)
+			draft["active"][slot]["sprite"] = preferences.read_preference(cyborg_sprite_preferences()[slot])
 			update_draft(draft, copied_on_write = TRUE)
 	if(iscyborg(user))
 		var/mob/living/silicon/robot/robot = user

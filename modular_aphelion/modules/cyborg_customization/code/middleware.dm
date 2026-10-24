@@ -371,7 +371,7 @@
 			preview_layout_source = "active"
 	var/resources_changed = refresh_resources(catalog, descriptor, preview_layout, layout_source)
 	var/wide = descriptor && (TRAIT_R_WIDE in descriptor["features"])
-	var/body_scale = descriptor ? cyborg_effective_base_size(cyborg_preference_value(preferences, "cyborg_size"), descriptor["features"]) : 1
+	var/body_scale = descriptor ? cyborg_effective_base_size(preferences.read_preference(/datum/preference/choiced/cyborg_size), descriptor["features"]) : 1
 	if(!preview_pending && preview_resources)
 		var/list/layers = cyborg_preview_layers(preferences, descriptor, preview_layout, preview_direction, preview_pose, preview_arousal, layout_source == "model_default", preview_resources["layer_icons"])
 		rendered_preview = list(
@@ -505,7 +505,7 @@
 		// Snapshot selected art only after admission, keeping the source draft untouched.
 		for(var/part_slot in cyborg_layout_supported_slots())
 			var/list/entry = active[part_slot]
-			var/sprite = cyborg_preference_value(preferences, "silicon_[part_slot]_sprite")
+			var/sprite = preferences.read_preference(cyborg_sprite_preferences()[part_slot])
 			// A part already holding its sprite, or holding no sprite on purpose, stays as it is and keeps its save text.
 			if(entry["sprite"] == sprite && (!isnull(sprite) || ("sprite" in entry)))
 				continue
@@ -903,7 +903,7 @@
 	var/list/part_keys = list()
 	for(var/slot in cyborg_layout_supported_slots())
 		var/list/entry = preview_layout[slot]
-		var/choice = cyborg_preference_value(preferences, "silicon_[slot]_sprite")
+		var/choice = preferences.read_preference(cyborg_sprite_preferences()[slot])
 		if(layout_source == "model_default" && !isnull(entry["sprite"]))
 			choice = entry["sprite"]
 		var/direction = descriptor ? cyborg_part_sprite_direction(descriptor, entry, preview_direction) : SOUTH
@@ -1004,7 +1004,7 @@
 	var/list/parts = list()
 	var/list/layer_icons = list()
 	for(var/slot in cyborg_layout_supported_slots())
-		var/choice = cyborg_preference_value(preferences, "silicon_[slot]_sprite")
+		var/choice = preferences.read_preference(cyborg_sprite_preferences()[slot])
 		var/list/entry = preview_layout[slot]
 		if(layout_source == "model_default" && !isnull(entry["sprite"]))
 			choice = entry["sprite"]

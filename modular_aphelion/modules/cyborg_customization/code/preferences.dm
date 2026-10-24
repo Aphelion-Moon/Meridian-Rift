@@ -61,6 +61,18 @@
 	savefile_key = "silicon_breasts_sprite"
 	accessory_slot = ORGAN_SLOT_BREASTS
 
+/// Part slot -> the preference that holds its sprite. Every caller shares the list, so none may change it
+/proc/cyborg_sprite_preferences()
+	var/static/list/sprite_preferences = list(
+		ORGAN_SLOT_PENIS = /datum/preference/choiced/cyborg_sprite/penis,
+		ORGAN_SLOT_SHEATH = /datum/preference/choiced/cyborg_sprite/sheath,
+		ORGAN_SLOT_TESTICLES = /datum/preference/choiced/cyborg_sprite/testicles,
+		ORGAN_SLOT_VAGINA = /datum/preference/choiced/cyborg_sprite/vagina,
+		ORGAN_SLOT_ANUS = /datum/preference/choiced/cyborg_sprite/anus,
+		ORGAN_SLOT_BREASTS = /datum/preference/choiced/cyborg_sprite/breasts,
+	)
+	return sprite_preferences
+
 /datum/preference/choiced/cyborg_size
 	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	savefile_identifier = PREFERENCE_CHARACTER

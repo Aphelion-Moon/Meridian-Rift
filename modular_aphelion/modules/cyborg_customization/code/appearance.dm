@@ -30,13 +30,6 @@
 	/// The image holder that shows the parts to viewers
 	var/obj/effect/client_image_holder/cyborg_customization/cyborg_appearance_holder
 
-/// Read by canonical savefile key without introducing a second preference registry.
-/proc/cyborg_preference_value(datum/preferences/preferences, key)
-	if(!preferences)
-		return null
-	var/datum/preference/preference = GLOB.preference_entries_by_key[key]
-	return preference ? preferences.read_preference(preference.type) : null
-
 /// Whether or not these preferences allow cyborg parts at all - the server config, the ERP master toggle and the genitals toggle
 /proc/cyborg_visuals_allowed(datum/preferences/preferences)
 	return preferences && !CONFIG_GET(flag/disable_erp_preferences) \
@@ -83,11 +76,11 @@
 	robot.cyborg_appearance_store = snapshot
 	robot.cyborg_appearance_choices = list()
 	for(var/slot in cyborg_layout_supported_slots())
-		robot.cyborg_appearance_choices[slot] = cyborg_preference_value(preferences, "silicon_[slot]_sprite")
+		robot.cyborg_appearance_choices[slot] = preferences.read_preference(cyborg_sprite_preferences()[slot])
 	robot.cyborg_appearance_base_choices = robot.cyborg_appearance_choices.Copy()
 	robot.cyborg_appearance_character_allowed = preferences.read_preference(/datum/preference/toggle/allow_genitals)
 	robot.cyborg_customization_sync_permissions(preferences)
-	robot.cyborg_appearance_requested_size = text2num("[cyborg_preference_value(preferences, "cyborg_size")]") || 1
+	robot.cyborg_appearance_requested_size = text2num("[preferences.read_preference(/datum/preference/choiced/cyborg_size)]") || 1
 	robot.cyborg_appearance_model = null
 	robot.cyborg_customization_refresh_model()
 

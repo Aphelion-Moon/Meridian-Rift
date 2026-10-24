@@ -249,7 +249,7 @@
 	var/list/active = list()
 	var/list/arousal = list()
 	for(var/slot in cyborg_layout_supported_slots())
-		choices[slot] = cyborg_preference_value(preferences, "silicon_[slot]_sprite")
+		choices[slot] = preferences.read_preference(cyborg_sprite_preferences()[slot])
 		if(use_saved_choices && !isnull(layout[slot]["sprite"]))
 			choices[slot] = layout[slot]["sprite"]
 		active[slot] = TRUE
