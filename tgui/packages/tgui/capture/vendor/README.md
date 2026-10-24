@@ -29,3 +29,4 @@ Every change is marked `Meridian:` in a comment; nothing else differs from the p
 - `types.d.ts`: the `fontFaces` option.
 
 The copier itself is ours, in `../style-copy.ts`, and so is the face filter, in `../font-faces.ts`.
+Biome skips this folder (the root biome.json lists it), so upstream's code stays as it ships.
