@@ -267,6 +267,7 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 		for(var/obj/effect/client_image_holder/cyborg_customization/holder as anything in GLOB.cyborg_customization_holders)
 			holder.refresh_viewer(user)
 	// Character setup and the editor's window can both change what the editor shows, so we refresh it last, after the draft
+	editor_values_stale = TRUE
 	if(editor_open)
 		SStgui.update_uis(src)
 
@@ -279,3 +280,9 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 		holder.owner.cyborg_customization_sync_permissions(holder.owner.client?.prefs)
 		holder.render_key = null
 		holder.owner.cyborg_customization_refresh_model()
+	// The server's ERP switch decides which of the editor's preferences a character can have, so we read them again
+	for(var/ckey in GLOB.preferences_datums)
+		var/datum/preferences/preferences = GLOB.preferences_datums[ckey]
+		var/datum/preference_middleware/cyborg_character/editor = preferences.cyborg_session()
+		if(editor)
+			editor.editor_values_stale = TRUE

@@ -70,6 +70,10 @@
 	var/full_message
 	/// A retryable write or staging failure, kept across UI close/reopen.
 	var/save_error
+	/// The editor's preference values the window has, from its static data
+	var/list/editor_values
+	/// Whether or not a preference may have changed since editor_values were read
+	var/editor_values_stale = TRUE
 	action_delegations = list("open_cyborg_editor" = PROC_REF(open_editor))
 	/// The character preferences the editor sets beside its name, which the window gets the values of
 	var/static/list/editor_preferences = list(
@@ -106,6 +110,8 @@
 	editor_open = TRUE
 	preview_layout_source = "active"
 	selected_part = "penis"
+	// Preferences can change while the window is shut, so we read them again as it opens
+	editor_values_stale = TRUE
 
 /// Ends the editing session and asks for its save. Character setup closing calls it too, so it closes the window as well.
 /datum/preference_middleware/cyborg_character/proc/close_editor()
@@ -177,6 +183,17 @@
 		if(preference.is_applicable(preferences))
 			LAZYSET(values, preference.savefile_key, preference.compile_ui_data(user, preferences.read_preference(preference_type)))
 	return values
+
+/// Reads the editor's preference values again if one may have changed. Returns TRUE when the window's copy is out of date
+/datum/preference_middleware/cyborg_character/proc/refresh_editor_values(mob/user)
+	if(!editor_values_stale)
+		return FALSE
+	editor_values_stale = FALSE
+	var/list/values = editor_preference_values(user)
+	if(deep_compare_list(values, editor_values))
+		return FALSE
+	editor_values = values
+	return TRUE
 
 /// Changes what the preview shows - chassis, direction, pose, arousal, gallery and which layout. Returns FALSE for a stale or bad request
 /datum/preference_middleware/cyborg_character/proc/set_preview(list/params, mob/user)
@@ -301,6 +318,7 @@
 				var/datum/preference/preference = GLOB.preference_entries_by_key["silicon_[part_slot]_sprite"]
 				if(!isnull(sprite) && preference.is_valid(sprite, preferences))
 					preferences.update_preference(preference, sprite)
+			editor_values_stale = TRUE
 		update_draft(result["store"], copied_on_write = TRUE)
 		if(params["operation"] in list("load", "load_default", "delete_default"))
 			preview_layout_source = "active"
@@ -418,14 +436,16 @@
 	if(preview_pending)
 		.["cyborg_customization"]["rendered_preview"] = rendered_preview
 	.["name"] = preferences.read_preference(/datum/preference/name/cyborg)
-	.["values"] = editor_preference_values(user)
 	.["active_slot"] = preferences.default_slot
+	// We send the preference values as static data, and again only when they change
+	var/values_changed = refresh_editor_values(user)
 	// Publish the new resource identity and its geometry together before TGUI re-enters ui_data.
-	if(resources_changed && user?.client)
+	if((resources_changed || values_changed) && user?.client)
 		update_static_data(user, always_instant = TRUE)
 
 /// Called when the player switches character slots - resets the view, so the window shows the new slot from the start
 /datum/preference_middleware/cyborg_character/on_new_character(mob/user)
+	editor_values_stale = TRUE
 	preview_model = null
 	selected_part = "penis"
 	status_message = null
@@ -859,7 +879,18 @@
 		for(var/preference_type in editor_preferences)
 			var/datum/preference/preference = GLOB.preference_entries[preference_type]
 			preference_data[preference.savefile_key] = preference.compile_constant_data()
-	return list("cyborg_resources" = editor_open && cyborg_visuals_allowed(preferences) ? preview_resources : null, "preference_data" = preference_data)
+	refresh_editor_values(user)
+	return list("cyborg_resources" = editor_open && cyborg_visuals_allowed(preferences) ? preview_resources : null, "preference_data" = preference_data, "values" = editor_values)
+
+/// Character setup refreshes after every change made there, randomizing included, so we read the editor's values again
+/datum/preference_middleware/cyborg_character/get_ui_data(mob/user)
+	editor_values_stale = TRUE
+	return ..()
+
+/// A spawn first randomizes what the player asked it to, so we read the editor's values again
+/datum/preference_middleware/cyborg_character/apply_to_human(mob/living/carbon/human/target, datum/preferences/preferences, visuals_only = FALSE)
+	editor_values_stale = TRUE
+	return ..()
 
 /// Cancel work and release private pixels immediately, without resetting admission time.
 /datum/preference_middleware/cyborg_character/proc/clear_preview_resources()

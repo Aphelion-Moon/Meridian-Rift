@@ -301,10 +301,13 @@
 			TEST_ASSERT(payload["save_status"]["session_only"], "A memory-only sidecar claimed durable saving.")
 		payload += editor.ui_static_data(null)["cyborg_resources"]
 		if(cycle == 1)
-			// The window reads the character whatever page character setup has open
+			// The window reads the character whatever page character setup has open, and a change made there reaches it
 			preferences.current_window = PREFERENCE_TAB_GAME_PREFERENCES
-			var/list/window_data = editor.ui_data(null)
-			TEST_ASSERT_EQUAL(window_data["values"]?["silicon_penis_sprite"], preferences.read_preference(/datum/preference/choiced/cyborg_sprite/penis), "The editor window lost the character's sprite choice on another setup page.")
+			preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/silicon_gender], "He/Him")
+			editor.post_set_preference(null, "silicon_gender", "He/Him")
+			var/list/window_values = editor.ui_static_data(null)["values"]
+			TEST_ASSERT_EQUAL(window_values?["silicon_penis_sprite"], preferences.read_preference(/datum/preference/choiced/cyborg_sprite/penis), "The editor window lost the character's sprite choice on another setup page.")
+			TEST_ASSERT_EQUAL(window_values?["silicon_gender"], "He/Him", "A preference change did not reach the editor window.")
 			TEST_ASSERT(length(editor.ui_static_data(null)["preference_data"]?["silicon_penis_sprite"]?["choices"]), "The editor window got no sprite choices.")
 			preferences.current_window = PREFERENCE_TAB_CHARACTER_PREFERENCES
 		var/list/resources_before = editor.preview_resources
