@@ -1,5 +1,6 @@
 // THIS IS AN APHELION UI FILE
 
+import { drawnFontFaces } from './font-faces';
 import type { Reason } from './overlay';
 import { createStyleCopier } from './style-copy';
 import { cloneNode } from './vendor/clone-node';
@@ -99,6 +100,8 @@ export async function renderUiSnapshot(
     pixelRatio: 1,
     includeStyleProperties: names,
     copier,
+    // The page loads a face only to draw with it, so we leave out the faces it never loaded, about 90K characters
+    fontFaces: drawnFontFaces(document.fonts),
     fetchRequestInit: { signal: controller.signal, credentials: 'same-origin' },
     filter: (node) =>
       !['SCRIPT', 'IFRAME', 'VIDEO'].includes(node.tagName) &&

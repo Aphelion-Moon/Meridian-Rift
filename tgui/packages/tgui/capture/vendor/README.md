@@ -25,5 +25,7 @@ Every change is marked `Meridian:` in a comment; nothing else differs from the p
 - `clone-pseudos.js`: with `options.copier`, a pseudo-element no style could give content is skipped without
   computing its style, and its rule holds only the properties the copier lists, in the same `name: value;` text.
 - `types.d.ts`, `clone-node.d.ts`: the `copier` option and the `parentNode` argument.
+- `embed-webfonts.js`: with `options.fontFaces`, `getWebFontCSS` leaves out the `@font-face` rules it turns down.
+- `types.d.ts`: the `fontFaces` option.
 
-The copier itself is ours, in `../style-copy.ts`.
+The copier itself is ours, in `../style-copy.ts`, and so is the face filter, in `../font-faces.ts`.

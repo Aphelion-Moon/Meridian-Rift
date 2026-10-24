@@ -6,6 +6,10 @@ export interface Options {
      */
     copier?: StyleCopier | null;
     /**
+     * Meridian: which @font-face rules go in (without it, every rule for a family some clone names)
+     */
+    fontFaces?: ((rule: CSSFontFaceRule) => boolean) | null;
+    /**
      * Width in pixels to be applied to node before rendering.
      */
     width?: number;

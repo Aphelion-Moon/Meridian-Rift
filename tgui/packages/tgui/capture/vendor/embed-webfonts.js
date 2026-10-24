@@ -176,6 +176,8 @@ export async function getWebFontCSS(node, options) {
     const usedFonts = getUsedFonts(node);
     const cssTexts = await Promise.all(rules
         .filter((rule) => usedFonts.has(normalizeFontFamily(rule.style.fontFamily)))
+        // Meridian: options.fontFaces leaves out the faces it knows drew nothing
+        .filter((rule) => !options.fontFaces || options.fontFaces(rule))
         .map((rule) => {
         const baseUrl = rule.parentStyleSheet
             ? rule.parentStyleSheet.href
