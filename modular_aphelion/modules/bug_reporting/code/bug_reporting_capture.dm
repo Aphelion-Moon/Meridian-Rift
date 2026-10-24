@@ -72,7 +72,7 @@
 		return finish_action()
 	var/datum/tgui_window/window = owner.tgui_windows[window_id]
 	if(!capture_window_allowed(window))
-		return finish_action("That window isn't open any more. Pick another one.")
+		return finish_action("That window isn't open any more. Pick another one.", targets = TRUE)
 	var/datum/bug_report_picture/picture = picture_for(replace, "window")
 	if(!picture)
 		return finish_action()
@@ -80,7 +80,7 @@
 	busy = TRUE
 	push_update()
 	if(!save_fields() || !capture_window_allowed(window) || window.locked_by != selected_ui)
-		return finish_action()
+		return finish_action(targets = TRUE)
 	COOLDOWN_START(src, capture_cooldown, 10 SECONDS)
 	LAZYOR(pictures, picture)
 	picture.pending = "waiting"
@@ -148,7 +148,7 @@
 	capture_ui = null
 	capture_picture = null
 	// A reason we don't know, or one that isn't text at all, reads as the capture failing
-	finish_action((istext(reason) && messages[reason]) || messages["failed"])
+	finish_action((istext(reason) && messages[reason]) || messages["failed"], targets = TRUE)
 
 /**
  * Takes one message of a capture from its window - its preview showing, a chunk to stage, or the reporter cancelling.

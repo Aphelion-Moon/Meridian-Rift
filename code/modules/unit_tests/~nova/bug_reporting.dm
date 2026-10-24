@@ -511,11 +511,15 @@
 		report.refresh()
 	TEST_ASSERT(report.polling_paused && findtext(report.status, "Lost touch"), "Four polls with no answer didn't pause polling")
 
-/// Sends the report's window an update and merges it into what the window holds, as tgui does, returning the update
+/// Sends the report's window an update and merges it into what the window holds, as tgui does, returning the update or null with none sent
 /proc/bug_report_test_push(datum/bug_report/test/report, list/held)
 	var/datum/tgui/bug_report_test/ui = report.open_uis[1]
+	var/sent = length(ui.updates)
 	report.push_update()
-	var/list/update = ui.updates[length(ui.updates)]
+	if(length(ui.updates) == sent)
+		return null
+	// tgui sends all of ui_data for an update without data
+	var/list/update = ui.updates[length(ui.updates)] || report.ui_data()
 	for(var/key, value in update)
 		held[key] = value
 	return update
@@ -532,26 +536,26 @@
 	var/list/held = report.ui_data()
 	report.status = "Picture added"
 	var/list/update = bug_report_test_push(report, held)
-	TEST_ASSERT(update["status"] == "Picture added" && !("busy" in update) && !("result" in update) && !("uploadsLeft" in update), "An update sent keys that didn't change, or not the one that did")
+	TEST_ASSERT(update?["status"] == "Picture added" && !("busy" in update) && !("result" in update) && !("uploadsLeft" in update), "An update sent keys that didn't change, or not the one that did")
 	report.status = null
 	update = bug_report_test_push(report, held)
-	TEST_ASSERT(("status" in update) && isnull(update["status"]), "A line that went wasn't sent as null, so the window would keep it")
+	TEST_ASSERT(update && ("status" in update) && isnull(update["status"]), "A line that went wasn't sent as null, so the window would keep it")
 	var/datum/bug_report_picture/picture = bug_report_test_picture(report)
-	TEST_ASSERT_EQUAL(length(bug_report_test_push(report, held)["pictures"]), 1, "A new picture wasn't sent")
-	TEST_ASSERT(!("pictures" in bug_report_test_push(report, held)), "Pictures whose ages alone moved were sent again")
+	TEST_ASSERT_EQUAL(length(bug_report_test_push(report, held)?["pictures"]), 1, "A new picture wasn't sent")
+	TEST_ASSERT_NULL(bug_report_test_push(report, held), "An update went out though only the pictures' ages moved")
 	picture.preview_seen = TRUE
-	TEST_ASSERT(bug_report_test_push(report, held)["pictures"]?[1]?["previewSeen"], "A picture's change wasn't sent")
+	TEST_ASSERT(bug_report_test_push(report, held)?["pictures"]?[1]?["previewSeen"], "A picture's change wasn't sent")
 	report.result = list("kind" = "accepted", "receipt" = list("reportId" = "accepted"))
-	TEST_ASSERT_EQUAL(bug_report_test_push(report, held)["result"]?["kind"], "accepted", "A new result wasn't sent")
+	TEST_ASSERT_EQUAL(bug_report_test_push(report, held)?["result"]?["kind"], "accepted", "A new result wasn't sent")
 	report.result = list("kind" = "accepted", "receipt" = list("reportId" = "accepted"))
-	TEST_ASSERT(!("result" in bug_report_test_push(report, held)), "A receipt polled again saying the same was sent again")
+	TEST_ASSERT_NULL(bug_report_test_push(report, held), "A receipt polled again saying the same was sent again")
 	// tgui sends the window everything after an action, which the next update counts from
 	report.status = "Picture added"
 	bug_report_test_push(report, held)
 	report.status = "Kept yours. It's saved when you send it."
 	held = report.ui_data()
 	report.status = "Picture added"
-	TEST_ASSERT_EQUAL(bug_report_test_push(report, held)["status"], "Picture added", "An update counted from what the window held before tgui sent it everything")
+	TEST_ASSERT_EQUAL(bug_report_test_push(report, held)?["status"], "Picture added", "An update counted from what the window held before tgui sent it everything")
 	// A window still loading drops what it's sent, so it gets everything once it's ready
 	ui.initialized = FALSE
 	report.busy = TRUE
@@ -559,9 +563,17 @@
 	ui.initialized = TRUE
 	report.busy = FALSE
 	update = bug_report_test_push(report, held)
-	TEST_ASSERT(("busy" in update) && ("uploadsLeft" in update), "After an update it dropped the window wasn't sent everything")
+	TEST_ASSERT(update && ("busy" in update) && ("uploadsLeft" in update), "After an update it dropped the window wasn't sent everything")
 	for(var/key in list("status", "busy", "result", "conflict", "pollingPaused", "unreachable", "refreshAnswered", "limit", "uploadsLeft"))
 		TEST_ASSERT_EQUAL(json_encode(held[key]), json_encode(report.ui_data()[key]), "The window holds another [key] than it would be sent whole")
+	// Only the window's focus and a window capture's end ask for the reporter's other windows, so other updates leave them be
+	report.result = null
+	update = bug_report_test_push(report, held)
+	TEST_ASSERT(update && ("result" in update) && !("captureTargets" in update), "An update the window didn't ask for sent the capture targets")
+	var/datum/tgui_window/bug_report_test/window = bug_report_test_window(report)
+	report.begin_ui_capture(window.id)
+	report.cancel_ui_capture()
+	TEST_ASSERT_EQUAL(length(ui.updates[length(ui.updates)]["captureTargets"]), 1, "A window capture's end didn't send the windows there are to capture now")
 
 /// With no bridge configured a report sends nothing, and says so
 /datum/unit_test/bug_report_unconfigured

@@ -818,13 +818,25 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 		return
 	refresh()
 
-/// Sends the window what changed since it was last sent, plus any keys only sent on request
-/datum/bug_report/proc/push_update(list/extra)
+/**
+ * Sends the window what changed since it was last sent.
+ *
+ * Arguments:
+ * * targets - whether the reporter's other windows go too, which the window otherwise asks for when it gets focus
+ */
+/datum/bug_report/proc/push_update(targets = FALSE)
 	if(!LAZYLEN(open_uis))
 		return
-	var/list/data = shown ? changed_data() : ui_data(owner?.mob)
-	if(extra)
-		data += extra
+	var/list/data
+	if(shown)
+		data = changed_data()
+		if(targets)
+			LAZYSET(data, "captureTargets", capture_targets())
+	else
+		data = ui_data(owner?.mob)
+	// With nothing new we send nothing, since tgui sends all of ui_data for an update without data
+	if(!data)
+		return
 	send_partial(data)
 	// A window still loading drops what it's sent, so the next update sends it everything
 	for(var/datum/tgui/ui as anything in open_uis)
@@ -854,13 +866,14 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 		"uploadsLeft" = bug_report_uses_left(context["ckey"], "uploads"),
 	)
 
-/// The window's keys that changed since it was last sent, noting that it holds them now
+/// The window's keys that changed since it was last sent, or null with none, noting that it holds them now
 /datum/bug_report/proc/changed_data()
 	var/list/sources = data_sources()
-	var/list/data = list()
+	var/list/data
 	for(var/key, source in sources)
 		if(source == shown[key])
 			continue
+		LAZYINITLIST(data)
 		switch(key)
 			if("result")
 				data[key] = result_data()
@@ -871,7 +884,6 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 			else
 				data[key] = source
 	shown = sources
-	data["captureTargets"] = capture_targets()
 	return data
 
 /// The report's pictures as the window shows them, or null with none
@@ -886,13 +898,13 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
  *
  * Arguments:
  * * message - a new status line, or null to keep the current one
- * * extra - keys only sent on request
+ * * targets - whether the reporter's other windows go too, as when the one a capture was of may have gone
  */
-/datum/bug_report/proc/finish_action(message, list/extra)
+/datum/bug_report/proc/finish_action(message, targets = FALSE)
 	if(message)
 		status = message
 	busy = FALSE
-	push_update(extra)
+	push_update(targets)
 
 /// Sends the window only these keys
 /datum/bug_report/proc/send_partial(list/data)
