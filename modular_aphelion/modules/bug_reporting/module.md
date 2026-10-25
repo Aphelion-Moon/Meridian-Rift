@@ -33,8 +33,8 @@ reporting service and their limits are documented with the backend; this module 
   refusing one there stalls everyone's registration), 5 uploads of your own screenshots (spent once
   the file prompt gives one back), 30 captures and 60 saves of changed text. Acts that reach the
   bridge or check the text wait a second between them, Try again five, a picture's preview and a
-  window capture ten, and an in-game capture thirty. Guests can't report, since every guest login
-  is a new key with every allowance full again.
+  window capture ten, and an in-game capture thirty. Guests get the GitHub issue form instead, since
+  every guest login is a new key with every allowance full again.
 - **Pictures**, up to three a report (`BUG_REPORT_MAX_PICTURES`, the service's cap), each a tick box:
   - **In-game capture**: the server develops the reporter's view at its default size (a ghost's view
     range would cost several times more) the way the photo camera
@@ -91,7 +91,7 @@ Edits to tg files keep their original code in `APHELION EDIT` comments.
 
 | Existing file | Purpose |
 | --- | --- |
-| `interface/interface.dm` | report-issue opens the window when the bridge is set up, and reads "Report a bug" |
+| `interface/interface.dm` | report-issue opens the window when the bridge is set up (guests get the GitHub form), and reads "Report a bug" |
 | `code/modules/escape_menu/escape_menu.dm` | Report Bug shows without a GitHub URL, in plain words |
 | `code/modules/client/client_procs.dm` | `AllowUpload` takes one report screenshot past the upload limit |
 | `code/modules/photography/camera/camera_image_capturing.dm` | `camera_get_icon` is protected, and can yield between turfs, for the in-game capture camera |

@@ -134,15 +134,15 @@ GLOBAL_LIST_EMPTY(bug_report_budgets)
 		text = replacetext(text, ascii2text(code), "")
 	return !length(text)
 
-/// Opens this connection's report, starting a new one once the last was accepted
+/// Opens this connection's report, starting a new one once the last was accepted, or returns FALSE for a guest, who gets the GitHub form instead
 /client/proc/open_bug_report()
 	// Every guest login is a new key with every allowance full again
 	if(is_guest_key(key))
-		to_chat(src, span_warning("Bug reports need a BYOND account. Log in with one to send a report."))
-		return
+		return FALSE
 	if(!bug_report_draft || bug_report_draft.result?["kind"] == "accepted")
 		new_bug_report()
 	bug_report_draft?.ui_interact(mob)
+	return TRUE
 
 /// Starts a new report, unless this ckey has started too many this hour
 /client/proc/new_bug_report()
