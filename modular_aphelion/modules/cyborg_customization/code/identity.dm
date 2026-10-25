@@ -35,6 +35,27 @@
 		var/nova_notes = data["ooc_notes_nsfw"]
 		data["ooc_notes_nsfw"] = copytext(nova_notes, 1, length(nova_notes) - length(preferences.read_preference(/datum/preference/text/ooc_notes_nsfw)) + 1) + ooc_notes_nsfw
 
+/// Swaps Nova's portrait of a wide or tall chassis for one scaled about its centre to fit the panel's one-tile map
+/datum/examine_panel/cyborg/ui_interact(mob/user, datum/tgui/ui)
+	. = ..()
+	var/mob/living/silicon/robot/robot = holder
+	var/list/features = robot.model?.model_features
+	if(!((TRAIT_R_WIDE in features) || (TRAIT_R_TALL in features)))
+		return
+	var/list/dimensions = get_icon_dimensions(robot.icon)
+	var/width = dimensions["width"]
+	var/height = dimensions["height"]
+	var/scale = min(ICON_SIZE_X / width, ICON_SIZE_Y / height)
+	// We face south, upright and unshifted, as Nova's portrait does
+	var/mutable_appearance/portrait = new(robot)
+	portrait.setDir(SOUTH)
+	portrait.pixel_x = 0
+	portrait.pixel_y = 0
+	// The sprite scales about its centre, so we move that centre onto the tile's
+	portrait.transform = matrix(scale, 0, (ICON_SIZE_X - width) / 2, 0, scale, (ICON_SIZE_Y - height) / 2)
+	examine_panel_screen.cut_overlays()
+	examine_panel_screen.add_overlay(portrait)
+
 /// GET_CLIENT can resolve to a real /client or the unit-test client interface.
 /proc/cyborg_preferences_for(mob/owner)
 	if(!owner)

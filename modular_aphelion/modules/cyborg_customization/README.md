@@ -35,7 +35,7 @@ Configured appearance and size are captured for the body when `transfer_silicon_
 
 Visual slots do not create physical organs or grant anatomy-dependent actions. Supported message interactions are Cheer by cyborg actors and Cheer, Beckon, Headpat, and Pat by humans targeting cyborgs, under the audited distance and hand requirements. Surgery, insertion, vore, and anatomy-dependent sexual effects are not implied by visual configuration.
 
-The optional second silicon portrait uses `silicon_headshot_nsfw`; the existing `silicon_headshot` remains canonical. The character fields `ooc_notes_silicon` and `ooc_notes_silicon_nsfw` stay separate from human notes; each falls back to its corresponding human field only when empty.
+The optional second silicon portrait uses `silicon_headshot_nsfw`; the existing `silicon_headshot` remains canonical. The character fields `ooc_notes_silicon` and `ooc_notes_silicon_nsfw` stay separate from human notes; each falls back to its corresponding human field only when empty. The examine panel scales a wide or tall chassis down about its centre, so all of it fits the one-tile portrait.
 
 ## Placement and preview contracts
 
