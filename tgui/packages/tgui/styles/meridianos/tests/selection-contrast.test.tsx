@@ -13,9 +13,9 @@ import { compileAsync } from 'sass-embedded';
 import { Button } from 'tgui-core/components';
 import { MERIDIAN_THEME_IDS } from '../../../constants/theme';
 import { MeridianThemePicker } from '../../../layouts/MeridianThemePicker';
+
 /** The stylesheets under test live one level up from this directory. */
 const styleRoot = join(import.meta.dir, '..');
-
 
 let productionStyle: HTMLStyleElement;
 let previousRootClasses: string;

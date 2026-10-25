@@ -1,5 +1,5 @@
-import { focusMap } from '../../focus';
 import { cancelUiSnapshot } from '../../capture/controller'; // APHELION EDIT ADDITION
+import { focusMap } from '../../focus';
 import { logger } from '../../logging';
 import { suspendRenderer } from '../../renderer';
 import {

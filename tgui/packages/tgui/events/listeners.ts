@@ -1,5 +1,12 @@
 import { loadStyleSheet } from 'common/assets';
 import { EventBus } from 'tgui-core/eventbus';
+// APHELION EDIT ADDITION START - bug report captures of this window
+import {
+  abortUiSnapshot,
+  acknowledgeUiSnapshot,
+  requestUiSnapshot,
+} from '../capture/controller';
+// APHELION EDIT ADDITION END
 import { handleLoadAssets } from './handlers/assets';
 import {
   acknowledgePayloadChunk,
@@ -8,13 +15,6 @@ import {
 import { ping } from './handlers/ping';
 import { suspend } from './handlers/suspense';
 import { update } from './handlers/update';
-// APHELION EDIT ADDITION START - bug report captures of this window
-import {
-  requestUiSnapshot,
-  acknowledgeUiSnapshot,
-  abortUiSnapshot,
-} from '../capture/controller';
-// APHELION EDIT ADDITION END
 
 /**
  * A string/handler map.
