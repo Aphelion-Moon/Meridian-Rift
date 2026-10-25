@@ -173,7 +173,7 @@
 
 	// NOVA EDIT ADDITION START - Making the cyborg model list static to reduce how many times it's generated.
 	if(!length(GLOB.cyborg_model_list))
-		GLOB.cyborg_model_list = cyborg_selectable_models() // APHELION EDIT CHANGE - CYBORG_CUSTOMIZATION - ORIGINAL: inline model list, now shared with the creator catalog
+		GLOB.cyborg_model_list = cyborg_selectable_models()
 
 		for(var/model in GLOB.cyborg_model_list)
 			// Creating the lists here since we know all the model icons will need them right after.
