@@ -44,6 +44,14 @@
 /mob/living/silicon/robot/transfer_cyborg_customization_pref(client/player_client)
 	apply_cyborg_customization(src, player_client?.prefs)
 
+/// Applies the silicon prefs when a player takes the body over without a mind transfer - ghost control, admin direct control
+/mob/living/silicon/robot/Login()
+	// Login gives the mind the new key, so we check first - a reconnect or a mind transfer already has it
+	var/taken_over = isnull(mind) || mind.key != key
+	. = ..()
+	if(. && taken_over && client)
+		transfer_silicon_prefs(client)
+
 /// Preference application is separate from model selection, hardware, laws and names.
 /proc/apply_cyborg_customization(mob/living/silicon/robot/robot, datum/preferences/preferences)
 	if(!robot || !preferences || robot.shell)
