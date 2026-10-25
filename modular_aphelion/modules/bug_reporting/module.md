@@ -63,8 +63,11 @@ reporting service and their limits are documented with the backend; this module 
   left open.
 - **Snapshot cost**: the clone writes only the properties a copy needs, what an author rule could set
   that the SVG wouldn't work out by itself (`capture/style-copy.ts`), and embeds only the font faces
-  the window drew, keeping a part-range face unless a drawn one covers its weight
-  (`capture/font-faces.ts`). Both were proven to change no pixel on a corpus of real windows.
+  the page loaded, pseudo-elements' included, keeping a part-range face unless a drawn one covers its
+  weight (`capture/font-faces.ts`). The copier was proven to change no pixel on a corpus of real
+  windows, and the face filter only the boxes a pseudo-element draws, which now match the live page.
+  Font Awesome goes out as WOFF2 (`modular_aphelion/master_files/html/font-awesome`), 170 thousand
+  characters of a snapshot instead of 568.
 
 **Why every tgui message is posted:** tgui's `Byond.call` sent any URL of 2048 characters or more as
 an XHR GET, which DreamSeeker 516 answers with a 404, so the message never arrived (tgui's act chunking
