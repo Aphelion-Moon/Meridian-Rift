@@ -417,11 +417,23 @@
 		return
 	var/list/chunks = payload["chunks"]
 	chunks += chunk
+	// APHELION EDIT ADDITION START - BYOND_POST_MESSAGE
+	// Only a client that can't post sends chunks, so its act gets the bound a posted one does before we hold or decode it
+	payload["length"] += length(chunk)
+	if(payload["length"] > TGUI_MAX_PAYLOAD_BYTES)
+		deltimer(payload["timeout"])
+		remove_oversized_payload(payload_id)
+		return
+	// APHELION EDIT ADDITION END
 	if(length(chunks) >= payload["count"])
 		deltimer(payload["timeout"])
 		var/message_type = payload["type"]
 		var/final_payload = chunks.Join()
 		remove_oversized_payload(payload_id)
+		// APHELION EDIT ADDITION START - BYOND_POST_MESSAGE
+		if(!rustg_json_is_valid(final_payload))
+			return
+		// APHELION EDIT ADDITION END
 		on_message(message_type, json_decode(final_payload), list("type" = message_type, "payload" = final_payload, "tgui" = TRUE, "window_id" = id))
 	else
 		payload["timeout"] = addtimer(CALLBACK(src, PROC_REF(remove_oversized_payload), payload_id), 1 SECONDS, TIMER_UNIQUE|TIMER_OVERRIDE|TIMER_STOPPABLE)

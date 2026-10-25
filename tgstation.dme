@@ -448,6 +448,7 @@
 #include "code\__DEFINES\~aphelion_defines\keybindings.dm"
 #include "code\__DEFINES\~aphelion_defines\meridian_ui.dm"
 #include "code\__DEFINES\~aphelion_defines\text.dm"
+#include "code\__DEFINES\~aphelion_defines\tgui.dm"
 #include "code\__DEFINES\~nova_defines\_flags.dm"
 #include "code\__DEFINES\~nova_defines\_organ_defines.dm"
 #include "code\__DEFINES\~nova_defines\access.dm"

@@ -4,11 +4,6 @@
  * Copyright (c) 2020 Aleksej Komarov
  * SPDX-License-Identifier: MIT
  */
-// APHELION EDIT ADDITION START - BYOND_POST_MESSAGE
-
-// The biggest message an honest page sends is about 72 KB (a full bug report in three-byte letters, or one stroke over a whole 96x96 canvas), so 128 KB leaves it room
-#define TGUI_MAX_PAYLOAD_BYTES (128 * 1024)
-// APHELION EDIT ADDITION END
 
 /**
  * public
@@ -270,7 +265,3 @@ GAME_VERB_NATIVE(/client, uiclose, "uiclose", null, window_id as text)
 	if(window)
 		window.on_message(type, payload, href_list)
 	return TRUE
-// APHELION EDIT ADDITION START - BYOND_POST_MESSAGE
-
-#undef TGUI_MAX_PAYLOAD_BYTES
-// APHELION EDIT ADDITION END
