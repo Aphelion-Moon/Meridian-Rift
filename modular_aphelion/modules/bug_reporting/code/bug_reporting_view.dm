@@ -137,7 +137,8 @@ GLOBAL_VAR_INIT(bug_report_renders, 0)
 		push_update()
 		camera = new
 		var/turf/center = get_turf(owner.eye)
-		var/list/view_size = getviewsize(owner.view)
+		// A ghost's view range can make the view several times bigger and the layer sort is quadratic, so we render the default view
+		var/list/view_size = getviewsize(owner.view_size?.default || owner.view)
 		turfs = center && camera.seen_turfs(center, view_size[1], view_size[2], isobserver(owner.mob), istype(owner.eye, /mob/eye/camera))
 		var/icon/rendered = turfs && camera.render_turfs(turfs, center, view_size[1], view_size[2], isobserver(owner.mob))
 		if(rendered && valid_owner())
