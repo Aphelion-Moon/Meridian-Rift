@@ -64,15 +64,17 @@
 
 /obj/item/clothing/suit/armor/riot/skinsuit_armor/equipped(mob/user, slot)
 	. = ..()
-	if(slot != ITEM_SLOT_ICLOTHING)
+	if(!(slot & ITEM_SLOT_OCLOTHING))
 		return
 
 	check_tail(user)
 	update_appearance()
+	// The suit layer was drawn before equipped() runs, so we redraw it with the new state
+	update_slot_icon()
 
 /obj/item/clothing/suit/armor/riot/skinsuit_armor/dropped(mob/user)
 	. = ..()
-	check_tail(user)
+	icon_state = base_icon_state
 	update_appearance()
 
 /// Pick an icon_state that matches nicer with tails if one is found on the wearer
