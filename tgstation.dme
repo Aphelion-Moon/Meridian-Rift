@@ -7469,6 +7469,7 @@
 #include "modular_aphelion\modules\graffiti\code\palette.dm"
 #include "modular_aphelion\modules\graffiti\code\piece.dm"
 #include "modular_aphelion\modules\graffiti\code\placement.dm"
+#include "modular_aphelion\modules\graffiti\code\poster.dm"
 #include "modular_aphelion\modules\graffiti\code\registry.dm"
 #include "modular_aphelion\modules\graffiti\code\render.dm"
 #include "modular_aphelion\modules\graffiti\code\sounds.dm"

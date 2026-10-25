@@ -452,6 +452,7 @@
 #include "~nova\graffiti\library.dm"
 #include "~nova\graffiti\persistence.dm"
 #include "~nova\graffiti\placement.dm"
+#include "~nova\graffiti\poster.dm"
 #include "~nova\graffiti\workspace.dm"
 // NOVA EDIT ADDITION END
 // END_INCLUDE
