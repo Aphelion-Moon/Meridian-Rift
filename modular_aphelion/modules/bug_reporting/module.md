@@ -69,6 +69,8 @@ reporting service and their limits are documented with the backend; this module 
   the page loaded, pseudo-elements' included, keeping a part-range face unless a drawn one covers its
   weight (`capture/font-faces.ts`). The copier was proven to change no pixel on a corpus of real
   windows, and the face filter only the boxes a pseudo-element draws, which now match the live page.
+  A reused window's page keeps every face earlier interfaces loaded, so its snapshot can carry a few
+  faces nothing on it draws: bigger, never different.
   Font Awesome goes out as WOFF2 (`modular_aphelion/master_files/html/font-awesome`), 170 thousand
   characters of a snapshot instead of 568.
 

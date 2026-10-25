@@ -1023,7 +1023,11 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 			if(!update_local_fields(params["fields"], params["fieldsEpoch"], action == "submit"))
 				return TRUE
 			if(action == "keep")
-				return resolve_draft(TRUE)
+				if(!resolve_draft(TRUE))
+					return FALSE
+				// Keep never reaches the bridge and only settles a conflict once, so the send it asks for can go at once
+				COOLDOWN_RESET(src, action_cooldown)
+				return TRUE
 			switch(action)
 				if("submit")
 					INVOKE_ASYNC(src, PROC_REF(submit_fields))
