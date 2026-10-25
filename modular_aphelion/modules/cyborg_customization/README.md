@@ -110,6 +110,7 @@ Module ID: `CYBORG_CUSTOMIZATION`. The core preference save path is untouched; l
 | `code/modules/client/preferences_savefile.dm` | One line beside the custom-sprite call: deleting a character removes its layout |
 | `modular_nova/modules/preferences_import/code/import_verb.dm`, `_sanitise.dm` | Carry imported layouts into the sidecar; strip them and donor identity aliases from `preferences.json` |
 | `modular_nova/modules/synths/code/bodyparts/organs/internal/brain/silicon_alt_brains.dm` | Apply customization in `transfer_silicon_prefs()`; keep the brain preference from runtiming on positronic processors, which skipped every later step; add the interaction component |
+| `modular_nova/modules/ghostcafe/code/ghost_role_spawners.dm`, `modular_nova/modules/mapping/code/mob_spawns.dm` | The ghost cafe, DS-2 and Interdyne borg spawners no longer call `transfer_silicon_prefs()` themselves: putting the ghost in already did, through the mind transfer or `Login()` |
 | `code/modules/mob/living/silicon/robot/robot.dm`, `robot_model.dm` | Holder teardown and facing, shared model list, chosen skin |
 | `tools/deploy.sh` | Also copy `modular_aphelion`'s `.json` files, so CI and Docker deployments have the manifest the server reads from disk |
 
