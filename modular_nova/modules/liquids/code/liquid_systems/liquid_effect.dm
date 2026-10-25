@@ -211,12 +211,17 @@
 	set_smoke_mask(smoothing_junction || NONE)
 	vis_contents += fire_smoke
 
-/// Clips this tile's flames and their copy by its junction's "flame-[junction]" mask, and its smoke by "smoke-[junction]".
+/**
+ * Clips this tile's flames and their copy by its junction's "flame-[junction]" mask, and its smoke by "smoke-[junction]".
+ *
+ * A fully opaque mask leaves them unfiltered (get_clip_filter()), so the fire art must keep the exact-art RULE in the
+ * art contract above update_overlays().
+ */
 /obj/effect/abstract/liquid_turf/proc/set_fire_masks()
 	PRIVATE_PROC(TRUE)
 
 	var/junction = smoothing_junction || NONE
-	var/flame_mask = get_alpha_filter(LIQUID_MASKS_DMI, "flame-[junction]")
+	var/flame_mask = get_clip_filter(LIQUID_MASKS_DMI, "flame-[junction]")
 	fire_flames.filters = flame_mask
 	fire_glow.filters = flame_mask
 	if(fire_smoke)
@@ -231,7 +236,7 @@
 /obj/effect/abstract/liquid_turf/proc/set_smoke_mask(junction)
 	PRIVATE_PROC(TRUE)
 
-	fire_smoke.filters = get_alpha_filter(LIQUID_MASKS_DMI, "smoke-[junction]")
+	fire_smoke.filters = get_clip_filter(LIQUID_MASKS_DMI, "smoke-[junction]")
 
 /// Takes this tile's fire holders off it and gives them back to SSliquids' pools.
 /obj/effect/abstract/liquid_turf/proc/clear_fire_visuals()
@@ -459,6 +464,10 @@
  *     "fuel_weight-[junction]" (fuel), mirror (mirror), tone (opaque, blood, tar) and the reagent's detail (grit,
  *     chunks, bumps). A lone puddle (junction 0) takes a fixed sheen or mirror slice. make_surface_texture() holds
  *     the grids and the lone slices.
+ * - RULE: the fire, tone, grit and chunks art must keep every partly clear pixel at 0 or 255 per colour channel, at
+ *   its mask's size. Only then does a fully opaque mask's filter change nothing, so get_clip_filter() drops it. A
+ *   filter draws other soft colours a level off, so art that breaks the rule comes off exact_textures (the fire goes
+ *   back to get_alpha_filter()). The other slices always keep their filter.
  * - Fire, in liquid_fire.dmi, untinted and at full alpha, as vis_contents holders (update_fire_visuals()): 48x48 at
  *   LIQUID_FIRE_PIXEL_OFFSET, below mobs on the game plane. Flames "fire_<tier>_A<loop>" and their emissive copy are
  *   clipped by "flame-[junction]", the smoke "smoke_<tier>_A<loop>" over them by "smoke-[junction]" (liquid_masks.dmi).
@@ -514,6 +523,8 @@
 /**
  * Returns this tile's slice of a world-anchored surface texture, clipped to the pool by an alpha filter.
  *
+ * A fully opaque mask leaves tone, grit and chunks slices unfiltered (get_clip_filter()).
+ *
  * Arguments:
  * - texture: The slices' state prefix in liquid_surfaces.dmi.
  * - junction: This tile's smoothing junction. A lone puddle (0) takes the texture's fixed slice, when it has one.
@@ -525,6 +536,9 @@
 	var/static/list/grids = list("sheen_oil" = 3, "sheen_fuel" = 6, "mirror" = 6, "tone" = 6, "bumps" = 3, "grit" = 3, "chunks" = 3)
 	// The (row, column) a lone puddle shows: its world slice could hold anything from no sheen to all sheen.
 	var/static/list/lone_slices = list("sheen_oil" = list(0, 1), "sheen_fuel" = list(5, 5), "mirror" = list(3, 2))
+	// RULE (art contract): these textures keep every partly clear pixel at 0 or 255 per channel, at the mask's size.
+	// A texture whose art breaks it comes off this list, or its slices draw a level off where the filter is skipped.
+	var/static/list/exact_textures = list("tone" = TRUE, "grit" = TRUE, "chunks" = TRUE)
 	var/list/lone_slice = junction ? null : lone_slices[texture]
 	var/mutable_appearance/slice
 	if(lone_slice)
@@ -532,7 +546,9 @@
 	else
 		var/grid = grids[texture]
 		slice = make_surface_piece("[texture]_[(grid - 1) - (y % grid)]_[x % grid]")
-	slice.filters = mask_state ? get_alpha_filter(LIQUID_SURFACES_DMI, mask_state) : get_alpha_filter(icon, "[base_icon_state]-[junction]")
+	var/mask_file = mask_state ? LIQUID_SURFACES_DMI : icon
+	mask_state ||= "[base_icon_state]-[junction]"
+	slice.filters = exact_textures[texture] ? get_clip_filter(mask_file, mask_state) : get_alpha_filter(mask_file, mask_state)
 	return slice
 
 /**
@@ -552,6 +568,46 @@
 		mask = icon(icon_file, mask_state)
 		masks[key] = mask
 	return mask
+
+/**
+ * Returns TRUE when every pixel of a mask is fully opaque. Each mask is read once.
+ *
+ * Arguments:
+ * - icon_file: The DMI holding the mask.
+ * - mask_state: The mask's icon state.
+ */
+/obj/effect/abstract/liquid_turf/proc/is_mask_opaque(icon_file, mask_state)
+	var/static/list/opaque_masks = list()
+	var/key = "[mask_state]|\ref[icon_file]"
+	. = opaque_masks[key]
+	if(!isnull(.))
+		return
+	var/icon/mask = get_alpha_mask(icon_file, mask_state)
+	var/width = mask.Width()
+	var/height = mask.Height()
+	for(var/pixel_y in 1 to height)
+		for(var/pixel_x in 1 to width)
+			// GetPixel gives null for a clear pixel, and alpha digits only for a partly clear one.
+			var/pixel = mask.GetPixel(pixel_x, pixel_y)
+			if(!pixel || length(pixel) > 7)
+				opaque_masks[key] = FALSE
+				return FALSE
+	opaque_masks[key] = TRUE
+	return TRUE
+
+/**
+ * Returns get_alpha_filter() for a mask, or null when the mask is fully opaque and so clips nothing.
+ *
+ * Only for art under the exact-art RULE in the art contract: the mask's size, and partly clear pixels, if any, at 0 or
+ * 255 per channel. A filter passes those and opaque or clear pixels exactly, but draws other partly clear colours a
+ * level off, so leaving it out would change them.
+ *
+ * Arguments:
+ * - icon_file: The DMI holding the mask.
+ * - mask_state: The mask's icon state.
+ */
+/obj/effect/abstract/liquid_turf/proc/get_clip_filter(icon_file, mask_state)
+	return is_mask_opaque(icon_file, mask_state) ? null : get_alpha_filter(icon_file, mask_state)
 
 /**
  * Returns an alpha filter by one icon state's mask from get_alpha_mask(), made once and shared.

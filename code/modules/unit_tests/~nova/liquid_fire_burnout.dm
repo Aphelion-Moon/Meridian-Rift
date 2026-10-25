@@ -104,20 +104,30 @@
 		holder.released_at -= world.tick_lag
 	for(var/obj/effect/abstract/liquid_turf/liquid as anything in pool)
 		liquid.smooth_icon()
+	// Pooled holders keep their last mask, so stamp a lone tile's flame-0 on each: every catch below must replace or drop it.
+	for(var/obj/effect/abstract/liquid_fire/holder as anything in pooled_flames)
+		holder.filters = old_host.get_alpha_filter('modular_nova/modules/liquids/icons/obj/effects/liquid_masks.dmi', "flame-0")
 	var/list/recaught = block_burning + old_host
 	for(var/obj/effect/abstract/liquid_turf/liquid as anything in recaught)
 		liquid.fire_act(1000, 125)
 	// A filter reads its mask back as a resource, not the cached /icon, so the expected mask goes through a probe too.
 	var/obj/effect/abstract/liquid_fire/mask_probe = allocate(/obj/effect/abstract/liquid_fire)
+	// A whole block of a 4x4 pool holds one tile inside the pool and three on its edge.
+	var/interior_tiles = 0
 	for(var/obj/effect/abstract/liquid_turf/liquid as anything in recaught)
 		var/obj/effect/abstract/liquid_fire/flames = liquid.fire_flames
 		var/junction = liquid.smoothing_junction || NONE
 		TEST_ASSERT(flames in pooled_flames, "A tile catching a tick after its block went out should reuse a pooled flames holder")
 		TEST_ASSERT(junction, "A tile inside a pool should smooth to a junction, or its reused holder's old flame-0 mask would pass for its own")
 		TEST_ASSERT_EQUAL(flames.icon_state, "fire_[liquid.get_fire_tier()]_A[liquid.fire_loop_table[(liquid.y % 8) + 1][(liquid.x % 8) + 1]]", "A reused flames holder should show its new tile's tier and loop")
-		mask_probe.filters = liquid.get_alpha_filter('modular_nova/modules/liquids/icons/obj/effects/liquid_masks.dmi', "flame-[junction]")
-		TEST_ASSERT_EQUAL(get_mask_ref(flames), get_mask_ref(mask_probe), "A reused flames holder should be clipped by its new tile's flame-[junction] mask")
+		if(junction == ALL_SMOOTHING_JUNCTIONS)
+			interior_tiles++
+			TEST_ASSERT(!length(flames.filters), "A reused flames holder inside the pool should drop its old mask, since flame-[junction] is fully opaque")
+		else
+			mask_probe.filters = liquid.get_alpha_filter('modular_nova/modules/liquids/icons/obj/effects/liquid_masks.dmi', "flame-[junction]")
+			TEST_ASSERT_EQUAL(get_mask_ref(flames), get_mask_ref(mask_probe), "A reused flames holder on the pool's edge should be clipped by its new tile's flame-[junction] mask")
 		TEST_ASSERT_EQUAL(flames.plane, MUTATE_PLANE(GAME_PLANE, liquid), "A reused flames holder should sit on its new tile's game plane")
+	TEST_ASSERT(interior_tiles, "The block that caught again should hold a tile inside the pool, or no reused holder is checked for dropping its mask")
 
 	// Then the pool burns out and leaves no light behind.
 	var/list/seen_lights = list()
