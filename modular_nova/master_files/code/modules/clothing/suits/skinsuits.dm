@@ -10,6 +10,7 @@
 		These suits are reputable among orbital workers for having very little interference with movement, and easy storage by simply folding them inside of any bubble-shaped helmet."
 	icon = 'modular_nova/master_files/icons/obj/clothing/under/akula.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/under/akula.dmi'
+	worn_icon_digi = 'modular_aphelion/master_files/icons/mob/clothing/akula_digi.dmi'
 	icon_state = "skinsuit"
 	clothing_flags = STOPSPRESSUREDAMAGE | THICKMATERIAL
 	body_parts_covered = CHEST|GROIN|LEGS|FEET|ARMS|HANDS
@@ -18,7 +19,7 @@
 	min_cold_protection_temperature = SPACE_SUIT_MIN_TEMP_PROTECT_OFF
 	resistance_flags = NONE
 	female_sprite_flags = NO_FEMALE_UNIFORM
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_LEGS
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_CERULEAN_MASK_LEGS
 	bodyshapes_with_variations = BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/skinsuit/Initialize(mapload)
@@ -44,7 +45,7 @@
 	AddComponent(/datum/component/wetsuit)
 
 /obj/item/clothing/suit/armor/riot/skinsuit_armor
-	worn_icon_digi = null
+	worn_icon_digi = 'modular_aphelion/master_files/icons/mob/clothing/akula_digi.dmi'
 	name = "\improper Shorebreaker plating"
 	desc = "'Shorebreaker'-pattern Stardress plating was developed for Azulean boarding teams in service of the New Principalities. \
 		Kept resilient and maneuverable, Shorebreaker armor is built predominantly close-quarters breaching. \n\n\
@@ -55,7 +56,7 @@
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suits/akula.dmi'
 	icon_state = "skinsuitarmor"
 	base_icon_state = "skinsuitarmor"
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
 
 /obj/item/clothing/suit/armor/riot/skinsuit_armor/Initialize(mapload)
 	. = ..()
