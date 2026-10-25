@@ -33,3 +33,12 @@
 	. = ..()
 	create_storage(storage_type = /datum/storage/mod_storage/civilian)
 */
+//Cargo order. Bad place for it? Probably.
+/datum/supply_pack/emergency/radiators
+	name = "Radiator Unit Crate"
+	desc = "Contains two backpack radiator units."
+	cost = CARGO_CRATE_VALUE * 3
+	contains = list(/obj/item/clothing/suit/space/radiator,
+					/obj/item/clothing/suit/space/radiator,
+				)
+	crate_name = "radiator unit crate"
