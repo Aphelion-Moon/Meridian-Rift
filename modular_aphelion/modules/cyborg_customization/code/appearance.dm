@@ -47,7 +47,8 @@
 /// Applies the silicon prefs when a player takes the body over without a mind transfer - ghost control, admin direct control
 /mob/living/silicon/robot/Login()
 	// Login gives the mind the new key, so we check first - a reconnect or a mind transfer already has it
-	var/taken_over = isnull(mind) || mind.key != key
+	// We compare ckeys, as PossessByPlayer() leaves the key in ckey form and a reconnect brings the display form
+	var/taken_over = isnull(mind) || ckey(mind.key) != ckey
 	. = ..()
 	if(. && taken_over && client)
 		transfer_silicon_prefs(client)
