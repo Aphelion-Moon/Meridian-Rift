@@ -14,15 +14,18 @@
 	var/list/assets = list()
 	/// Whether or not a build is running, so everyone else waits for it
 	var/generating = FALSE
-	/// The exception the last build threw, thrown again to everyone who waits on the gallery
+	/// The exception the running or last build threw, thrown again to everyone who waited on that build
 	var/exception/generation_failure
 
 /// Builds the gallery for the current catalog when assets load
 /datum/asset/cyborg_model_gallery/register()
 	build_catalog(cyborg_model_catalog())
 
-/// Waits out a running build, and throws again whatever the last build threw
+/// Waits out a running build, and throws again whatever that build threw
 /datum/asset/cyborg_model_gallery/ensure_ready()
+	// Only those who waited get the error - get_asset_datum() calls this, and an old failure must not stop build_catalog() from retrying
+	if(!generating)
+		return src
 	UNTIL(!generating)
 	if(generation_failure)
 		throw generation_failure
@@ -91,7 +94,8 @@
 		cached_serialized_url_mappings = null
 		cached_serialized_url_mappings_transport_type = null
 	generating = FALSE
-	ensure_ready()
+	if(generation_failure)
+		throw generation_failure
 
 /// Only a temporary serialization buffer exists; the round retains the file resource.
 /datum/asset/cyborg_model_gallery/proc/json_resource(list/data)
