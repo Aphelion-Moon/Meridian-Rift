@@ -196,6 +196,9 @@
 	busy = TRUE
 	push_update()
 	var/upload = save_fields() && prompt_screenshot()
+	// The file is already on the server once the prompt gives it back, so it counts even if the reporter moved on
+	if(upload && !take_allowance("uploads"))
+		return finish_action()
 	// The prompt yields, so a disconnected client or another report can't inherit it
 	if(!upload || !valid_owner() || result?["kind"] == "accepted")
 		return finish_action()
@@ -203,7 +206,7 @@
 	if(!fcopy(upload, path))
 		return finish_action("That picture couldn't be saved. Pick it again.")
 	LAZYOR(pictures, picture)
-	upload_picture(picture, path)
+	upload_picture(picture, path, spent = TRUE)
 
 /// Opens BYOND's file prompt with its one-image upload allowance, returning the chosen file
 /datum/bug_report/proc/prompt_screenshot()
@@ -221,7 +224,7 @@
  * * picture - the picture the image is for, already on the report
  * * path - the generated file holding the image, or a capture's base64
  * * encoding - base64 for a capture, null for an image file
- * * spent - whether its allowance was spent already, as an in-game capture's is when its render starts
+ * * spent - whether its allowance was spent already, as an in-game capture's is when its render starts and a file's when the prompt gives it back
  */
 /datum/bug_report/proc/upload_picture(datum/bug_report_picture/picture, path, encoding, spent = FALSE)
 	if(!valid_owner() || sealed_results[result?["kind"]] || !(picture in pictures) || (!spent && !take_allowance(picture.source == "file" ? "uploads" : "captures")))
