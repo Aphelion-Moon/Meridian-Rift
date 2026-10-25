@@ -5,10 +5,14 @@ Module ID: BUG_REPORTING
 ### Description:
 
 **Report a bug** (`report-issue`, and the escape menu's Report Bug) opens the in-game report window when
-`BUG_REPORT_BRIDGE_URL` is the loopback reporting bridge, `http://127.0.0.1:18764`; any other value
-leaves the old GitHub link. **Recent bug reports** (OOC) reopens one of the last 20 started this
-session, and **Report a /tg/station bug** (OOC) opens /tg/station's GitHub form. The bridge, the
-reporting service and their limits are documented with the backend; this module is the game's side.
+`USE_FANCY_BUG_REPORTING` is uncommented in `config/nova/config_nova.txt` and `BUG_REPORT_BRIDGE_URL` is the
+loopback reporting bridge, `http://127.0.0.1:18764`. Otherwise, and always for guests, it opens the GitHub
+issue form as before. The flag ships commented out, and downstreams should leave it that way: the window
+needs a reporting host on the same machine and three private settings (`BUG_REPORT_BRIDGE_URL`,
+`BUG_REPORT_BRIDGE_TOKEN`, `BUG_REPORT_SERVER_ID`). **Recent bug reports** (OOC) reopens one of the last
+20 started this session, and **Report a /tg/station bug** (OOC) opens /tg/station's GitHub form. The
+bridge, the reporting service and their limits are documented with the backend; this module is the
+game's side.
 
 - **Four short pages**: Report title, Picture, Steps (numbered, with what should have happened, what
   it's about and how much it gets in the way) and Review report, then whatever the service answers:

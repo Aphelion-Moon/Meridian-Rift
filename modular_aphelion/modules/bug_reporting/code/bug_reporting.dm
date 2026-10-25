@@ -57,9 +57,12 @@ GLOBAL_LIST_EMPTY(bug_report_budgets)
 /datum/config_entry/string/bug_report_server_id
 	default = "meridian-rift-main"
 
+/// The in-game report window and its reporting bridge, off unless a server sets it up (config/nova/config_nova.txt)
+/datum/config_entry/flag/use_fancy_bug_reporting
+
 /// Whether reports go to the reporting bridge, which only ever means the one on this machine
 /proc/bug_reports_enabled()
-	return CONFIG_GET(string/bug_report_bridge_url) == BUG_REPORT_BRIDGE_ORIGIN
+	return CONFIG_GET(flag/use_fancy_bug_reporting) && CONFIG_GET(string/bug_report_bridge_url) == BUG_REPORT_BRIDGE_ORIGIN
 
 /**
  * Counts what's left of a ckey's hourly allowance of one kind, forgetting uses over an hour old.
@@ -159,6 +162,9 @@ GLOBAL_LIST_EMPTY(bug_report_budgets)
 	return TRUE
 
 GAME_VERB_DESC(/client, recent_bug_reports, "Recent bug reports", "Reopen a report you started this session", "OOC")
+	if(!bug_reports_enabled())
+		to_chat(src, span_warning("This server doesn't use the in-game bug reports. Report a bug opens the GitHub form instead."))
+		return
 	var/list/choices = list()
 	var/list/repeats = list()
 	for(var/datum/bug_report/report as anything in bug_report_history)

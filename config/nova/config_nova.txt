@@ -242,3 +242,9 @@ SAVEFILE_UPLOAD_LIMIT 2000
 
 ## Uncomment to disable the custom hair and body-marking pixel editors. Saved drawings still render.
 #DISALLOW_CUSTOM_SPRITE_EDITING
+
+## Uncomment to use the in-game bug report window (modular_aphelion/modules/bug_reporting) instead of the GitHub link.
+## It needs a reporting host on this machine and the private BUG_REPORT_BRIDGE_URL, BUG_REPORT_BRIDGE_TOKEN and
+## BUG_REPORT_SERVER_ID settings; the module's module.md says how.
+## Downstreams: leave this commented out. Without it, Report a bug opens your GitHub issue form as before.
+#USE_FANCY_BUG_REPORTING
