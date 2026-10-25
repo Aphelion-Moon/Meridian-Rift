@@ -467,7 +467,9 @@
  * - RULE: the fire, tone, grit and chunks art must keep every partly clear pixel at 0 or 255 per colour channel, at
  *   its mask's size. Only then does a fully opaque mask's filter change nothing, so get_clip_filter() drops it. A
  *   filter draws other soft colours a level off, so art that breaks the rule comes off exact_textures (the fire goes
- *   back to get_alpha_filter()). The other slices always keep their filter.
+ *   back to get_alpha_filter()). The other slices keep their filter, with one approved exception: a weight mask of
+ *   one alpha (fuel's "fuel_weight-255", inside a pool) becomes the sheen slice's own alpha, up to a level off
+ *   the filter. Weight masks that vary over the tile, on a pool's edge, keep their filter.
  * - Fire, in liquid_fire.dmi, untinted and at full alpha, as vis_contents holders (update_fire_visuals()): 48x48 at
  *   LIQUID_FIRE_PIXEL_OFFSET, below mobs on the game plane. Flames "fire_<tier>_A<loop>" and their emissive copy are
  *   clipped by "flame-[junction]", the smoke "smoke_<tier>_A<loop>" over them by "smoke-[junction]" (liquid_masks.dmi).
@@ -523,12 +525,13 @@
 /**
  * Returns this tile's slice of a world-anchored surface texture, clipped to the pool by an alpha filter.
  *
- * A fully opaque mask leaves tone, grit and chunks slices unfiltered (get_clip_filter()).
+ * A fully opaque mask leaves tone, grit and chunks slices unfiltered (get_clip_filter()), and a weight mask of one
+ * alpha becomes the slice's own alpha.
  *
  * Arguments:
  * - texture: The slices' state prefix in liquid_surfaces.dmi.
  * - junction: This tile's smoothing junction. A lone puddle (0) takes the texture's fixed slice, when it has one.
- * - mask_state: A liquid_surfaces.dmi state to clip by. Null clips by this tile's base state.
+ * - mask_state: A liquid_surfaces.dmi weight state to clip by. Null clips by this tile's base state.
  */
 /obj/effect/abstract/liquid_turf/proc/make_surface_texture(texture, junction, mask_state)
 	PRIVATE_PROC(TRUE)
@@ -546,9 +549,16 @@
 	else
 		var/grid = grids[texture]
 		slice = make_surface_piece("[texture]_[(grid - 1) - (y % grid)]_[x % grid]")
-	var/mask_file = mask_state ? LIQUID_SURFACES_DMI : icon
-	mask_state ||= "[base_icon_state]-[junction]"
-	slice.filters = exact_textures[texture] ? get_clip_filter(mask_file, mask_state) : get_alpha_filter(mask_file, mask_state)
+	if(mask_state)
+		// The art contract's approved exception: a weight of one alpha is the slice's own, in place of the filter.
+		var/weight_alpha = get_mask_alpha(LIQUID_SURFACES_DMI, mask_state)
+		if(isnull(weight_alpha))
+			slice.filters = get_alpha_filter(LIQUID_SURFACES_DMI, mask_state)
+		else
+			slice.alpha = weight_alpha
+		return slice
+	var/base_mask = "[base_icon_state]-[junction]"
+	slice.filters = exact_textures[texture] ? get_clip_filter(icon, base_mask) : get_alpha_filter(icon, base_mask)
 	return slice
 
 /**
@@ -570,30 +580,33 @@
 	return mask
 
 /**
- * Returns TRUE when every pixel of a mask is fully opaque. Each mask is read once.
+ * Returns the one alpha every pixel of a mask has, or null when its pixels differ. Each mask is read once.
  *
  * Arguments:
  * - icon_file: The DMI holding the mask.
  * - mask_state: The mask's icon state.
  */
-/obj/effect/abstract/liquid_turf/proc/is_mask_opaque(icon_file, mask_state)
-	var/static/list/opaque_masks = list()
+/obj/effect/abstract/liquid_turf/proc/get_mask_alpha(icon_file, mask_state)
+	// -1 marks a mask whose pixels differ.
+	var/static/list/mask_alphas = list()
 	var/key = "[mask_state]|\ref[icon_file]"
-	. = opaque_masks[key]
-	if(!isnull(.))
-		return
-	var/icon/mask = get_alpha_mask(icon_file, mask_state)
-	var/width = mask.Width()
-	var/height = mask.Height()
-	for(var/pixel_y in 1 to height)
-		for(var/pixel_x in 1 to width)
-			// GetPixel gives null for a clear pixel, and alpha digits only for a partly clear one.
-			var/pixel = mask.GetPixel(pixel_x, pixel_y)
-			if(!pixel || length(pixel) > 7)
-				opaque_masks[key] = FALSE
-				return FALSE
-	opaque_masks[key] = TRUE
-	return TRUE
+	var/shared_alpha = mask_alphas[key]
+	if(isnull(shared_alpha))
+		var/icon/mask = get_alpha_mask(icon_file, mask_state)
+		var/width = mask.Width()
+		var/height = mask.Height()
+		for(var/pixel_y in 1 to height)
+			for(var/pixel_x in 1 to width)
+				// GetPixel gives null for a clear pixel, and alpha digits only for a partly clear one.
+				var/pixel = mask.GetPixel(pixel_x, pixel_y)
+				var/pixel_alpha = pixel ? (length(pixel) > 7 ? hex2num(copytext(pixel, 8, 10)) : 255) : 0
+				if(isnull(shared_alpha))
+					shared_alpha = pixel_alpha
+				else if(pixel_alpha != shared_alpha)
+					mask_alphas[key] = -1
+					return null
+		mask_alphas[key] = shared_alpha
+	return shared_alpha == -1 ? null : shared_alpha
 
 /**
  * Returns get_alpha_filter() for a mask, or null when the mask is fully opaque and so clips nothing.
@@ -607,7 +620,7 @@
  * - mask_state: The mask's icon state.
  */
 /obj/effect/abstract/liquid_turf/proc/get_clip_filter(icon_file, mask_state)
-	return is_mask_opaque(icon_file, mask_state) ? null : get_alpha_filter(icon_file, mask_state)
+	return get_mask_alpha(icon_file, mask_state) == 255 ? null : get_alpha_filter(icon_file, mask_state)
 
 /**
  * Returns an alpha filter by one icon state's mask from get_alpha_mask(), made once and shared.
