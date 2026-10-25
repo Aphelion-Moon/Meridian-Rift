@@ -7370,6 +7370,7 @@
 #include "modular_aphelion\modules\admin_tech\code\admin_techweb.dm"
 #include "modular_aphelion\modules\admin_tech\code\debug_boxes.dm"
 #include "modular_aphelion\modules\admin_tech\code\legacy.dm"
+#include "modular_aphelion\modules\backpack_radiator\code\backpack_radiator.dm"
 #include "modular_aphelion\modules\character_preview\code\animation.dm"
 #include "modular_aphelion\modules\character_preview\code\backgrounds.dm"
 #include "modular_aphelion\modules\character_preview\code\drawing.dm"
