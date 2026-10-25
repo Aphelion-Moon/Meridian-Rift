@@ -409,6 +409,7 @@
 #include "~nova\language_understanding.dm"
 #include "~nova\limb_marking_cache.dm"
 #include "~nova\limb_markings.dm"
+#include "~nova\liquid_blood_color.dm"
 #include "~nova\liquid_fire_burnout.dm"
 #include "~nova\matrixed_accessories.dm"
 #include "~nova\meridian_runtime_lifetimes.dm"

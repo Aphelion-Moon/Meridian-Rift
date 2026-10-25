@@ -54,7 +54,7 @@
 		var/volume_change = liquids.reagent_list[r_type] * fraction
 		liquids.reagent_list[r_type] -= volume_change
 		liquids.total_reagents -= volume_change
-		T.add_liquid(r_type, volume_change, TRUE, liquids.temp)
+		T.add_liquid(r_type, volume_change, TRUE, liquids.temp, liquids.blood_color)
 	liquids.has_cached_share = FALSE
 
 /turf/proc/liquid_update_turf()
@@ -100,9 +100,13 @@
 
 	// otherwise business as usual
 	var/list/compiled_list = list()
+	// The blood type's colour lives on the reagent instance, which the type to volume list drops.
+	var/added_blood_color
 	for(var/r in giver.reagent_list)
 		var/datum/reagent/R = r
 		compiled_list[R.type] = R.volume * reagent_multiplier
+		if(R.type == /datum/reagent/blood)
+			added_blood_color = R.color
 	if(!compiled_list.len) //No reagents to add, don't bother going further
 		return
 
@@ -115,7 +119,7 @@
 	if(!isturf(add_location))
 		return
 
-	add_location.add_liquid_list(compiled_list, no_react, giver.chem_temp)
+	add_location.add_liquid_list(compiled_list, no_react, giver.chem_temp, added_blood_color)
 
 /**
  * Bounces a thrown liquid off of a some object that has density.
@@ -152,15 +156,27 @@
 /atom/proc/can_liquid_spill_on_hit()
 	return isturf(src) || (flags_ricochet & RICOCHET_HARD) || !density
 
-//More efficient than add_liquid for multiples
-/turf/proc/add_liquid_list(reagent_list, no_react = FALSE, chem_temp = 300)
-	if(!liquids)
-		liquids = new(src)
+/**
+ * Adds a reagent type to volume list to this turf's liquid. More efficient than add_liquid() for several reagents.
+ *
+ * Arguments:
+ * - reagent_list: Reagent type to volume.
+ * - no_react: TRUE skips the reaction simulation and the turf exposure.
+ * - chem_temp: Temperature of the added reagents.
+ * - blood_color: Colour of the blood in reagent_list. Null counts as the blood reagent's own colour.
+ */
+/turf/proc/add_liquid_list(reagent_list, no_react = FALSE, chem_temp = 300, blood_color = null)
+	var/new_liquid = !liquids
+	if(new_liquid)
+		liquids = new(src, TRUE)
 	if(liquids.immutable)
 		return
 	if(!length(reagent_list))
+		if(new_liquid)
+			liquids.update_icon(UPDATE_OVERLAYS)
 		return
 
+	liquids.blend_blood_color(blood_color, reagent_list[/datum/reagent/blood])
 	var/prev_total_reagents = liquids.total_reagents
 	var/prev_thermal_energy = prev_total_reagents * liquids.temp
 
@@ -190,26 +206,40 @@
 			liquids.temp = reagents.chem_temp
 			if(!liquids.total_reagents) //Our reaction exerted all of our reagents, remove self
 				qdel(reagents)
+				if(new_liquid)
+					liquids.update_icon(UPDATE_OVERLAYS)
 				qdel(liquids)
 				return
 		qdel(reagents)
 		//Expose turf
 		liquids.ExposeMyTurf()
 
-	liquids.calculate_height()
-	liquids.set_reagent_color_for_liquid()
+	liquids.update_from_reagents(new_liquid)
 	liquids.has_cached_share = FALSE
 	SSliquids.add_active_turf(src)
 	if(lgroup)
 		lgroup.dirty = TRUE
 		lgroup.invalidate_cached_mix()
 
-/turf/proc/add_liquid(reagent, amount, no_react = FALSE, chem_temp = 300)
-	if(!liquids)
-		liquids = new(src)
+/**
+ * Adds one reagent to this turf's liquid.
+ *
+ * Arguments:
+ * - reagent: Reagent type.
+ * - amount: Units to add.
+ * - no_react: TRUE skips the reaction simulation and the turf exposure.
+ * - chem_temp: Temperature of the added reagent.
+ * - blood_color: Colour of the reagent when it is blood. Null counts as the blood reagent's own colour.
+ */
+/turf/proc/add_liquid(reagent, amount, no_react = FALSE, chem_temp = 300, blood_color = null)
+	var/new_liquid = !liquids
+	if(new_liquid)
+		liquids = new(src, TRUE)
 	if(liquids.immutable)
 		return
 
+	if(reagent == /datum/reagent/blood)
+		liquids.blend_blood_color(blood_color, amount)
 	var/prev_thermal_energy = liquids.total_reagents * liquids.temp
 
 	if(!liquids.reagent_list[reagent])
@@ -235,8 +265,7 @@
 		//Expose turf
 		liquids.ExposeMyTurf()
 
-	liquids.calculate_height()
-	liquids.set_reagent_color_for_liquid()
+	liquids.update_from_reagents(new_liquid)
 	liquids.has_cached_share = FALSE
 	SSliquids.add_active_turf(src)
 	if(lgroup)

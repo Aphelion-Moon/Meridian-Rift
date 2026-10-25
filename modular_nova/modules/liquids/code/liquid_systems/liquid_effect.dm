@@ -1,3 +1,7 @@
+#define LIQUID_SURFACES_DMI 'modular_nova/modules/liquids/icons/obj/effects/liquid_surfaces.dmi'
+#define LIQUID_FIRE_DMI 'modular_nova/modules/liquids/icons/obj/effects/liquid_fire.dmi'
+#define LIQUID_MASKS_DMI 'modular_nova/modules/liquids/icons/obj/effects/liquid_masks.dmi'
+
 /obj/effect/abstract/liquid_turf
 	name = "liquid"
 	icon = 'modular_nova/modules/liquids/icons/obj/effects/liquid.dmi'
@@ -7,7 +11,7 @@
 	plane = FLOOR_PLANE
 	layer = ABOVE_OPEN_TURF_LAYER
 	appearance_flags = TILE_BOUND
-	color = "#DDF"
+	// No compile-time color: init would make it an atom colour, and that adds KEEP_TOGETHER, which tints the surface overlays.
 
 	//For being on fire
 	light_range = 0
@@ -33,9 +37,36 @@
 	var/total_reagents = 0
 	/// Volume-weighted liquid_opacity of reagent_list, from 0 (clear) to 1 (opaque).
 	var/reagent_opacity = 0
+	/// Colour of the blood in reagent_list, blended by blood volume as blood comes in. Null when no blood is tracked.
+	var/blood_color
+	/// The LIQUID_SURFACE_* look this pool draws, from get_liquid_surface().
+	var/surface_class = LIQUID_SURFACE_CLEAR
+	/// The marks this pool draws over its surface ("grit", "chunks" or "bumps"), or null.
+	var/surface_detail
 	var/temp = T20C
 
 	var/fire_state = LIQUID_FIRE_STATE_NONE
+	/// How far east of this tile the light it holds for its fire light block sits, in tiles.
+	var/fire_light_x = 0
+	/// How far north of this tile the light it holds for its fire light block sits, in tiles.
+	var/fire_light_y = 0
+	/// The flames while this tile burns, in vis_contents.
+	var/obj/effect/abstract/liquid_fire/fire_flames
+	/// The flames' emissive copy, in vis_contents. It always shows the flames' icon_state.
+	var/obj/effect/abstract/liquid_fire/fire_glow
+	/// Smoke over the flames, in vis_contents from the end of the ignite.
+	var/obj/effect/abstract/liquid_fire/fire_smoke
+	/// The fire loop (1 to 5) per world tile, read as [(y % 8) + 1][(x % 8) + 1], so neighbours burn out of step.
+	var/static/list/fire_loop_table = list(
+		list(2, 1, 5, 2, 4, 3, 5, 1),
+		list(3, 4, 3, 1, 5, 1, 2, 4),
+		list(1, 5, 2, 4, 2, 4, 3, 5),
+		list(4, 3, 1, 5, 3, 5, 1, 2),
+		list(5, 2, 4, 2, 1, 2, 4, 3),
+		list(4, 3, 1, 3, 5, 3, 1, 2),
+		list(1, 2, 5, 4, 2, 4, 5, 3),
+		list(5, 4, 3, 1, 5, 1, 2, 4),
+	)
 
 	var/no_effects = FALSE
 
@@ -67,23 +98,157 @@
 		set_fire_state(new_state)
 	return new_state != LIQUID_FIRE_STATE_NONE
 
-/// Sets the fire state, with flames and a light sized to it.
+/// Sets the fire state and its flames, and queues the tile's fire light block, which SSliquids lights.
 /obj/effect/abstract/liquid_turf/proc/set_fire_state(new_state)
 	fire_state = new_state
+	if(my_turf)
+		if(fire_state)
+			SSliquids.mark_fire_block(my_turf)
+		else
+			SSliquids.release_fire_light(src)
+	update_fire_visuals()
+
+/// Returns the fire art's tier for fire_state: "small", "medium" or "big", or null while the liquid isn't burning.
+/obj/effect/abstract/liquid_turf/proc/get_fire_tier()
 	switch(fire_state)
-		if(LIQUID_FIRE_STATE_NONE)
-			set_light(0)
-		if(LIQUID_FIRE_STATE_SMALL)
-			set_light(1.5, 0.5)
-		if(LIQUID_FIRE_STATE_MILD)
-			set_light(2, 0.75)
+		if(LIQUID_FIRE_STATE_SMALL, LIQUID_FIRE_STATE_MILD)
+			return "small"
 		if(LIQUID_FIRE_STATE_MEDIUM)
-			set_light(2.5, 1)
-		if(LIQUID_FIRE_STATE_HUGE)
-			set_light(LIGHT_RANGE_FIRE, 1.5)
-		if(LIQUID_FIRE_STATE_INFERNO)
-			set_light(4, LIGHT_POWER_FIRE)
-	update_icon(UPDATE_OVERLAYS)
+			return "medium"
+		if(LIQUID_FIRE_STATE_HUGE, LIQUID_FIRE_STATE_INFERNO)
+			return "big"
+
+/**
+ * Sets the light this liquid holds for its fire light block, and refreshes it only when something changed.
+ *
+ * Arguments:
+ * - range: The light's range.
+ * - power: The light's power.
+ * - light_x: Where the light sits, in tiles east of this tile.
+ * - light_y: Where the light sits, in tiles north of this tile.
+ */
+/obj/effect/abstract/liquid_turf/proc/set_fire_light(range, power, light_x, light_y)
+	if(light && light_range == range && light_power == power && fire_light_x == light_x && fire_light_y == light_y)
+		return
+	fire_light_x = light_x
+	fire_light_y = light_y
+	// set_light() ends in update_light(), the only call that makes the light read get_light_offset() again.
+	set_light(range, power)
+
+/obj/effect/abstract/liquid_turf/get_light_offset()
+	// A light sits at minus its offset.
+	return list(-fire_light_x, -fire_light_y)
+
+/// Returns this tile's fire loop, 1 to 5, from fire_loop_table.
+/obj/effect/abstract/liquid_turf/proc/get_fire_loop()
+	var/list/table_row = fire_loop_table[(y % 8) + 1]
+	return table_row[(x % 8) + 1]
+
+/**
+ * Shows this tile's fire as fire_state asks: lights it, swaps its tier, or puts it out.
+ *
+ * The flames, their emissive copy and the smoke are holders in vis_contents, so a tier change only swaps their
+ * icon_states and never rebuilds the liquid's overlays. Every looping state runs on one clock per client, so a
+ * swapped loop keeps time.
+ */
+/obj/effect/abstract/liquid_turf/proc/update_fire_visuals()
+	if(no_effects)
+		return
+	var/tier = get_fire_tier()
+	if(!tier)
+		clear_fire_visuals()
+		return
+	var/loop = get_fire_loop()
+	if(!fire_flames)
+		ignite_fire_visuals(tier, loop)
+		return
+	fire_flames.icon_state = "fire_[tier]_A[loop]"
+	fire_glow.icon_state = fire_flames.icon_state
+	if(fire_smoke)
+		fire_smoke.icon_state = "smoke_[tier]_A[loop]"
+
+/**
+ * Lights this tile's fire: makes the flames and their emissive copy, plays the ignite once on both, and starts the
+ * smoke when the ignite ends.
+ *
+ * The ignite is a flick, which the server times, so a client that first sees the tile mid-ignite sees the rest of it
+ * and then the loop. NEVER show the ignite through icon_state: each client would start it over at first sight.
+ *
+ * Arguments:
+ * - tier: The fire art's tier, from get_fire_tier().
+ * - loop: This tile's fire loop, from get_fire_loop().
+ */
+/obj/effect/abstract/liquid_turf/proc/ignite_fire_visuals(tier, loop)
+	PRIVATE_PROC(TRUE)
+
+	var/flame_state = "fire_[tier]_A[loop]"
+	// Holders come from SSliquids' pools, so a reused one gets every var a new one is given here.
+	fire_flames = SSliquids.take_fire_holder(SSliquids.fire_flame_pool)
+	SET_PLANE_EXPLICIT(fire_flames, GAME_PLANE, src)
+	fire_flames.icon_state = flame_state
+	fire_glow = SSliquids.take_fire_holder(SSliquids.fire_glow_pool)
+	// Its layer is the flames', so whatever draws over the flames also blocks their glow.
+	fire_glow.appearance = emissive_appearance(LIQUID_FIRE_DMI, flame_state, src, BELOW_MOB_LAYER, appearance_flags = RESET_ALPHA)
+	fire_glow.pixel_w = LIQUID_FIRE_PIXEL_OFFSET
+	fire_glow.pixel_z = LIQUID_FIRE_PIXEL_OFFSET
+	fire_glow.mouse_opacity = MOUSE_OPACITY_TRANSPARENT
+	set_fire_masks()
+	vis_contents += fire_flames
+	vis_contents += fire_glow
+	var/ignite_state = "ignite_[tier]_A[loop]"
+	flick(ignite_state, fire_flames)
+	flick(ignite_state, fire_glow)
+	addtimer(CALLBACK(src, PROC_REF(start_fire_smoke)), LIQUID_FIRE_IGNITE_TIME, TIMER_UNIQUE | TIMER_OVERRIDE)
+
+/// Adds the smoke over this tile's flames when their ignite ends, so no puff floats over flames still growing.
+/obj/effect/abstract/liquid_turf/proc/start_fire_smoke()
+	if(!fire_flames || fire_smoke)
+		return
+	fire_smoke = SSliquids.take_fire_holder(SSliquids.fire_smoke_pool)
+	SET_PLANE_EXPLICIT(fire_smoke, GAME_PLANE, src)
+	fire_smoke.layer = BELOW_MOB_LAYER + 0.01
+	fire_smoke.icon_state = "smoke_[get_fire_tier()]_A[get_fire_loop()]"
+	set_smoke_mask(smoothing_junction || NONE)
+	vis_contents += fire_smoke
+
+/// Clips this tile's flames and their copy by its junction's "flame-[junction]" mask, and its smoke by "smoke-[junction]".
+/obj/effect/abstract/liquid_turf/proc/set_fire_masks()
+	PRIVATE_PROC(TRUE)
+
+	var/junction = smoothing_junction || NONE
+	var/flame_mask = get_alpha_filter(LIQUID_MASKS_DMI, "flame-[junction]")
+	fire_flames.filters = flame_mask
+	fire_glow.filters = flame_mask
+	if(fire_smoke)
+		set_smoke_mask(junction)
+
+/**
+ * Clips this tile's smoke by its junction's "smoke-[junction]" mask.
+ *
+ * Arguments:
+ * - junction: This tile's smoothing junction, NONE for a lone puddle.
+ */
+/obj/effect/abstract/liquid_turf/proc/set_smoke_mask(junction)
+	PRIVATE_PROC(TRUE)
+
+	fire_smoke.filters = get_alpha_filter(LIQUID_MASKS_DMI, "smoke-[junction]")
+
+/// Takes this tile's fire holders off it and gives them back to SSliquids' pools.
+/obj/effect/abstract/liquid_turf/proc/clear_fire_visuals()
+	PRIVATE_PROC(TRUE)
+
+	if(fire_flames)
+		vis_contents -= fire_flames
+		SSliquids.keep_fire_holder(fire_flames, SSliquids.fire_flame_pool)
+		fire_flames = null
+	if(fire_glow)
+		vis_contents -= fire_glow
+		SSliquids.keep_fire_holder(fire_glow, SSliquids.fire_glow_pool)
+		fire_glow = null
+	if(fire_smoke)
+		vis_contents -= fire_smoke
+		SSliquids.keep_fire_holder(fire_smoke, SSliquids.fire_smoke_pool)
+		fire_smoke = null
 
 /**
  * Returns the fire state this liquid's mix supports.
@@ -181,8 +346,7 @@
 		my_turf.lgroup.dirty = TRUE
 		my_turf.lgroup.invalidate_cached_mix()
 	else
-		calculate_height()
-		set_reagent_color_for_liquid()
+		update_from_reagents()
 	// Step down now, so the smallest flames still show before the fuel is gone.
 	if(!check_fire())
 		SSliquids.processing_fire -= my_turf
@@ -218,8 +382,7 @@
 	else
 		has_cached_share = FALSE
 		SSliquids.evaporation_queue -= my_turf
-		calculate_height()
-		set_reagent_color_for_liquid()
+		update_from_reagents()
 
 /obj/effect/abstract/liquid_turf/forceMove(atom/destination, no_tp=FALSE, harderforce = FALSE)
 	if(harderforce)
@@ -256,26 +419,51 @@
 
 	. = list(make_liquid_overlay("stage[state]_bottom", ABOVE_MOB_LAYER, GAME_PLANE))
 
-	if(!has_top)
+	if(has_top)
+		. += make_liquid_overlay("stage[state]_top", TABLE_LAYER + 0.05, GAME_PLANE)
+
+	// Immutables don't scale their colour.
+	if(immutable)
 		return
+	// The bands draw in the mix itself: a matrix (a colour string can't go past 1) undoes the class factor color carries.
+	var/inverse = 1 / get_liquid_color_factor(surface_class)
+	for(var/mutable_appearance/band as anything in .)
+		band.color = list(inverse, 0, 0, 0, inverse, 0, 0, 0, inverse)
 
-	. += make_liquid_overlay("stage[state]_top", TABLE_LAYER + 0.05, GAME_PLANE)
-
-/obj/effect/abstract/liquid_turf/proc/set_new_liquid_state(new_state)
+/**
+ * Sets the pool's LIQUID_STATE_* depth.
+ *
+ * Arguments:
+ * - new_state: The new depth.
+ * - redraw: FALSE leaves the overlays for the caller to redraw.
+ */
+/obj/effect/abstract/liquid_turf/proc/set_new_liquid_state(new_state, redraw = TRUE)
 	liquid_state = new_state
 	if(!isnull(my_turf))
 		my_turf.liquids_change(new_state)
-	update_icon(UPDATE_OVERLAYS)
+	if(redraw)
+		update_icon(UPDATE_OVERLAYS)
 
 /*
  * LIQUID ART CONTRACT
  * Replacement art drops in by keeping these names, with no new plumbing:
- * - Floor layer: "[base_icon_state]-[junction]" bitmask smoothing states in liquid.dmi.
+ * - Base: "[base_icon_state]-[junction]" bitmask smoothing states in liquid.dmi, one light grey at full alpha.
  * - Depth: "stage[1-4]_bottom" and "stage[1-3]_top" in liquid_overlays.dmi, picked below from liquid_state.
- * - Both are grayscale at full alpha. Code tints them with color (the reagent mix) and sets alpha
- *   from depth and reagent_opacity in SSliquids.get_pool_alpha(), so the art bakes in neither.
- * - An opaque variant, if the art has one, keys off reagent_opacity (0 to 1), which every pool carries.
- * - "shine" and the fire states keep their own colour and alpha.
+ * - Code tints both with color (the reagent mix times the class's LIQUID_COLOR_FACTOR_*) and sets alpha from depth
+ *   and reagent_opacity in SSliquids.get_pool_alpha(), so the art bakes in neither. The depth overlays undo the
+ *   factor with a colour matrix, so they draw in the mix itself.
+ * - Surface, in liquid_surfaces.dmi, in its own colour and alpha over the base, by the pool's surface_class:
+ *   - one edge piece per tile, "<edge>-[junction]": lip (clear), opaque (opaque, blood), oil (oil, fuel), mirror, tar;
+ *   - up to two texture slices "<texture>_<row>_<column>", world-anchored (column = x % grid,
+ *     row = (grid - 1) - (y % grid)) and clipped to the base by an alpha filter: sheen_oil (oil), sheen_fuel under
+ *     "fuel_weight-[junction]" (fuel), mirror (mirror), tone (opaque, blood, tar) and the reagent's detail (grit,
+ *     chunks, bumps). A lone puddle (junction 0) takes a fixed sheen or mirror slice. make_surface_texture() holds
+ *     the grids and the lone slices.
+ * - Fire, in liquid_fire.dmi, untinted and at full alpha, as vis_contents holders (update_fire_visuals()): 48x48 at
+ *   LIQUID_FIRE_PIXEL_OFFSET, below mobs on the game plane. Flames "fire_<tier>_A<loop>" and their emissive copy are
+ *   clipped by "flame-[junction]", the smoke "smoke_<tier>_A<loop>" over them by "smoke-[junction]" (liquid_masks.dmi).
+ *   The tier is small, medium or big from fire_state, the loop 1 to 5 from fire_loop_table. A tile that catches flicks
+ *   the one-shot "ignite_<tier>_A<loop>" on the flames and their copy, and its smoke starts when the ignite ends.
  */
 /obj/effect/abstract/liquid_turf/update_overlays()
 	. = ..()
@@ -293,30 +481,100 @@
 		if(LIQUID_STATE_FULLTILE)
 			. += make_state_layer(4, has_top = FALSE)
 
-	var/mutable_appearance/shine = mutable_appearance(icon, "shine", offset_spokesman = src, alpha = 32, appearance_flags = RESET_COLOR|RESET_ALPHA)
-	shine.blend_mode = BLEND_ADD
-	. += shine
+	. += make_surface_overlays()
 
-	//Add a fire overlay too
+/// Returns this tile's surface overlays for its surface_class, in drawing order: the edge piece and the texture slices.
+/obj/effect/abstract/liquid_turf/proc/make_surface_overlays()
+	PRIVATE_PROC(TRUE)
 
-	if(fire_state == LIQUID_FIRE_STATE_NONE)
-		return
+	var/junction = smoothing_junction || NONE
+	switch(surface_class)
+		if(LIQUID_SURFACE_CLEAR)
+			return list(make_surface_piece("lip-[junction]"))
+		if(LIQUID_SURFACE_OIL)
+			return list(make_surface_piece("oil-[junction]"), make_surface_texture("sheen_oil", junction))
+		if(LIQUID_SURFACE_FUEL)
+			// Fuel takes oil's lit rim, and its sheen thins out toward the middle.
+			return list(make_surface_piece("oil-[junction]"), make_surface_texture("sheen_fuel", junction, "fuel_weight-[junction]"))
+		if(LIQUID_SURFACE_MIRROR)
+			// The reflection lies under the bead's rim.
+			return list(make_surface_texture("mirror", junction), make_surface_piece("mirror-[junction]"))
+		if(LIQUID_SURFACE_OPAQUE, LIQUID_SURFACE_BLOOD, LIQUID_SURFACE_TAR)
+			. = list(make_surface_piece("[surface_class == LIQUID_SURFACE_TAR ? "tar" : "opaque"]-[junction]"), make_surface_texture("tone", junction))
+			if(surface_detail)
+				. += make_surface_texture(surface_detail, junction)
 
-	var/fire_icon_state
-	switch(fire_state)
-		if(LIQUID_FIRE_STATE_SMALL)
-			fire_icon_state = "fire_small"
-		if(LIQUID_FIRE_STATE_MILD)
-			fire_icon_state = "fire_small"
-		if(LIQUID_FIRE_STATE_MEDIUM)
-			fire_icon_state = "fire_medium"
-		if(LIQUID_FIRE_STATE_HUGE)
-			fire_icon_state = "fire_big"
-		if(LIQUID_FIRE_STATE_INFERNO)
-			fire_icon_state = "fire_big"
+/// Returns a liquid_surfaces.dmi state as an overlay in its own colour and alpha.
+/obj/effect/abstract/liquid_turf/proc/make_surface_piece(piece_state)
+	PRIVATE_PROC(TRUE)
 
-	. += mutable_appearance(icon, fire_icon_state, BELOW_MOB_LAYER, src, GAME_PLANE, appearance_flags = RESET_COLOR|RESET_ALPHA)
-	. += emissive_appearance(icon, fire_icon_state, src, appearance_flags = RESET_ALPHA)
+	// Float plane and layer draw it with the liquid, plane offset included. On FLOOR_PLANE it would need a TOPDOWN layer.
+	return mutable_appearance(LIQUID_SURFACES_DMI, piece_state, FLOAT_LAYER, null, FLOAT_PLANE, 255, RESET_COLOR|RESET_ALPHA)
+
+/**
+ * Returns this tile's slice of a world-anchored surface texture, clipped to the pool by an alpha filter.
+ *
+ * Arguments:
+ * - texture: The slices' state prefix in liquid_surfaces.dmi.
+ * - junction: This tile's smoothing junction. A lone puddle (0) takes the texture's fixed slice, when it has one.
+ * - mask_state: A liquid_surfaces.dmi state to clip by. Null clips by this tile's base state.
+ */
+/obj/effect/abstract/liquid_turf/proc/make_surface_texture(texture, junction, mask_state)
+	PRIVATE_PROC(TRUE)
+
+	var/static/list/grids = list("sheen_oil" = 3, "sheen_fuel" = 6, "mirror" = 6, "tone" = 6, "bumps" = 3, "grit" = 3, "chunks" = 3)
+	// The (row, column) a lone puddle shows: its world slice could hold anything from no sheen to all sheen.
+	var/static/list/lone_slices = list("sheen_oil" = list(0, 1), "sheen_fuel" = list(5, 5), "mirror" = list(3, 2))
+	var/list/lone_slice = junction ? null : lone_slices[texture]
+	var/mutable_appearance/slice
+	if(lone_slice)
+		slice = make_surface_piece("[texture]_[lone_slice[1]]_[lone_slice[2]]")
+	else
+		var/grid = grids[texture]
+		slice = make_surface_piece("[texture]_[(grid - 1) - (y % grid)]_[x % grid]")
+	slice.filters = mask_state ? get_alpha_filter(LIQUID_SURFACES_DMI, mask_state) : get_alpha_filter(icon, "[base_icon_state]-[junction]")
+	return slice
+
+/**
+ * Returns the /icon of one icon state for an alpha mask filter, made once and shared.
+ *
+ * Every tile with the same junction then filters by the same icon, so their filters dedupe.
+ *
+ * Arguments:
+ * - icon_file: The DMI holding the mask.
+ * - mask_state: The mask's icon state.
+ */
+/obj/effect/abstract/liquid_turf/proc/get_alpha_mask(icon_file, mask_state)
+	var/static/list/masks = list()
+	var/key = "[mask_state]|\ref[icon_file]"
+	var/icon/mask = masks[key]
+	if(!mask)
+		mask = icon(icon_file, mask_state)
+		masks[key] = mask
+	return mask
+
+/**
+ * Returns an alpha filter by one icon state's mask from get_alpha_mask(), made once and shared.
+ *
+ * Arguments:
+ * - icon_file: The DMI holding the mask.
+ * - mask_state: The mask's icon state.
+ */
+/obj/effect/abstract/liquid_turf/proc/get_alpha_filter(icon_file, mask_state)
+	var/static/list/alpha_filters = list()
+	var/key = "[mask_state]|\ref[icon_file]"
+	. = alpha_filters[key]
+	if(!.)
+		. = filter(type = "alpha", icon = get_alpha_mask(icon_file, mask_state))
+		alpha_filters[key] = .
+
+/obj/effect/abstract/liquid_turf/set_smoothed_icon_state(new_junction)
+	. = ..()
+	// The edge piece, the texture clips and the fire masks follow the junction; before the first smoothing they drew 0.
+	if((. || NONE) != (new_junction || NONE))
+		update_icon(UPDATE_OVERLAYS)
+		if(fire_flames)
+			set_fire_masks()
 
 //Takes a flat of our reagents and returns it, possibly qdeling our liquids
 /obj/effect/abstract/liquid_turf/proc/take_reagents_flat(flat_amount)
@@ -373,30 +631,117 @@
 		if(check_fire(TRUE))
 			SSliquids.processing_fire[my_turf] = TRUE
 
-/// Tints the liquid to its reagent mix and sets its alpha from depth and opacity.
-/obj/effect/abstract/liquid_turf/proc/set_reagent_color_for_liquid()
-	color = mix_color_from_reagent_list(reagent_list)
+/**
+ * Tints the liquid to its reagent mix, sets its alpha from depth and opacity, and picks its surface.
+ *
+ * Arguments:
+ * - redraw: FALSE leaves a changed surface for the caller to redraw.
+ *
+ * Returns:
+ * - TRUE: The surface changed.
+ */
+/obj/effect/abstract/liquid_turf/proc/set_reagent_color_for_liquid(redraw = TRUE)
+	if(!reagent_list[/datum/reagent/blood])
+		blood_color = null
+	if(length(reagent_list) == 1 && !blood_color)
+		// One reagent mixes to its own colour at any volume, so its look comes from the per-type cache.
+		var/reagent_type = reagent_list[1]
+		var/volume = reagent_list[reagent_type]
+		if(volume > 0)
+			var/datum/liquid_reagent_look/look = get_liquid_reagent_look(reagent_type)
+			color = get_lone_liquid_color(reagent_type)
+			// The same sum mix_opacity_from_reagent_list() makes, to the last bit.
+			reagent_opacity = look.opacity * volume / volume
+			alpha = SSliquids.get_pool_alpha(liquid_state, reagent_opacity)
+			return set_surface(look.surface_class, look.surface_detail, redraw)
+	var/list/surface = get_liquid_surface(reagent_list)
+	color = scale_liquid_color(mix_liquid_color(reagent_list, blood_color), surface[1])
 	reagent_opacity = mix_opacity_from_reagent_list(reagent_list)
 	// Alpha after color: a colour with its own alpha, like water's, overwrites alpha too.
 	alpha = SSliquids.get_pool_alpha(liquid_state, reagent_opacity)
+	return set_surface(surface[1], surface[2], redraw)
 
-/obj/effect/abstract/liquid_turf/proc/calculate_height()
+/**
+ * Sets the pool's surface class and detail.
+ *
+ * Arguments:
+ * - new_class: A LIQUID_SURFACE_* define.
+ * - new_detail: The class's detail, or null.
+ * - redraw: FALSE leaves a change for the caller to redraw.
+ *
+ * Returns:
+ * - TRUE: Either changed.
+ */
+/obj/effect/abstract/liquid_turf/proc/set_surface(new_class, new_detail, redraw = TRUE)
+	if(surface_class == new_class && surface_detail == new_detail)
+		return FALSE
+	surface_class = new_class
+	surface_detail = new_detail
+	if(redraw)
+		update_icon(UPDATE_OVERLAYS)
+	return TRUE
+
+/**
+ * Works out this liquid's depth, colour, alpha and surface from reagent_list, and redraws its overlays once if its
+ * depth or surface changed.
+ *
+ * Arguments:
+ * - force_redraw: TRUE redraws even when neither changed, for a liquid that isn't drawn yet.
+ */
+/obj/effect/abstract/liquid_turf/proc/update_from_reagents(force_redraw = FALSE)
+	var/state_changed = calculate_height(FALSE)
+	if(set_reagent_color_for_liquid(FALSE) || state_changed || force_redraw)
+		update_icon(UPDATE_OVERLAYS)
+
+/**
+ * Blends blood coming into this liquid into blood_color, weighted by blood volume.
+ *
+ * Call it before the blood joins reagent_list, which must still hold the old blood volume.
+ *
+ * Arguments:
+ * - added_color: Colour of the blood coming in. Null counts as the blood reagent's own colour.
+ * - added_blood: Units of blood coming in.
+ */
+/obj/effect/abstract/liquid_turf/proc/blend_blood_color(added_color, added_blood)
+	if(added_blood <= 0)
+		return
+	var/list/blood_by_color = list()
+	blood_by_color[added_color || /datum/reagent/blood::color] = added_blood
+	var/old_blood = reagent_list[/datum/reagent/blood]
+	if(old_blood)
+		blood_by_color[blood_color || /datum/reagent/blood::color] += old_blood
+	blood_color = mix_colors_by_volume(blood_by_color)
+
+/**
+ * Sets the liquid's height from its volume, and its depth from that height.
+ *
+ * Arguments:
+ * - redraw: FALSE leaves a changed depth for the caller to redraw.
+ *
+ * Returns:
+ * - TRUE: The depth changed.
+ */
+/obj/effect/abstract/liquid_turf/proc/calculate_height(redraw = TRUE)
 	var/new_height = ceil(total_reagents)/LIQUID_HEIGHT_DIVISOR
 	set_height(new_height)
 	//We add the turf height if it's positive to state calculations
 	if(my_turf.turf_height > 0)
 		new_height += my_turf.turf_height
 	var/determined_new_state = get_liquid_state_for_height(new_height)
-	if(determined_new_state != liquid_state)
-		set_new_liquid_state(determined_new_state)
-		alpha = SSliquids.get_pool_alpha(liquid_state, reagent_opacity)
+	if(determined_new_state == liquid_state)
+		return FALSE
+	set_new_liquid_state(determined_new_state, redraw)
+	alpha = SSliquids.get_pool_alpha(liquid_state, reagent_opacity)
+	return TRUE
 
-/obj/effect/abstract/liquid_turf/immutable/calculate_height()
+/obj/effect/abstract/liquid_turf/immutable/calculate_height(redraw = TRUE)
 	var/new_height = ceil(total_reagents)/LIQUID_HEIGHT_DIVISOR
 	set_height(new_height)
 	var/determined_new_state = get_liquid_state_for_height(new_height)
-	if(determined_new_state != liquid_state)
-		set_new_liquid_state(determined_new_state)
+	if(determined_new_state == liquid_state)
+		return FALSE
+	set_new_liquid_state(determined_new_state, redraw)
+	return TRUE
 
 /// Returns the LIQUID_STATE_* depth for a liquid height, fractions included, from a puddle up to a full tile.
 /obj/effect/abstract/liquid_turf/proc/get_liquid_state_for_height(state_height)
@@ -424,7 +769,9 @@
 				))
 			playsound(my_turf, sound_to_play, 60, 0)
 		var/obj/splashy = new /obj/effect/temp_visual/liquid_splash(my_turf)
-		splashy.color = color
+		// The mix itself: color carries the base art's class factor.
+		splashy.color = mix_liquid_color(reagent_list, blood_color)
+		splashy.alpha = alpha
 		if(height >= LIQUID_WAIST_LEVEL_HEIGHT)
 			//Push things into some direction, like space wind
 			var/turf/dest_turf
@@ -509,7 +856,13 @@
 		else
 			to_chat(M, span_userdanger("You fall in the [reagents_to_text()]!"))
 
-/obj/effect/abstract/liquid_turf/Initialize(mapload)
+/**
+ * Hooks the liquid to its turf, draws it and queues its smoothing.
+ *
+ * Arguments:
+ * - draw_later: TRUE when the caller fills the new liquid and draws it once at the end; FALSE draws it now, empty.
+ */
+/obj/effect/abstract/liquid_turf/Initialize(mapload, draw_later = FALSE)
 	. = ..()
 	if(!SSliquids)
 		CRASH("Liquid Turf created with the liquids sybsystem not yet initialized!")
@@ -522,7 +875,8 @@
 
 		SEND_SIGNAL(my_turf, COMSIG_TURF_LIQUIDS_CREATION, src)
 
-	update_icon(UPDATE_OVERLAYS)
+	if(!draw_later)
+		update_icon(UPDATE_OVERLAYS)
 	if(z)
 		QUEUE_SMOOTH(src)
 		QUEUE_SMOOTH_NEIGHBORS(src)
@@ -541,9 +895,12 @@
 			SSliquids.evaporation_queue -= my_turf
 		if(SSliquids.processing_fire[my_turf])
 			SSliquids.processing_fire -= my_turf
+		clear_fire_visuals()
 		//Is added because it could invoke a change to neighboring liquids
 		SSliquids.add_active_turf(my_turf)
 		my_turf.liquids = null
+		if(fire_state)
+			SSliquids.release_fire_light(src)
 		my_turf = null
 		QUEUE_SMOOTH_NEIGHBORS(src)
 	else
@@ -577,9 +934,13 @@
 		SSliquids.processing_fire -= my_turf
 		SSliquids.processing_fire[NewT] = TRUE
 	my_turf.liquids = null
+	if(fire_state)
+		SSliquids.release_fire_light(src)
 	my_turf = NewT
 	NewT.liquids = src
 	loc = NewT
+	if(fire_state)
+		SSliquids.mark_fire_block(my_turf)
 	RegisterSignal(my_turf, COMSIG_ATOM_ENTERED, PROC_REF(movable_entered))
 	RegisterSignal(my_turf, COMSIG_TURF_MOB_FALL, PROC_REF(mob_fall))
 
@@ -665,6 +1026,21 @@
 	layer = FLY_LAYER
 	randomdir = FALSE
 
+/// One piece of a burning tile's fire in the liquid's vis_contents: the flames, their emissive copy or the smoke.
+/obj/effect/abstract/liquid_fire
+	name = "liquid fire"
+	icon = LIQUID_FIRE_DMI
+	anchored = TRUE
+	mouse_opacity = MOUSE_OPACITY_TRANSPARENT
+	layer = BELOW_MOB_LAYER
+	appearance_flags = RESET_COLOR | RESET_ALPHA
+	// An effect's generic blocker would black out the fire's own glow.
+	blocks_emissive = EMISSIVE_BLOCK_NONE
+	pixel_w = LIQUID_FIRE_PIXEL_OFFSET
+	pixel_z = LIQUID_FIRE_PIXEL_OFFSET
+	/// The world.time this holder last went back to an SSliquids pool. It isn't taken again in that tick.
+	var/released_at
+
 /obj/effect/abstract/liquid_turf/immutable
 	immutable = TRUE
 	var/list/starting_mixture = list(/datum/reagent/water = 600)
@@ -698,7 +1074,8 @@
 	starting_temp = T20C+20
 
 /obj/effect/abstract/liquid_turf/immutable/Initialize(mapload, plane_offset)
-	. = ..()
+	// Only mapload goes up: the parent's second argument is draw_later.
+	. = ..(mapload)
 	SET_PLANE_W_SCALAR(src, initial(plane), plane_offset)
 	reagent_list = starting_mixture.Copy()
 	total_reagents = 0
@@ -706,5 +1083,15 @@
 		total_reagents += reagent_list[key]
 	temp = starting_temp
 	calculate_height()
-	// Immutables keep the alpha their reagent colour carries; the ocean art is tuned for it.
-	color = mix_color_from_reagent_list(reagent_list)
+	color = mix_liquid_color(reagent_list)
+	// Alpha after color. Immutables take the alpha their reagents' colours carry; the ocean art is tuned for it.
+	var/alpha_volume = 0
+	for(var/reagent_type, volume in reagent_list)
+		var/datum/reagent/reagent_path = reagent_type
+		var/list/channels = rgb2num(initial(reagent_path.color))
+		alpha_volume += (length(channels) > 3 ? channels[4] : 255) * volume
+	alpha = round(alpha_volume / total_reagents, 1)
+
+#undef LIQUID_SURFACES_DMI
+#undef LIQUID_FIRE_DMI
+#undef LIQUID_MASKS_DMI
