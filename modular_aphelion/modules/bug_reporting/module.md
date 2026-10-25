@@ -6,10 +6,10 @@ Module ID: BUG_REPORTING
 
 **Report a bug** (`report-issue`, and the escape menu's Report Bug) opens the in-game report window when
 `USE_FANCY_BUG_REPORTING` is uncommented in `config/nova/config_nova.txt` and `BUG_REPORT_BRIDGE_URL` is the
-loopback reporting bridge, `http://127.0.0.1:18764`. Otherwise, and always for guests, it opens the GitHub
+loopback reporting bridge (`BUG_REPORT_BRIDGE_ORIGIN`). Otherwise, and always for guests, it opens the GitHub
 issue form as before. The flag ships commented out, and downstreams should leave it that way: the window
 needs a reporting host on the same machine and three private settings (`BUG_REPORT_BRIDGE_URL`,
-`BUG_REPORT_BRIDGE_TOKEN`, `BUG_REPORT_SERVER_ID`). **Recent bug reports** (OOC) reopens one of the last
+`BUG_REPORT_BRIDGE_TOKEN`, and `BUG_REPORT_SERVER_ID`, the name the host knows this server by). **Recent bug reports** (OOC) reopens one of the last
 20 started this session, and **Report a /tg/station bug** (OOC) opens /tg/station's GitHub form. The
 bridge, the reporting service and their limits are documented with the backend; this module is the
 game's side.
@@ -82,7 +82,7 @@ game's side.
 an XHR GET, which DreamSeeker 516 answers with a 404, so the message never arrived (tgui's act chunking
 exists because of it, and the topic limiter cuts chunked acts short). On a WebView2 client `Byond.call`
 now posts every URL through `postMessage`, as BYOND's own page API does, measured byte-identical to
-2.8 MB and in order (lab `runs/bug-reporting-20261022/hardening/ds-topic-probe`), and `act()` skips
+2.8 MB and in order, and `act()` skips
 its chunking there. A client without WebView2 keeps the old path and the chunking. Since a posted
 message can be any size, `tgui_Topic` drops one over 128 KiB before its JSON is decoded (the biggest
 honest one is about 72 KB) and tells the player, the chunk assembler drops a chunked act past the same

@@ -54,8 +54,8 @@ GLOBAL_LIST_EMPTY(bug_report_budgets)
 /datum/config_entry/string/bug_report_bridge_token
 	protection = CONFIG_ENTRY_HIDDEN
 
+/// The name the reporting host knows this server by, which every server sets in its own config
 /datum/config_entry/string/bug_report_server_id
-	default = "meridian-rift-main"
 
 /// The in-game report window and its reporting bridge, off unless a server sets it up (config/nova/config_nova.txt)
 /datum/config_entry/flag/use_fancy_bug_reporting
