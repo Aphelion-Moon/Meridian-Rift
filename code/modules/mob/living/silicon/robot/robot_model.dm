@@ -293,7 +293,7 @@
 		if(cyborg.hasExpanded && (((TRAIT_R_WIDE in details[SKIN_FEATURES]) && (TRAIT_R_WIDE in model_features)) || ((TRAIT_R_TALL in details[SKIN_FEATURES]) && (TRAIT_R_TALL in model_features))))
 			to_chat(cyborg, span_warning("You can't make yourself into a larger frame when you've already used an expander!"))
 			return FALSE
-		cyborg_customization_skin = borg_skin // APHELION EDIT ADDITION - CYBORG_CUSTOMIZATION
+		cyborg_customization_skin = borg_skin
 		// NOVA EDIT ADDITION END
 		if(!isnull(details[SKIN_ICON_STATE]))
 			cyborg_base_icon = details[SKIN_ICON_STATE]
