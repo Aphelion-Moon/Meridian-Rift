@@ -1216,9 +1216,12 @@
 		var/list/blank = filled.Copy()
 		blank[name] = text
 		report.status = null
+		// A refused send still waits out the second, since its text was checked
+		COOLDOWN_RESET(report, action_cooldown)
 		report.ui_act("submit", list("fields" = blank, "fieldsEpoch" = 0), ui)
 		TEST_ASSERT_EQUAL(report.status, "Some boxes are empty. Fill them in, then send it again.", "A send with an empty [name] didn't say why")
 	TEST_ASSERT_EQUAL(length(report.calls), 0, "A send with an empty box reached the bridge")
+	COOLDOWN_RESET(report, action_cooldown)
 	report.ui_act("submit", list("fields" = filled, "fieldsEpoch" = 0), ui)
 	TEST_ASSERT_EQUAL(length(report.calls), 1, "A send with every box filled didn't reach the bridge")
 	report.ui_act("submit", list("fields" = filled, "fieldsEpoch" = 0), ui)

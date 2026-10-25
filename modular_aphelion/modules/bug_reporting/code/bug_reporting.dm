@@ -26,6 +26,8 @@
 #define BUG_REPORT_UPLOADS_PER_HOUR 5
 /// In-game and window captures per ckey per hour, the service's own cap
 #define BUG_REPORT_CAPTURES_PER_HOUR 30
+/// Saves of changed text per ckey per hour, far past what sending a report needs, since every one is a call to the service
+#define BUG_REPORT_SAVES_PER_HOUR 60
 /// What the sent page says when the service turns down a look at its receipt or answers one we can't read, which the next poll asks for again
 #define BUG_REPORT_RECEIPT_REFUSED "Your report is sent, but the report server didn't say how it's doing. This window asks again within a minute."
 /// What the sent page says when the report server doesn't answer a look at its receipt, which the next poll asks for again
@@ -64,7 +66,7 @@ GLOBAL_LIST_EMPTY(bug_report_budgets)
  *
  * Arguments:
  * * ckey - whose allowance
- * * kind - accepted, submits, drafts, uploads or captures
+ * * kind - accepted, submits, drafts, uploads, captures or saves
  */
 /proc/bug_report_uses_left(ckey, kind)
 	var/static/list/caps = list(
@@ -73,6 +75,7 @@ GLOBAL_LIST_EMPTY(bug_report_budgets)
 		"drafts" = BUG_REPORT_DRAFTS_PER_HOUR,
 		"uploads" = BUG_REPORT_UPLOADS_PER_HOUR,
 		"captures" = BUG_REPORT_CAPTURES_PER_HOUR,
+		"saves" = BUG_REPORT_SAVES_PER_HOUR,
 	)
 	var/key = "[ckey]:[kind]"
 	var/list/uses = GLOB.bug_report_budgets[key]
@@ -89,7 +92,7 @@ GLOBAL_LIST_EMPTY(bug_report_budgets)
  * They live for the round, so a reconnect doesn't refill them.
  * Arguments:
  * * ckey - whose allowance
- * * kind - accepted, submits, drafts, uploads or captures
+ * * kind - accepted, submits, drafts, uploads, captures or saves
  * * spend - FALSE to only check
  */
 /proc/bug_report_budget(ckey, kind, spend = TRUE)
@@ -133,6 +136,10 @@ GLOBAL_LIST_EMPTY(bug_report_budgets)
 
 /// Opens this connection's report, starting a new one once the last was accepted
 /client/proc/open_bug_report()
+	// Every guest login is a new key with every allowance full again
+	if(is_guest_key(key))
+		to_chat(src, span_warning("Bug reports need a BYOND account. Log in with one to send a report."))
+		return
 	if(!bug_report_draft || bug_report_draft.result?["kind"] == "accepted")
 		new_bug_report()
 	bug_report_draft?.ui_interact(mob)
@@ -444,6 +451,9 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 		return FALSE
 	if(!fields_dirty)
 		return TRUE
+	// Submit and the pictures save first and can fail after, so saves get an allowance of their own
+	if(!take_allowance("saves"))
+		return FALSE
 	var/list/response = bridge_action("save", list("fields" = fields, "revision" = revision))
 	if(response?["revisionConflict"])
 		remote_draft = bridge_action("read")?["draft"]
@@ -565,7 +575,7 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
  *
  * Returns whether there was one.
  * Arguments:
- * * kind - accepted, submits, uploads or captures
+ * * kind - accepted, submits, uploads, captures or saves
  * * spend - FALSE to only check
  */
 /datum/bug_report/proc/take_allowance(kind, spend = TRUE)
@@ -577,6 +587,8 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 			status = "You've uploaded [BUG_REPORT_UPLOADS_PER_HOUR] of your own screenshots this hour, which is the limit. Captures still work."
 		if("captures")
 			status = "You've taken [BUG_REPORT_CAPTURES_PER_HOUR] captures this hour, which is the limit. You can take another in [DisplayTimeText(wait)]."
+		if("saves")
+			status = "You've changed and sent your text [BUG_REPORT_SAVES_PER_HOUR] times this hour, which is the limit. Your text is kept. Try again in [DisplayTimeText(wait)]."
 		else
 			hold_sending(kind == "accepted" ? "reports" : "sends", wait)
 	return FALSE
@@ -1003,15 +1015,15 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 		return
 	switch(action)
 		if("submit", "screenshot", "capture_ui", "capture_view", "keep")
+			// These reach the bridge or check every line of the text, so a page can't fire them faster than one a second
+			if(!COOLDOWN_FINISHED(src, action_cooldown))
+				return TRUE
+			COOLDOWN_START(src, action_cooldown, 1 SECONDS)
 			// Never take report ids, context or identity from the page, only its text and choices
 			if(!update_local_fields(params["fields"], params["fieldsEpoch"], action == "submit"))
 				return TRUE
 			if(action == "keep")
 				return resolve_draft(TRUE)
-			// These reach the bridge, so a page can't fire them faster than one a second
-			if(!COOLDOWN_FINISHED(src, action_cooldown))
-				return TRUE
-			COOLDOWN_START(src, action_cooldown, 1 SECONDS)
 			switch(action)
 				if("submit")
 					INVOKE_ASYNC(src, PROC_REF(submit_fields))
@@ -1064,5 +1076,6 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 #undef BUG_REPORT_DRAFTS_PER_HOUR
 #undef BUG_REPORT_UPLOADS_PER_HOUR
 #undef BUG_REPORT_CAPTURES_PER_HOUR
+#undef BUG_REPORT_SAVES_PER_HOUR
 #undef BUG_REPORT_RECEIPT_REFUSED
 #undef BUG_REPORT_RECEIPT_UNREACHABLE

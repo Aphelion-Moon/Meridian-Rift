@@ -30,11 +30,14 @@ reporting service and their limits are documented with the backend; this module 
   the window closes.
 - **Hourly allowances mirror the service**, per ckey for the round, so a reconnect doesn't refill them:
   5 accepted reports, 10 submissions with new text, 20 new reports (the service allows 30, and
-  refusing one there stalls everyone's registration), 5 uploads of your own screenshots and 30
-  captures. Acts that reach the bridge wait a second between them, Try again five, a picture's
-  preview and a window capture ten, and an in-game capture thirty.
+  refusing one there stalls everyone's registration), 5 uploads of your own screenshots (spent once
+  the file prompt gives one back), 30 captures and 60 saves of changed text. Acts that reach the
+  bridge or check the text wait a second between them, Try again five, a picture's preview and a
+  window capture ten, and an in-game capture thirty. Guests can't report, since every guest login
+  is a new key with every allowance full again.
 - **Pictures**, up to three a report (`BUG_REPORT_MAX_PICTURES`, the service's cap), each a tick box:
-  - **In-game capture**: the server develops the reporter's whole view the way the photo camera
+  - **In-game capture**: the server develops the reporter's view at its default size (a ghost's view
+    range would cost several times more) the way the photo camera
     does (`/obj/item/camera/bug_report`, through tg's `camera_get_icon`, which yields between turfs
     for it), one render at a time per connection and two across the server.
   - **A window**: a snapshot of one of the reporter's other open TGUI windows, never a report window,
@@ -76,7 +79,8 @@ now posts every URL through `postMessage`, as BYOND's own page API does, measure
 2.8 MB and in order (lab `runs/bug-reporting-20261022/hardening/ds-topic-probe`), and `act()` skips
 its chunking there. A client without WebView2 keeps the old path and the chunking. Since a posted
 message can be any size, `tgui_Topic` drops one over 128 KiB before its JSON is decoded (the biggest
-honest one is about 72 KB) and tells the player, and tgui-say counts a say's letters, not its bytes,
+honest one is about 72 KB) and tells the player, the chunk assembler drops a chunked act past the same
+128 KiB and checks its JSON first, and tgui-say counts a say's letters, not its bytes,
 now that a long say in another alphabet arrives whole.
 
 ### TG Proc/File Changes:
@@ -90,7 +94,7 @@ Edits to tg files keep their original code in `APHELION EDIT` comments.
 | `code/modules/client/client_procs.dm` | `AllowUpload` takes one report screenshot past the upload limit |
 | `code/modules/photography/camera/camera_image_capturing.dm` | `camera_get_icon` is protected, and can yield between turfs, for the in-game capture camera |
 | `code/modules/tgui/external.dm` | capture messages are bounded before their JSON is decoded, and any message over 128 KiB is dropped |
-| `code/modules/tgui/tgui_window.dm` | capture messages skip ui_act, and closing the window ends its capture |
+| `code/modules/tgui/tgui_window.dm` | capture messages skip ui_act, closing the window ends its capture, and a chunked act past 128 KiB or with broken JSON is dropped |
 | `code/modules/tgui_input/say_modal/speech.dm` | tgui-say counts letters, not bytes |
 | `tgui/packages/tgui/events/listeners.ts`, `handlers/suspense.ts` | capture messages, and a suspended window cancels its capture |
 | `tgui/packages/tgui-setup/helpers.js`, `tgui/public/helpers.min.js` | `Byond.call` posts every URL through WebView2's `postMessage` and sets `Byond.POST_MESSAGE`; the minified copy comes from the package's `build:helpers` |
