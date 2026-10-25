@@ -132,6 +132,24 @@ test('an unloaded part-range face stays in unless a face of its style, weight an
   expect(kept(faces, rules)).toEqual([true, true, true, false, true]);
 });
 
+test('a family that drew nothing leaves out its part-range faces too', () => {
+  const faces = [
+    face('Legacy', 'unloaded'),
+    face('Legacy', 'unloaded', 'normal', 'normal', 'U+F003'),
+    face('Legacy', 'unloaded', '700', 'normal', 'U+F041'),
+  ];
+  const rules = [
+    rule({ 'font-family': 'Legacy' }),
+    rule({ 'font-family': 'Legacy', 'unicode-range': 'U+F003' }),
+    rule({
+      'font-family': 'Legacy',
+      'font-weight': '700',
+      'unicode-range': 'U+F041',
+    }),
+  ];
+  expect(kept(faces, rules)).toEqual([false, false, false]);
+});
+
 test('without a FontFaceSet there is no filter', () => {
   expect(drawnFontFaces(undefined)).toBeNull();
 });

@@ -6,7 +6,7 @@ export interface Options {
      */
     copier?: StyleCopier | null;
     /**
-     * Meridian: which @font-face rules go in (without it, every rule for a family some clone names)
+     * Meridian: which @font-face rules go in, in place of the family walk (without it, every rule for a family some clone names)
      */
     fontFaces?: ((rule: CSSFontFaceRule) => boolean) | null;
     /**

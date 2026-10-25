@@ -173,11 +173,12 @@ function getUsedFonts(node) {
 }
 export async function getWebFontCSS(node, options) {
     const rules = await parseWebFontRules(node, options);
-    const usedFonts = getUsedFonts(node);
+    // Meridian: options.fontFaces picks the rules alone, so the family walk only runs without it
+    const usedFonts = options.fontFaces ? null : getUsedFonts(node);
     const cssTexts = await Promise.all(rules
-        .filter((rule) => usedFonts.has(normalizeFontFamily(rule.style.fontFamily)))
-        // Meridian: options.fontFaces leaves out the faces it knows drew nothing
-        .filter((rule) => !options.fontFaces || options.fontFaces(rule))
+        .filter((rule) => options.fontFaces
+        ? options.fontFaces(rule)
+        : usedFonts.has(normalizeFontFamily(rule.style.fontFamily)))
         .map((rule) => {
         const baseUrl = rule.parentStyleSheet
             ? rule.parentStyleSheet.href

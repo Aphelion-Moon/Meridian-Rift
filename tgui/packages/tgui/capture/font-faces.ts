@@ -12,6 +12,11 @@ export type FaceRule = { style: Pick<CSSStyleDeclaration, 'getPropertyValue'> };
 /** The unicode-range of a face whose rule leaves it out */
 const WHOLE_RANGE = 'U+0-10FFFF';
 
+/** A family name as a FontFace and its rule both read it, quotes and spaces off */
+function familyName(family: string) {
+  return family.trim().replace(/["']/g, '');
+}
+
 /** The descriptors besides unicode-range that pick a face, as one key that reads the same from a FontFace and its rule */
 function faceShape(
   family: string,
@@ -20,7 +25,7 @@ function faceShape(
   stretch: string,
 ) {
   return [
-    family.trim().replace(/["']/g, ''),
+    familyName(family),
     style || 'normal',
     weight || 'normal',
     stretch || 'normal',
@@ -28,12 +33,13 @@ function faceShape(
 }
 
 /**
- * Which @font-face rules a snapshot needs. The page loads a face only to draw a glyph with it, as a fallback too,
- * so a whole-range face it never loaded was picked by no text and the SVG draws the same without it. A part-range
+ * Which @font-face rules a snapshot needs, picked by what the page loaded rather than by the families its nodes name,
+ * so a face only a pseudo-element draws goes in too. The page loads a face only to draw a glyph with it, as a fallback
+ * too, so a whole-range face it never loaded was picked by no text and the SVG draws the same without it. A part-range
  * face is picked for its style, weight and stretch before its range is checked, so text outside its range falls
- * through to the next family without loading it, and without that face the SVG would pick another weight. So an
- * unloaded part-range face stays out only beside a drawn face of the same style, weight and stretch. A rule no face
- * answers goes in
+ * through to the next family without loading it, and without that face the SVG would pick another weight of the
+ * family. So an unloaded part-range face goes in only when its family drew with some other style, weight or stretch
+ * (a family that drew nothing was unused or fell through everywhere). A rule no face answers goes in
  */
 export function drawnFontFaces(
   faces: { forEach(callback: (face: DrawnFace) => void): void } | undefined,
@@ -42,6 +48,7 @@ export function drawnFontFaces(
   const known = new Set<string>();
   const drawn = new Set<string>();
   const drawnShapes = new Set<string>();
+  const drawnFamilies = new Set<string>();
   faces.forEach((face) => {
     const shape = faceShape(face.family, face.style, face.weight, face.stretch);
     const key = `${shape}|${face.unicodeRange || WHOLE_RANGE}`;
@@ -49,11 +56,13 @@ export function drawnFontFaces(
     if (face.status === 'unloaded') return;
     drawn.add(key);
     drawnShapes.add(shape);
+    drawnFamilies.add(familyName(face.family));
   });
   return (rule) => {
     const read = (name: string) => rule.style.getPropertyValue(name);
+    const family = read('font-family');
     const shape = faceShape(
-      read('font-family'),
+      family,
       read('font-style'),
       read('font-weight'),
       read('font-stretch'),
@@ -63,7 +72,9 @@ export function drawnFontFaces(
     return (
       drawn.has(key) ||
       !known.has(key) ||
-      (range !== WHOLE_RANGE && !drawnShapes.has(shape))
+      (range !== WHOLE_RANGE &&
+        drawnFamilies.has(familyName(family)) &&
+        !drawnShapes.has(shape))
     );
   };
 }

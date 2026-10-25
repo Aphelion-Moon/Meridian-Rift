@@ -100,7 +100,7 @@ export async function renderUiSnapshot(
     pixelRatio: 1,
     includeStyleProperties: names,
     copier,
-    // The page loads a face only to draw with it, so we leave out the faces it never loaded, about 90K characters.
+    // The page loads a face only to draw with it, so the faces it loaded are the ones we embed, pseudo-elements' too.
     // This reads their statuses, so it stays right after the layout getBoundingClientRect forced above, as taking
     // off a sheet with @font-face makes every CSS face a new unloaded one until the next layout
     fontFaces: drawnFontFaces(document.fonts),
