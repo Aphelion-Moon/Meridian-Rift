@@ -30,9 +30,11 @@
 
 /// Rebuilds the gallery's files when the catalog changed - its model list and each department's thumbnails. A failed build keeps the old files and throws to everyone waiting
 /datum/asset/cyborg_model_gallery/proc/build_catalog(list/source_catalog)
-	ensure_ready()
-	if(catalog == source_catalog)
+	UNTIL(!generating)
+	if(catalog == source_catalog && !generation_failure)
 		return
+	// A failed build is retried, so one transient failure does not break the gallery for the round
+	generation_failure = null
 	generating = TRUE
 	var/list/completed_assets = list()
 	var/list/completed_departments = list()

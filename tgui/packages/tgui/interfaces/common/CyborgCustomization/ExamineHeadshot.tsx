@@ -41,6 +41,7 @@ export function ExamineHeadshot(props: { headshot: string }) {
       {displayedHeadshot && (
         <img
           src={resolveAsset(displayedHeadshot)}
+          alt={`${headshotIndex} headshot`}
           height="250px"
           width="250px"
         />

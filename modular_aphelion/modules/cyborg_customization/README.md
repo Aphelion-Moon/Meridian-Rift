@@ -9,7 +9,7 @@ Cyborg customization adds a character-setup page, shared RoboTact and interactio
 | Layout schema, normalization, and import migration | `code/layout_schema.dm`, `code/persistence.dm`; native preference import sanitation |
 | Editor draft and request lifetime | `code/middleware.dm`; the middleware owns a slot-bound draft and guards work with `context_generation` and `draft_revision` |
 | Durable layout write | `code/persistence.dm`, `code/save_queue.dm`; the `cyborg_customization.json` sidecar beside `preferences.json`, written by `SScyborg_layout_saves` |
-| Model catalog and preview | `code/model_catalog.dm`, `code/preview.dm`; `CyborgCharacterPage.tsx` |
+| Model catalog and preview | `code/model_catalog.dm`, `code/preview.dm`; `CharacterEditor.tsx`, `ModelPicker.tsx`, `CyborgPreview.tsx` |
 | Live appearance and geometry | `code/appearance.dm`, `code/rendering.dm`; a per-owner image holder uses shared static resources |
 | Applying preferences to a body | `transfer_silicon_prefs()`, beside the brain, emote, blooper and chat-color preferences |
 | Accessory data | `code/accessories.dm`; cyborg-only standard and direct accessory catalogs |

@@ -281,8 +281,6 @@
 		if(!istype(self, /mob/living/silicon/robot) || ui.user != self)
 			return FALSE
 		var/mob/living/silicon/robot/robot_self = self
-		if(!cyborg_runtime_actor_is_owner(robot_self, ui.user, params["character_slot"]))
-			return FALSE
 		return robot_self.cyborg_runtime_action(params, ui.user)
 
 	if(action == "toggle_subtler")
