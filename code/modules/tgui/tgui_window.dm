@@ -416,22 +416,24 @@
 	if(!payload)
 		return
 	var/list/chunks = payload["chunks"]
-	chunks += chunk
 	// APHELION EDIT ADDITION START - BYOND_POST_MESSAGE
-	// Only a client that can't post sends chunks, so its act gets the bound a posted one does before we hold or decode it
+	// Only a client that can't post sends chunks, so its act gets the bound a posted one does before we hold or decode it.
+	// A chunk that isn't text is never honest, and a list's length counts its items, not what it carries
 	payload["length"] += length(chunk)
-	if(payload["length"] > TGUI_MAX_PAYLOAD_BYTES)
+	if(!istext(chunk) || payload["length"] > TGUI_MAX_PAYLOAD_BYTES)
 		deltimer(payload["timeout"])
 		remove_oversized_payload(payload_id)
 		return
 	// APHELION EDIT ADDITION END
+	chunks += chunk
 	if(length(chunks) >= payload["count"])
 		deltimer(payload["timeout"])
 		var/message_type = payload["type"]
 		var/final_payload = chunks.Join()
 		remove_oversized_payload(payload_id)
 		// APHELION EDIT ADDITION START - BYOND_POST_MESSAGE
-		if(!rustg_json_is_valid(final_payload))
+		// tgui only ever chunks acts, so any other type or broken JSON came from a hand-made client
+		if(!istext(message_type) || copytext(message_type, 1, 5) != "act/" || !rustg_json_is_valid(final_payload))
 			return
 		// APHELION EDIT ADDITION END
 		on_message(message_type, json_decode(final_payload), list("type" = message_type, "payload" = final_payload, "tgui" = TRUE, "window_id" = id))
