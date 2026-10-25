@@ -249,8 +249,9 @@ SAVEFILE_UPLOAD_LIMIT 2000
 ## and Report a bug opens your GitHub issue form as before.
 #USE_FANCY_BUG_REPORTING
 
-## Where the reporting host listens on this machine. It must be this loopback address.
-#BUG_REPORT_BRIDGE_URL http://127.0.0.1:18764
+## Where the reporting host listens on this machine: 127.0.0.1 and the port your host is set to. Any other address
+## is refused.
+#BUG_REPORT_BRIDGE_URL http://127.0.0.1:<port>
 
 ## The shared secret the reporting host checks on every call from the game. Set it only in your server's own
 ## config, never in the repo.

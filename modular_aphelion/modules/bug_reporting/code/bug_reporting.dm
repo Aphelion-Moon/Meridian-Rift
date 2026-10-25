@@ -1,7 +1,3 @@
-/// The only bridge we ever talk to. A test build defines its own fixture origin before this file
-#ifndef BUG_REPORT_BRIDGE_ORIGIN
-#define BUG_REPORT_BRIDGE_ORIGIN "http://127.0.0.1:18764"
-#endif
 /// Longest title the reporting service takes
 #define BUG_REPORT_TITLE_MAX 160
 /// Longest expected or reproduction text the reporting service takes
@@ -60,9 +56,18 @@ GLOBAL_LIST_EMPTY(bug_report_budgets)
 /// The in-game report window and its reporting bridge, off unless a server sets it up (config/nova/config_nova.txt)
 /datum/config_entry/flag/use_fancy_bug_reporting
 
+/// Returns the configured bridge address when it's a loopback one on this machine, the only kind we ever talk to, otherwise null
+/proc/bug_report_bridge_origin()
+	var/static/regex/loopback = regex(@"^http://127\.0\.0\.1:([0-9]{1,5})$")
+	var/url = CONFIG_GET(string/bug_report_bridge_url)
+	if(!istext(url) || !loopback.Find(url))
+		return null
+	var/port = text2num(loopback.group[1])
+	return (port >= 1 && port <= 65535) ? url : null
+
 /// Whether reports go to the reporting bridge, which only ever means the one on this machine
 /proc/bug_reports_enabled()
-	return CONFIG_GET(flag/use_fancy_bug_reporting) && CONFIG_GET(string/bug_report_bridge_url) == BUG_REPORT_BRIDGE_ORIGIN
+	return CONFIG_GET(flag/use_fancy_bug_reporting) && bug_report_bridge_origin()
 
 /**
  * Counts what's left of a ckey's hourly allowance of one kind, forgetting uses over an hour old.
@@ -322,6 +327,7 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 	if(!bug_reports_enabled())
 		status = "Bug reports aren't set up on this server right now. Your text is kept."
 		return
+	var/origin = bug_report_bridge_origin()
 	UNTIL(!valid_owner() || (!requesting && GLOB.bug_report_requests < BUG_REPORT_MAX_REQUESTS))
 	// Another request of this report may have been turned down while we waited, and only our own answer counts
 	refused = FALSE
@@ -334,7 +340,7 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 		request_headers += headers
 	var/datum/http_request/bug_report/request = new
 	request.body_file = body_file
-	request.prepare(RUSTG_HTTP_METHOD_POST, "[BUG_REPORT_BRIDGE_ORIGIN]/game/[route]", body, request_headers, output_file, timeout)
+	request.prepare(RUSTG_HTTP_METHOD_POST, "[origin]/game/[route]", body, request_headers, output_file, timeout)
 	try
 		request.begin_async()
 	catch
@@ -1073,7 +1079,6 @@ GAME_VERB_DESC(/client, report_upstream_issue, "Report a /tg/station bug", "Open
 			if(istext(issue_url) && findtextEx(issue_url, "https://github.com/") == 1)
 				DIRECT_OUTPUT(owner, link(issue_url))
 
-#undef BUG_REPORT_BRIDGE_ORIGIN
 #undef BUG_REPORT_TITLE_MAX
 #undef BUG_REPORT_TEXT_MAX
 #undef BUG_REPORT_STEPS_MAX

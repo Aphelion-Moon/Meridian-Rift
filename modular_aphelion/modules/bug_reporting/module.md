@@ -6,7 +6,7 @@ Module ID: BUG_REPORTING
 
 **Report a bug** (`report-issue`, and the escape menu's Report Bug) opens the in-game report window when
 `USE_FANCY_BUG_REPORTING` is uncommented in `config/nova/config_nova.txt` and `BUG_REPORT_BRIDGE_URL` is the
-loopback reporting bridge (`BUG_REPORT_BRIDGE_ORIGIN`). Otherwise, and always for guests, it opens the GitHub
+reporting host's loopback address, `http://127.0.0.1:<port>`. Otherwise, and always for guests, it opens the GitHub
 issue form as before. The flag ships commented out, and downstreams should leave it that way: the window
 needs a reporting host on the same machine and three private settings (`BUG_REPORT_BRIDGE_URL`,
 `BUG_REPORT_BRIDGE_TOKEN`, and `BUG_REPORT_SERVER_ID`, the name the host knows this server by). **Recent bug reports** (OOC) reopens one of the last
