@@ -7349,6 +7349,7 @@
 #include "modular_aphelion\master_files\code\game\objects\items\plushes.dm"
 #include "modular_aphelion\master_files\code\game\objects\structures\signs\signs_misc.dm"
 #include "modular_aphelion\master_files\code\modules\admin\admin.dm"
+#include "modular_aphelion\master_files\code\modules\clothing\under\akula_jobs.dm"
 #include "modular_aphelion\master_files\code\modules\power\lighting\light_items.dm"
 #include "modular_aphelion\master_files\code\modules\research\techweb\techweb_types.dm"
 #include "modular_aphelion\master_files\code\modules\surgery\surgery_tools.dm"
