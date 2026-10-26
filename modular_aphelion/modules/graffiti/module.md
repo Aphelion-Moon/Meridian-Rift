@@ -157,8 +157,10 @@ graffiti too, over their own pixels only, for the round.
   ends. Each step counts against the painter's `GRAFFITI_COMPOSITE_BUDGET` as a freehand composite does, though only
   freehand composites slow down once it is spent, and waits, as they do, while every painter's composites together leave
   no room (`GRAFFITI_COMPOSITE_SHARE`).
-- Finishing charges the can once, never refused, and gives each decal `/datum/element/art` (`GOOD_ART`) once and the
-  painter's hidden print, and the painter the Tagging Up Turf achievement. Stopping early keeps the paint revealed so far and puts the piece in the Unfinished slot with
+- The can is charged once, never refused, as the piece's paint first shows (`charge()`), so a job stopped short of its
+  last strip pays too and the job resuming it doesn't pay again. Finishing gives each decal `/datum/element/art`
+  (`GOOD_ART`) once and the painter's hidden print, and the painter the Tagging Up Turf achievement. Stopping early keeps
+  the paint revealed so far and puts the piece in the Unfinished slot with
   where to resume it: on the same map and tile, while that paint is still there, and a click on another surface is then
   refused (see Arming). Once that paint is gone it starts over wherever it is clicked. A job stopped by a pane loosened
   under it drops the paint it revealed for good, both halves of a two-tile piece, and its piece goes in the slot with

@@ -149,9 +149,9 @@
 
 /**
  * A spray can painting a saved piece onto a wall, a floor or a full-tile window over time: a do_after while each layer
- * appears in turn from the bottom, left to right in strips, the surface recomposited at each step. Finishing charges
- * the can once. Stopping leaves the paint revealed so far, and puts the piece in the painter's Unfinished slot, ready
- * to resume on that surface, unless a pane loosened under it, which drops the piece's paint whole.
+ * appears in turn from the bottom, left to right in strips, the surface recomposited at each step. The can is charged
+ * once, as the piece's paint first shows. Stopping leaves the paint revealed so far, and puts the piece in the painter's
+ * Unfinished slot, ready to resume on that surface, unless a pane loosened under it, which drops the piece's paint whole.
  *
  * The steps are costly work that SScustom_sprite_work runs within its overrun budget, as it runs the editors' composites,
  * so under load they come late rather than at their time; the finish shows the whole piece when the do_after ends.
@@ -182,9 +182,12 @@
 	var/list/layer_records
 	/// When the last spray sound ends.
 	COOLDOWN_DECLARE(spray_cooldown)
+	/// Whether the can has paid for the piece: once its paint has shown, this job's or the stopped job's it resumes.
+	var/paid = FALSE
 
 /**
- * Sets a job up, continuing a stopped one where `resume` is for this surface and the paint it left is still there.
+ * Sets a job up, continuing a stopped one where `resume` is for this surface and the paint it left is still there,
+ * which paid for the piece.
  *
  * The job takes GRAFFITI_REVEAL_BASE plus GRAFFITI_REVEAL_PER_PIXEL for each painted pixel, half that for taggers, at the
  * painter's action speed as its do_after does. Its steps come about every GRAFFITI_REVEAL_MIN_STEP at most, a quick piece
@@ -229,6 +232,7 @@
 		if(kept)
 			placement = kept[1]
 			placement2 = kept[2]
+			paid = TRUE
 		else
 			progress = 0
 	reveal = list("progress" = progress, "due" = progress, "total" = total, "per_step" = count, "delay" = time / CEILING(total / count, 1), "duration" = duration * (total - progress) / total)
@@ -365,15 +369,16 @@
 	return TRUE
 
 /**
- * Completes the job: the whole piece on the surface, the can charged once, never refused, each tile's graffiti counted
- * as the painter's art and the painter given the graffiti achievement. A piece painted from the Unfinished slot leaves it.
+ * Completes the job: the whole piece on the surface, the can charged unless it has paid (charge()), each tile's
+ * graffiti counted as the painter's art and the painter given the graffiti achievement. A piece painted from the
+ * Unfinished slot leaves it.
  */
 /datum/graffiti_paint_job/proc/finish()
 	reveal["progress"] = reveal["total"]
 	if(!paint(reveal["total"]))
 		interrupt()
 		return
-	can.use_charges(user, GRAFFITI_COST * (HAS_TRAIT(user, TRAIT_TAGGER) ? 0.5 : 1), FALSE)
+	charge()
 	log_game("[key_name(user)] painted graffiti piece [piece_id] at [AREACOORD(surface)]")
 	credit_surface()
 	user.client?.give_award(/datum/award/achievement/misc/custom_graffiti_painted, user)
@@ -386,6 +391,13 @@
 			can.graffiti_armed = null
 	release_surface()
 	qdel(src)
+
+/// Charges the can for the piece once, never refused, as its paint first shows, so a job stopped short of its last strip pays too.
+/datum/graffiti_paint_job/proc/charge()
+	if(paid)
+		return
+	paid = TRUE
+	can.use_charges(user, GRAFFITI_COST * (HAS_TRAIT(user, TRAIT_TAGGER) ? 0.5 : 1), FALSE)
 
 /// Marks each tile the finished piece is on as the painter's work (graffiti_credit_painter()).
 /datum/graffiti_paint_job/proc/credit_surface()
@@ -439,8 +451,9 @@
 /**
  * Shows the piece on its tiles as far as `progress` reveals it: new art for each tile's placement, or, once a tile's art
  * has paint, a new placement on top of its stack. Its time counts against every painter's composites
- * (SSgraffiti's spend_composite()). The halves of a two-tile piece share one placement id. A step whose
- * paint took the painter's own oldest pieces past their caps says so once, even one that stops the job.
+ * (SSgraffiti's spend_composite()). The halves of a two-tile piece share one placement id. The first step whose paint
+ * shows charges the can (charge()). A step whose paint took the painter's own oldest pieces past their caps says so
+ * once, even one that stops the job.
  *
  * Arguments:
  * - progress: Strips revealed, at least 1.
@@ -479,6 +492,8 @@
 		else
 			placement2 = packed
 	SSgraffiti.spend_composite(started)
+	if(placement || placement2)
+		charge()
 	// The first half's evictions stand even when the second half stops the job.
 	if(length(evicted))
 		surface.balloon_alert(user, "your oldest graffiti made room!")

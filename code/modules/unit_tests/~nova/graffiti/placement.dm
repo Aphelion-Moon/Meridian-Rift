@@ -1,9 +1,10 @@
 /**
  * A paint job places nothing while its steps reveal no paint, then shows layer 1 from the left a few strips a step. A
  * step waits in SScustom_sprite_work's queue while its overrun budget is spent, or every painter's composite share, and
- * steps that came meanwhile land together. The last strip waits for the finish, which charges the can GRAFFITI_COST,
- * half that for a tagger. A slowed painter's steps spread over their slower do_after. The job is driven step by step: a
- * test human's do_after ends at once, so start() would finish it.
+ * steps that came meanwhile land together. The first step to show paint charges the can GRAFFITI_COST, half that for a
+ * tagger, and the last strip waits for the finish, which charges nothing more. A slowed painter's steps spread over
+ * their slower do_after. The job is driven step by step: a test human's do_after ends at once, so start() would finish
+ * it.
  */
 /datum/unit_test/graffiti_paint_job_steps/Run()
 	graffiti_editor_test_begin()
@@ -45,6 +46,7 @@
 	SScustom_sprite_work.queue = queued + SScustom_sprite_work.queue
 	SScustom_sprite_work.overrun_budget = budget
 	TEST_ASSERT(waited && shared && landed, "With the overrun budget spent, and then every painter's composite share, a step must wait in SScustom_sprite_work's queue and land once both are back: waited [waited] and [shared], landed [landed].")
+	TEST_ASSERT_EQUAL(can.charges_left, charges - GRAFFITI_COST, "The first step to show paint must charge the can.")
 	var/list/art = SSgraffiti.art[SSgraffiti.unpack(job.placement)["art"]]
 	TEST_ASSERT_EQUAL(graffiti_art_hash(art), graffiti_art_hash(graffiti_flatten(piece, 1, 4 * GRAFFITI_REVEAL_STRIP)), "Two steps must show layer 1's first four strips.")
 	TEST_ASSERT_EQUAL(graffiti_art_pixels(art), 1, "Two steps must show only layer 1's pixel in column 10.")
@@ -76,8 +78,9 @@
 
 /**
  * A paint job stopped partway, here by a step whose paint the map has no room for, keeps its piece, progress and
- * placement in the Unfinished slot, its paint showing as far as the map took it. Resumed on the same wall it goes on from
- * that strip and finishes in the same stack entry, which empties the slot; on another wall it starts over.
+ * placement in the Unfinished slot, its paint showing as far as the map took it, and the can pays for that paint.
+ * Resumed on the same wall it goes on from that strip and finishes in the same stack entry without paying again, which
+ * empties the slot; on another wall it starts over.
  */
 /datum/unit_test/graffiti_paint_job_resume/Run()
 	graffiti_editor_test_begin()
@@ -86,6 +89,7 @@
 	var/list/held = graffiti_editor_test_painter(src, turfs[1])
 	var/mob/living/carbon/human/consistent/painter = held[1]
 	var/obj/item/toy/crayon/spraycan/can = held[2]
+	var/charges = can.charges_left
 	// One layer of eight strips with paint in the first and the third, slow enough that a step reveals one strip.
 	var/list/piece = graffiti_validate_piece(list("format" = GRAFFITI_FORMAT, "version" = GRAFFITI_FORMAT_VERSION, "name" = "Resume", "description" = "", "width" = GRAFFITI_WIDTH, "palette" = list("#ff0000"), "layers" = list(
 		list("name" = "Base", "glow" = FALSE, "grid" = custom_sprite_encode_grid("1[repeat_string(8, "0")]1[repeat_string(1014, "0")]", 1, 1024)),
@@ -103,6 +107,7 @@
 	SSgraffiti.art_byte_budget = GRAFFITI_MAP_ART_BYTES
 	var/obj/effect/decal/cleanable/crayon/custom/decal = graffiti_tile_decal(turfs[1])
 	TEST_ASSERT(QDELETED(job) && length(decal?.stack) == 1 && SSgraffiti.art_of(decal.stack[1]) == shown_hash, "A step the map has no room for must stop the job, leaving the paint shown so far on the wall.")
+	TEST_ASSERT_EQUAL(can.charges_left, charges - GRAFFITI_COST, "A job stopped short must still pay for the paint it showed.")
 	var/datum/graffiti_library/library = graffiti_library(painter.ckey)
 	var/list/resume = library.unfinished?["resume"]
 	TEST_ASSERT(resume?["progress"] == 3 && resume["pid"] == SSgraffiti.unpack(decal.stack[1])["pid"], "A stopped job must keep its progress and placement in the Unfinished slot: [json_encode(resume)]")
@@ -114,6 +119,7 @@
 	// A test human's do_after ends at once, so the job finishes as it starts.
 	TEST_ASSERT(job.start() && QDELETED(job), "The resumed job must start and finish.")
 	TEST_ASSERT(length(decal.stack) == 1 && graffiti_art_pixels(SSgraffiti.art[SSgraffiti.unpack(decal.stack[1])["art"]]) == 2, "The resumed job must finish in the same stack entry.")
+	TEST_ASSERT_EQUAL(can.charges_left, charges - GRAFFITI_COST, "Finishing a resumed job must not charge the can again.")
 	TEST_ASSERT_NULL(library.unfinished, "Finishing the Unfinished slot's piece must empty the slot.")
 
 /**

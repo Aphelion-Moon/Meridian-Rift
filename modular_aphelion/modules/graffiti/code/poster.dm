@@ -472,7 +472,7 @@
 
 /**
  * Shows the piece over the poster's graffiti as far as `progress` reveals it. Its time counts against every painter's
- * composites (SSgraffiti's spend_composite()).
+ * composites (SSgraffiti's spend_composite()), and the first step whose paint shows charges the can (charge()).
  *
  * Arguments:
  * - progress: Strips revealed, at least 1.
@@ -486,8 +486,10 @@
 	var/started = TICK_USAGE_REAL
 	var/list/records = list()
 	var/list/arts = tile_arts(progress, records)
-	poster.graffiti_paint(src, arts[1], records[1])
+	var/shows = poster.graffiti_paint(src, arts[1], records[1])
 	SSgraffiti.spend_composite(started)
+	if(shows)
+		charge()
 	return TRUE
 
 /// Marks the poster as the painter's work.
