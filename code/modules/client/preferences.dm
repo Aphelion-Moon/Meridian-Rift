@@ -165,6 +165,14 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	if(SSearly_assets.initialized != INITIALIZATION_INNEW_REGULAR)
 		return
 
+	// APHELION EDIT ADDITION START - Whitelist gate. Only a fresh open may sleep on it; ui_status covers SStgui's refreshes.
+	if(!ui && isnewplayer(user))
+		var/mob/dead/new_player/lobby = user
+		if(lobby.symphony_blocks_play())
+			lobby.symphony_gate_notice()
+			return
+
+	// APHELION EDIT ADDITION END
 	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
 		tainted_character_profiles = TRUE
@@ -180,6 +188,11 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 // Without this, a hacker would be able to edit other people's preferences if
 // they had the ref to Topic to.
 /datum/preferences/ui_status(mob/user, datum/ui_state/state)
+	// APHELION EDIT ADDITION START - Close setup on a cached whitelist denial, such as a revoke while it is open.
+	var/mob/dead/new_player/lobby = user
+	if(istype(lobby) && lobby.symphony_blocks_play_cached())
+		return UI_CLOSE
+	// APHELION EDIT ADDITION END
 	return user.client == parent ? UI_INTERACTIVE : UI_CLOSE
 
 /datum/preferences/ui_data(mob/user)
