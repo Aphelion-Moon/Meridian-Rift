@@ -1,0 +1,6 @@
+author: "IsBannedFromArgo"
+delete-after: True
+changes:
+  - qol: "Converted most of the Chokers/Collars into reskinnable items: 'Choker', 'Tagged Collar', and 'Tagged Leather Collar'. ('Leather Collar' and 'Spiked Collar' are still unique not-reskinnable items.)"
+  - rscdel: "Removed most Choker/Collar variants in favor of now being reskinnable. Pre-equip the variant of your choice in the Loadout, or reskin it in-game with alt-click!"
+  - image: "resprited the Spiked Collar to match the other collars better, and touched up the other collars to fit the neck better and stay more consistent while rotating"
