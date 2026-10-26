@@ -9,6 +9,7 @@ import type { BooleanLike } from 'tgui-core/react';
 import {
   applyContentSize,
   FIT_TOLERANCE,
+  measureIconNotice,
   measureWindowContent,
   type WindowSize,
 } from './windowSizing';
@@ -62,6 +63,8 @@ export function useWindowSizing(interfaceName: string, suspended: unknown) {
     let generation = 0;
     let windowCancelled = () => false;
     let blocked = [false, false];
+    let noticeReserve = 0;
+    let noticeGrowth = 0;
     let frame: number | undefined;
     let fitting: Promise<void> | undefined;
     let pendingGeometry: WindowSize | undefined;
@@ -91,6 +94,40 @@ export function useWindowSizing(interfaceName: string, suspended: unknown) {
     }
 
     async function fit(cancelled: () => boolean, allowShrink = false) {
+      // The icon notice takes its height from the content box, which a fill
+      // layout never reports as overflow. We grow by what it adds and give
+      // that back once it goes, so the content keeps the box it was sized for.
+      const content = document.querySelector<HTMLElement>('.Window__content');
+      const notice = measureIconNotice();
+      const shift = notice - noticeReserve;
+      if (
+        content &&
+        !cancelled() &&
+        !manual &&
+        !blocked[1] &&
+        Math.abs(shift) > FIT_TOLERANCE
+      ) {
+        const current = window.innerHeight;
+        // Giving back exactly what we grew keeps rounding from creeping in
+        // when a retry fails again.
+        const height = current + (notice ? shift : -noticeGrowth);
+        const size = applyContentSize(
+          { content, size: [window.innerWidth, height] },
+          height < current,
+          blocked,
+        );
+        if (size && !(await waitUntil(() => sizeMatches(size), cancelled))) {
+          if (!cancelled()) {
+            blocked[1] = true;
+            applyScrollFallback();
+          }
+          return;
+        }
+        noticeGrowth = notice
+          ? noticeGrowth + (size ? size[1] - current : 0)
+          : 0;
+        noticeReserve = notice;
+      }
       let previous:
         | { size: WindowSize; overflow: WindowSize; axis: number }
         | undefined;
@@ -267,6 +304,8 @@ export function useWindowSizing(interfaceName: string, suspended: unknown) {
       dirty = false;
       manual = false;
       blocked = [false, false];
+      noticeReserve = 0;
+      noticeGrowth = 0;
       pendingGeometry = undefined;
       await fitting;
       if (isCancelled()) return;

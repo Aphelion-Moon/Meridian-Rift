@@ -424,6 +424,59 @@ describe('Shared window sizing lifecycle', () => {
     hook.unmount();
   });
 
+  function iconNotice() {
+    const status = document.createElement('div');
+    status.className = 'IconResourceNotice__status';
+    document.querySelector('.Window')!.prepend(status);
+    const box = spyOn(status, 'getBoundingClientRect').mockReturnValue({
+      height: 0,
+    } as DOMRect);
+    // A fill layout shrinks with its box, so the notice never shows as overflow
+    return (height: number) => {
+      box.mockReturnValue({ height } as DOMRect);
+      act(() => {
+        status.textContent = height ? 'Some icons could not load.' : '';
+      });
+    };
+  }
+
+  it('grows by the icon notice and gives that height back once it goes', async () => {
+    layout();
+    const showNotice = iconNotice();
+    nativeResize();
+    const hook = renderHook(() => useWindowSizing('Smes', false));
+    await open(hook.result.current.fitBeforeShow);
+    act(() => globalEvents.emit('window-geometry-finished'));
+    await pause();
+    expect(window.innerHeight).toBe(175);
+    // A fractional notice rounds the window up; failing again must not creep
+    for (let cycle = 0; cycle < 2; cycle++) {
+      showNotice(41.5);
+      await waitFor(() => expect(window.innerHeight).toBe(217));
+      showNotice(0);
+      await waitFor(() => expect(window.innerHeight).toBe(175));
+    }
+    hook.unmount();
+  });
+
+  it('keeps the size a player chose when the icon notice goes', async () => {
+    layout();
+    const showNotice = iconNotice();
+    nativeResize();
+    const hook = renderHook(() => useWindowSizing('Smes', false));
+    await open(hook.result.current.fitBeforeShow);
+    act(() => globalEvents.emit('window-geometry-finished'));
+    await pause();
+    showNotice(42);
+    await waitFor(() => expect(window.innerHeight).toBe(217));
+    fireEvent.mouseDown(document.querySelector('.Window__resizeHandle__se')!);
+    await pause();
+    showNotice(0);
+    await pause();
+    expect(window.innerHeight).toBe(217);
+    hook.unmount();
+  });
+
   it('keeps nested scroll containers observed inside a scrolling aperture', async () => {
     const area = layout();
     area.classList.add('Layout__content--scrollable');

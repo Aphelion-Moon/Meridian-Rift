@@ -3,6 +3,11 @@
  * SPDX-License-Identifier: MIT
  */
 
+// APHELION EDIT ADDITION START - cold browser startup is not a pooled-window ping
+/// How long a new window gets to create its browser and send ready before we give up on it
+#define TGUI_WINDOW_STARTUP_TIMEOUT (60 SECONDS)
+
+// APHELION EDIT ADDITION END
 /**
  * tgui datum (represents a UI).
  */
@@ -25,8 +30,14 @@
 	var/autoupdate = TRUE
 	/// If the UI has been initialized yet.
 	var/initialized = FALSE
+	/* // APHELION EDIT REMOVAL START - open() sets a fixed deadline instead
 	/// Time of opening the window.
 	var/opened_at
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START
+	/// The world.time this UI has to finish its first handshake by, set once in open()
+	var/initialization_deadline
+	// APHELION EDIT ADDITION END
 	/// Stops further updates when close() was called.
 	var/closing = FALSE
 	/// The status/visibility of the UI.
@@ -93,15 +104,17 @@
 	window = SStgui.request_pooled_window(user)
 	if(!window)
 		return FALSE
-	opened_at = world.time
+	// opened_at = world.time // APHELION EDIT REMOVAL
 	window.acquire_lock(src)
 	if(!window.is_ready())
+		initialization_deadline = world.time + TGUI_WINDOW_STARTUP_TIMEOUT // APHELION EDIT ADDITION - a new window still has to create its browser
 		window.initialize(
 			strict_mode = TRUE,
 			assets = list(
 				get_asset_datum(/datum/asset/simple/tgui),
 			))
 	else
+		initialization_deadline = world.time + TGUI_PING_TIMEOUT // APHELION EDIT ADDITION
 		window.send_message("ping")
 	send_assets()
 	window.send_message("update", get_payload(
@@ -332,7 +345,7 @@
 		close(can_be_suspended = FALSE)
 		return
 	// Validate ping
-	if(!initialized && world.time - opened_at > TGUI_PING_TIMEOUT)
+	if(!initialized && world.time > initialization_deadline) // APHELION EDIT CHANGE - any message marks a window ready, so we keep the budget open() picked. ORIGINAL: if(!initialized && world.time - opened_at > TGUI_PING_TIMEOUT)
 		log_tgui(user, "Error: Zombie window detected, closing.",
 			window = window,
 			src_object = src_object)
@@ -415,3 +428,7 @@
 		return
 	if(src_object.ui_act(act_type, payload, src, state))
 		SStgui.update_uis(src_object)
+// APHELION EDIT ADDITION START
+
+#undef TGUI_WINDOW_STARTUP_TIMEOUT
+// APHELION EDIT ADDITION END

@@ -30,6 +30,7 @@ import {
 import { suspendStart } from '../events/handlers/suspense';
 import { useWindowSizing } from '../hooks/useWindowSizing'; // APHELION EDIT ADDITION - window sizing
 import { createLogger } from '../logging';
+import { IconResourceNotice } from './IconResourceNotice'; // APHELION EDIT ADDITION - icon notice above the content
 import { Layout } from './Layout';
 import { TitleBar } from './TitleBar';
 
@@ -159,7 +160,12 @@ export function Window(props: Props) {
           debug.debugLayout && 'debug-layout',
         ])}
       >
+        {/* APHELION EDIT REMOVAL START - icon notice above the content
         {!suspended && children}
+        APHELION EDIT REMOVAL END */}
+        {/* APHELION EDIT ADDITION START - icon notice above the content */}
+        <IconResourceNotice>{!suspended && children}</IconResourceNotice>
+        {/* APHELION EDIT ADDITION END */}
         {showDimmer && <div className="Window__dimmer" />}
       </div>
       <div
@@ -197,10 +203,20 @@ function WindowContent(props: ContentProps) {
     }
   }
 
+  /* // APHELION EDIT REMOVAL START - subscribing during render added a listener every render and never dropped it
   Byond.subscribeTo('resetposition', (payload) => {
     setWindowPosition([0, 0]);
     storeWindowGeometry();
   });
+  */ // APHELION EDIT REMOVAL END
+  // APHELION EDIT ADDITION START
+  useLayoutEffect(() => {
+    return Byond.subscribeTo('resetposition', () => {
+      setWindowPosition([0, 0]);
+      storeWindowGeometry();
+    });
+  }, []);
+  // APHELION EDIT ADDITION END
 
   return (
     <Layout.Content
