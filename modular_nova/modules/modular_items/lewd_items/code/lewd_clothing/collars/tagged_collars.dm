@@ -3,12 +3,10 @@
 	dupe_mode = COMPONENT_DUPE_SOURCES
 
 /datum/component/squeak/collar_bell/on_equip(datum/source, mob/equipper, slot)
-	SIGNAL_HANDLER
 	. = ..()
 	RegisterSignal(equipper, COMSIG_GENERAL_STEP_ACTION, PROC_REF(on_wearer_step), override = TRUE)
 
 /datum/component/squeak/collar_bell/on_drop(datum/source, mob/user)
-	SIGNAL_HANDLER
 	UnregisterSignal(user, COMSIG_GENERAL_STEP_ACTION)
 	return ..()
 
