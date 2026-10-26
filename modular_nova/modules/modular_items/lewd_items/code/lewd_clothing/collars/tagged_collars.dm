@@ -2,6 +2,22 @@
 /datum/component/squeak/collar_bell
 	dupe_mode = COMPONENT_DUPE_SOURCES
 
+/datum/component/squeak/collar_bell/on_equip(datum/source, mob/equipper, slot)
+	SIGNAL_HANDLER
+	. = ..()
+	RegisterSignal(equipper, COMSIG_GENERAL_STEP_ACTION, PROC_REF(on_wearer_step), override = TRUE)
+
+/datum/component/squeak/collar_bell/on_drop(datum/source, mob/user)
+	SIGNAL_HANDLER
+	UnregisterSignal(user, COMSIG_GENERAL_STEP_ACTION)
+	return ..()
+
+/datum/component/squeak/collar_bell/proc/on_wearer_step(mob/living/carbon/human/wearer)
+	SIGNAL_HANDLER
+	if(QDELETED(parent) || !istype(wearer) || wearer.wear_neck != parent)
+		return
+	step_squeak(parent)
+
 //Base for all the tagged collars
 /datum/atom_skin/collar
 	abstract_type = /datum/atom_skin/collar
@@ -14,22 +30,19 @@
 
 	if(!jingles)
 		our_collar.RemoveComponentSource(
-			"collar_skin",
+			REF(our_collar),
 			/datum/component/squeak/collar_bell,
 		)
 		return
 
-	var/datum/component/squeak/collar_bell/bell = our_collar.AddComponentFrom("collar_skin", /datum/component/squeak/collar_bell, list('sound/effects/jingle.ogg' = 1), 25, 50, 16)
+	var/datum/component/squeak/collar_bell/bell = our_collar.AddComponentFrom(REF(our_collar), /datum/component/squeak/collar_bell, list('sound/effects/jingle.ogg' = 1), 25, 50, 16)
 
 	if(ismob(our_collar.loc) && bell.holder != our_collar.loc)
 		bell.on_equip(our_collar, our_collar.loc)
 
 /datum/atom_skin/collar/clear_skin(atom/clear_from, mob/user)
 	. = ..()
-	clear_from.RemoveComponentSource(
-		"collar_skin",
-		/datum/component/squeak/collar_bell,
-	)
+	clear_from.RemoveComponentSource(REF(clear_from), /datum/component/squeak/collar_bell)
 
 //Reskin list for the plain tagged collar
 //Alphabetically sorted; the initial selection is Tagged (Thin)
