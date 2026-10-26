@@ -3,6 +3,7 @@
 	savefile_key = "unusual_biochemistry"
 	savefile_identifier = PREFERENCE_CHARACTER
 	can_randomize = FALSE
+	should_update_preview = FALSE
 
 /datum/preference/choiced/unusual_biochemistry/init_possible_values()
 	var/list/possible_blood_types = list()

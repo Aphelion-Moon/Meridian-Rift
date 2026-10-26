@@ -748,10 +748,7 @@
 /obj/effect/turf_decal/siding/thinplating/dark{
 	dir = 6
 	},
-/turf/open/indestructible{
-	base_icon_state = "reinf_glass";
-	icon = 'icons/turf/floors/reinf_glass.dmi';
-	icon_state = "reinf_glass-0";
+/turf/open/indestructible/reinforced_glass{
 	name = "Ultra Reinforced Glass Floor"
 	},
 /area/station/ai/satellite/interior)
@@ -5272,10 +5269,7 @@
 /area/station/maintenance/port/fore)
 "beZ" = (
 /obj/item/beacon,
-/turf/open/indestructible{
-	base_icon_state = "reinf_glass";
-	icon = 'icons/turf/floors/reinf_glass.dmi';
-	icon_state = "reinf_glass-0";
+/turf/open/indestructible/reinforced_glass{
 	name = "Ultra Reinforced Glass Floor"
 	},
 /area/station/ai/satellite/interior)
@@ -13051,10 +13045,10 @@
 /area/station/hallway/primary/aft)
 "cFf" = (
 /obj/structure/closet/secure_closet/freezer/fridge/all_access,
-/obj/item/storage/box/ingredients/vegetarian,
-/obj/item/storage/box/ingredients/italian,
-/obj/item/storage/box/ingredients/fruity,
-/obj/item/storage/box/ingredients/fiesta,
+/obj/item/storage/box/ingredients/wildcard,
+/obj/item/storage/box/ingredients/wildcard,
+/obj/item/storage/box/ingredients/wildcard,
+/obj/item/storage/box/ingredients/wildcard,
 /obj/item/storage/box/ingredients/american,
 /obj/item/reagent_containers/condiment/flour{
 	list_reagents = list(/datum/reagent/consumable/flour=600);
@@ -19874,10 +19868,7 @@
 /area/station/common/night_club)
 "dZA" = (
 /obj/effect/turf_decal/siding/thinplating/dark,
-/turf/open/indestructible{
-	base_icon_state = "reinf_glass";
-	icon = 'icons/turf/floors/reinf_glass.dmi';
-	icon_state = "reinf_glass-0";
+/turf/open/indestructible/reinforced_glass{
 	name = "Ultra Reinforced Glass Floor"
 	},
 /area/station/ai/satellite/interior)
@@ -25987,10 +25978,10 @@
 /area/station/hallway/primary/port)
 "fhV" = (
 /obj/structure/closet/secure_closet/freezer/fridge/all_access,
-/obj/item/storage/box/ingredients/vegetarian,
-/obj/item/storage/box/ingredients/italian,
-/obj/item/storage/box/ingredients/fruity,
-/obj/item/storage/box/ingredients/fiesta,
+/obj/item/storage/box/ingredients/wildcard,
+/obj/item/storage/box/ingredients/wildcard,
+/obj/item/storage/box/ingredients/wildcard,
+/obj/item/storage/box/ingredients/wildcard,
 /obj/item/storage/box/ingredients/american,
 /obj/item/reagent_containers/condiment/flour{
 	list_reagents = list(/datum/reagent/consumable/flour=600);
@@ -32764,10 +32755,7 @@
 /obj/effect/turf_decal/siding/thinplating/dark{
 	dir = 5
 	},
-/turf/open/indestructible{
-	base_icon_state = "reinf_glass";
-	icon = 'icons/turf/floors/reinf_glass.dmi';
-	icon_state = "reinf_glass-0";
+/turf/open/indestructible/reinforced_glass{
 	name = "Ultra Reinforced Glass Floor"
 	},
 /area/station/ai/satellite/interior)
@@ -33226,10 +33214,7 @@
 /obj/effect/turf_decal/siding/thinplating/dark{
 	dir = 10
 	},
-/turf/open/indestructible{
-	base_icon_state = "reinf_glass";
-	icon = 'icons/turf/floors/reinf_glass.dmi';
-	icon_state = "reinf_glass-0";
+/turf/open/indestructible/reinforced_glass{
 	name = "Ultra Reinforced Glass Floor"
 	},
 /area/station/ai/satellite/interior)
@@ -48678,9 +48663,7 @@
 "jRe" = (
 /obj/structure/table/reinforced,
 /obj/machinery/door/firedoor,
-/obj/structure/displaycase/forsale/kitchen{
-	pixel_y = 8
-	},
+/obj/structure/tipjar/prefilled,
 /obj/machinery/door/poddoor/shutters/preopen{
 	id = "Barshutters";
 	name = "Bar Shutters"
@@ -57682,9 +57665,7 @@
 /area/station/hallway/primary/upper)
 "lIO" = (
 /obj/structure/table/reinforced,
-/obj/structure/displaycase/forsale/kitchen{
-	pixel_y = 8
-	},
+/obj/structure/tipjar/prefilled,
 /obj/effect/turf_decal/siding/thinplating/dark,
 /turf/open/floor/iron/dark,
 /area/station/common/night_club)
@@ -59480,7 +59461,7 @@
 /obj/structure/disposalpipe/segment{
 	dir = 4
 	},
-/obj/effect/landmark/navigate_destination,
+/obj/effect/landmark/navigate_destination/barber,
 /turf/open/floor/iron/dark,
 /area/station/service/barber)
 "maz" = (
@@ -61656,6 +61637,7 @@
 /obj/structure/cable,
 /obj/machinery/atmospherics/pipe/smart/manifold4w/supply/hidden/layer4,
 /obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
+/obj/effect/landmark/navigate_destination/cryo,
 /turf/open/floor/iron,
 /area/station/common/cryopods)
 "mzp" = (
@@ -77226,7 +77208,7 @@
 "pFS" = (
 /obj/item/radio/intercom/directional/north,
 /obj/structure/table/wood,
-/obj/structure/displaycase/forsale/kitchen,
+/obj/structure/tipjar/prefilled,
 /obj/machinery/light/directional/north,
 /turf/open/floor/iron/dark,
 /area/station/service/barber)
@@ -77850,10 +77832,7 @@
 /obj/effect/turf_decal/siding/thinplating/dark{
 	dir = 4
 	},
-/turf/open/indestructible{
-	base_icon_state = "reinf_glass";
-	icon = 'icons/turf/floors/reinf_glass.dmi';
-	icon_state = "reinf_glass-0";
+/turf/open/indestructible/reinforced_glass{
 	name = "Ultra Reinforced Glass Floor"
 	},
 /area/station/ai/satellite/interior)
@@ -80199,9 +80178,7 @@
 	name = "Kitchen Counter Shutters"
 	},
 /obj/machinery/door/firedoor,
-/obj/structure/displaycase/forsale/kitchen{
-	pixel_y = 8
-	},
+/obj/structure/tipjar/prefilled,
 /turf/open/floor/iron/dark,
 /area/station/service/kitchen)
 "qkG" = (
@@ -82226,10 +82203,7 @@
 /obj/effect/turf_decal/siding/thinplating/dark{
 	dir = 1
 	},
-/turf/open/indestructible{
-	base_icon_state = "reinf_glass";
-	icon = 'icons/turf/floors/reinf_glass.dmi';
-	icon_state = "reinf_glass-0";
+/turf/open/indestructible/reinforced_glass{
 	name = "Ultra Reinforced Glass Floor"
 	},
 /area/station/ai/satellite/interior)
@@ -84727,7 +84701,7 @@
 /obj/machinery/recharger{
 	pixel_y = 3
 	},
-/obj/item/borg/sight/hud/sec{
+/obj/item/clothing/glasses/hud/security{
 	pixel_y = 17
 	},
 /obj/machinery/atmospherics/pipe/smart/manifold4w/supply/hidden/layer4,
@@ -86800,9 +86774,8 @@
 	name = "Secure Art Exhibition";
 	req_access = list("library")
 	},
-/obj/structure/sign/painting/library{
-	pixel_y = 32;
-	dir = 1
+/obj/structure/sign/commemoration{
+	pixel_y = 32
 	},
 /turf/open/floor/carpet,
 /area/station/service/library)
@@ -88410,9 +88383,9 @@
 	name = "science camera";
 	network = list("ss13","rd")
 	},
-/obj/item/mmi,
-/obj/item/mmi,
-/obj/item/mmi,
+/obj/item/brain_processor/organic,
+/obj/item/brain_processor/organic,
+/obj/item/brain_processor/organic,
 /turf/open/floor/iron,
 /area/station/science/robotics)
 "rOH" = (
@@ -89505,9 +89478,7 @@
 	dir = 8
 	},
 /obj/structure/window/spawner/directional/south,
-/obj/structure/displaycase/forsale/kitchen{
-	pixel_y = 8
-	},
+/obj/structure/tipjar/prefilled,
 /turf/open/floor/iron/dark,
 /area/station/common/tailoring)
 "sba" = (
@@ -97391,7 +97362,7 @@
 /obj/effect/turf_decal/siding/wood{
 	dir = 8
 	},
-/obj/structure/displaycase/forsale,
+/obj/structure/tipjar,
 /obj/machinery/camera/autoname/directional/north,
 /obj/structure/cable,
 /obj/machinery/power/apc/auto_name/directional/north,
@@ -103415,10 +103386,7 @@
 /turf/open/floor/iron/dark,
 /area/station/security/interrogation)
 "uNl" = (
-/turf/open/floor/iron/stairs{
-	icon_state = "stairs_wood";
-	icon = 'icons/obj/stairs.dmi'
-	},
+/turf/open/floor/iron/stairs/wood,
 /area/station/common/pool)
 "uNn" = (
 /obj/effect/landmark/start/hangover,
@@ -107337,7 +107305,7 @@
 /obj/item/stack/sheet/plasteel{
 	amount = 10
 	},
-/obj/item/mmi,
+/obj/item/brain_processor/organic,
 /obj/item/assembly/prox_sensor,
 /obj/item/assembly/prox_sensor,
 /turf/open/floor/plating,
@@ -110293,10 +110261,7 @@
 /obj/effect/turf_decal/siding/thinplating/dark{
 	dir = 8
 	},
-/turf/open/indestructible{
-	base_icon_state = "reinf_glass";
-	icon = 'icons/turf/floors/reinf_glass.dmi';
-	icon_state = "reinf_glass-0";
+/turf/open/indestructible/reinforced_glass{
 	name = "Ultra Reinforced Glass Floor"
 	},
 /area/station/ai/satellite/interior)
@@ -111190,9 +111155,7 @@
 	id = "Barshutters";
 	name = "Bar Shutters"
 	},
-/obj/structure/displaycase/forsale/kitchen{
-	pixel_y = 8
-	},
+/obj/structure/tipjar/prefilled,
 /turf/open/floor/iron/dark,
 /area/station/service/bar)
 "wne" = (
@@ -119125,10 +119088,7 @@
 /obj/effect/turf_decal/siding/thinplating/dark{
 	dir = 9
 	},
-/turf/open/indestructible{
-	base_icon_state = "reinf_glass";
-	icon = 'icons/turf/floors/reinf_glass.dmi';
-	icon_state = "reinf_glass-0";
+/turf/open/indestructible/reinforced_glass{
 	name = "Ultra Reinforced Glass Floor"
 	},
 /area/station/ai/satellite/interior)
@@ -119751,8 +119711,8 @@
 /area/station/engineering/atmos)
 "xZo" = (
 /obj/structure/table/reinforced,
-/obj/item/mmi,
-/obj/item/mmi,
+/obj/item/brain_processor/organic,
+/obj/item/brain_processor/organic,
 /obj/item/bodypart/chest/robot,
 /obj/structure/extinguisher_cabinet/directional/east,
 /turf/open/floor/iron/dark,

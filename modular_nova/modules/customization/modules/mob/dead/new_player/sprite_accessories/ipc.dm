@@ -153,19 +153,17 @@
 
 /datum/sprite_accessory/antenna/is_hidden(mob/living/carbon/human/wearer, datum/bodypart_overlay/mutant/bodypart_overlay)
 	var/obj/item/clothing/head/mod/worn_head = wearer.head
-	if(isnull(worn_head))
-		return FALSE
-	if(key in wearer.try_hide_mutant_parts)
-		return TRUE
-//	Exception for MODs
-	if(istype(worn_head))
-		return FALSE
-//	Hide accessory if flagged to do so
-	var/obj/item/clothing/mask/worn_mask = wearer.wear_mask
-	if((worn_head?.flags_inv & HIDEHAIR || worn_mask?.flags_inv & HIDEHAIR) \
-		// This line basically checks if we FORCE accessory-ears to show, for items with earholes like Balaclavas and Luchador masks
-		&& ((worn_head && !(worn_head.flags_inv & SHOWSPRITEEARS)) || (worn_mask && !(worn_mask.flags_inv & SHOWSPRITEEARS))))
-		return TRUE
+	if(worn_head)
+		if(wearer.try_hide_mutant_parts?[key])
+			return TRUE
+		// Exception for MODs. Otherwise hide if flagged to, unless the head has earholes and so does the mask, if one is worn:
+		// items with earholes like Balaclavas and Luchador masks FORCE accessory-ears to show.
+		if(!istype(worn_head))
+			var/head_flags = worn_head.flags_inv
+			var/obj/item/clothing/mask/worn_mask = wearer.wear_mask
+			if(((head_flags | worn_mask?.flags_inv) & HIDEHAIR) && (!(head_flags & SHOWSPRITEEARS) || (worn_mask && !(worn_mask.flags_inv & SHOWSPRITEEARS))))
+				return TRUE
+	return LEWD_ITEM_HIDES_PARTS(wearer, TRUE, TRUE)
 
 /datum/sprite_accessory/antenna/none
 	name = SPRITE_ACCESSORY_NONE

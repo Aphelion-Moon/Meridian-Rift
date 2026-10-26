@@ -84,7 +84,7 @@ export function useWindowSizing(interfaceName: string, suspended: unknown) {
     }
 
     function applyScrollFallback() {
-      const measurement = measureWindowContent(naturalHeight);
+      const measurement = measureWindowContent();
       if (!measurement) return;
       applyContentSize(measurement, false, [true, true]);
       syncFallback(measurement.content);
@@ -95,7 +95,7 @@ export function useWindowSizing(interfaceName: string, suspended: unknown) {
         | { size: WindowSize; overflow: WindowSize; axis: number }
         | undefined;
       for (let attempt = 0; attempt < 4 && !cancelled(); attempt++) {
-        const measurement = measureWindowContent(naturalHeight);
+        const measurement = measureWindowContent(allowShrink);
         if (!measurement) return;
         const current: WindowSize = [window.innerWidth, window.innerHeight];
         const overflow = measurement.size.map(
@@ -138,7 +138,19 @@ export function useWindowSizing(interfaceName: string, suspended: unknown) {
       const currentGeneration = generation;
       const isCancelled = () =>
         disposed || generation !== currentGeneration || windowCancelled();
-      const work = fit(isCancelled, allowShrink);
+      const work = (async () => {
+        if (allowShrink) root?.classList.add('MeridianContentFit--measuring');
+        try {
+          await fit(isCancelled, allowShrink);
+        } finally {
+          // Cleanup owns the class once this effect is disposed; an old fit
+          // must not remove a replacement window's measurement class.
+          if (allowShrink && !disposed)
+            root?.classList.remove('MeridianContentFit--measuring');
+        }
+        // Validate the normal fill layout before showing the window too.
+        if (allowShrink && !isCancelled()) await fit(isCancelled);
+      })();
       fitting = work;
       try {
         await work;
@@ -209,7 +221,20 @@ export function useWindowSizing(interfaceName: string, suspended: unknown) {
       observed.clear();
       for (const node of next) observed.add(node);
     }
-    const mutationObserver = new MutationObserver((records) => {
+    // A part of the window that keeps a fixed size whatever happens in it
+    // (data-window-fit="fixed", such as the Augments+ room) can't change what
+    // the window needs from inside, so its own changes aren't measured again.
+    const insideFixed = (record: MutationRecord) => {
+      const node =
+        record.target instanceof Element
+          ? record.target
+          : record.target?.parentElement;
+      const fixed = node?.closest('[data-window-fit="fixed"]');
+      return !!fixed && fixed !== node;
+    };
+    const mutationObserver = new MutationObserver((mutations) => {
+      const records = mutations.filter((record) => !insideFixed(record));
+      if (!records.length) return;
       if (
         records.some(
           (record) =>
@@ -293,6 +318,7 @@ export function useWindowSizing(interfaceName: string, suspended: unknown) {
     globalEvents.on('window-geometry-finished', onGeometry);
     return () => {
       disposed = true;
+      root?.classList.remove('MeridianContentFit--measuring');
       beforeShow.current = undefined;
       if (frame !== undefined) cancelAnimationFrame(frame);
       observer.disconnect();

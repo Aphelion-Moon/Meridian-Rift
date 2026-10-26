@@ -1,0 +1,36 @@
+{
+	"streetcans": [
+		{
+			"type": "icon_state",
+			"icon_state": "inhand_l-streetcans-c1",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "inhand_l-streetcans-c2",
+			"blend_mode": "overlay",
+			"color_ids": [
+				2
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "inhand_l-streetcans-c3",
+			"blend_mode": "overlay",
+			"color_ids": [
+				3
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "inhand_l-streetcans-c4",
+			"blend_mode": "overlay",
+			"color_ids": [
+				4
+			]
+		}
+	]
+}

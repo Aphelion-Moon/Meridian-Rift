@@ -3,5 +3,19 @@
 	"scannable_directory": "code/modules/unit_tests/",
 	"subdirectories": false,
 	"excluded_files": ["find_reference_sanity.dm"],
-	"forbidden_includes": []
+	"forbidden_includes": [
+		"*/~nova/body_marking_content.dm",
+		"*/~nova/body_marking_features.dm",
+		"*/~nova/body_marking_fixes.dm",
+		"*/~nova/body_marking_merge.dm",
+		"*/~nova/meridian_preferences.dm",
+		"*/~nova/painting_gallery.dm",
+		"*/~nova/portal_device.dm",
+		"*/~nova/portal_lifecycle.dm",
+		"*/~nova/portal_routes.dm",
+		"*/~nova/title_screen_settings.dm",
+		"*/~nova/custom_sprites/appendages.dm",
+		"*/~nova/custom_sprites/hardening.dm",
+		"*/~nova/custom_sprites/salon.dm"
+	]
 }

@@ -1,0 +1,132 @@
+{
+	"raid": [
+		{
+			"type": "icon_state",
+			"icon_state": "worn-raid-c1",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-raid-c2",
+			"blend_mode": "overlay",
+			"color_ids": [
+				2
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-raid-c3",
+			"blend_mode": "overlay",
+			"color_ids": [
+				3
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-raid-c4",
+			"blend_mode": "overlay",
+			"color_ids": [
+				4
+			]
+		}
+	],
+	"raid_on": [
+		{
+			"type": "icon_state",
+			"icon_state": "worn-raid_on-c1",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-raid_on-c2",
+			"blend_mode": "overlay",
+			"color_ids": [
+				2
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-raid_on-c3",
+			"blend_mode": "overlay",
+			"color_ids": [
+				3
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-raid_on-c4",
+			"blend_mode": "overlay",
+			"color_ids": [
+				4
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-raid_on-add",
+			"blend_mode": "add"
+		}
+	],
+	"raid_neck": [
+		{
+			"type": "icon_state",
+			"icon_state": "worn-raid_neck-c1",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-raid_neck-c2",
+			"blend_mode": "overlay",
+			"color_ids": [
+				2
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-raid_neck-c3",
+			"blend_mode": "overlay",
+			"color_ids": [
+				3
+			]
+		}
+	],
+	"raid_neck_on": [
+		{
+			"type": "icon_state",
+			"icon_state": "worn-raid_neck_on-c1",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-raid_neck_on-c2",
+			"blend_mode": "overlay",
+			"color_ids": [
+				2
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-raid_neck_on-c3",
+			"blend_mode": "overlay",
+			"color_ids": [
+				3
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-raid_neck_on-add",
+			"blend_mode": "add"
+		}
+	]
+}

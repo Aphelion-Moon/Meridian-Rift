@@ -5,20 +5,16 @@
 	mod_icon_slots = ITEM_SLOT_HEAD
 
 /datum/sprite_accessory/ears/is_hidden(mob/living/carbon/human/wearer, datum/bodypart_overlay/mutant/bodypart_overlay)
-	if(!(wearer.obscured_slots & HIDEHAIR))
-		return (key in wearer.try_hide_mutant_parts)
-	if(key in wearer.try_hide_mutant_parts)
+	if(wearer.try_hide_mutant_parts?[key])
 		return TRUE
-	var/obj/item/worn_head = wearer.head
-	if(istype(worn_head, /obj/item/clothing/head/mod))
-		return FALSE
-	// Items with earholes (balaclavas, luchador masks) force ears to show
-	if(worn_head && (worn_head.flags_inv & (HIDEHAIR|SHOWSPRITEEARS)) == (HIDEHAIR|SHOWSPRITEEARS))
-		return FALSE
-	var/obj/item/worn_mask = wearer.wear_mask
-	if(worn_mask && (worn_mask.flags_inv & (HIDEHAIR|SHOWSPRITEEARS)) == (HIDEHAIR|SHOWSPRITEEARS))
-		return FALSE
-	return TRUE
+	if(wearer.obscured_slots & HIDEHAIR)
+		var/obj/item/worn_head = wearer.head
+		// MODs show ears, and so do items with earholes (balaclavas, luchador masks), worn on the head or the face.
+		if(!istype(worn_head, /obj/item/clothing/head/mod) \
+			&& (worn_head?.flags_inv & (HIDEHAIR|SHOWSPRITEEARS)) != (HIDEHAIR|SHOWSPRITEEARS) \
+			&& (wearer.wear_mask?.flags_inv & (HIDEHAIR|SHOWSPRITEEARS)) != (HIDEHAIR|SHOWSPRITEEARS))
+			return TRUE
+	return LEWD_ITEM_HIDES_PARTS(wearer, TRUE, TRUE)
 
 /datum/sprite_accessory/ears/cat
 	recommended_species = list(

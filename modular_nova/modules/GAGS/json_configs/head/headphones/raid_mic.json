@@ -1,0 +1,32 @@
+{
+	"raid_mic": [
+		{
+			"type": "icon_state",
+			"icon_state": "mic-raid_mic-c4",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		}
+	],
+	"raid_neck_mic": [
+		{
+			"type": "icon_state",
+			"icon_state": "mic-raid_neck_mic-c4",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		}
+	],
+	"raid_obj_mic": [
+		{
+			"type": "icon_state",
+			"icon_state": "mic-raid_obj_mic-c4",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		}
+	]
+}

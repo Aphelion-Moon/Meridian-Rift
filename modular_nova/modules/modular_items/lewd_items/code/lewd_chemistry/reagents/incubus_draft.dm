@@ -125,7 +125,7 @@
 	if(!mob_penis)
 		return
 
-	if(mob_penis.visibility_preference == GENITAL_ALWAYS_SHOW || exposed_mob.is_bottomless())
+	if(mob_penis.is_shown_over_clothing() || exposed_mob.is_bottomless())
 		if(mob_penis.genital_size >= (penis_max_length - 2))
 			if(exposed_mob.dna.features["penis_sheath"] == /datum/sprite_accessory/genital/sheath/slit::name)
 				if(mob_penis.aroused != AROUSAL_FULL)

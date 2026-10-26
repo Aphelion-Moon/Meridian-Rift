@@ -1,7 +1,7 @@
 /obj/item/mod/control/pre_equipped/protean
 	name = "modsuit"
 	desc = "The modsuit unit of a Protean, allowing them to retract into it, or to deploy a suit that protects against various environments."
-	theme = /datum/mod_theme/protean
+	theme = /datum/mod_theme/standard/protean
 
 	applied_core = /obj/item/mod/core/protean
 	applied_cell = null
@@ -19,7 +19,7 @@
 	/// The original theme stored before assimilating another suit's theme
 	var/datum/mod_theme/stored_theme
 
-/datum/mod_theme/protean
+/datum/mod_theme/standard/protean
 	name = "protean"
 	resistance_flags = LAVA_PROOF | FIRE_PROOF | UNACIDABLE | ACID_PROOF
 

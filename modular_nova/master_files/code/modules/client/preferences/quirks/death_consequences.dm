@@ -2,6 +2,7 @@
 	abstract_type = /datum/preference/numeric/death_consequences
 	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	savefile_identifier = PREFERENCE_CHARACTER
+	should_update_preview = FALSE
 
 	step = 0.01
 
@@ -158,6 +159,7 @@
 	abstract_type = /datum/preference/toggle/death_consequences
 	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	savefile_identifier = PREFERENCE_CHARACTER
+	should_update_preview = FALSE
 
 /datum/preference/toggle/death_consequences/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	return FALSE

@@ -208,9 +208,6 @@
 	if(preferences.read_preference(/datum/preference/toggle/allow_mismatched_parts))
 		return TRUE
 
-	if(!is_accessible(preferences))
-		return FALSE
-
 	var/species_type = preferences.read_preference(/datum/preference/choiced/species)
 	var/datum/species/species = GLOB.species_prototypes[species_type]
 

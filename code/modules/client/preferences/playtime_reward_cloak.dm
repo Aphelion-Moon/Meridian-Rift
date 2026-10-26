@@ -5,6 +5,7 @@
 	category = PREFERENCE_CATEGORY_NON_CONTEXTUAL
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "playtime_reward_cloak"
+	should_update_preview = FALSE // APHELION EDIT ADDITION
 
 /datum/preference/toggle/playtime_reward_cloak/is_accessible(datum/preferences/preferences)
 	if (!..(preferences))

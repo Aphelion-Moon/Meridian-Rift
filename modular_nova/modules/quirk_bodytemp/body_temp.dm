@@ -22,6 +22,7 @@
 	savefile_identifier = PREFERENCE_CHARACTER
 	minimum = -40 //Plasmamen
 	maximum = 70 //Skrell
+	should_update_preview = FALSE
 
 /datum/preference/numeric/bodytemp_customization/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	return FALSE

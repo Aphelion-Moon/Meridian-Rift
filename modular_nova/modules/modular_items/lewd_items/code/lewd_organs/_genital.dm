@@ -1,25 +1,3 @@
-/// The genital visibility options
-GLOBAL_LIST_INIT(genital_visibility_options, list(
-	"Never show" = GENITAL_NEVER_SHOW,
-	"Hidden by clothes" = GENITAL_HIDDEN_BY_CLOTHES,
-	"Custom" = GENITAL_CUSTOM,
-))
-
-/// The genital layering options
-GLOBAL_LIST_INIT(genital_layering_options, list(
-	"Below underwear" = GENITAL_LAYER_BELOW_UNDIES,
-	"Normal" = GENITAL_LAYER_NORMAL,
-	"Above underwear" = GENITAL_LAYER_ABOVE_UNDIES,
-	"Above all clothing" = GENITAL_LAYER_ABOVE_ALL,
-))
-
-/// The genital arousal options
-GLOBAL_LIST_INIT(genital_arousal_options, list(
-	"Not aroused" = AROUSAL_NONE,
-	"Partly aroused" = AROUSAL_PARTIAL,
-	"Very aroused" = AROUSAL_FULL,
-))
-
 /// Reverse lookup: the label whose define matches the current value, or null.
 /proc/genital_option_label(list/options, value)
 	for(var/label in options)
@@ -56,6 +34,25 @@ GLOBAL_LIST_INIT(genital_arousal_options, list(
 	var/uses_skin_color = FALSE
 	/// Where the genital is actually located, for clothing checks.
 	var/genital_location = GROIN
+	/// The visibility options, by menu label.
+	var/static/list/visibility_options = list(
+		"Never show" = GENITAL_NEVER_SHOW,
+		"Hidden by clothes" = GENITAL_HIDDEN_BY_CLOTHES,
+		"Custom" = GENITAL_CUSTOM,
+	)
+	/// The layering options, by menu label.
+	var/static/list/layering_options = list(
+		"Below underwear" = GENITAL_LAYER_BELOW_UNDIES,
+		"Normal" = GENITAL_LAYER_NORMAL,
+		"Above underwear" = GENITAL_LAYER_ABOVE_UNDIES,
+		"Above all clothing" = GENITAL_LAYER_ABOVE_ALL,
+	)
+	/// The arousal options, by menu label.
+	var/static/list/arousal_options = list(
+		"Not aroused" = AROUSAL_NONE,
+		"Partly aroused" = AROUSAL_PARTIAL,
+		"Very aroused" = AROUSAL_FULL,
+	)
 
 /// Helper proc for checking if internal fluids are full or not.
 /obj/item/organ/genital/proc/internal_fluid_full()
@@ -81,12 +78,16 @@ GLOBAL_LIST_INIT(genital_arousal_options, list(
 
 //This translates the float size into a sprite string
 /obj/item/organ/genital/proc/update_sprite_suffix()
+	var/old_sprite_suffix = sprite_suffix
 	sprite_suffix = "[get_sprite_size_string()]"
 
 	var/datum/bodypart_overlay/mutant/genital/our_overlay = bodypart_overlay
 
 	our_overlay.sprite_suffix = sprite_suffix
 	our_overlay.organ_slot = src.slot
+	// A genital hidden by clothing never redraws the body, so anything drawing it elsewhere needs telling directly.
+	if(sprite_suffix != old_sprite_suffix && ishuman(owner))
+		SEND_SIGNAL(owner, COMSIG_HUMAN_GENITAL_UPDATED, src)
 
 /obj/item/organ/genital/proc/get_description_string(datum/sprite_accessory/genital/genital)
 	return "You see genitals."
@@ -95,11 +96,8 @@ GLOBAL_LIST_INIT(genital_arousal_options, list(
 	return
 
 /obj/item/organ/genital/proc/set_size(size)
-	var/old_sprite_suffix = sprite_suffix
 	genital_size = size
 	update_sprite_suffix()
-	if(sprite_suffix != old_sprite_suffix && ishuman(owner))
-		SEND_SIGNAL(owner, COMSIG_HUMAN_GENITAL_UPDATED, src)
 
 /obj/item/organ/genital/Initialize(mapload)
 	. = ..()
@@ -152,27 +150,29 @@ GLOBAL_LIST_INIT(genital_arousal_options, list(
 /// Whether the mob's worn clothing physically covers this genital's location.
 /obj/item/organ/genital/proc/covered_by_clothing(mob/living/carbon/human/human)
 	//Do they have a Uniform or Suit that covers them?
-	if((human.w_uniform && human.w_uniform.body_parts_covered & genital_location) || (human.wear_suit && human.wear_suit.body_parts_covered & genital_location))
+	var/obj/item/worn_suit = human.wear_suit
+	if((human.w_uniform?.body_parts_covered | worn_suit?.body_parts_covered) & genital_location)
 		return TRUE
 	//Do they have a Hospital Gown covering them? (The gown has no body_parts_covered so needs its own check)
-	if(istype(human.wear_suit, /obj/item/clothing/suit/toggle/labcoat/nova/surgical_gown))
+	if(istype(worn_suit, /obj/item/clothing/suit/toggle/labcoat/nova/surgical_gown))
 		return TRUE
+	var/hidden_underwear = human.underwear_visibility
 	//Are they wearing an Undershirt?
-	if(human.undershirt != "Nude" && !(human.underwear_visibility & UNDERWEAR_HIDE_SHIRT))
+	if(human.undershirt != "Nude" && !(hidden_underwear & UNDERWEAR_HIDE_SHIRT))
 		var/datum/sprite_accessory/clothing/undershirt/worn_undershirt = SSaccessories.undershirt_list[human.undershirt]
 		if(genital_location == CHEST) //(Undershirt always covers chest)
 			return TRUE
 		if(genital_location == GROIN && worn_undershirt?.hides_groin)
 			return TRUE
 	//Are they wearing Underwear?
-	if(human.underwear != "Nude" && !(human.underwear_visibility & UNDERWEAR_HIDE_UNDIES))
+	if(human.underwear != "Nude" && !(hidden_underwear & UNDERWEAR_HIDE_UNDIES))
 		var/datum/sprite_accessory/clothing/underwear/worn_underwear = SSaccessories.underwear_list[human.underwear]
 		if(genital_location == GROIN) //(Underwear always covers groin)
 			return TRUE
 		if(genital_location == CHEST && worn_underwear?.hides_breasts)
 			return TRUE
 	//Are they wearing a bra?
-	if(human.bra != "Nude" && !(human.underwear_visibility & UNDERWEAR_HIDE_BRA) && genital_location == CHEST)
+	if(human.bra != "Nude" && !(hidden_underwear & UNDERWEAR_HIDE_BRA) && genital_location == CHEST)
 		return TRUE
 	//Nothing they're wearing covers them
 	return FALSE
@@ -188,7 +188,7 @@ GLOBAL_LIST_INIT(genital_arousal_options, list(
 
 	switch(visibility_preference)
 		if(GENITAL_HIDDEN_BY_CLOTHES, GENITAL_CUSTOM)
-			if(get_effective_layer_mode() == GENITAL_LAYER_ABOVE_ALL)
+			if(is_shown_over_clothing())
 				return TRUE //Renders over everything, so it's on display regardless of clothing
 			//Every other case - including Custom's under-uniform layers and Custom + Normal - comes down to physical coverage.
 			return !covered_by_clothing(human)
@@ -197,7 +197,7 @@ GLOBAL_LIST_INIT(genital_arousal_options, list(
 
 /// Applies a visibility option by its menu label. Returns TRUE and refreshes the body on success.
 /obj/item/organ/genital/proc/apply_visibility_label(label)
-	var/value = GLOB.genital_visibility_options[label]
+	var/value = visibility_options[label]
 	if(isnull(value))
 		return FALSE
 	visibility_preference = value
@@ -206,7 +206,7 @@ GLOBAL_LIST_INIT(genital_arousal_options, list(
 
 /// Applies a layer_mode option option by its menu label. Returns TRUE and refreshes the body on success.
 /obj/item/organ/genital/proc/apply_layering_label(label)
-	var/value = GLOB.genital_layering_options[label]
+	var/value = layering_options[label]
 	if(isnull(value))
 		return FALSE
 	var/datum/bodypart_overlay/mutant/genital/overlay = bodypart_overlay
@@ -216,7 +216,7 @@ GLOBAL_LIST_INIT(genital_arousal_options, list(
 
 /// Applies an arousal option by its menu label. Returns TRUE and refreshes the body on success.
 /obj/item/organ/genital/proc/apply_arousal_label(label)
-	var/value = GLOB.genital_arousal_options[label]
+	var/value = arousal_options[label]
 	if(isnull(value))
 		return FALSE
 	if(aroused == AROUSAL_CANT)
@@ -232,16 +232,20 @@ GLOBAL_LIST_INIT(genital_arousal_options, list(
 	var/datum/bodypart_overlay/mutant/genital/overlay = bodypart_overlay
 	return overlay?.layer_mode || GENITAL_LAYER_NORMAL
 
+/// Whether this genital is set to draw above all clothing, so clothing neither hides nor blocks it.
+/obj/item/organ/genital/proc/is_shown_over_clothing()
+	return get_effective_layer_mode() == GENITAL_LAYER_ABOVE_ALL
+
 /// The per-genital config entry every configuring UI sends to tgui.
 /obj/item/organ/genital/proc/get_layering_ui_entry()
 	var/datum/bodypart_overlay/mutant/genital/overlay = bodypart_overlay
 	return list(
 		"name" = capitalize(name),
 		"ref" = REF(src),
-		"visibility" = genital_option_label(GLOB.genital_visibility_options, visibility_preference),
-		"layering" = genital_option_label(GLOB.genital_layering_options, overlay.layer_mode),
+		"visibility" = genital_option_label(visibility_options, visibility_preference),
+		"layering" = genital_option_label(layering_options, overlay.layer_mode),
 		"custom" = (visibility_preference == GENITAL_CUSTOM),
-		"arousal" = genital_option_label(GLOB.genital_arousal_options, aroused),
+		"arousal" = genital_option_label(arousal_options, aroused),
 		"can_arouse" = (aroused != AROUSAL_CANT),
 	)
 
@@ -302,7 +306,7 @@ GLOBAL_LIST_INIT(genital_arousal_options, list(
 	return ..()
 
 /// Per-organ menu for genital visibility + render layering.
-/// Options and apply logic live in the shared GLOBs and organ procs above.
+/// Options live in static lists on /obj/item/organ/genital, and apply logic in its procs above.
 /datum/genital_layering_panel
 	/// The mob whose genitals we're editing.
 	var/mob/living/carbon/human/owner
@@ -343,8 +347,8 @@ GLOBAL_LIST_INIT(genital_arousal_options, list(
 
 /datum/genital_layering_panel/ui_static_data(mob/user)
 	var/list/data = list()
-	data["visibility_options"] = assoc_to_keys(GLOB.genital_visibility_options)
-	data["layering_options"] = assoc_to_keys(GLOB.genital_layering_options)
+	data["visibility_options"] = assoc_to_keys(/obj/item/organ/genital::visibility_options)
+	data["layering_options"] = assoc_to_keys(/obj/item/organ/genital::layering_options)
 	return data
 
 /datum/genital_layering_panel/ui_data(mob/user)
@@ -361,8 +365,8 @@ GLOBAL_LIST_INIT(genital_arousal_options, list(
 
 	if(selected_organ)
 		var/datum/bodypart_overlay/mutant/genital/overlay = selected_organ.bodypart_overlay
-		data["visibility"] = genital_option_label(GLOB.genital_visibility_options, selected_organ.visibility_preference)
-		data["layering"] = genital_option_label(GLOB.genital_layering_options, overlay.layer_mode)
+		data["visibility"] = genital_option_label(selected_organ.visibility_options, selected_organ.visibility_preference)
+		data["layering"] = genital_option_label(selected_organ.layering_options, overlay.layer_mode)
 		data["custom"] = (selected_organ.visibility_preference == GENITAL_CUSTOM)
 	return data
 

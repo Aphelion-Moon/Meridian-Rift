@@ -1,0 +1,54 @@
+{
+	"halophones": [
+		{
+			"type": "icon_state",
+			"icon_state": "inhand_r-halophones-c1",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "inhand_r-streetcans-c3",
+			"blend_mode": "overlay",
+			"color_ids": [
+				2
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "inhand_r-streetcans-c4",
+			"blend_mode": "overlay",
+			"color_ids": [
+				3
+			]
+		}
+	],
+	"halophones_unlit": [
+		{
+			"type": "icon_state",
+			"icon_state": "inhand_r-halophones-c1",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "inhand_r-halophones_unlit-c2",
+			"blend_mode": "overlay",
+			"color_ids": [
+				2
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "inhand_r-halophones_unlit-c3",
+			"blend_mode": "overlay",
+			"color_ids": [
+				3
+			]
+		}
+	]
+}

@@ -29,6 +29,7 @@
 			// There's no cost associated with inserting uni_icons, so just insert them immediately.
 			var/spritesheet_key = preference.get_spritesheet_key(preference.serialize(preference_value))
 			insert_icon(spritesheet_key, icon)
+	custom_sprite_insert_marking_icons(src) // APHELION EDIT ADDITION - Shared cached marking picker.
 
 /// Returns the key that will be used in the spritesheet for a given value.
 /datum/preference/proc/get_spritesheet_key(value)

@@ -5,16 +5,20 @@ export const foundry = {
   id: 'meridian_foundry',
   name: 'Foundry',
   construction: '',
+  lobby: {
+    // The forge plaque (tgui-lobby styles/meridianos/_foundry.scss).
+    layout: 'custom',
+  },
   palette: {
-    canvas: '#17100B',
-    panel: '#21170F',
-    raised: '#3C2B1D',
-    recessed: '#130E09',
+    canvas: '#170F09',
+    panel: '#24180F',
+    raised: '#2A1C12',
+    recessed: '#120B07',
     boundary: '#A58252',
     text: '#F1DFBC',
-    mutedText: '#C6AD88',
-    accent: '#E7AD52',
-    secondaryAccent: '#F0C074',
+    mutedText: '#D9C29A',
+    accent: '#FFA244',
+    secondaryAccent: '#FFB35C',
     focus: '#FFDA94',
   },
 } as const satisfies MeridianTheme;

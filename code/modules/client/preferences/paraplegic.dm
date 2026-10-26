@@ -2,6 +2,7 @@
 	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	savefile_key = "paraplegic"
 	savefile_identifier = PREFERENCE_CHARACTER
+	should_update_preview = FALSE // APHELION EDIT ADDITION
 
 /datum/preference/choiced/paraplegic/init_possible_values()
 	return GLOB.paraplegic_choice

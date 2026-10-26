@@ -104,10 +104,10 @@ There are several things that need to be remembered:
 			vox_icon_file = dna.species.generate_custom_worn_icon(LOADOUT_ITEM_UNIFORM, uniform, src)
 			icon_file = vox_icon_file
 		// APHELION EDIT ADDITION END
-		if(!icon_file && digi && (uniform.supports_variations_flags & CLOTHING_DIGITIGRADE_VARIATION)) // APHELION EDIT CHANGE
+		if(!icon_file && digi && (uniform.supports_variations_flags & CLOTHING_DIGITIGRADE_VARIATION)) // APHELION EDIT CHANGE - ORIGINAL: if(digi && (uniform.supports_variations_flags & CLOTHING_DIGITIGRADE_VARIATION))
 			icon_file = uniform.worn_icon_digi || DIGITIGRADE_UNIFORM_FILE // NOVA EDIT CHANGE - ORIGINAL: icon_file = DIGITIGRADE_UNIFORM_FILE
 		// NOVA EDIT ADDITION START - birbs
-		else if(!icon_file && (bodyshape & BODYSHAPE_CUSTOM)) // APHELION EDIT CHANGE - Keep the selected Vox icon.
+		else if(!icon_file && (bodyshape & BODYSHAPE_CUSTOM))
 			icon_file = dna.species.generate_custom_worn_icon(LOADOUT_ITEM_UNIFORM, w_uniform, src) // Might have to refactor how this works eventually, maybe.
 		// NOVA EDIT ADDITION END
 		//Female sprites have lower priority than digitigrade sprites
@@ -141,8 +141,8 @@ There are several things that need to be remembered:
 			uniform.worn_x_offset = 0
 		// NOVA EDIT ADDITION END
 
-		// APHELION EDIT ADDITION START - Keep the existing upper-only female shaping for digitigrade Vox.
-		if(vox_icon_file && digi && female_sprite_flags)
+		// APHELION EDIT ADDITION START - Upper-only female shaping for digitigrade Vox, and for a Cerulean's tail as for taurs.
+		if(female_sprite_flags && ((vox_icon_file && digi) || (bodyshape & BODYSHAPE_CERULEAN)))
 			female_sprite_flags &= ~FEMALE_UNIFORM_FULL
 			female_sprite_flags |= FEMALE_UNIFORM_TOP_ONLY
 		// APHELION EDIT ADDITION END
@@ -154,7 +154,7 @@ There are several things that need to be remembered:
 			female_uniform = woman ? female_sprite_flags : null,
 			override_state = target_overlay,
 			override_file = handled_by_bodyshape ? icon_file : null,
-			bodyshape = vox_icon_file ? (bodyshape & ~BODYSHAPE_DIGITIGRADE) : bodyshape, // APHELION EDIT CHANGE - Do not mask fitted Vox pants again.
+			bodyshape = vox_icon_file ? (bodyshape & ~BODYSHAPE_DIGITIGRADE) : bodyshape, // APHELION EDIT CHANGE - Do not mask fitted Vox pants again - ORIGINAL: bodyshape = bodyshape,
 		)
 
 		apply_height(uniform_overlay, ENTIRE_BODY)
@@ -372,7 +372,7 @@ There are several things that need to be remembered:
 				icon_file = vox_icon_file
 				mutant_override = TRUE
 		// APHELION EDIT ADDITION END
-		if(!mutant_override && (bodyshape & BODYSHAPE_DIGITIGRADE) && (worn_item.supports_variations_flags & CLOTHING_DIGITIGRADE_VARIATION)) // APHELION EDIT CHANGE
+		if(!mutant_override && (bodyshape & BODYSHAPE_DIGITIGRADE) && (worn_item.supports_variations_flags & CLOTHING_DIGITIGRADE_VARIATION))
 			var/obj/item/bodypart/leg = src.get_bodypart(BODY_ZONE_L_LEG)
 			if(leg.bodyshape & BODYSHAPE_DIGITIGRADE) //Snowflakey and bad. But it makes it look consistent. // NOVA EDIT CHANGE - ORIGINAL: if(leg.limb_id == BODYPART_ID_DIGITIGRADE || leg.bodyshape & BODYSHAPE_DIGITIGRADE)//Snowflakey and bad. But it makes it look consistent.
 				icon_file = worn_item.worn_icon_digi || DIGITIGRADE_SHOES_FILE // NOVA EDIT CHANGE
@@ -385,7 +385,7 @@ There are several things that need to be remembered:
 		if(bodyshape & BODYSHAPE_HIDE_SHOES)
 			return // We just don't want shoes that float if we're not displaying legs (useful for taurs, for now)
 		// NOVA EDIT ADDITION END
-		var/mutable_appearance/shoes_overlay = shoes.build_worn_icon(default_layer = SHOES_LAYER, default_icon_file = icon_file, bodyshape = vox_icon_file ? (bodyshape & ~BODYSHAPE_DIGITIGRADE) : bodyshape, override_file = mutant_override ? icon_file : null) // APHELION EDIT CHANGE - Preserve fitted Vox footwear. NOVA EDIT CHANGE - ORIGINAL: var/mutable_appearance/shoes_overlay = shoes.build_worn_icon(default_layer = SHOES_LAYER, default_icon_file = icon_file, bodyshape = bodyshape)
+		var/mutable_appearance/shoes_overlay = shoes.build_worn_icon(default_layer = SHOES_LAYER, default_icon_file = icon_file, bodyshape = vox_icon_file ? (bodyshape & ~BODYSHAPE_DIGITIGRADE) : bodyshape, override_file = mutant_override ? icon_file : null) // APHELION EDIT CHANGE - Preserve fitted Vox footwear - ORIGINAL: var/mutable_appearance/shoes_overlay = shoes.build_worn_icon(default_layer = SHOES_LAYER, default_icon_file = icon_file, bodyshape = bodyshape, override_file = mutant_override ? icon_file : null) // NOVA EDIT CHANGE - ORIGINAL: var/mutable_appearance/shoes_overlay = shoes.build_worn_icon(default_layer = SHOES_LAYER, default_icon_file = icon_file, bodyshape = bodyshape)
 
 		var/feature_y_offset = 0
 		for (var/body_zone in GLOB.leg_zones)
@@ -593,12 +593,8 @@ There are several things that need to be remembered:
 		held_right.overlays.Cut()
 		held_right.underlays.Cut()
 	// NOVA EDIT ADDITION END
-	for(var/obj/item/worn_item in held_items)
-		var/held_index = get_held_index_of_item(worn_item)
-		var/t_state = worn_item.inhand_icon_state
-		if(!t_state)
-			t_state = worn_item.icon_state
-
+	for(var/held_index in get_active_held_indexes())
+		var/obj/item/worn_item = get_item_for_held_index(held_index)
 
 		var/icon_file = IS_RIGHT_INDEX(held_index) ? worn_item.righthand_file : worn_item.lefthand_file
 		var/mutable_appearance/hand_overlay = worn_item.build_worn_icon(default_layer = HANDS_LAYER, default_icon_file = icon_file, isinhands = TRUE, bodyshape = bodyshape)
@@ -610,7 +606,7 @@ There are several things that need to be remembered:
 		hands += hand_overlay
 		*/ // NOVA EDIT REMOVAL END
 		// NOVA EDIT ADDITION START - Psionic holding
-		if(HAS_TRAIT(src, TRAIT_FLOATING_HELD))
+		if(HAS_TRAIT(src, TRAIT_FLOATING_HELD) && held_index <= 2) // one hover holder per side, so extra hands hold normally
 			if(!held_left)
 				held_left = new(src)
 				held_left.render_target = "*[REF(src)]_hover_left"
@@ -676,7 +672,7 @@ There are several things that need to be remembered:
 #define FEMALE_RELEVANT_BODYSHAPE (BODYSHAPE_DIGITIGRADE | BODYSHAPE_TAUR)
 /// Modifies a sprite slightly to conform to female body shapes
 /proc/wear_female_version(icon_state, icon_file_path, icon, type, greyscale_colors, bodyshape)
-	var/index = "[icon_file_path]-[icon_state]-[greyscale_colors]"
+	var/index = "[icon_file_path]-[icon_state]-[greyscale_colors]-[type]-[bodyshape & BODYSHAPE_DIGITIGRADE]" // APHELION EDIT CHANGE - Key by the mask: taurs and Ceruleans ask for the top-only cut of the same state - ORIGINAL: var/index = "[icon_file_path]-[icon_state]-[greyscale_colors]"
 	var/static/list/female_clothing_icons = list()
 	var/icon/female_clothing_icon = female_clothing_icons[index]
 	if(!female_clothing_icon) //Create standing/laying icons if they don't exist
@@ -693,6 +689,9 @@ There are several things that need to be remembered:
 /// Modifies a sprite to conform to custom body shapes
 /obj/item/proc/get_bodyshape_icon(icon/base_icon, key, greyscale_colors, bodyshape)
 	ASSERT(istext(key), "get_bodyshape_icon: no key passed")
+	if(bodyshape & BODYSHAPE_CERULEAN)
+		if((bodyshapes_with_variations & BODYSHAPE_CERULEAN) || (supports_variations_flags & (CERULEAN_MASKING)))
+			return generate_cerulean_icons(base_icon, key, greyscale_colors, bodyshape)
 	if((bodyshape & BODYSHAPE_DIGITIGRADE) && (supports_variations_flags & CLOTHING_DIGITIGRADE_MASK) && !(supports_variations_flags & CLOTHING_DIGITIGRADE_VARIATION)) // NOVA EDIT CHANGE - ORIGINAL: if((bodyshape & BODYSHAPE_DIGITIGRADE) && (supports_variations_flags & CLOTHING_DIGITIGRADE_MASK))
 		var/used_greyscale = greyscale_colors
 		if(isnull(used_greyscale) || length(SSgreyscale.ParseColorString(used_greyscale)) > 1)
@@ -736,18 +735,6 @@ There are several things that need to be remembered:
 			return icon(resulting_icon)
 	return base_icon
 	// NOVA EDIT ADDITION END
-
-/// Modifies a sprite to replace the legs with a new version
-/proc/replace_icon_legs(icon/base_icon, icon/new_legs)
-	var/static/icon/leg_mask
-	if(!leg_mask)
-		leg_mask = icon('icons/mob/clothing/under/masking_helpers.dmi', "digi_leg_mask")
-
-	// cuts the legs off
-	base_icon.Blend(leg_mask, ICON_SUBTRACT)
-	// staples the new legs on
-	base_icon.Blend(new_legs, ICON_OVERLAY)
-	return base_icon
 
 /**
  * Generates a digitigrade version of this item's worn icon
@@ -969,10 +956,16 @@ generate/load female uniform sprites matching all previously decided variables
 	if(HAS_TRAIT(src, TRAIT_HUSK) || HAS_TRAIT(src, TRAIT_INVISIBLE_MAN) || HAS_TRAIT(src, TRAIT_NO_UNDERWEAR))
 		return .
 
+	var/body_type = MALE
+	if(dna.species.sexes)
+		var/obj/item/bodypart/chest/our_chest = get_bodypart(BODY_ZONE_CHEST)
+		if(our_chest?.is_dimorphic)
+			body_type = physique
+
 	// Underwear, Undershirts & Socks
 	if(underwear && !(underwear_visibility & UNDERWEAR_HIDE_UNDIES)) // NOVA EDIT CHANGE - ORIGINAL: if(underwear)
 		var/datum/sprite_accessory/clothing/underwear/undie_accessory = SSaccessories.underwear_list[underwear]
-		var/mutable_appearance/underwear_overlay = undie_accessory?.make_appearance(underwear_color, physique, bodyshape, src) // APHELION EDIT CHANGE - ORIGINAL: var/mutable_appearance/underwear_overlay = undie_accessory?.make_appearance(underwear_color, physique, bodyshape)
+		var/mutable_appearance/underwear_overlay = undie_accessory?.make_appearance(underwear_color, body_type, bodyshape, src) // APHELION EDIT CHANGE - ORIGINAL: var/mutable_appearance/underwear_overlay = undie_accessory?.make_appearance(underwear_color, body_type, bodyshape)
 		if(underwear_overlay)
 			. += underwear_overlay
 
@@ -986,14 +979,14 @@ generate/load female uniform sprites matching all previously decided variables
 	// NOVA EDIT ADDITION END - Bras
 	if(undershirt && !(underwear_visibility & UNDERWEAR_HIDE_SHIRT)) // NOVA EDIT CHANGE - ORIGINAL: if(undershirt))
 		var/datum/sprite_accessory/clothing/undershirt/shirt_accessory = SSaccessories.undershirt_list[undershirt]
-		var/mutable_appearance/shirt_overlay = shirt_accessory?.make_appearance(undershirt_color, physique, bodyshape, src) // NOVA EDIT CHANGE - ORIGINAL: var/mutable_appearance/shirt_overlay = shirt_accessory?.make_appearance(null, physique, bodyshape)
+		var/mutable_appearance/shirt_overlay = shirt_accessory?.make_appearance(undershirt_color, body_type, bodyshape, src) // APHELION EDIT CHANGE - ORIGINAL: var/mutable_appearance/shirt_overlay = shirt_accessory?.make_appearance(undershirt_color, body_type, bodyshape) // NOVA EDIT CHANGE - ORIGINAL: var/mutable_appearance/shirt_overlay = shirt_accessory?.make_appearance(null, body_type, bodyshape)
 		if(shirt_overlay)
 			. += shirt_overlay
 
 	/* // NOVA EDIT REMOVAL START - Original TG sock handling
 	if(socks && num_legs >= 2 && !(bodyshape & BODYSHAPE_DIGITIGRADE))
 		var/datum/sprite_accessory/clothing/socks/sock_accessory = SSaccessories.socks_list[socks]
-		var/mutable_appearance/socks_overlay = sock_accessory?.make_appearance(null, physique, bodyshape)
+		var/mutable_appearance/socks_overlay = sock_accessory?.make_appearance(null, body_type, bodyshape)
 		if(socks_overlay)
 			. += socks_overlay
 	*/ // NOVA EDIT REMOVAL END
@@ -1280,16 +1273,23 @@ generate/load female uniform sprites matching all previously decided variables
 	var/i = 1
 	while (i <= length(parsed_overlays))
 		var/mutable_appearance/overlay = parsed_overlays[i]
-		if (!isimage(overlay)) // Malformed overlays, etc
+		if (!isimage(overlay) && !isappearance(overlay)) // Malformed overlays, etc // APHELION EDIT CHANGE - WORN_EMISSIVES - nested sprites read back as appearances - ORIGINAL: if (!isimage(overlay)) // Malformed overlays, etc
 			i += 1
 			continue
 		var/overlay_x = overlay.pixel_x + overlay.pixel_w
 		var/overlay_y = overlay.pixel_y + overlay.pixel_z
-		if (!isnull(parsed_overlays[overlay])) // Nested overlay
+		if (islist(parsed_overlays[overlay])) // Nested overlay
 			overlay_x += parsed_overlays[overlay][SUB_OVERLAY_X_INDEX]
 			overlay_y += parsed_overlays[overlay][SUB_OVERLAY_Y_INDEX]
+		/* // APHELION EDIT REMOVAL START - WORN_EMISSIVES - appearances have no procs
 		cached_body_width = max(cached_body_width, overlay.get_cached_width())
 		cached_body_height = max(cached_body_height, overlay.get_cached_height())
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - WORN_EMISSIVES - appearances have no procs
+		var/list/dimensions = isnull(overlay.icon) ? null : get_icon_dimensions(overlay.icon)
+		cached_body_width = max(cached_body_width, dimensions?["width"] || 0)
+		cached_body_height = max(cached_body_height, dimensions?["height"] || 0)
+		// APHELION EDIT ADDITION END
 		cached_body_min_x_offset = min(cached_body_min_x_offset, overlay_x)
 		cached_body_min_y_offset = min(cached_body_min_y_offset, overlay_y)
 		for (var/sub_overlay in overlay.overlays)

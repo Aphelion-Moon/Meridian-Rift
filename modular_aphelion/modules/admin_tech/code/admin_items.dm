@@ -684,7 +684,7 @@ Admin Variants of Common Tools
 	ammo_type = list(/obj/item/ammo_casing/energy/medical)
 	cell_type = /obj/item/stock_parts/power_store/cell/medigun
 	pin = /obj/item/firing_pin/admin
-	maxcells = 13
+	max_cells = 13
 	allowed_cells = list(/obj/item/weaponcell/medical)
 	item_flags = null
 	gun_flags = null
@@ -2109,6 +2109,7 @@ GLOBAL_LIST_INIT(subspace_ballmatter_spheres, list(
 	desc = "A miniaturized version of the debug chem synthesizer. You can see an ampoule with subspace condensate creeping and sticking around inside it's glass prison. You think its best not to question it."
 	icon = 'icons/obj/devices/remote.dmi'
 	icon_state = "camera_bug"
+	inhand_icon_state = "camera_bug"
 	w_class = WEIGHT_CLASS_TINY
 	slot_flags = ITEM_SLOT_ADMIN
 	resistance_flags = INDESTRUCTIBLE
@@ -2427,7 +2428,7 @@ GLOBAL_LIST_INIT(subspace_ballmatter_spheres, list(
 		for(var/datum/reagent/reagent as anything in target.reagents.reagent_list)
 			report += "<span class='notice ml-2'>&rdsh; [reagent.name]: [round(reagent.volume, 0.1)]u</span>"
 
-	if(target.mind)// If there is a client connected
+	if(user.client?.holder && target.mind)
 		report += "<span class='notice ml-1'>Mind: [target.mind.name] (Key: [target.mind.key || "None"])</span>"
 		if(length(target.mind.antag_datums))// Bonus check for if there is an antagonist datum in this body.
 			report += "<span class='alert ml-1'>Antagonist roles:</span>"
@@ -2482,6 +2483,7 @@ GLOBAL_LIST_INIT(subspace_ballmatter_spheres, list(
 	icon = 'modular_aphelion/modules/admin_tech/icons/admin_items.dmi'
 	icon_state = "sub-multitool"
 	inhand_icon_state = "multitool"
+	toolspeed = 0.1 // Matches the rest of the subspace tools. Without it this is slower than the stock cyborg multitool it replaces.
 	apc_scanner = FALSE
 	w_class = WEIGHT_CLASS_TINY
 	slot_flags = ITEM_SLOT_ADMIN
@@ -2498,11 +2500,7 @@ GLOBAL_LIST_INIT(subspace_ballmatter_spheres, list(
 	AddElement(/datum/element/manufacturer_examine, COMPANY_ADMIN)
 	buffer_slots = list("Slot 1" = null, "Slot 2" = null, "Slot 3" = null, "Slot 4" = null, "Slot 5" = null, "Slot 6" = null, "Slot 7" = null)// seven fits a radial
 
-/obj/item/multitool/admin/Destroy()
-	for(var/slot_name in buffer_slots)
-		var/datum/stored = buffer_slots[slot_name]
-		if(stored)
-			UnregisterSignal(stored, COMSIG_QDELETING)
+/obj/item/multitool/admin/Destroy(force)
 	buffer_slots = null
 	return ..()
 
@@ -2511,12 +2509,14 @@ GLOBAL_LIST_INIT(subspace_ballmatter_spheres, list(
 	. += span_notice("Use in hand to switch between its [length(buffer_slots)] buffer slots. Currently on [active_slot].")
 
 /obj/item/multitool/admin/set_buffer(datum/new_buffer)
-	. = ..()
-	if(buffer_slots[active_slot])
-		UnregisterSignal(buffer_slots[active_slot], COMSIG_QDELETING)
-	buffer_slots[active_slot] = buffer
-	if(buffer)
-		RegisterSignal(buffer, COMSIG_QDELETING, PROC_REF(on_slot_buffer_deleted))
+	var/datum/old_buffer = buffer
+	if(old_buffer)
+		remove_buffer(old_buffer)
+	buffer_slots[active_slot] = buffer = new_buffer
+	if(old_buffer && !(old_buffer in assoc_to_values(buffer_slots)))
+		UnregisterSignal(old_buffer, COMSIG_QDELETING)
+	if(!QDELETED(buffer))
+		RegisterSignal(buffer, COMSIG_QDELETING, PROC_REF(on_slot_buffer_deleted), override = TRUE)
 
 /obj/item/multitool/admin/proc/on_slot_buffer_deleted(datum/source)
 	SIGNAL_HANDLER
@@ -2524,7 +2524,7 @@ GLOBAL_LIST_INIT(subspace_ballmatter_spheres, list(
 		if(buffer_slots[slot_name] == source)
 			buffer_slots[slot_name] = null
 	if(buffer == source)
-		buffer = null
+		remove_buffer(source)
 
 /obj/item/multitool/admin/attack_self(mob/user, list/modifiers)
 	var/list/choices = list()

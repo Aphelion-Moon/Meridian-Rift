@@ -1,0 +1,255 @@
+// THIS IS AN APHELION UI FILE
+// The Base markings room, ported from its mockup (the lab's markings-themes run,
+// canvas/project/Main.dc.html) by the themes-impl run's tools/port_room.py: the club room is the base,
+// and these are its changes. Hand edits below the port are marked HAND.
+
+.MarkingsRoom__wall {
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  overflow:hidden;
+}
+.AugmentsRoom__tag {
+  position:absolute;
+  font-family:'Permanent Marker',cursive;
+  white-space:nowrap;
+}
+.AugmentsRoom__tag.AugmentsRoom__tag--g1 {
+  left:366px;
+  top:6px;
+  font-size:28px;
+  color:rgb(var(--room-neon-rgb)/.3);
+  rotate:-8deg;
+}
+.AugmentsRoom__tag.AugmentsRoom__tag--g2 {
+  left:510px;
+  top:25px;
+  font-size:15px;
+  color:rgb(var(--room-hot-rgb)/.28);
+  rotate:5deg;
+}
+.AugmentsRoom__tag.AugmentsRoom__tag--g3 {
+  left:472px;
+  top:20px;
+  width:40px;
+  height:36px;
+  overflow:visible;
+  opacity:.3;
+  rotate:4deg;
+  fill:none;
+  stroke:rgb(var(--room-hot-rgb));
+  stroke-width:1.7;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.AugmentsRoom__tag.AugmentsRoom__tag--g3 .m {
+  stroke-width:1.4;
+}
+.AugmentsRoom__tag.AugmentsRoom__tag--g3 .t {
+  stroke-width:1.1;
+  stroke-linejoin:miter;
+}
+.AugmentsRoom__tag.AugmentsRoom__tag--g3 .f {
+  fill:rgb(var(--room-hot-rgb));
+  stroke:none;
+}
+.AugmentsRoom .svgfill {
+  position:absolute;
+  left:0;
+  top:0;
+  width:100%;
+  height:100%;
+  overflow:visible;
+}
+.AugmentsRoom .crack path {
+  fill:none;
+  stroke:rgb(255 255 255/.4);
+  stroke-width:1;
+  stroke-linecap:round;
+}
+.AugmentsRoom .crack path.d {
+  stroke:rgb(0 0 0/.6);
+  stroke-width:1.6;
+  transform:translate(1px,1px);
+}
+.AugmentsRoom .scratch path {
+  fill:none;
+  stroke:rgb(255 255 255/.3);
+  stroke-width:1.1;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.AugmentsRoom .stk {
+  position:absolute;
+  display:grid;
+  place-items:center;
+  font:10px/1 'VCR OSD Mono',Consolas,monospace;
+  letter-spacing:.06em;
+  box-shadow:0 1px 2px rgb(0 0 0/.45);
+  white-space:nowrap;
+}
+.AugmentsRoom .stk.s1 {
+  left:10px;
+  top:14px;
+  padding:6px 8px;
+  rotate:-9deg;
+  background:#0d0d0f;
+  color:#f2f2ee;
+  outline:2px solid #f2f2ee;
+  outline-offset:-4px;
+}
+.AugmentsRoom .stk.s2 {
+  right:12px;
+  top:50px;
+  width:42px;
+  height:42px;
+  border-radius:50%;
+  rotate:14deg;
+  background:var(--room-neon);
+  color:#120a10;
+  font-size:13px;
+  box-shadow:0 0 0 2px #f4f3ef,0 1px 3px rgb(0 0 0/.5);
+}
+.AugmentsRoom .stk.s3 {
+  right:22px;
+  bottom:30px;
+  padding:5px 9px 4px;
+  rotate:-5deg;
+  background:#ffd23f;
+  color:#141210;
+  font:15px/1 Bloops,Aurebesh,sans-serif;
+  letter-spacing:.04em;
+}
+.AugmentsRoom .stk.s4 {
+  left:14px;
+  bottom:58px;
+  width:34px;
+  height:34px;
+  border-radius:8px;
+  rotate:8deg;
+  background:#16141a;
+  box-shadow:0 0 0 2px #f4f3ef;
+}
+.AugmentsRoom .stk.s4 svg {
+  width:20px;
+  height:20px;
+  fill:var(--room-hot);
+}
+.AugmentsRoom .stk,
+.AugmentsRoom .ap-poly,
+.AugmentsRoom .wl-ian,
+.AugmentsRoom .wl-dymo,
+.AugmentsRoom .sb-stk {
+  --sticker-lamp:color-mix(in srgb,var(--room-neon) 9%,#fff);
+  --sticker-shade:color-mix(in srgb,var(--room-neon) 7%,#a4a2aa);
+  isolation:isolate;
+  filter:brightness(.96) saturate(.92) contrast(.97) drop-shadow(0 0 .6px rgb(0 0 0/.7)) drop-shadow(2px 3px .8px rgb(0 0 0/.3));
+}
+.AugmentsRoom .stk::before,
+.AugmentsRoom .ap-poly::before,
+.AugmentsRoom .wl-ian::before,
+.AugmentsRoom .wl-dymo::before,
+.AugmentsRoom .sb-stk::before {
+  content:'';
+  position:absolute;
+  inset:0;
+  z-index:1;
+  display:block;
+  border-radius:inherit;
+  pointer-events:none;
+  background:linear-gradient(172deg,var(--sticker-lamp) 0%,color-mix(in srgb,var(--sticker-lamp) 55%,var(--sticker-shade)) 55%,var(--sticker-shade) 100%);
+  mix-blend-mode:multiply;
+  opacity:.8;
+  transition:opacity .6s;
+}
+.AugmentsRoom .stk:not(.n2)::after,
+.AugmentsRoom .ap-poly::after,
+.AugmentsRoom .wl-ian::after,
+.AugmentsRoom .wl-dymo::after,
+.AugmentsRoom .sb-stk::after {
+  content:'';
+  position:absolute;
+  inset:0;
+  z-index:2;
+  display:block;
+  border-radius:inherit;
+  pointer-events:none;
+  background:linear-gradient(118deg,transparent 26%,rgb(255 255 255/.2) 38%,rgb(255 255 255/.06) 46%,transparent 54%),linear-gradient(180deg,rgb(255 255 255/.12),transparent 26%);
+  mix-blend-mode:screen;
+  transition:opacity .6s;
+}
+.AugmentsRoom--uv .stk::before,
+.AugmentsRoom--uv .ap-poly::before,
+.AugmentsRoom--uv .wl-ian::before,
+.AugmentsRoom--uv .wl-dymo::before,
+.AugmentsRoom--uv .sb-stk::before,
+.AugmentsRoom--uv .stk::after,
+.AugmentsRoom--uv .ap-poly::after,
+.AugmentsRoom--uv .wl-ian::after,
+.AugmentsRoom--uv .wl-dymo::after,
+.AugmentsRoom--uv .sb-stk::after {
+  opacity:0;
+}
+.AugmentsRoom .fluo {
+  position:absolute;
+  inset:0;
+  z-index:3;
+  border-radius:inherit;
+  pointer-events:none;
+  opacity:0;
+  transition:opacity .6s;
+}
+.AugmentsRoom .fluo b,
+.AugmentsRoom .fluo i {
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  background:var(--fluo);
+}
+.AugmentsRoom .fluo b {
+  filter:blur(2px);
+  opacity:.85;
+}
+.AugmentsRoom .fluo b + b {
+  inset:-2px;
+  filter:blur(6px);
+  opacity:.5;
+}
+.AugmentsRoom .fluo i {
+  display:grid;
+  place-items:center;
+  padding:inherit;
+  font:inherit;
+  letter-spacing:inherit;
+  font-style:normal;
+  color:#25073f;
+}
+.AugmentsRoom--uv .fluo {
+  opacity:1;
+}
+.MarkingsRoom__cardX1,
+.MarkingsRoom__cardX2,
+.MarkingsRoom__cardTag {
+  position:absolute;
+  pointer-events:none;
+}
+.MarkingsRoom__cardTag {
+  display:none;
+}
+.MarkingsRoom__cardMeter {
+  display:none;
+}
+.MarkingsRoom__behind {
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  overflow:hidden;
+}
+.AugmentsRoom--uv .MarkingsRoom__neon,
+.AugmentsRoom--uv .lamp,
+.AugmentsRoom--uv .lamp-fluor,
+.AugmentsRoom--uv .MarkingsRoom__spec,
+.AugmentsRoom--uv .syn-cut {
+  opacity:.12;
+  animation:none;
+}

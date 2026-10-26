@@ -2,6 +2,7 @@
 	abstract_type = /datum/preference/numeric/unsteady
 	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	savefile_identifier = PREFERENCE_CHARACTER
+	should_update_preview = FALSE
 
 	step = 0.1
 

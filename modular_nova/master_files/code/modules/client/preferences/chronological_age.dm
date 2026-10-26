@@ -3,6 +3,7 @@
 	category = PREFERENCE_CATEGORY_NON_CONTEXTUAL
 	savefile_key = "chrono_age"
 	savefile_identifier = PREFERENCE_CHARACTER
+	should_update_preview = FALSE
 
 	minimum = AGE_MIN
 	maximum = AGE_CHRONO_MAX

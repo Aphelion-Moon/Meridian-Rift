@@ -276,8 +276,11 @@ describe('theme picker around native UI', () => {
     await act(async () => {
       window.dispatchEvent(new Event('resize'));
     });
-    await waitFor(() => expect(trigger().disabled).toBe(false));
-    expect(document.activeElement === trigger()).toBe(true);
+    // Focus is restored by an effect after the trigger is re-enabled.
+    await waitFor(() => {
+      expect(trigger().disabled).toBe(false);
+      expect(document.activeElement === trigger()).toBe(true);
+    });
   });
 
   it('does not steal focus if another control was focused during recovery', async () => {

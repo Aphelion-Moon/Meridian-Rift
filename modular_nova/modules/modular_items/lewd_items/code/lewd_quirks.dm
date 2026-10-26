@@ -147,7 +147,7 @@
 	var/message = speech_args[SPEECH_MESSAGE]
 	var/list/split_message = splittext(message, " ") //List each word in the message
 	for (var/i in 1 to length(split_message))
-		if(findtext(split_message[i], "*") || findtext(split_message[i], ";") || findtext(split_message[i], ":"))
+		if(findtextEx(split_message[i], "*") || findtextEx(split_message[i], ";") || findtextEx(split_message[i], ":"))
 			continue
 		if(prob(10))
 			var/insert_muffle = pick("... Mmmph...", "... Hmmphh...", "... Gmmmh...", "... Fmmmmph...")

@@ -345,16 +345,19 @@
 	var/obj/item/bodypart/leg/left/left_leg = organ_owner.get_bodypart(BODY_ZONE_L_LEG)
 	var/obj/item/bodypart/leg/right/right_leg = organ_owner.get_bodypart(BODY_ZONE_R_LEG)
 	var/legs_species_still_matches = (old_legs_species_type == organ_owner.dna.species.type)
+	var/replacement_is_digitigrade = organ_owner.dna.species.should_use_digitigrade_legs(organ_owner)
 
 	if(istype(left_leg, /obj/item/bodypart/leg/left/taur) || istype(left_leg, /obj/item/bodypart/leg/left/synth/taur))
 		left_leg.drop_limb(special = TRUE, move_to_floor = FALSE)
 		qdel(left_leg)
 
 		var/obj/item/bodypart/leg/left/restore_left = legs_species_still_matches ? old_left_leg?.resolve() : null
-		if(!restore_left)
-			var/left_leg_type = organ_owner.dna.species.bodypart_overrides[BODY_ZONE_L_LEG] || /obj/item/bodypart/leg/left
+		var/obj/item/bodypart/leg/left/left_leg_type = organ_owner.dna.species.bodypart_overrides[BODY_ZONE_L_LEG]
+		if(!restore_left && left_leg_type) // A legless species gets none back
+			if(replacement_is_digitigrade)
+				left_leg_type = initial(left_leg_type.digitigrade_type) || left_leg_type
 			restore_left = new left_leg_type()
-		restore_left.replace_limb(organ_owner)
+		restore_left?.replace_limb(organ_owner)
 	old_left_leg = null
 
 	if(istype(right_leg, /obj/item/bodypart/leg/right/taur) || istype(right_leg, /obj/item/bodypart/leg/right/synth/taur))
@@ -362,10 +365,12 @@
 		qdel(right_leg)
 
 		var/obj/item/bodypart/leg/right/restore_right = legs_species_still_matches ? old_right_leg?.resolve() : null
-		if(!restore_right)
-			var/right_leg_type = organ_owner.dna.species.bodypart_overrides[BODY_ZONE_R_LEG] || /obj/item/bodypart/leg/right
+		var/obj/item/bodypart/leg/right/right_leg_type = organ_owner.dna.species.bodypart_overrides[BODY_ZONE_R_LEG]
+		if(!restore_right && right_leg_type)
+			if(replacement_is_digitigrade)
+				right_leg_type = initial(right_leg_type.digitigrade_type) || right_leg_type
 			restore_right = new right_leg_type()
-		restore_right.replace_limb(organ_owner)
+		restore_right?.replace_limb(organ_owner)
 	old_right_leg = null
 	old_legs_species_type = null
 
@@ -397,6 +402,25 @@
 		var/obj/item/bodypart/leg/right/right_leg = old_right_leg.resolve()
 		if(isnull(right_leg.loc))
 			qdel(right_leg)
+
+/obj/item/organ/taur_body/on_bodypart_insert(obj/item/bodypart/limb)
+	. = ..()
+	// Grown after our own overlay went on, so the tail draws over the body on the layers they share.
+	var/datum/sprite_accessory/taur/accessory = bodypart_overlay.sprite_datum
+	if(isnull(limb.owner) || !accessory?.has_tail)
+		return
+	var/obj/item/organ/tail/taur/tail = new
+	tail.organ_flags &= ~(ORGAN_ORGANIC | ORGAN_ROBOTIC)
+	tail.organ_flags |= organ_flags & (ORGAN_ORGANIC | ORGAN_ROBOTIC)
+	tail.Insert(limb.owner, special = TRUE, movement_flags = DELETE_IF_REPLACED)
+
+/obj/item/organ/taur_body/on_bodypart_remove(obj/item/bodypart/limb, movement_flags)
+	var/mob/living/carbon/tail_owner = limb.owner
+	var/obj/item/organ/tail/taur/tail = tail_owner?.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAIL)
+	if(istype(tail) && !QDELETED(tail_owner))
+		tail.Remove(tail_owner, special = TRUE)
+		qdel(tail)
+	return ..()
 
 /obj/item/organ/taur_body/proc/get_riding_offset(oversized = FALSE)
 	var/size_scaling = (owner.dna.features["body_size"] / BODY_SIZE_NORMAL) - 1
@@ -454,7 +478,7 @@ GAME_VERB_PROC(/mob/living/carbon/human, toggle_laying, "(Taur) Toggle Laying Do
 		owner.pixel_y += overlay.laydown_offset
 		owner.update_body_parts()
 
-		owner.Immobilize(INFINITY, TRUE)
+		owner.SetImmobilized(INFINITY, TRUE)
 		ADD_TRAIT(owner, TRAIT_UNDENSE, TRAIT_TAUR_LOAF)
 		to_chat(owner, span_notice("You lay down."))
 		if(owner.has_gravity())

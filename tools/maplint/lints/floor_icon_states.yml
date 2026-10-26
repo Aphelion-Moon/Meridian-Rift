@@ -1,0 +1,20 @@
+help: Use a floor subtype instead of editing icon_state.
+
+/turf/open/floor:
+  banned_variables:
+    - icon_state
+  # APHELION EDIT ADDITION START - These condos tile "x,y" slices of big pictures across their floors
+  skip_files:
+    - modular_nova/modules/condos/_maps/apartment_mountainside.dmm
+    - modular_nova/modules/condos/_maps/apartment_skyscraper.dmm
+    - modular_nova/modules/condos/_maps/deepspace_pod.dmm
+    - modular_nova/modules/condos/_maps/ship_apartment.dmm
+  # APHELION EDIT ADDITION END
+
+/turf/open/misc/asteroid:
+  banned_variables:
+    - icon_state
+
+/turf/open/indestructible:
+  banned_variables:
+    - icon_state

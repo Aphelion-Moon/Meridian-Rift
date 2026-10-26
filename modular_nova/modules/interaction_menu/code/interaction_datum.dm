@@ -84,10 +84,10 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	for(var/requirement in interaction_requires)
 		switch(requirement)
 			if(INTERACTION_REQUIRE_SELF_HAND)
-				if(!user.get_active_hand())
+				if(!user.get_active_hand() && !user.has_hand_for_held_index(user.active_hand_index))
 					return FALSE
 			if(INTERACTION_REQUIRE_TARGET_HAND)
-				if(!target.get_active_hand())
+				if(!target.get_active_hand() && !target.has_hand_for_held_index(target.active_hand_index))
 					return FALSE
 
 			else
@@ -113,7 +113,8 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	ignore_cooldown = FALSE,
 )
 	if(isnull(route))
-		return distance_allowed || user.Adjacent(target)
+		// In person never reaches a part that a portal is showing somewhere else.
+		return (distance_allowed || user.Adjacent(target)) && !user.portal_relays_interaction(src, as_user = TRUE) && !target.portal_relays_interaction(src)
 	return route.is_still_valid(src, user, target, ignore_cooldown)
 
 /// Checks the preferences required at both execution boundaries.
@@ -191,7 +192,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 			for(var/mob/not_interested in get_hearers_in_view(DEFAULT_MESSAGE_RANGE, user))
 				if(!not_interested.client?.prefs?.read_preference(/datum/preference/toggle/erp))
 					ignoring_mobs += not_interested
-			user.visible_message(span_purple("[user] [msg]"), ignored_mobs = ignoring_mobs)
+			user.visible_message(span_purple("[user][should_have_space_before_emote(html_decode(msg)[1]) ? " " : ""][msg]"), ignored_mobs = ignoring_mobs)
 			user.log_message(msg, LOG_EMOTE)
 	else
 		user.manual_emote(msg)
@@ -212,7 +213,8 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		)
 		to_chat(user, user_msg)
 
-	if(target_messages.len)
+	// Someone acting on themselves already got the user side message; the target side would address them twice.
+	if(target_messages.len && !(user == target && !user_anonymous && !target_anonymous))
 		var/target_msg = format_message_for(
 			pick(target_messages),
 			user,
@@ -230,16 +232,21 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 			message_admins("Deprecated sound handling for '[html_encode(name)]'. Correct format is a list with one entry. This message will only show once.")
 			sound_possible = list(sound_possible)
 		sound_cache = pick(sound_possible)
-		if (lewd)
-			playsound_if_pref(target.loc, sound_cache, 50, sound_vary, max(0, -SOUND_RANGE + sound_range), pref_to_check = /datum/preference/toggle/erp/sounds)
+		// The sound reaches sound_range tiles, as its JSON says or one by default.
+		if(route?.muffles_sound())
+			// Muffled under clothes: it fades like a worn vibrator's, and reaches no further than in person or a vibrator.
+			playsound_if_pref(target, sound_cache, 50, sound_vary, min(sound_range - SOUND_RANGE, SILENCED_SOUND_EXTRARANGE), falloff_exponent = 5, pref_to_check = /datum/preference/toggle/erp/sounds)
+		else if (lewd)
+			playsound_if_pref(target.loc, sound_cache, 50, sound_vary, sound_range - SOUND_RANGE, pref_to_check = /datum/preference/toggle/erp/sounds)
 		else
-			playsound(target.loc, sound_cache, 50, sound_vary, max(0, -SOUND_RANGE + sound_range))
+			playsound(target.loc, sound_cache, 50, sound_vary, sound_range - SOUND_RANGE)
 
 	INVOKE_ASYNC(src, PROC_REF(apply_effects), WEAKREF(user), WEAKREF(target), route)
 	return TRUE
 
 /// Expands a message for an observer by default, or for the recipient of a private notice.
 /// Anonymity takes precedence over recipient identity, including when both roles belong to one mob.
+/// Placeholders match case-sensitively, exactly as templates write them, such as %USER% and %TARGET_PRONOUN_THEIR%.
 /datum/interaction/proc/format_message_for(
 	message_template,
 	mob/living/carbon/human/user,
@@ -250,7 +257,8 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	target_anonymous = FALSE,
 	mob/living/carbon/human/recipient = null,
 )
-	var/known_self_interaction = recipient == user && user == target && !user_anonymous && !target_anonymous
+	// Known to everyone involved as one mob acting on themselves, so objects read reflexively.
+	var/self_interaction = user == target && !user_anonymous && !target_anonymous
 	var/formatted_message = message_template
 	for(var/role in list("USER", "TARGET"))
 		var/is_user = role == "USER"
@@ -265,28 +273,33 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		if(is_user && omit_user)
 			participant_name = ""
 
-		var/possessive = is_recipient ? (known_self_interaction ? "your own" : "your") : "[participant_name]'s"
-		var/object_name = is_recipient && known_self_interaction ? "yourself" : participant_name
 		var/their = is_recipient ? "your" : (anonymous ? "their" : participant.p_their())
 		var/theirs = is_recipient ? "yours" : (anonymous ? "theirs" : participant.p_theirs())
-		var/them = is_recipient ? (known_self_interaction ? "yourself" : "you") : (anonymous ? "them" : participant.p_them())
 		var/they = is_recipient ? "you" : (anonymous ? "they" : participant.p_they())
 		var/themselves = is_recipient ? "yourself" : (anonymous ? "themselves" : participant.p_themselves())
+		var/them = self_interaction ? themselves : (is_recipient ? "you" : (anonymous ? "them" : participant.p_them()))
+		var/object_name = self_interaction ? themselves : participant_name
+		var/possessive = "[participant_name]'s"
+		if(is_recipient)
+			possessive = self_interaction ? "your own" : "your"
+		else if(self_interaction && !is_user)
+			possessive = "[their] own"
 
 		// Expand possessives before bare names so a recipient never becomes "you's".
-		formatted_message = replacetext(formatted_message, "%[role]%'s", possessive)
-		formatted_message = replacetext(formatted_message, "%[role]_CAPITAL%'s", capitalize(possessive))
-		formatted_message = replacetext(formatted_message, "%[role]%", participant_name)
-		formatted_message = replacetext(formatted_message, "%[role]_CAPITAL%", capitalize(participant_name))
-		formatted_message = replacetext(formatted_message, "%[role]_OBJECT%", object_name)
+		formatted_message = replacetextEx(formatted_message, "%[role]%'s", possessive)
+		formatted_message = replacetextEx(formatted_message, "%[role]_CAPITAL%'s", capitalize(possessive))
+		// A bare target is the object ("kisses %TARGET%"); a sentence-initial one stays the subject.
+		formatted_message = replacetextEx(formatted_message, "%[role]%", is_user ? participant_name : object_name)
+		formatted_message = replacetextEx(formatted_message, "%[role]_CAPITAL%", capitalize(participant_name))
+		formatted_message = replacetextEx(formatted_message, "%[role]_OBJECT%", object_name)
 		// Templates supply agreement explicitly; do not guess how to conjugate arbitrary prose.
-		formatted_message = replacetext(formatted_message, "%[role]_VERB_S%", is_recipient ? "" : "s")
-		formatted_message = replacetext(formatted_message, "%[role]_VERB_ES%", is_recipient ? "" : "es")
-		formatted_message = replacetext(formatted_message, "%[role]_PRONOUN_THEIR%", their)
-		formatted_message = replacetext(formatted_message, "%[role]_PRONOUN_THEIRS%", theirs)
-		formatted_message = replacetext(formatted_message, "%[role]_PRONOUN_THEM%", them)
-		formatted_message = replacetext(formatted_message, "%[role]_PRONOUN_THEY%", they)
-		formatted_message = replacetext(formatted_message, "%[role]_PRONOUN_THEMSELVES%", themselves)
+		formatted_message = replacetextEx(formatted_message, "%[role]_VERB_S%", is_recipient ? "" : "s")
+		formatted_message = replacetextEx(formatted_message, "%[role]_VERB_ES%", is_recipient ? "" : "es")
+		formatted_message = replacetextEx(formatted_message, "%[role]_PRONOUN_THEIR%", their)
+		formatted_message = replacetextEx(formatted_message, "%[role]_PRONOUN_THEIRS%", theirs)
+		formatted_message = replacetextEx(formatted_message, "%[role]_PRONOUN_THEM%", them)
+		formatted_message = replacetextEx(formatted_message, "%[role]_PRONOUN_THEY%", they)
+		formatted_message = replacetextEx(formatted_message, "%[role]_PRONOUN_THEMSELVES%", themselves)
 	return trim(formatted_message, INTERACTION_MAX_CHAR)
 
 /// Applies side effects only while the interaction's original authority remains valid.

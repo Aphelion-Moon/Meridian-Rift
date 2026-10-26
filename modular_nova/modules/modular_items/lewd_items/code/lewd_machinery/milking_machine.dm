@@ -564,17 +564,17 @@
 	data["current_vessel"] = current_vessel ? current_vessel : null
 	data["current_selected_organ"] = current_selected_organ ? current_selected_organ : null
 	data["current_selected_organ_name"] = current_selected_organ ? current_selected_organ.name : null
-	if(current_mob?.is_topless() || current_breasts?.visibility_preference == GENITAL_ALWAYS_SHOW)
+	if(current_mob?.is_topless() || current_breasts?.is_shown_over_clothing())
 		data["current_breasts"] = current_breasts ? current_breasts : null
 	else
 		data["current_breasts"] = null
 
-	if(current_mob?.is_bottomless() || current_testicles?.visibility_preference == GENITAL_ALWAYS_SHOW)
+	if(current_mob?.is_bottomless() || current_testicles?.is_shown_over_clothing())
 		data["current_testicles"] = current_testicles ? current_testicles : null
 	else
 		data["current_testicles"] = current_testicles = null
 
-	if(current_mob?.is_bottomless() || current_vagina?.visibility_preference == GENITAL_ALWAYS_SHOW)
+	if(current_mob?.is_bottomless() || current_vagina?.is_shown_over_clothing())
 		data["current_vagina"] = current_vagina ? current_vagina : null
 	else
 		data["current_vagina"] = current_vagina = null

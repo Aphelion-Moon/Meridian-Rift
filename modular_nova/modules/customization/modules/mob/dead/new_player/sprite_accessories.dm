@@ -59,17 +59,13 @@
 
 		var/list/icon_states_list = SSaccessories.cached_mutant_icon_files[icon] || SSaccessories.build_cached_icon_states(icon)
 		var/icon_state_prefix = "m_[key]_[get_sprite_suffix()]"
+		var/static/list/channel_names = list("1" = "primary", "2" = "secondary", "3" = "tertiary")
 
-		for(var/postfix in SSaccessories.all_layer_postfixes)
-			var/prefix = "[icon_state_prefix]_[postfix]"
-			if("[prefix]_primary" in icon_states_list)
-				color_layer_names["1"] = "primary"
-			if("[prefix]_secondary" in icon_states_list)
-				color_layer_names["2"] = "secondary"
-			if("[prefix]_tertiary" in icon_states_list)
-				color_layer_names["3"] = "tertiary"
-			if(length(color_layer_names) == 3)
-				break // Found all three channels, nothing left to learn.
+		for(var/color_index, channel_name in channel_names)
+			for(var/postfix in SSaccessories.all_layer_postfixes)
+				if("[icon_state_prefix]_[postfix]_[channel_name]" in icon_states_list)
+					color_layer_names[color_index] = channel_name
+					break
 
 /// Returns the 'suffix' of the sprite (by default just the icon_state)
 /datum/sprite_accessory/proc/get_sprite_suffix()
@@ -78,7 +74,7 @@
 /datum/sprite_accessory/proc/is_hidden(mob/living/carbon/human/owner, datum/bodypart_overlay/mutant/bodypart_overlay)
 	return FALSE
 
-/datum/sprite_accessory/proc/get_special_icon(mob/living/carbon/human/H, passed_state)
+/datum/sprite_accessory/proc/get_special_icon(mob/living/carbon/human/H, datum/bodypart_overlay/mutant/bodypart_overlay)
 	return icon
 
 /datum/sprite_accessory/proc/get_special_x_dimension(mob/living/carbon/human/H, passed_state)
@@ -145,10 +141,7 @@
 	organ_type = /obj/item/organ/mushroom_cap
 
 /datum/sprite_accessory/caps/is_hidden(mob/living/carbon/human/human, datum/bodypart_overlay/mutant/bodypart_overlay)
-	if(((human.head?.flags_inv & HIDEHAIR) || (human.wear_mask?.flags_inv & HIDEHAIR)) || (key in human.try_hide_mutant_parts))
-		return TRUE
-
-	return FALSE
+	return ((human.head?.flags_inv | human.wear_mask?.flags_inv) & HIDEHAIR) || human.try_hide_mutant_parts?[key]
 
 /datum/sprite_accessory/caps/none
 	name = SPRITE_ACCESSORY_NONE
@@ -160,16 +153,6 @@
 /datum/sprite_accessory/caps/round
 	name = "Round"
 	icon_state = "round"
-
-/datum/sprite_accessory/lizard_markings
-	key = FEATURE_MARKING_GENERIC
-	default_color = DEFAULT_TERTIARY
-
-/datum/sprite_accessory/lizard_markings/none
-	name = SPRITE_ACCESSORY_NONE
-	icon_state = "none"
-	factual = FALSE
-	natural_spawn = FALSE
 
 /// Legs are a special case, they aren't actually sprite_accessories but are updated with them.
 /// These datums exist for selecting legs on preference, and little else

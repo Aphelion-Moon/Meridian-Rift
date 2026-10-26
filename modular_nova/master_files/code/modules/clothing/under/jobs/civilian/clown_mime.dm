@@ -9,6 +9,6 @@
 	icon_state = "pink_clown_outfit"
 	worn_icon_vox = 'modular_nova/master_files/icons/mob/clothing/under/civilian.dmi'
 	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/under/civilian.dmi'
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
-	bodyshapes_with_variations = NONE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_CERULEAN
 	worn_icon_digi = null

@@ -10,8 +10,19 @@
     background: var(--console-surface-canvas);
   }
 
+  // The title bar carries the window's frame band down its sides and under its top edge, so the
+  // frame runs unbroken from the title bar into the body instead of stepping out below it.
   .TitleBar {
     background: var(--console-surface-base);
+    box-shadow:
+      inset var(--console-frame-layer) 0 0 var(--console-border-strong),
+      inset calc(var(--console-frame-layer) * -1) 0 0
+        var(--console-border-strong),
+      inset calc(var(--console-frame-layer) + 3px) 0 0
+        var(--console-border-subtle),
+      inset calc((var(--console-frame-layer) + 3px) * -1) 0 0
+        var(--console-border-subtle),
+      inset 0 3px 0 var(--console-border-subtle);
   }
 
   .TitleBar__title,
@@ -21,9 +32,17 @@
     letter-spacing: 0.025em;
   }
 
+  // The neon rail fades in from both ends rather than stopping at the frame.
   .TitleBar::after {
     @include neon.rail;
     bottom: -32px;
+    mask-image: linear-gradient(
+      90deg,
+      transparent,
+      #000 12%,
+      #000 88%,
+      transparent
+    );
   }
 
   .Section {

@@ -3,6 +3,7 @@
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "character_scream"
 	randomize_by_default = FALSE
+	should_update_preview = FALSE
 
 /datum/preference/choiced/scream/init_possible_values()
 	return assoc_to_keys(GLOB.scream_types_by_name)

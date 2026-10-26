@@ -1,5 +1,5 @@
 /datum/species/aquatic
-	name = "Akula (Generic)"
+	name = "Aquatic"
 	id = SPECIES_AQUATIC
 	inherent_traits = list(
 		TRAIT_ADVANCEDTOOLUSER,
@@ -69,13 +69,8 @@
 	features[FEATURE_MUTANT_COLOR_THREE] = second_color
 	return features
 
-/datum/species/aquatic/get_random_body_markings(list/passed_features)
-	var/name = "Shark"
-	var/datum/body_marking_set/BMS = GLOB.body_marking_sets[name]
-	var/list/markings = list()
-	if(BMS)
-		markings = assemble_body_markings_from_set(BMS, passed_features, src)
-	return markings
+/datum/species/aquatic/get_random_marking_sets()
+	return /datum/body_marking_set/shark
 
 /datum/species/aquatic/get_species_description()
 	return placeholder_description

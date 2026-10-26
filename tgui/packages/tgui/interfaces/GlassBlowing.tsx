@@ -75,7 +75,6 @@ export const GlassBlowing = (props) => {
             />
           }
         />
-        {/* APHELION EDIT CHANGE - boolean render guard; ORIGINAL: {glass && !glass.chosenItem && ( */}
         {!!glass && !glass.chosenItem && (
           <Section title="Pick a craft">
             <Stack fill vertical>
@@ -120,7 +119,6 @@ export const GlassBlowing = (props) => {
             </Stack>
           </Section>
         )}
-        {/* APHELION EDIT CHANGE - boolean render guard; ORIGINAL: {glass?.chosenItem && ( */}
         {!!glass?.chosenItem && (
           <>
             <Section title="Steps Remaining:">
@@ -133,7 +131,6 @@ export const GlassBlowing = (props) => {
                   </Box>
                 </Stack.Item>
                 <Table>
-                  {/* APHELION EDIT CHANGE - wrap crafting controls; ORIGINAL: <Stack.Item> */}
                   <Stack.Item className="MeridianControlRow">
                     {glass.stepsRemaining.blow !== 0 && (
                       <Table.Cell>
@@ -226,7 +223,6 @@ export const GlassBlowing = (props) => {
             </Section>
           </>
         )}
-        {/* APHELION EDIT CHANGE - boolean render guard; ORIGINAL: {glass && glass.timeLeft !== 0 && ( */}
         {!!glass && glass.timeLeft !== 0 && (
           <Section title="Heat level">
             <ProgressBar
@@ -250,11 +246,9 @@ export const GlassBlowing = (props) => {
             </ProgressBar>
           </Section>
         )}
-        {/* APHELION EDIT CHANGE - boolean render guard; ORIGINAL: {glass && glass.timeLeft === 0 && ( */}
         {!!glass && glass.timeLeft === 0 && (
           <Section title="Heat level">
             <ProgressBar
-              /* APHELION EDIT CHANGE - finite cold heat value; ORIGINAL: value={0 / 0} */
               value={0}
               ranges={{}}
               style={{

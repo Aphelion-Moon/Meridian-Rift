@@ -210,6 +210,7 @@
 	relevant_mutant_bodypart = ORGAN_SLOT_PENIS
 	minimum = PENIS_MIN_GIRTH
 	maximum = PENIS_MAX_GIRTH
+	should_update_preview = FALSE
 
 /datum/preference/numeric/penis_girth/is_accessible(datum/preferences/preferences)
 	var/passed_initial_check = ..(preferences)
@@ -260,7 +261,7 @@
 
 /datum/preference/toggle/penis_taur_mode/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	var/datum/preference/toggle/penis_taur_mode/taur_mode_pref = GLOB.preference_entries[/datum/preference/toggle/penis_taur_mode]
-	if(taur_mode_pref.is_accessible(preferences))
+	if(taur_mode_pref.is_applicable(preferences))
 		target.dna.features["penis_taur_mode"] = value
 
 /datum/preference/toggle/penis_taur_mode/is_accessible(datum/preferences/preferences)
@@ -301,7 +302,7 @@
 
 /datum/preference/choiced/penis_sheath/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	var/datum/preference/choiced/penis_sheath/penis_sheath_pref = GLOB.preference_entries[/datum/preference/choiced/penis_sheath]
-	if(penis_sheath_pref.is_accessible(preferences))
+	if(penis_sheath_pref.is_applicable(preferences))
 		target.dna.features["penis_sheath"] = value
 
 // TESTES
@@ -407,6 +408,7 @@
 	savefile_key = "feature_womb"
 	relevant_mutant_bodypart = ORGAN_SLOT_WOMB
 	default_accessory_type = /datum/sprite_accessory/genital/womb/none
+	should_update_preview = FALSE
 
 // BREASTS
 
@@ -452,6 +454,7 @@
 	savefile_key = "breasts_lactation_toggle"
 	default_value = FALSE
 	relevant_mutant_bodypart = ORGAN_SLOT_BREASTS
+	should_update_preview = FALSE
 
 /datum/preference/toggle/breasts_lactation/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	target.dna.features["breasts_lactation"] = value

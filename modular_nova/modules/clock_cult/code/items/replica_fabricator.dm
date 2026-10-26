@@ -8,6 +8,7 @@
 	lefthand_file = 'modular_nova/modules/clock_cult/icons/weapons/clockwork_lefthand.dmi'
 	righthand_file = 'modular_nova/modules/clock_cult/icons/weapons/clockwork_righthand.dmi'
 	icon_state = "replica_fabricator"
+	inhand_icon_state = "replica_fabricator"
 	/// How much power this has. 5 generated per sheet inserted, one sheet of bronze costs 10, one floor tile costs 15, one wall costs 20
 	var/power = 0
 	/// How much power this can contain at most. By default, is 2 stacks of regular materials or 1 stack of brass

@@ -78,6 +78,7 @@
 	savefile_key = "underworld_uplink_skin"
 	savefile_identifier = PREFERENCE_CHARACTER
 	can_randomize = FALSE
+	should_update_preview = FALSE
 
 /// List of uplink skins, associated list where the value is a list containing icon dmi and then icon_state
 GLOBAL_LIST_INIT(possible_uplink_skins, list(
@@ -114,6 +115,7 @@ GLOBAL_LIST_INIT(possible_uplink_skins, list(
 	savefile_identifier = PREFERENCE_CHARACTER
 	can_randomize = FALSE
 	maximum_value_length = 32
+	should_update_preview = FALSE
 
 /datum/preference/text/uplink_name/is_accessible(datum/preferences/preferences)
 	if (!..())
@@ -132,6 +134,7 @@ GLOBAL_LIST_INIT(possible_uplink_skins, list(
 	savefile_key = "underworld_uplink_desc"
 	savefile_identifier = PREFERENCE_CHARACTER
 	can_randomize = FALSE
+	should_update_preview = FALSE
 
 /datum/preference/text/uplink_desc/is_accessible(datum/preferences/preferences)
 	if (!..())

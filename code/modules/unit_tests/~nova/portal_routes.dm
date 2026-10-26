@@ -129,6 +129,7 @@
 	attach_portal_preferences(viewer)
 	TEST_ASSERT(source_portal.buckle_mob(owner, force = TRUE, check_loc = FALSE), "The message fixture could not start its portal session.")
 	var/datum/interaction/interaction = allocate(/datum/interaction)
+	interaction.name = "Grope (ass)" // A lower body touch, so the wallstuck relay carries it.
 	interaction.category = "Portal unit test"
 	interaction.distance_allowed = TRUE
 	interaction.message = list("%USER% waves to %TARGET%.")

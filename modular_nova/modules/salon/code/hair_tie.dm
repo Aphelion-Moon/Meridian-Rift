@@ -48,7 +48,7 @@
 	. += span_notice("<b>Alt-click</b> [src] to fling it.")
 
 /obj/item/clothing/head/hair_tie/mob_can_equip(mob/living/carbon/human/user, slot, disable_warning, bypass_equip_delay_self, ignore_equipped, indirect_action)
-	if(user.hairstyle == "Bald") //could create a list of the bald hairstyles to check
+	if(user.hairstyle == "Bald" && !user.has_custom_hair()) //could create a list of the bald hairstyles to check
 		return FALSE
 	return ..()
 

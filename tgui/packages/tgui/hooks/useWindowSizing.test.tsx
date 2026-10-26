@@ -250,6 +250,95 @@ describe('Shared window sizing lifecycle', () => {
     }) as typeof Byond.winset;
   }
 
+  it.each([
+    'ListInputWindow',
+    'CheckboxInput',
+    'TextInputModal',
+    'GlassBlowing',
+  ])('restores viewport sizing after the opening fit for %s', async (interfaceName) => {
+    const area = layout();
+    const root = area.closest('.Window')!;
+    root.classList.add('MeridianContentFit');
+    const padding = area.querySelector<HTMLElement>('.Window__contentPadding')!;
+    let measuredNaturally = false;
+    spyOn(padding, 'getBoundingClientRect').mockImplementation(() => {
+      measuredNaturally ||= root.classList.contains(
+        'MeridianContentFit--measuring',
+      );
+      return { bottom: 175, width: 345 } as DOMRect;
+    });
+    spyOn(area, 'getBoundingClientRect').mockImplementation(
+      () => ({ bottom: window.innerHeight, width: 345 }) as DOMRect,
+    );
+    nativeResize();
+    const hook = renderHook(() => useWindowSizing(interfaceName, false));
+    try {
+      await open(hook.result.current.fitBeforeShow);
+      expect(measuredNaturally).toBe(true);
+      expect(root.classList.contains('MeridianContentFit--measuring')).toBe(
+        false,
+      );
+
+      // Later growth must use viewport overflow, not the opening-only
+      // natural-height measurement (which remains 175 in this fixture).
+      property(area, 'scrollHeight', 240);
+      act(() => window.dispatchEvent(new Event('resize')));
+      await waitFor(() => expect(window.innerHeight).toBe(240));
+      fireEvent.mouseDown(root.querySelector('.Window__resizeHandle__se')!);
+      property(window, 'innerHeight', 500);
+      property(area, 'clientHeight', 500);
+      act(() => window.dispatchEvent(new Event('resize')));
+      await pause();
+      expect(window.innerHeight).toBe(500);
+      expect(root.classList.contains('MeridianContentFit--measuring')).toBe(
+        false,
+      );
+    } finally {
+      hook.unmount();
+    }
+  });
+
+  it.each([
+    'refused',
+    'cancelled',
+  ])('releases measurement layout when a prompt resize is %s', async (outcome) => {
+    const area = layout(175, 255);
+    const root = area.closest('.Window')!;
+    root.classList.add('MeridianContentFit');
+    const padding = area.querySelector<HTMLElement>('.Window__contentPadding')!;
+    spyOn(padding, 'getBoundingClientRect').mockReturnValue({
+      bottom: 255,
+      width: 345,
+    } as DOMRect);
+    spyOn(area, 'getBoundingClientRect').mockReturnValue({
+      bottom: 175,
+      width: 345,
+    } as DOMRect);
+    const hook = renderHook(() => useWindowSizing('ListInputWindow', false));
+    try {
+      const opening = hook.result.current.fitBeforeShow(() => false, {
+        size: [345, 175],
+        scale: 1,
+      });
+      await waitFor(() =>
+        expect(root.classList.contains('MeridianContentFit--measuring')).toBe(
+          true,
+        ),
+      );
+      if (outcome === 'cancelled') hook.unmount();
+      await act(async () => opening);
+      expect(root.classList.contains('MeridianContentFit--measuring')).toBe(
+        false,
+      );
+      if (outcome === 'refused')
+        expect(area.classList.contains('Window__content--overflow-y')).toBe(
+          true,
+        );
+    } finally {
+      hook.unmount();
+    }
+  });
+
   it('waits for a pooled native viewport, then fits before finishing the opening pass', async () => {
     property(window, 'innerHeight', 600);
     const area = layout(600);

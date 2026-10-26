@@ -42,6 +42,10 @@
 /datum/interaction_route/proc/target_is_anonymous()
 	return FALSE
 
+/// Whether the interaction's sound comes from something worn on the target, so it carries only as far as a worn toy's.
+/datum/interaction_route/proc/muffles_sound()
+	return FALSE
+
 /// What to call the target to someone seeing them only through this route. Null falls back to plain "Unknown".
 /datum/interaction_route/proc/get_target_name()
 	return null

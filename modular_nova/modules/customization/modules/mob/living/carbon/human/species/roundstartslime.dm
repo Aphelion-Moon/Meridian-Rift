@@ -397,7 +397,7 @@
 
 	// Remove non-chest limbs, they can use their regenerate ability to regain their limbs.
 	for(var/obj/item/bodypart/part in body.bodyparts)
-		if(part.body_zone == BODY_ZONE_CHEST)
+		if(part.body_zone == BODY_ZONE_CHEST || (part.bodypart_flags & BODYPART_ABSTRACT)) // abstract parts belong to the chest
 			continue
 		part.drop_limb(TRUE)
 
@@ -871,12 +871,8 @@
 				alterer.dna.update_uf_block(/datum/dna_block/feature/mutant_color/three)
 
 	if(marking_reset == "Yes")
-		for(var/zone in alterer.dna.body_markings)
-			for(var/key in alterer.dna.body_markings[zone])
-				var/datum/body_marking/iterated_marking = GLOB.body_markings[key]
-				if(iterated_marking.always_color_customizable)
-					continue
-				alterer.dna.body_markings[zone][key] = iterated_marking.get_default_color(alterer.dna.features, alterer.dna.species)
+		// Every marking starts over in the colour its mode gives it from the new colours; a locked one keeps its own.
+		alterer.dna.body_markings.reseed_colors(alterer.dna.features, alterer.dna.species)
 
 	if(mutant_part_reset == "Yes")
 		alterer.mutant_renderkey = "" //Just in case
@@ -1004,6 +1000,9 @@
 	for(var/datum/dna_block/feature/mutant/block as anything in subtypesof(/datum/dna_block/feature/mutant))
 		if(CONFIG_GET(flag/disable_erp_preferences) && (block::feature_key in ORGAN_ERP_LIST))
 			continue
+		// A taur's own tail comes and goes with its body.
+		if(block::feature_key == FEATURE_TAIL && istype(alterer.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAIL), /obj/item/organ/tail/taur))
+			continue
 		mutant_part_list[block::feature_key] = block
 	var/chosen_key = tgui_input_list(
 		alterer,
@@ -1044,7 +1043,7 @@
 	else if(chosen_key == FEATURE_LEGS)
 		alterer.dna.features[FEATURE_LEGS] = chosen_name_key
 		alterer.update_body()
-		alterer.dna.species.replace_body(alterer, alterer.dna.species) // TODO: Replace this with something less stupidly expensive.
+		alterer.dna.species.replace_body(alterer, alterer.dna.species, alterer.dna.species) // TODO: Replace this with something less stupidly expensive.
 	else
 		if(selected_sprite_accessory.organ_type)
 			var/robot_organs = HAS_TRAIT(alterer, TRAIT_ROBOTIC_DNA_ORGANS)

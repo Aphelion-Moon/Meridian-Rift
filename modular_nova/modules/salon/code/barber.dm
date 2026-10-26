@@ -53,6 +53,8 @@
 	new /obj/item/straight_razor(src)
 	new /obj/item/hairbrush/comb(src)
 	new /obj/item/scissors(src)
+	new /obj/item/tattoo_machine(src)
+	new /obj/item/hhmirror(src)
 	new /obj/item/fur_dyer(src)
 	new /obj/item/dyespray(src)
 	new /obj/item/storage/box/lipsticks(src)

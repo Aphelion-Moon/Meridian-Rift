@@ -122,7 +122,7 @@
 	// Checks for cup size.
 	var/translation = mob_breasts.breasts_size_to_cup(mob_breasts.genital_size)
 
-	if(mob_breasts.visibility_preference == GENITAL_ALWAYS_SHOW || exposed_mob.is_topless())
+	if(mob_breasts.is_shown_over_clothing() || exposed_mob.is_topless())
 		switch(translation)
 			if(BREAST_SIZE_FLATCHESTED)
 				return

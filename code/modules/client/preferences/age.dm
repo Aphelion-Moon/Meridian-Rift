@@ -2,6 +2,7 @@
 	category = PREFERENCE_CATEGORY_NON_CONTEXTUAL
 	savefile_key = "age"
 	savefile_identifier = PREFERENCE_CHARACTER
+	should_update_preview = FALSE // APHELION EDIT ADDITION
 
 	minimum = AGE_MIN
 	maximum = AGE_MAX

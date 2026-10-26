@@ -1,0 +1,119 @@
+// THIS IS AN APHELION UI FILE
+// Foundry's instrument, a ritual at the forge: a circle of runes cut in iron and lit from
+// within, turning slowly against a ring of six embers, its progress an ember arc riding the
+// circle's rim and its heart a live coal. Both rings turn by transform, under the shared
+// visibility and reduced-motion gates.
+@media (forced-colors: none) {
+  .theme-meridian_foundry {
+    .DiagnosticLoader__instrument {
+      --console-loader-turn-duration: 12s;
+      --foundry-loader-gear-duration: 18s;
+      --foundry-loader-track-width: clamp(1.5px, calc(var(--diagnostic-loader-size) * 0.026), 4px);
+    }
+
+    .DiagnosticLoader__tickCrown {
+      inset: 0;
+      clip-path: none;
+      background: url('tgui/styles/meridianos/assets/forge/foundry-runes.svg') center / contain no-repeat;
+      -webkit-mask: none;
+      mask: none;
+    }
+
+    .DiagnosticLoader__outerCage {
+      inset: 21%;
+      background: url('tgui/styles/meridianos/assets/forge/foundry-embers.svg') center / contain no-repeat;
+      -webkit-mask: none;
+      mask: none;
+    }
+
+    // The arc rides the rim, outside the runes.
+    .DiagnosticLoader__progressTrack,
+    .DiagnosticLoader__progressFill {
+      inset: 6%;
+      -webkit-mask: radial-gradient(
+        farthest-side,
+        transparent calc(100% - var(--foundry-loader-track-width)),
+        #000 calc(100% - var(--foundry-loader-track-width) + 0.5px)
+      );
+      mask: radial-gradient(
+        farthest-side,
+        transparent calc(100% - var(--foundry-loader-track-width)),
+        #000 calc(100% - var(--foundry-loader-track-width) + 0.5px)
+      );
+    }
+
+    .DiagnosticLoader__progressTrack {
+      background: #1c140f;
+    }
+
+    .DiagnosticLoader__progressFill {
+      background: conic-gradient(
+        from -90deg,
+        #ff7a2e 0deg,
+        #ffb35c var(--diagnostic-loader-angle),
+        transparent var(--diagnostic-loader-angle) 360deg
+      );
+    }
+
+    // An unknown duration has a fixed lit sector; only the rings turn.
+    .DiagnosticLoader--indeterminate .DiagnosticLoader__progressFill {
+      background: conic-gradient(
+        from -36deg,
+        #ff7a2e 0deg,
+        #ffb35c 102deg,
+        transparent 102deg 360deg
+      );
+    }
+
+    .DiagnosticLoader__innerMarks {
+      inset: 20.5%;
+      border: 1px solid #8c7a68;
+      border-right-color: #3a2e25;
+      border-bottom-color: #241c16;
+      border-radius: 50%;
+      transform: none;
+      box-shadow:
+        0 0 0 1px #0d0a08,
+        inset 0 0 0 1px #16100c;
+    }
+
+    .DiagnosticLoader__nodes,
+    .DiagnosticLoader__origin {
+      display: none;
+    }
+
+    // The live coal at the heart of the circle.
+    .DiagnosticLoader__core {
+      box-sizing: border-box;
+      width: 13%;
+      height: 13%;
+      border: 1px solid #ffb35c;
+      border-right-color: #9a3412;
+      border-bottom-color: #5a210c;
+      border-radius: 50%;
+      clip-path: none;
+      background:
+        radial-gradient(ellipse at 36% 27%, #fff1c6 0 3%, transparent 27%),
+        radial-gradient(circle at 43% 42%, #ffd27a, #ff7a2e 55%, #7c2d12 100%);
+      box-shadow:
+        0 0 0 1px #1b0d06,
+        0 0 4px rgb(255 122 46 / 55%);
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .DiagnosticLoader[data-motion='running']:not(.DiagnosticLoader--motion-reduced) {
+        .DiagnosticLoader__tickCrown {
+          animation: meridian-loader-turn var(--foundry-loader-gear-duration, 18s) linear infinite reverse;
+          will-change: transform;
+        }
+
+        // The shared rotor already turns for unknown durations. Startup has
+        // real progress, so keep the embers turning here as well.
+        &.DiagnosticLoader--determinate .DiagnosticLoader__outerCage {
+          animation: meridian-loader-turn var(--console-loader-turn-duration, 12s) linear infinite;
+          will-change: transform;
+        }
+      }
+    }
+  }
+}

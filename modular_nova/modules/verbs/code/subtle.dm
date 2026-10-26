@@ -56,7 +56,7 @@
 
 	var/space = should_have_space_before_emote(html_decode(subtle_emote)[1]) ? " " : ""
 
-	subtle_message = span_subtle("<b>[user]</b>[space]<i>[user.apply_message_emphasis(subtle_message)]</i>")
+	subtle_message = span_subtle("<b>[user]</b>[space]<i>[apply_message_emphasis(subtle_message)]</i>")
 
 	var/list/viewers = get_hearers_in_view(SUBTLE_ONE_TILE, user)
 
@@ -172,7 +172,7 @@
 
 	var/space = should_have_space_before_emote(html_decode(subtler_emote)[1]) ? " " : ""
 
-	subtler_message = span_subtler("<b>[user]</b>[space]<i>[user.apply_message_emphasis(subtler_message)]</i>")
+	subtler_message = span_subtler("<b>[user]</b>[space]<i>[apply_message_emphasis(subtler_message)]</i>")
 
 	if(istype(target, /mob))
 		var/mob/target_mob = target
@@ -223,7 +223,7 @@
 				return FALSE
 			recipients = get_hearers_in_view(target, output_portal)
 			user.show_message(subtler_message, alt_msg = subtler_message)
-			subtler_message = span_subtler("<b>[output_portal]</b>[space]<i>[user.apply_message_emphasis(subtler_emote)]</i>")
+			subtler_message = span_subtler("<b>[output_portal]</b>[space]<i>[apply_message_emphasis(subtler_emote)]</i>")
 		else
 			recipients = get_hearers_in_view(target, user)
 			var/obj/effect/overlay/holo_pad_hologram/sender_hologram = GLOB.hologram_impersonators[user]
@@ -320,7 +320,7 @@
 		return FALSE
 	if(sender_message)
 		user.show_message(sender_message, alt_msg = sender_message)
-	var/portal_message = span_subtler("<b>Unknown</b>[space]<i>[user.apply_message_emphasis(subtler_emote)]</i>")
+	var/portal_message = span_subtler("<b>Unknown</b>[space]<i>[apply_message_emphasis(subtler_emote)]</i>")
 	portal_owner.show_message(portal_message, alt_msg = portal_message)
 	subtler_sound(portal_owner, running_emote_type | EMOTE_LEWD)
 	user.log_message("[log_action] a portal subtler to [key_name(portal_owner)]: [subtler_emote]", LOG_GAME)

@@ -1,7 +1,6 @@
 #define GENITAL_SKIP_VISIBILITY 0
 #define GENITAL_NEVER_SHOW 1
 #define GENITAL_HIDDEN_BY_CLOTHES 2
-#define GENITAL_ALWAYS_SHOW 3
 /// Special layering defines beyond normal genital visibility modes.
 #define GENITAL_LAYER_BELOW_UNDIES 4
 #define GENITAL_LAYER_NORMAL 5
@@ -62,3 +61,10 @@
 #define PENIS_ICON_TAUR 'modular_nova/master_files/icons/mob/sprite_accessory/genitals/taur_penis_onmob.dmi'
 #define TESTICLES_ICON_ALT 'modular_nova/master_files/icons/mob/sprite_accessory/genitals/testicles_onmob_alt.dmi'
 #define BREASTS_ICON_ALT 'modular_nova/master_files/icons/mob/sprite_accessory/genitals/breasts_onmob_alt.dmi'
+
+/// Whether a lewd item a human wears hides their mutant parts: an inflated sleeping bag does when hide_if_sleeping_bag is set,
+/// a latex catsuit worn without one does when hide_if_catsuit is. A macro on purpose: sprite accessories' is_hidden() asks it
+/// for every part on every body update.
+#define LEWD_ITEM_HIDES_PARTS(wearer, hide_if_catsuit, hide_if_sleeping_bag) (istype(wearer.wear_suit, /obj/item/clothing/suit/straight_jacket/kinky_sleepbag) \
+	? ((hide_if_sleeping_bag) && astype(wearer.wear_suit, /obj/item/clothing/suit/straight_jacket/kinky_sleepbag)?.state_thing == "inflated") \
+	: ((hide_if_catsuit) && istype(wearer.w_uniform, /obj/item/clothing/under/misc/latex_catsuit)))

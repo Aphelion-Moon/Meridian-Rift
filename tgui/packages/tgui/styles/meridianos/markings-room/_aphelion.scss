@@ -1,0 +1,232 @@
+// THIS IS AN APHELION UI FILE
+// The Aphelion markings room, ported from its mockup (the lab's markings-themes run,
+// canvas/project/Main.dc.html) by the themes-impl run's tools/port_room.py: the club room is the base,
+// and these are its changes. Hand edits below the port are marked HAND.
+
+.theme-meridian_aphelion .AugmentsRoom {
+  --room-bg:#131110;
+  --room-panel:#1a1714;
+  --room-recess:#0e0c0b;
+  --room-line:#8f887c;
+  --room-text:#ece5d8;
+  --room-muted:#a89f90;
+  --room-faint:#857d70;
+  --room-neon:#56d4dc;
+  --room-neon-rgb:86 212 220;
+  --room-hot:#ffa966;
+  --room-hot-rgb:255 169 102;
+  --room-focus:#56d4dc;
+  --room-cut:10px;
+}
+.theme-meridian_aphelion .AugmentsRoom__bg--markings {
+  background:radial-gradient(ellipse 46% 16% at 50% 5%,rgb(255 240 214/.2),transparent 70%),radial-gradient(ellipse 20% 44% at 71% 50%,rgb(var(--room-hot-rgb)/.16),transparent 70%),linear-gradient(180deg,rgb(30 19 10/.6),rgb(12 8 5/.84)),var(--mr-club-tiles,none) 0 0/900px 820px;
+}
+.theme-meridian_aphelion .AugmentsRoom__mode--markings {
+  font:25px/1 'Aphelion Behavior',Rye,serif;
+  letter-spacing:.02em;
+  padding:0 20px;
+}
+.theme-meridian_aphelion .AugmentsRoom__mode--markings.AugmentsRoom__mode--on {
+  color:#fff6ea;
+  background:#1a120c;
+  box-shadow:inset 0 0 0 1px rgb(var(--room-neon-rgb)/.55),0 0 24px rgb(var(--room-neon-rgb)/.22);
+  text-shadow:0 0 2px #fff,0 0 8px var(--room-neon),0 0 18px rgb(var(--room-neon-rgb)/.8);
+}
+.theme-meridian_aphelion .AugmentsRoom__tag.AugmentsRoom__tag--g1 {
+  left:372px;
+  top:5px;
+  font-size:26px;
+  color:rgb(var(--room-hot-rgb)/.5);
+  rotate:-4deg;
+  text-shadow:0 0 14px rgb(var(--room-hot-rgb)/.3);
+}
+.theme-meridian_aphelion .AugmentsRoom .gdrip {
+  position:absolute;
+  left:0;
+  top:27px;
+  width:140px;
+  height:26px;
+  overflow:visible;
+  fill:rgb(var(--room-hot-rgb)/.5);
+}
+.theme-meridian_aphelion .AugmentsRoom .gsun {
+  position:absolute;
+  left:536px;
+  top:13px;
+  width:46px;
+  height:26px;
+  fill:none;
+  stroke:rgb(var(--room-neon-rgb)/.46);
+  stroke-width:1.6;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  rotate:-7deg;
+}
+.theme-meridian_aphelion .MarkingsRoom__neon.MarkingsRoom__neon--top {
+  background:linear-gradient(90deg,#41f4ff,#79ff79 20%,#ffe675 40%,#ffa966 60%,#ff697b 80%,#e596f3);
+  box-shadow:0 0 3px rgb(255 255 255/.6),0 0 14px rgb(255 214 170/.55),0 12px 40px 6px rgb(255 214 170/.18);
+}
+.theme-meridian_aphelion .MarkingsRoom__neon.MarkingsRoom__neon--top + .MarkingsRoom__spec {
+  position:absolute;
+  left:28px;
+  right:28px;
+  top:2px;
+  height:20px;
+  z-index:2;
+  border-radius:10px;
+  background:linear-gradient(90deg,#41f4ff,#79ff79 20%,#ffe675 40%,#ffa966 60%,#ff697b 80%,#e596f3);
+  filter:blur(10px);
+  opacity:.75;
+  pointer-events:none;
+  animation:room-neonOn 1.2s steps(1) .4s backwards;
+}
+.theme-meridian_aphelion .MarkingsRoom__neon.MarkingsRoom__neon--side {
+  background:#fff0e0;
+}
+.theme-meridian_aphelion .MarkingsRoom__glass {
+  background:linear-gradient(180deg,rgb(255 236 210/.08),transparent 26%),radial-gradient(ellipse 90% 70% at 50% 40%,#211912,#0b0806 85%);
+}
+.theme-meridian_aphelion .MarkingsRoom__rim.MarkingsRoom__rim--top {
+  background:linear-gradient(180deg, rgb(214 244 255/.45) var(--tile-top), rgb(255 222 180/.12) calc(var(--tile-top) + 13.44 * var(--pixel)), transparent calc(var(--tile-top) + 22.4 * var(--pixel)));
+}
+.theme-meridian_aphelion .MarkingsRoom__card {
+  border-color:#ece5d8;
+  color:rgb(236 229 216/.62);
+  background:linear-gradient(135deg,rgb(255 240 220/.06),transparent 40%),#16120f;
+}
+.theme-meridian_aphelion .MarkingsRoom__card::after {
+  background:linear-gradient(135deg,transparent 49%,#8c8478 50%,#d8d0c2 64%,#f2ece0 100%);
+}
+.theme-meridian_aphelion .MarkingsRoom__cardName {
+  font:21px/1 'Aphelion Behavior',serif;
+  letter-spacing:.02em;
+}
+.theme-meridian_aphelion .MarkingsRoom__tile {
+  background:#1a1511;
+  box-shadow:inset 0 0 0 2px #ece5d8;
+}
+.theme-meridian_aphelion .MarkingsRoom__tile.MarkingsRoom__tile--selected {
+  box-shadow:inset 0 0 0 2px #ece5d8,0 0 0 2px var(--room-neon),0 0 12px rgb(var(--room-neon-rgb)/.5);
+}
+.theme-meridian_aphelion .MarkingsRoom__counter::before {
+  background:linear-gradient(90deg,transparent,#41f4ff 14%,#79ff79 28%,#ffe675 44%,#ffa966 58%,#ff697b 74%,#e596f3 88%,transparent);
+  opacity:.8;
+  box-shadow:0 0 8px rgb(255 214 170/.4);
+}
+.theme-meridian_aphelion .AugmentsRoom .stk.m1 {
+  left:10px;
+  top:14px;
+  padding:6px 9px;
+  rotate:-7deg;
+  background:#ece5d8;
+  color:#2a2018;
+  font:16px/1 'Aphelion Behavior',serif;
+  letter-spacing:.08em;
+  outline:1px solid #2a2018;
+  outline-offset:-4px;
+}
+.theme-meridian_aphelion .AugmentsRoom .stk.m2 {
+  left:28px;
+  top:56px;
+  width:46px;
+  height:46px;
+  border-radius:50%;
+  rotate:12deg;
+  background:#1a120c;
+  box-shadow:0 0 0 2px #ece5d8,0 1px 3px rgb(0 0 0/.5);
+}
+.theme-meridian_aphelion .AugmentsRoom .stk.m2 svg {
+  width:38px;
+  height:38px;
+  fill:none;
+  stroke-width:1.6;
+}
+.theme-meridian_aphelion .AugmentsRoom--uv .stk.m4 {
+  box-shadow:0 0 0 2px #f2ecff;
+  filter:drop-shadow(0 0 16px rgb(150 80 255/.3));
+}
+.theme-meridian_aphelion .AugmentsRoom .stk.m4 .fluo i {
+  box-shadow:0 0 0 2px #f2ecff;
+}
+.theme-meridian_aphelion .AugmentsRoom .ap-glow {
+  position:absolute;
+  z-index:2;
+  left:28px;
+  top:56px;
+  width:46px;
+  height:46px;
+  rotate:12deg;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .6s;
+}
+.theme-meridian_aphelion .AugmentsRoom .ap-glow i {
+  position:absolute;
+  border-radius:50%;
+}
+.theme-meridian_aphelion .AugmentsRoom .ap-glow .sun {
+  left:12.55px;
+  top:22.05px;
+  width:7.6px;
+  height:7.6px;
+  background:#ffea2a;
+  box-shadow:0 0 1px #fffbc0,0 0 4px rgb(255 226 40/.75),0 0 9px rgb(255 200 30/.4),0 0 16px rgb(150 80 255/.3);
+}
+.theme-meridian_aphelion .AugmentsRoom .ap-glow .planet {
+  left:34.02px;
+  top:13.59px;
+  width:4.56px;
+  height:4.56px;
+  background:#2ff4ff;
+  box-shadow:0 0 1px #d8ffff,0 0 4px rgb(47 244 255/.75),0 0 9px rgb(47 200 255/.4),0 0 16px rgb(150 80 255/.3);
+}
+.theme-meridian_aphelion .AugmentsRoom--uv .ap-glow {
+  opacity:1;
+}
+.theme-meridian_aphelion .AugmentsRoom .ap-poly {
+  will-change:transform;
+  position:absolute;
+  right:4px;
+  bottom:8px;
+  width:108px;
+  height:80px;
+  background:var(--mr-px-dead-poly,none) 0 0/100% 100% no-repeat;
+}
+.theme-meridian_aphelion .AugmentsRoom .ap-poly::before,
+.theme-meridian_aphelion .AugmentsRoom .ap-poly::after {
+  -webkit-mask:var(--mr-px-dead-poly,linear-gradient(#0000,#0000)) 0 0/100% 100% no-repeat;
+  mask:var(--mr-px-dead-poly,linear-gradient(#0000,#0000)) 0 0/100% 100% no-repeat;
+}
+.theme-meridian_aphelion .AugmentsRoom .stk.m4 {
+  will-change:transform;
+  --fluo:linear-gradient(90deg,#2ff4ff,#7dff2a 20%,#f4ff2a 40%,#ff9a1e 60%,#ff2f8a 80%,#c04dff);
+  z-index:2;
+  transition:box-shadow .6s;
+  left:14px;
+  bottom:62px;
+  width:58px;
+  height:12px;
+  rotate:6deg;
+  background:linear-gradient(90deg,#41f4ff,#79ff79 20%,#ffe675 40%,#ffa966 60%,#ff697b 80%,#e596f3);
+  box-shadow:0 0 0 2px #ece5d8,0 1px 3px rgb(0 0 0/.5);
+}
+@keyframes room-neonOn {
+  0% {
+    opacity:.1;
+  }
+  10% {
+    opacity:1;
+  }
+  14% {
+    opacity:.25;
+  }
+  22% {
+    opacity:1;
+  }
+  26% {
+    opacity:.4;
+  }
+  34%,100% {
+    opacity:1;
+  }
+}

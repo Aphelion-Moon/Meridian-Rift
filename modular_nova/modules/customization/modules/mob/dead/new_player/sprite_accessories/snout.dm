@@ -25,12 +25,34 @@
 /datum/bodypart_overlay/mutant/snout/override_color(rgb_value)
 	return draw_color
 
-/obj/item/organ/snout/on_mob_insert(mob/living/carbon/receiver, special, movement_flags)
+/// Restyling can cross between adjacent, front and combined-layer snout styles.
+/obj/item/organ/snout/simple_change_sprite(accessory_type)
+	var/datum/sprite_accessory/accessory = accessory_type
+	var/obj/item/organ/snout/organ_type = initial(accessory.organ_type)
+	var/datum/bodypart_overlay/mutant/snout/snout_overlay = bodypart_overlay
+	snout_overlay.set_snout_layers(initial(organ_type.bodypart_overlay))
+	sprite_accessory_flags = initial(accessory.flags_for_organ)
+	update_snout_bodyshapes()
+	owner?.synchronize_bodyshapes()
+	. = ..()
+	owner?.update_worn_mask()
+	owner?.update_worn_head()
+
+/// Keep the existing overlay's colors and emissives while adopting the new style's layers.
+/datum/bodypart_overlay/mutant/snout/proc/set_snout_layers(datum/bodypart_overlay/mutant/snout/overlay_type)
+	var/datum/bodypart_overlay/mutant/snout/template = new overlay_type()
+	set_layers(template.layers)
+	qdel(template)
+
+/obj/item/organ/snout/proc/update_snout_bodyshapes()
+	external_bodyshapes &= ~(BODYSHAPE_SNOUTED | BODYSHAPE_ALT_FACEWEAR_LAYER)
 	if(sprite_accessory_flags & SPRITE_ACCESSORY_USE_MUZZLED_SPRITE)
 		external_bodyshapes |= BODYSHAPE_SNOUTED
 	if(sprite_accessory_flags & SPRITE_ACCESSORY_USE_ALT_FACEWEAR_LAYER)
 		external_bodyshapes |= BODYSHAPE_ALT_FACEWEAR_LAYER
 
+/obj/item/organ/snout/on_mob_insert(mob/living/carbon/receiver, special, movement_flags)
+	update_snout_bodyshapes()
 	return ..()
 
 /obj/item/organ/snout/top
@@ -60,6 +82,17 @@
 	flags_for_organ = NONE
 	factual = FALSE
 	natural_spawn = FALSE
+
+// TG Cerulean fish snout, which is tg's own Round + Light sprite
+/datum/sprite_accessory/snouts/fish
+	name = "Fish"
+	icon = 'icons/mob/human/species/lizard/lizard_misc.dmi'
+	icon_state = "roundlight"
+	recommended_species = list(
+		SPECIES_AKULA = 1,
+		SPECIES_AQUATIC = 1,
+		SPECIES_CERULEAN = 1,
+	)
 
 /datum/sprite_accessory/snouts/mammal
 	icon = 'modular_nova/master_files/icons/mob/sprite_accessory/snouts.dmi'

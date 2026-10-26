@@ -91,6 +91,7 @@
 /obj/machinery/door/airlock/public/glass{
 	name = "Barber Shop"
 	},
+/obj/effect/landmark/navigate_destination/barber,
 /turf/open/floor/plating,
 /area/station/service/barber)
 "u" = (

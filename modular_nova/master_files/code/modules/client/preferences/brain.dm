@@ -3,6 +3,7 @@
 	savefile_key = "brain_type"
 	savefile_identifier = PREFERENCE_CHARACTER
 	priority = PREFERENCE_PRIORITY_NAMES // Apply after species, cause that's super important.
+	should_update_preview = FALSE
 
 /datum/preference/choiced/brain_type/init_possible_values()
 	return list(

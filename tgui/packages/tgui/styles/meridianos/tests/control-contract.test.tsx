@@ -18,10 +18,11 @@ import {
   MERIDIAN_THEME_IDS,
   resolveMeridianTheme,
 } from '../../../constants/theme';
+import { PriorityButton } from '../../../interfaces/PreferencesMenu/CharacterPreferences/JobsPage';
 import { LOADOUT_CATEGORY_TABS_CLASS } from '../../../interfaces/PreferencesMenu/CharacterPreferences/loadout';
+
 /** The stylesheets under test live one level up from this directory. */
 const styleRoot = join(import.meta.dir, '..');
-
 
 const COMPONENT_SOURCE = readFileSync(
   join(styleRoot, '_components.scss'),
@@ -31,14 +32,8 @@ const DECORATION_SOURCE = readFileSync(
   join(styleRoot, '_decoration.scss'),
   'utf8',
 );
-const THEME_SOURCE = readFileSync(
-  join(styleRoot, '_themes.scss'),
-  'utf8',
-);
-const TOKEN_SOURCE = readFileSync(
-  join(styleRoot, '_tokens.scss'),
-  'utf8',
-);
+const THEME_SOURCE = readFileSync(join(styleRoot, '_themes.scss'), 'utf8');
+const TOKEN_SOURCE = readFileSync(join(styleRoot, '_tokens.scss'), 'utf8');
 const CHECKED_ARIA = {
   'aria-checked': true,
   role: 'checkbox',
@@ -76,9 +71,7 @@ beforeAll(async () => {
       '_components.scss',
       '_decoration.scss',
       '_preferences.scss',
-    ].map(
-      async (file) => (await compileAsync(join(styleRoot, file))).css,
-    ),
+    ].map(async (file) => (await compileAsync(join(styleRoot, file))).css),
   );
   productionStyle = document.createElement('style');
   // happy-dom does not resolve custom properties in background shorthands.
@@ -109,6 +102,96 @@ afterEach(cleanup);
 afterAll(() => productionStyle.remove());
 
 describe('MeridianOS shared control geometry', () => {
+  it('centers text-only Classic buttons without changing their text layout', () => {
+    const view = render(
+      <div className="theme-meridian_classic">
+        <Button aria-label="Classic text action" fluid textAlign="center">
+          Transfer
+        </Button>
+        <Button aria-label="Classic compact action" compact>
+          Compact
+        </Button>
+      </div>,
+    );
+
+    const textButton = view.getByLabelText('Classic text action');
+    const textContent = textButton.querySelector(
+      '.Button__content',
+    ) as HTMLElement;
+    const compactContent = view
+      .getByLabelText('Classic compact action')
+      .querySelector('.Button__content') as HTMLElement;
+
+    expect(getComputedStyle(textButton).minHeight).toBe('24px');
+    // Happy DOM verifies the compiled cascade but does not resolve max() or
+    // perform pixel layout, so preserve the token and text layout separately.
+    expect(
+      getComputedStyle(textButton).getPropertyValue('--button-height').trim(),
+    ).toBe('max(24px, 1.667em)');
+    expect(getComputedStyle(textContent).display).toBe('block');
+    expect(getComputedStyle(textContent).textAlign).toBe('center');
+    expect(
+      getComputedStyle(compactContent)
+        .getPropertyValue('--button-height')
+        .trim(),
+    ).not.toBe('max(24px, 1.667em)');
+  });
+
+  it('preserves specialized Classic and legacy button layouts', () => {
+    const view = render(
+      <>
+        <div className="theme-meridian_classic">
+          <Button aria-label="Classic icon action" icon="eject">
+            Eject
+          </Button>
+          <Button aria-label="Classic ellipsis action" ellipsis fluid>
+            Long action label
+          </Button>
+          <PriorityButton
+            color="green"
+            enabled
+            name="Enabled priority"
+            onClick={() => undefined}
+          />
+          <PriorityButton
+            color="green"
+            enabled={false}
+            name="Empty priority"
+            onClick={() => undefined}
+          />
+        </div>
+        <div className="theme-nanotrasen">
+          <Button aria-label="Legacy text action">Legacy</Button>
+        </div>
+      </>,
+    );
+
+    const content = (label: string) =>
+      view
+        .getByLabelText(label)
+        .querySelector('.Button__content') as HTMLElement;
+    const enabledPriority = view.getByLabelText('Enabled priority');
+    const emptyPriority = view.getByLabelText('Empty priority');
+    const legacyButton = view.getByLabelText('Legacy text action');
+
+    expect(getComputedStyle(content('Classic icon action')).display).toBe(
+      'flex',
+    );
+    expect(getComputedStyle(content('Classic ellipsis action')).display).toBe(
+      'flex',
+    );
+    for (const priority of [enabledPriority, emptyPriority]) {
+      expect(getComputedStyle(priority).lineHeight).toBe('16px');
+      expect(getComputedStyle(priority).minHeight).toBe('0');
+      expect(
+        getComputedStyle(priority.querySelector('.Button__content')!).minHeight,
+      ).not.toBe('24px');
+    }
+    expect(
+      getComputedStyle(legacyButton).getPropertyValue('--button-height').trim(),
+    ).not.toBe('max(24px, 1.667em)');
+  });
+
   it('keeps dropdown arrows on the Stack control row', () => {
     for (const theme of MERIDIAN_THEME_IDS) {
       const view = render(
@@ -131,10 +214,7 @@ describe('MeridianOS shared control geometry', () => {
 
       const arrows = view.container.querySelectorAll('.Dropdown > .Button');
       expect(arrows).toHaveLength(2);
-      for (const control of [
-        view.getByLabelText('Direct action'),
-        ...arrows,
-      ]) {
+      for (const control of [view.getByLabelText('Direct action'), ...arrows]) {
         const style = getComputedStyle(control);
         expect(style.marginTop, `${theme}: grouped control top margin`).toBe(
           '0px',
@@ -148,10 +228,9 @@ describe('MeridianOS shared control geometry', () => {
     }
   });
 
+  // Every skin against the full compiled stylesheet takes ~5 s on CI runners, bun's default timeout.
   it('uses one theme-console contract for every MeridianOS skin', () => {
-    expect(COMPONENT_SOURCE).toMatch(
-      /^(?:\/\/[^\n]*\n)*\.theme-console \{/,
-    );
+    expect(COMPONENT_SOURCE).toMatch(/^(?:\/\/[^\n]*\n)*\.theme-console \{/);
 
     for (const theme of MERIDIAN_THEME_IDS) {
       expect(resolveMeridianTheme({ requested: theme }).classes).toContain(
@@ -352,7 +431,7 @@ describe('MeridianOS shared control geometry', () => {
 
       cleanup();
     }
-  });
+  }, 20_000);
 
   it('keeps compact sizing out of individual skin decoration', () => {
     for (const source of [DECORATION_SOURCE, THEME_SOURCE]) {

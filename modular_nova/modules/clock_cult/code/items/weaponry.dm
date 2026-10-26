@@ -52,6 +52,7 @@
 	name = "brass spear"
 	desc = "A razor-sharp spear made of brass. It thrums with barely-contained energy."
 	icon_state = "ratvarian_spear"
+	inhand_icon_state = "ratvarian_spear"
 	embed_type = /datum/embedding/spear/brass
 	throwforce = 36
 	force = 25
@@ -78,7 +79,7 @@
 	. = ..()
 	AddComponent(/datum/component/two_handed, \
 		force_unwielded = 15, \
-		icon_wielded = "[base_icon_state]1", \
+		update_icon_state = TRUE, \
 		force_wielded = 28, \
 	)
 
@@ -88,10 +89,6 @@
 
 	var/atom/throw_target = get_edge_target_turf(target, get_dir(src, get_step_away(target, src)))
 	target.throw_at(throw_target, thrown ? HAMMER_THROW_FLING_DISTANCE : HAMMER_FLING_DISTANCE, 4)
-
-/obj/item/clockwork/weapon/brass_battlehammer/update_icon_state()
-	icon_state = "[base_icon_state]0"
-	return ..()
 
 /obj/item/clockwork/weapon/brass_sword
 	name = "brass longsword"

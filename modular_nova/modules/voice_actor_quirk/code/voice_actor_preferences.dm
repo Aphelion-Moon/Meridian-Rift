@@ -4,6 +4,7 @@
 	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	savefile_identifier = PREFERENCE_CHARACTER
 	can_randomize = FALSE
+	should_update_preview = FALSE
 
 /datum/preference/choiced/voice_actor/is_accessible(datum/preferences/preferences)
 	if (!..(preferences))
@@ -59,6 +60,7 @@
 	savefile_key = "voice_actor_color"
 	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	savefile_identifier = PREFERENCE_CHARACTER
+	should_update_preview = FALSE
 
 /datum/preference/color/voice_actor_color/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	return

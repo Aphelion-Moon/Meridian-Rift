@@ -1,6 +1,0 @@
-author: "vinylspiders"
-delete-after: True
-changes:
-  - rscadd: "adds portal panties and the portal borer device, which can be found at your local LustWish vendor"
-  - refactor: "adds a number of new selectable ui themes, which can be accessed using the gear icon in the top right of the lobby or any tgui window"
-  - admin: "adds an admin panel for changing the title screen which can be accessed using the picture icon in the top right of the lobby, or using the new verb"

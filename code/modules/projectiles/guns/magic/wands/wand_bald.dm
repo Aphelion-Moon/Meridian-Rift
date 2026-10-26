@@ -20,7 +20,7 @@
 
 /obj/item/gun/magic/wand/bald/do_suicide(mob/living/carbon/human/user)
 	var/obj/item/bodypart/head/dome = user.get_bodypart(BODY_ZONE_HEAD)
-	if (!dome || ((dome.head_flags & HEAD_HAIR) && user.hairstyle != "Bald"))
+	if (!dome || ((dome.head_flags & HEAD_HAIR) && (user.hairstyle != "Bald" || user.has_custom_hair()))) // APHELION EDIT CHANGE - Custom hair is hair - ORIGINAL: if (!dome || ((dome.head_flags & HEAD_HAIR) && user.hairstyle != "Bald"))
 		. = ..()
 		visible_message(span_suicide("[user] desperately attempts to shave [user.p_themselves()] in a cry for help."))
 		return SHAME
@@ -92,8 +92,9 @@
 		return
 
 	// Finally normal hair
-	if ((dome?.head_flags & HEAD_HAIR) && target.hairstyle != "Bald")
+	if ((dome?.head_flags & HEAD_HAIR) && (target.hairstyle != "Bald" || target.has_custom_hair())) // APHELION EDIT CHANGE - Custom hair is hair - ORIGINAL: if ((dome?.head_flags & HEAD_HAIR) && target.hairstyle != "Bald")
 		target.set_hairstyle("Bald")
+		target.remove_custom_hair() // APHELION EDIT ADDITION
 		target.Knockdown(1 SECONDS)
 		visible_message(span_warning("[target]'s hair is instantly shaved away by [src]!"))
 		log_combat(firer, target, "magically shaved bald", src)

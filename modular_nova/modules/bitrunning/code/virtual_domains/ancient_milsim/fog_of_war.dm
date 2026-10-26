@@ -11,6 +11,7 @@
 	radio.set_listening(FALSE)
 	radio.recalculateChannels()
 	AddElement(/datum/element/bitrunning_objective)
+	AddElement(/datum/element/empprotection, EMP_PROTECT_SELF) // EMP presses would skip the self-delete
 
 /obj/machinery/button/door/indestructible/ancient_milsim/screwdriver_act()
 	return
@@ -48,5 +49,5 @@
 /obj/machinery/door/poddoor/ancient_milsim/welder_act(mob/living/user, obj/item/tool)
 	return
 
-/obj/machinery/door/poddoor/ancient_milsim/open(mob/living/user, obj/item/tool)
+/obj/machinery/door/poddoor/ancient_milsim/open(forced = DEFAULT_DOOR_CHECKS, mob/living/opener)
 	qdel(src)

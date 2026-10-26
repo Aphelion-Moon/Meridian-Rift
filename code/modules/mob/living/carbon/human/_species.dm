@@ -69,6 +69,8 @@ GLOBAL_LIST_EMPTY(features_by_species)
 		BODY_ZONE_R_LEG = /obj/item/bodypart/leg/right,
 		BODY_ZONE_CHEST = /obj/item/bodypart/chest,
 	)
+	///A list to override what gets put in a species' survival box. keys are defined in code\__DEFINES\survival_box.dm
+	var/list/survival_box_overrides = list()
 	///Internal organs that are unique to this race, like a tail or other cosmetic organs. list(typepath of organ 1, typepath of organ 2 = "Round").
 	var/list/mutant_organs = list()
 	///Replaces default brain with a different organ
@@ -95,9 +97,6 @@ GLOBAL_LIST_EMPTY(features_by_species)
 	/// Store body marking defines. See mobs.dm for bitflags
 	//var/list/body_markings = list() // NOVA EDIT REMOVAL - We already have this defined as an assoc list in dna
 
-	/// Flat modifier on all damage taken via [apply_damage][/mob/living/proc/apply_damage] (so being punched, shot, etc.)
-	/// IE: 10 = 10% less damage taken.
-	var/damage_modifier = 0
 	///multiplier for damage from cold temperature
 	var/coldmod = 1
 	///multiplier for damage from hot temperature
@@ -153,6 +152,9 @@ GLOBAL_LIST_EMPTY(features_by_species)
 
 	/// Should we preload this species's organs?
 	var/preload = TRUE
+
+	/// Should the character preview dummy load all organs? Required for i.e organ_set_bonus visual effects
+	var/character_preview_load_all_organs = FALSE
 
 	/// Do we try to prevent reset_perspective() from working? Useful for Dullahans to stop perspective changes when they're looking through their head.
 	var/prevent_perspective_change = FALSE
@@ -290,10 +292,14 @@ GLOBAL_LIST_EMPTY(features_by_species)
 		var/old_organ_type = old_species?.get_mutant_organ_type_for_slot(slot)
 
 		/* // NOVA EDIT REMOVAL START
-		if(existing_organ && !existing_organ.get_replaceability(new_organ, old_organ_type, old_species, replace_current)) // NOVA EDIT REMOVAL
+		if(existing_organ && !existing_organ.get_replaceability(new_organ, old_organ_type, old_species, replace_current))
 			continue
 		// if we have an extra organ that before changing that the species didnt have, remove it
 		else if(!new_organ)
+			if(existing_organ)
+				existing_organ.Remove(organ_holder)
+				qdel(existing_organ)
+			continue
 		*/ // NOVA EDIT REMOVAL END
 		// NOVA EDIT ADDITION START
 		if(!new_organ)
@@ -385,7 +391,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 		doll.update_body_zones()
 
 	if(old_species.type != type)
-		replace_body(human_who_gained_species, src)
+		replace_body(human_who_gained_species, src, old_species)
 
 	if(!human_who_gained_species.get_bloodtype()?.is_species_universal) // Clown blood is forever.
 		//Assigns exotic blood type if the species has one
@@ -394,6 +400,13 @@ GLOBAL_LIST_EMPTY(features_by_species)
 		//Otherwise, check if the previous species had an exotic bloodtype and we do not have one and assign a random blood type
 		else if(old_species.exotic_bloodtype && isnull(exotic_bloodtype))
 			human_who_gained_species.set_blood_type(random_human_blood_type())
+
+	if(character_preview_load_all_organs)
+		human_who_gained_species.visual_only_organs = FALSE
+	// APHELION EDIT ADDITION START - Pooled preview dummies go back to visual-only organs for every other species
+	else
+		human_who_gained_species.visual_only_organs = initial(human_who_gained_species.visual_only_organs)
+	// APHELION EDIT ADDITION END
 
 	regenerate_organs(human_who_gained_species, old_species, replace_current = FALSE, visual_only = human_who_gained_species.visual_only_organs, replace_missing = replace_missing)
 	// Update locked slots AFTER all organ and body stuff is handled
@@ -536,7 +549,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 	return new_features
 
 /datum/species/proc/can_equip(obj/item/I, slot, disable_warning, mob/living/carbon/human/H, bypass_equip_delay_self = FALSE, ignore_equipped = FALSE, indirect_action = FALSE)
-	if(no_equip_flags & slot && !(I.is_mod_shell_component() && (modsuit_slot_exceptions & slot))) // NOVA EDIT ADDITION - ORIGINAL: if(no_equip_flags & slot)
+	if(no_equip_flags & slot && !(I.is_mod_shell_component() && (modsuit_slot_exceptions & slot))) // NOVA EDIT CHANGE - ORIGINAL: if(no_equip_flags & slot)
 		if(!I.species_exception || !is_type_in_list(src, I.species_exception))
 			return FALSE
 
@@ -561,7 +574,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 		if(ITEM_SLOT_HANDS)
 			if(!(H.mobility_flags & MOBILITY_PICKUP))
 				return FALSE
-			if(H.get_empty_held_indexes())
+			if(length(H.get_empty_held_indexes()))
 				return TRUE
 			return FALSE
 		if(ITEM_SLOT_MASK)
@@ -689,6 +702,10 @@ GLOBAL_LIST_EMPTY(features_by_species)
 /datum/species/proc/pre_equip_species_outfit(datum/job/job, mob/living/carbon/human/equipping, visuals_only = FALSE)
 	return
 
+/// Equips species-relevant gear after putting on an outfit.
+/datum/species/proc/post_equip_species_outfit(mob/living/carbon/human/equipping, visuals_only = FALSE)
+	return
+
 /**
  * Equip the outfit required for life. Replaces items currently worn.
  */
@@ -724,7 +741,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 
 	if(time_since_irradiated > RAD_MOB_HAIRLOSS && SPT_PROB(RAD_MOB_HAIRLOSS_PROB, seconds_per_tick))
 		var/obj/item/bodypart/head/head = source.get_bodypart(BODY_ZONE_HEAD)
-		if(!(source.hairstyle == "Bald") && (head?.head_flags & (HEAD_HAIR|HEAD_FACIAL_HAIR)))
+		if((source.hairstyle != "Bald" || source.has_custom_hair()) && (head?.head_flags & (HEAD_HAIR|HEAD_FACIAL_HAIR))) // APHELION EDIT CHANGE - Custom hair is hair - ORIGINAL: if(!(source.hairstyle == "Bald") && (head?.head_flags & (HEAD_HAIR|HEAD_FACIAL_HAIR)))
 			to_chat(source, span_danger("Your hair starts to fall out in clumps..."))
 			addtimer(CALLBACK(src, PROC_REF(go_bald), source), 5 SECONDS)
 
@@ -739,6 +756,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 		return
 	target.set_facial_hairstyle("Shaved", update = FALSE)
 	target.set_hairstyle("Bald") //This calls update_body_parts()
+	target.remove_custom_hair(HEAD_HAIR|HEAD_FACIAL_HAIR) // APHELION EDIT ADDITION - Custom hair falls out too
 
 //////////////////
 // ATTACK PROCS //
@@ -885,8 +903,6 @@ GLOBAL_LIST_EMPTY(features_by_species)
 			armor_block += 10
 			target.adjust_disgust(2)
 
-	playsound(target.loc, attacking_bodypart.unarmed_attack_sound, 25, TRUE, -1)
-
 	if(grappled && attacking_bodypart.grappled_attack_verb)
 		atk_verb = attacking_bodypart.grappled_attack_verb
 		atk_verb_continuous = attacking_bodypart.grappled_attack_verb_continuous
@@ -905,6 +921,14 @@ GLOBAL_LIST_EMPTY(features_by_species)
 	var/attack_type = attacking_bodypart.attack_type
 	var/kicking = (atk_effect == ATTACK_EFFECT_KICK)
 	var/final_armor_block = armor_block
+
+	var/smack_sound = attacking_bodypart.unarmed_attack_sound
+	var/smack_attack = (atk_effect == ATTACK_EFFECT_KICK || atk_effect == ATTACK_EFFECT_PUNCH || atk_effect == ATTACK_EFFECT_SMASH)
+	if(smack_attack && attack_type == BRUTE && (affecting.bodytype & BODYTYPE_ROBOTIC))
+		smack_sound = 'sound/effects/bang.ogg'
+
+	playsound(target, smack_sound, atk_effect == ATTACK_EFFECT_SMASH ? 33 : 25, TRUE, -1)
+
 	if(kicking || grappled) //kicks and punches when grappling bypass armor slightly.
 		if(damage >= 12 || (damage >= 9 && prob(66)))
 			target.force_say()
@@ -1100,14 +1124,14 @@ GLOBAL_LIST_EMPTY(features_by_species)
 	// Get the temperature of the environment for area
 	var/area_temp = humi.get_temperature(environment)
 
-	//NOVA EDIT ADDITION
+	// NOVA EDIT ADDITION START
 	//Special handling for getting liquids temperature
 	if(isturf(humi.loc))
 		var/turf/T = humi.loc
 		if(T.liquids && T.liquids.liquid_state > LIQUID_STATE_PUDDLE)
 			var/submergment_percent = SUBMERGEMENT_PERCENT(humi, T.liquids)
 			area_temp = (area_temp*(1-submergment_percent)) + (T.liquids.temp * submergment_percent)
-	//NOVA EDIT END
+	// NOVA EDIT ADDITION END
 	// Get the insulation value based on the area's temp
 	var/thermal_protection = humi.get_insulation_protection(area_temp)
 
@@ -1237,7 +1261,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 		humi.apply_damage(burn_damage, BURN, spread_damage = TRUE, wound_clothing = FALSE)
 
 	// For cold damage, we cap at the threshold if you're dead
-	if(humi.get_fire_loss() >= abs(HEALTH_THRESHOLD_DEAD) && humi.stat == DEAD)
+	if(humi.get_fire_loss() >= abs(humi.dead_threshold) && humi.stat == DEAD)
 		return
 
 	// Apply some burn / brute damage to the body (Dependent if the person is hulk or not)
@@ -1391,8 +1415,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 	former_tail_owner.clear_mood_event("tail_balance_lost")
 	former_tail_owner.clear_mood_event("tail_regained")
 
-/* NOVA EDIT REMOVAL - MOVED TO MODULAR
-
+/* // NOVA EDIT REMOVAL START - MOVED TO MODULAR
 /// Returns a list of strings representing features this species has.
 /// Used by the preferences UI to know what buttons to show.
 /datum/species/proc/get_features()
@@ -1416,7 +1439,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 	GLOB.features_by_species[type] = features
 
 	return features
-*/
+*/ // NOVA EDIT REMOVAL END
 
 /// Given a human, will adjust it before taking a picture for the preferences UI.
 /// This should create a CONSISTENT result, so the icons don't randomly change.
@@ -1589,7 +1612,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 	var/list/to_add = list()
 
 	// Brute related
-	if(initial(fake_chest.brute_modifier) > 1)
+	if(fake_chest::brute_modifier > 1) // APHELION EDIT CHANGE - ORIGINAL: if(initial(fake_chest.brute_modifier) > 1)
 		to_add += list(list(
 			SPECIES_PERK_TYPE = SPECIES_NEGATIVE_PERK,
 			SPECIES_PERK_ICON = "band-aid",
@@ -1597,7 +1620,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 			SPECIES_PERK_DESC = "[plural_form] are weak to brute damage.",
 		))
 
-	if(initial(fake_chest.brute_modifier) < 1)
+	if(fake_chest::brute_modifier < 1) // APHELION EDIT CHANGE - ORIGINAL: if(initial(fake_chest.brute_modifier) < 1)
 		to_add += list(list(
 			SPECIES_PERK_TYPE = SPECIES_POSITIVE_PERK,
 			SPECIES_PERK_ICON = "shield-alt",
@@ -1606,7 +1629,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 		))
 
 	// Burn related
-	if(initial(fake_chest.burn_modifier) > 1)
+	if(fake_chest::burn_modifier > 1) // APHELION EDIT CHANGE - ORIGINAL: if(initial(fake_chest.burn_modifier) > 1)
 		to_add += list(list(
 			SPECIES_PERK_TYPE = SPECIES_NEGATIVE_PERK,
 			SPECIES_PERK_ICON = "burn",
@@ -1614,7 +1637,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 			SPECIES_PERK_DESC = "[plural_form] are weak to burn damage.",
 		))
 
-	if(initial(fake_chest.burn_modifier) < 1)
+	if(fake_chest::burn_modifier < 1) // APHELION EDIT CHANGE - ORIGINAL: if(initial(fake_chest.burn_modifier) < 1)
 		to_add += list(list(
 			SPECIES_PERK_TYPE = SPECIES_POSITIVE_PERK,
 			SPECIES_PERK_ICON = "shield-alt",
@@ -1916,11 +1939,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 			SPECIES_PERK_TYPE = SPECIES_POSITIVE_PERK,
 			SPECIES_PERK_ICON = "comment",
 			SPECIES_PERK_NAME = "Native Speaker",
-			/* NOVA EDIT - Digitigrade customization - ORIGINAL:
-			SPECIES_PERK_DESC = "Alongside [initial(common_language.name)], [plural_form] gain the ability to speak [english_list(bonus_languages)].",
-			*/ // ORIGINAL END - NOVA EDIT START:
-			SPECIES_PERK_DESC = "Alongside [initial(common_language.name)], [plural_form] commonly speak [english_list(bonus_languages)].",
-			// NOVA EDIT END
+			SPECIES_PERK_DESC = "Alongside [initial(common_language.name)], [plural_form] commonly speak [english_list(bonus_languages)].", // NOVA EDIT CHANGE - ORIGINAL: SPECIES_PERK_DESC = "Alongside [initial(common_language.name)], [plural_form] gain the ability to speak [english_list(bonus_languages)].",
 		))
 
 	else
@@ -1934,41 +1953,30 @@ GLOBAL_LIST_EMPTY(features_by_species)
 	return to_add
 
 ///Handles replacing all of the bodyparts with their species version during set_species()
-/datum/species/proc/replace_body(mob/living/carbon/target, datum/species/new_species)
+/datum/species/proc/replace_body(mob/living/carbon/target, datum/species/new_species, datum/species/old_species)
 	new_species ||= target.dna.species //If no new species is provided, assume its src.
 	//Note for future: Potentionally add a new C.dna.species() to build a template species for more accurate limb replacement
-	// NOVA EDIT ADDITION START - Synth digitigrade sanitization
-	var/ignore_digi = FALSE // You can jack into this var with other checks, if you want.
-	if(issynthetic(target))
-		var/datum/mutant_bodypart/chassis = target.dna.mutant_bodyparts[FEATURE_SYNTH_CHASSIS]
-		if(chassis)
-			var/list/chassis_accessory = SSaccessories.sprite_accessories[FEATURE_SYNTH_CHASSIS]
-			var/datum/sprite_accessory/synth_chassis/body_choice
-			if(chassis_accessory)
-				body_choice = chassis_accessory[chassis.name]
-			if(body_choice && !body_choice.is_digi_compatible)
-				ignore_digi = TRUE
-	// NOVA EDIT ADDITION END
 
-	var/list/final_bodypart_overrides = new_species.bodypart_overrides.Copy()
-	if(!ignore_digi && ((new_species.digitigrade_customization == DIGITIGRADE_OPTIONAL && target.dna.features[FEATURE_LEGS] == DIGITIGRADE_LEGS) || new_species.digitigrade_customization == DIGITIGRADE_FORCED)) //if((new_species.digitigrade_customization == DIGITIGRADE_OPTIONAL && target.dna.features[FEATURE_LEGS] == DIGITIGRADE_LEGS) || new_species.digitigrade_customization == DIGITIGRADE_FORCED) // NOVA EDIT - Digitigrade customization - ORIGINAL
-		/* NOVA EDIT - Digitigrade customization - ORIGINAL:
-		final_bodypart_overrides[BODY_ZONE_R_LEG] = /obj/item/bodypart/leg/right/digitigrade
-		final_bodypart_overrides[BODY_ZONE_L_LEG] = /obj/item/bodypart/leg/left/digitigrade
-		*/ // ORIGINAL END - NOVA EDIT START:
+	var/list/new_bodypart_overrides = new_species.bodypart_overrides.Copy()
+	if(new_species.should_use_digitigrade_legs(target)) // APHELION EDIT CHANGE - Use the shared eligibility rules - ORIGINAL: if((new_species.digitigrade_customization == DIGITIGRADE_OPTIONAL && target.dna.features[FEATURE_LEGS] == DIGITIGRADE_LEGS) || new_species.digitigrade_customization == DIGITIGRADE_FORCED)
+		/* // NOVA EDIT REMOVAL START - Digitigrade customization
+		new_bodypart_overrides[BODY_ZONE_R_LEG] = /obj/item/bodypart/leg/right/digitigrade
+		new_bodypart_overrides[BODY_ZONE_L_LEG] = /obj/item/bodypart/leg/left/digitigrade
+		*/ // NOVA EDIT REMOVAL END
+		// NOVA EDIT ADDITION START - Digitigrade customization
 		var/obj/item/bodypart/leg/right/r_leg = new_species.bodypart_overrides[BODY_ZONE_R_LEG]
 		if(r_leg)
-			final_bodypart_overrides[BODY_ZONE_R_LEG] = initial(r_leg.digitigrade_type)
+			new_bodypart_overrides[BODY_ZONE_R_LEG] = initial(r_leg.digitigrade_type)
 		var/obj/item/bodypart/leg/left/l_leg = new_species.bodypart_overrides[BODY_ZONE_L_LEG]
 		if(l_leg)
-			final_bodypart_overrides[BODY_ZONE_L_LEG] = initial(l_leg.digitigrade_type)
+			new_bodypart_overrides[BODY_ZONE_L_LEG] = initial(l_leg.digitigrade_type)
 		// NOVA EDIT ADDITION END
 
 	for(var/obj/item/bodypart/old_part as anything in target.get_bodyparts())
 		if((old_part.change_exempt_flags & BP_BLOCK_CHANGE_SPECIES) || (old_part.bodypart_flags & BODYPART_IMPLANTED))
 			continue
-
-		var/path = final_bodypart_overrides?[old_part.body_zone]
+		// update all our existing limbs
+		var/path = new_bodypart_overrides?[old_part.body_zone]
 		var/obj/item/bodypart/new_part
 		if(path)
 			new_part = new path()
@@ -1976,6 +1984,22 @@ GLOBAL_LIST_EMPTY(features_by_species)
 			new_part.update_limb(is_creating = TRUE)
 			new_part.set_initial_damage(old_part.brute_dam, old_part.burn_dam)
 		qdel(old_part)
+
+	var/list/old_bodypart_overrides = old_species.bodypart_overrides.Copy()
+	if(length(new_bodypart_overrides) <= length(old_bodypart_overrides))
+		return // we updated all the limbs the character deserves
+	// but there are cases where the old species naturally lacked limbs
+	for(var/zone in new_bodypart_overrides)
+		// find a limb that the character doesn't have because of their old species
+		if(new_bodypart_overrides.Find(zone) && old_bodypart_overrides.Find(zone))
+			continue
+		var/path = new_bodypart_overrides[zone]
+		if(!path)
+			return
+
+		var/obj/item/bodypart/new_part = new path()
+		new_part.replace_limb(target, TRUE)
+		new_part.update_limb(is_creating = TRUE)
 
 /// Creates body parts for the target completely from scratch based on the species
 /datum/species/proc/create_fresh_body(mob/living/carbon/target)
@@ -2018,6 +2042,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 
 	return null
 
+/* // APHELION EDIT REMOVAL START - Species body marking overlays are gone with their callers, see markings_bodypart_overlay.dm.
 /// Add species appropriate body markings
 /datum/species/proc/add_body_markings(mob/living/carbon/human/hooman)
 	for(var/markings_type in body_markings) //loop through possible species markings
@@ -2045,6 +2070,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 	if(needs_update && !(hooman.living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS))
 		hooman.update_body_parts()
 	return null
+*/ // APHELION EDIT REMOVAL END
 
 /**
  * Returns what type of gas this species breathes

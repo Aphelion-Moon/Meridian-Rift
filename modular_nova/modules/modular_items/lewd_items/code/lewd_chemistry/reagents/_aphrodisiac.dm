@@ -551,7 +551,7 @@
 	update_appearance(exposed_mob, new_breasts)
 	enlargement_amount = 0
 
-	if(new_breasts.visibility_preference == GENITAL_ALWAYS_SHOW || exposed_mob.is_topless())
+	if(new_breasts.is_shown_over_clothing() || exposed_mob.is_topless())
 		if(!suppress_chat) // So we don't spam chat
 			exposed_mob.visible_message(span_notice("[exposed_mob]'s bust suddenly expands!"))
 			to_chat(exposed_mob, span_purple("Your chest feels warm, tingling with sensitivity as it expands outward."))

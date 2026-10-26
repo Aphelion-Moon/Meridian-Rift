@@ -9,8 +9,8 @@
 	var/list/augment_limb_styles = list()
 	/// Which augment slot we currently have chosen, this is for UI display
 	var/chosen_augment_slot
-	/// A list of all bodymarkings
-	var/list/list/body_markings = list()
+	/// Every body marking this character wears
+	var/datum/body_marking_collection/body_markings = new
 
 	/// Will the person see accessories not meant for their species to choose from
 	var/mismatched_customization = FALSE
@@ -55,18 +55,6 @@
 	var/list/preferred_spawn_outfits = list()
 
 	// NOVA EDIT ADDITION END
-/datum/preferences/proc/species_updated(species_type)
-	all_quirks = list()
-	// Reset cultural stuff
-	languages[try_get_common_language()] = LANGUAGE_SPOKEN
-	save_character()
-
-/// Tries to get the topmost language of the language holder. Should be the species' native language, and if it isn't, you should pester a coder.
-/datum/preferences/proc/try_get_common_language()
-	var/datum/species/species_type = read_preference(/datum/preference/choiced/species)
-	var/datum/language_holder/language_holder = GLOB.prototype_language_holders[species_type::species_language_holder]
-	var/language = language_holder.spoken_languages[1]
-	return language
 
 /// This proc saves the damage currently on `character` (human) and reapplies it after `safe_transfer_prefs()` is applied to the `character`.
 /datum/preferences/proc/safe_transfer_prefs_to_with_damage(mob/living/carbon/human/character, icon_updates = TRUE, is_antag = FALSE)

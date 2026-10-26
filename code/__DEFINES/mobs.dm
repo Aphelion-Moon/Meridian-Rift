@@ -128,10 +128,6 @@
 	"skeletal", \
 )
 
-//Lung respiration type flags
-#define RESPIRATION_OXYGEN (1 << 0)
-#define RESPIRATION_N2 (1 << 1)
-#define RESPIRATION_PLASMA (1 << 2)
 #define DEFAULT_BODYPART_ICON_ORGANIC 'icons/mob/human/bodyparts_greyscale.dmi'
 
 //Bodytype defines for surgery, and other misc things.
@@ -173,6 +169,8 @@
 #define BODYSHAPE_SNOUTED (1<<3)
 /// Golem's wacky rocky limbs
 #define BODYSHAPE_GOLEM (1<<4)
+///The limb has a Cerulean (large fish) tail
+#define BODYSHAPE_CERULEAN (1<<5)
 // NOVA EDIT ADDITION START
 ///The limb fits a modular custom shape
 #define BODYSHAPE_CUSTOM (1<<15)
@@ -203,6 +201,7 @@
 	!(bodypart.bodytype & (BODYTYPE_ROBOTIC | BODYTYPE_LARVA_PLACEHOLDER | BODYTYPE_GOLEM | BODYTYPE_PEG | BODYTYPE_GHOUL)) /* NOVA EDIT CHANGE - ORIGINAL: !(bodypart.bodytype & (BODYTYPE_ROBOTIC | BODYTYPE_LARVA_PLACEHOLDER | BODYTYPE_GOLEM | BODYTYPE_PEG)) \ */ \
 	&& !(bodypart.flags_1 & HOLOGRAM_1) \
 	&& !(bodypart.bodypart_flags & BODYPART_STUMP) \
+	&& !(bodypart.bodypart_flags & BODYPART_ABSTRACT) \
 )
 
 // Defines for Species IDs. Used to refer to the name of a species, for things like bodypart names or species preferences.
@@ -225,6 +224,7 @@
 #define SPECIES_LIZARD_ASH "ashwalker"
 #define SPECIES_LIZARD_SILVER "silverscale"
 #define SPECIES_NIGHTMARE "nightmare"
+#define SPECIES_CERULEAN "cerulean"
 #define SPECIES_MONKEY "monkey"
 #define SPECIES_MOTH "moth"
 #define SPECIES_MUSHROOM "mush"
@@ -298,6 +298,8 @@
 #define COLD_GAS_DAMAGE_LEVEL_1 0.5 //Amount of damage applied when the current breath's temperature just passes the 260.15k safety point
 #define COLD_GAS_DAMAGE_LEVEL_2 1.5 //Amount of damage applied when the current breath's temperature passes the 200K point
 #define COLD_GAS_DAMAGE_LEVEL_3 3 //Amount of damage applied when the current breath's temperature passes the 120K point
+
+#define TEMPERATURE_LUNG_DAMAGE 3 //Amount of damage applied when lungs are breathing air (LEVEL_3) that is too hot or cold
 
 /// These are for the default lungs
 #define COLD_LEVEL_1_THRESHOLD 260
@@ -391,6 +393,10 @@
 ///Max growth for a xeno larva to evolve into a regular xeno. This is used as % based.
 #define XENOMORPH_MAX_GROWTH 100
 
+// Strings used by modsuit mob sprite generation for Ceruleans/mobs with a big fish tail
+#define FLIPPERS "flippers"
+#define NO_FLIPPERS "no_flippers"
+
 //Slime evolution threshold. Controls how fast slimes can split/grow
 #define SLIME_EVOLUTION_THRESHOLD 10
 
@@ -459,6 +465,8 @@
 #define SLIPPERY_WHEN_LYING_DOWN (1<<6)
 ///Like sliding, but it's short, it doesn't knockdown, it doesn't stun, it just staggers a bit.
 #define WEAK_SLIDE (1<<7)
+/// You can even slip if you're experiencing nograv or flying
+#define SLIP_IN_NOGRAV (1<<8)
 
 #define MAX_CHICKENS 50
 
@@ -858,10 +866,18 @@ GLOBAL_ALIST_INIT(human_heights_to_offsets, alist(
 	#define UNDER_HEAD_LAYER 6.1
 /// Facemask layer (gas masks, breath masks, etc.)
 #define FACEMASK_LAYER 7
+	// APHELION EDIT ADDITION START - Headphones on the neck
+	/// Headphones worn on the neck with the band over hair - above hair, below facemasks
+	#define HEADPHONES_NECK_OVER_HAIR_LAYER 7.5
+	// APHELION EDIT ADDITION END
 /// Hair layer (mess with the fro and you got to go!)
 #define HAIR_LAYER 8
 	/// Special layer for rendering beneath hair, for special facemasks
 	#define BENEATH_HAIR_LAYER 8.1
+	// APHELION EDIT ADDITION START - Headphones on the neck
+	/// Headphones worn on the neck with the band under hair - below hair, but above backpack straps
+	#define HEADPHONES_NECK_UNDER_HAIR_LAYER 8.5
+	// APHELION EDIT ADDITION END
 /// Back layer (for backpacks and equipment on your back)
 #define BACK_LAYER 9
 /// Neck layer (for wearing capes and bedsheets)
@@ -912,6 +928,10 @@ GLOBAL_ALIST_INIT(human_heights_to_offsets, alist(
 	#define ANUS_LAYER 19.7
 	#define BUTT_LAYER 19.8
 	// NOVA EDIT ADDITION END
+	/// Gauze specifically
+	#define GAUZE_LAYER 19.8
+	/// Damage indicators with overlays
+	#define DAMAGE_OVERLAY_LAYER 19.9
 /// Damage indicators (cuts and burns)
 #define DAMAGE_LAYER 20
 	/// Mutations that should appear above everything else (e.g. laser eyes)

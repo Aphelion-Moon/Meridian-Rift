@@ -142,6 +142,7 @@
 /datum/sprite_accessory/taur/synthliz
 	name = "Cybernetic Lizard"
 	icon_state = "synthlizard"
+	has_tail = TRUE
 	taur_mode = BODYSHAPE_TAUR_PAW
 	recommended_species = null
 	organ_type = /obj/item/organ/taur_body/horselike/synth
@@ -197,6 +198,7 @@
 /datum/sprite_accessory/taur/synthliz/biglegs
 	name = "Synthetic Big Legs"
 	icon_state = "biglegs"
+	has_tail = FALSE
 	taur_mode = BODYSHAPE_TAUR_BIG_LEGS
 	organ_type = /obj/item/organ/taur_body/anthro/synth
 

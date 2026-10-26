@@ -244,6 +244,16 @@
     min-height: var(--button-height);
   }
 
+  // A Stack with no text line, like the preferences colour swatch, has the same
+  // problem and sat at the top of the box. A one-column grid centres it while
+  // keeping block flow for any content that follows.
+  .Button:not(.Button--compact):not(.Button--hasIcon)
+    > .Button__content:has(> .Stack) {
+    display: grid;
+    min-height: var(--button-height);
+    align-content: center;
+  }
+
   .Button--empty.Button--hasIcon > .Button__content > .Button--icon {
     margin: 0;
   }
@@ -441,6 +451,13 @@
     box-shadow: inset 0 0 0 1px var(--console-surface-canvas);
   }
 
+  // Transparent bars stay unpainted as in core; callers stack them over their
+  // own fills (PlantAnalyzer nutrients over its per-reagent segments).
+  .ProgressBar.ProgressBar--color--transparent {
+    background: transparent;
+    box-shadow: none;
+  }
+
   // Solid 1px outline, so the label reads on a bright fill and a dark track.
   .ProgressBar__content {
     color: var(--console-text-primary);
@@ -552,6 +569,17 @@
 
   :is(.Input, .TextArea, .NumberInput, .Dropdown):focus-within {
     border-color: var(--console-interaction-focus);
+  }
+
+  // An image button's focusable cell is clipped by its frame: the frame wears the ring.
+  .ImageButton:has(> .ImageButton__container:focus-visible) {
+    outline: 2px solid var(--console-interaction-focus);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 1px var(--console-interaction-focus-contrast);
+  }
+
+  .ImageButton__container:focus-visible {
+    outline: none;
   }
 
   h1,
@@ -802,6 +830,10 @@
   // The same comfortable box the console skins use, so a 12px label is not
   // sitting in a 20px line box with its icon jammed against the edge.
   .Button:not(.Button--compact) {
+    // Keep larger-font buttons on upstream's em-based scale while giving the
+    // default text line the same height as the Classic control box.
+    --button-height: max(24px, 1.667em);
+
     min-height: 24px;
   }
 
@@ -811,11 +843,25 @@
     align-items: center;
   }
 
+  // Same centring for a text-less Stack, as in the console skins.
+  .Button:not(.Button--compact):not(.Button--hasIcon)
+    > .Button__content:has(> .Stack) {
+    display: grid;
+    min-height: 24px;
+    align-content: center;
+  }
+
   .Button--empty.Button--hasIcon:not(.Button--compact) {
     min-width: 24px;
   }
 
   .Button--empty.Button--hasIcon > .Button__content {
     justify-content: center;
+  }
+
+  // Dropdowns take the same box, so one keeps the top and bottom of the arrow,
+  // play and other buttons beside it. Stock tgui draws them 22px high.
+  :is(.Dropdown__control, .Dropdown__input) {
+    min-height: 24px;
   }
 }

@@ -60,8 +60,10 @@
 	qdel(GetComponent(/datum/component/butchering))
 
 	var/datum/component/overlay_lighting/lighting_object = src.GetComponent(/datum/component/overlay_lighting)
-	var/image/cone = lighting_object.cone
+	var/image/cone = lighting_object.light.cone
+	lighting_object.light.hide_from_holder()
 	cone.transform = cone.transform.Translate(0, -16) // adjust the little headlamp
+	lighting_object.light.show_to_holder()
 
 /mob/living/basic/pet/poppy/death()
 	lose_area_sensitivity(INNATE_TRAIT)

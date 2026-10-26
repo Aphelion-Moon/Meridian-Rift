@@ -100,7 +100,7 @@
 			var/list/bodyparts_dismember = list()
 			var/rad_mod = 0
 			for(var/obj/item/bodypart/BP in human.bodyparts)
-				if(BP.body_zone == BODY_ZONE_CHEST || BP.body_zone== BODY_ZONE_HEAD)
+				if(BP.body_zone == BODY_ZONE_CHEST || BP.body_zone== BODY_ZONE_HEAD || (BP.bodypart_flags & BODYPART_UNREMOVABLE))
 					continue
 				bodyparts_dismember.Add(BP)
 			for(var/i in 1 to 2) //Removing two bodyparts.
@@ -110,8 +110,8 @@
 					break
 				bodyparts_dismember.Remove(BP) //GC optimisation
 				human.log_message("lost a [initial(BP.name)] to the [src].", LOG_GAME)
-				BP.dismember()
-				qdel(BP)
+				if(BP.dismember())
+					qdel(BP)
 		//NOVA EDIT ADDITION END
 	calibrated = FALSE
 

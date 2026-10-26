@@ -30,6 +30,10 @@
 		BODY_ZONE_L_LEG = /obj/item/bodypart/leg/left/mutant/vox,
 		BODY_ZONE_R_LEG = /obj/item/bodypart/leg/right/mutant/vox,
 	)
+	survival_box_overrides = list(
+		SURVIVAL_INTERNALS_TYPE = /obj/item/tank/internals/nitrogen/belt/emergency,
+		SURVIVAL_MEDIPEN_TYPE = /obj/item/reagent_containers/hypospray/medipen,
+	)
 	custom_worn_icons = list(
 		LOADOUT_ITEM_HEAD = VOX_HEAD_ICON,
 		LOADOUT_ITEM_MASK = VOX_MASK_ICON,
@@ -67,16 +71,11 @@
 	features[FEATURE_MUTANT_COLOR_THREE] = pick("#222222", "#44EEFF", "#44FFBB", "#8844FF", "#332233")
 	return features
 
-/datum/species/vox/get_random_body_markings(list/passed_features)
-	var/name = pick(list("Vox", "Vox Hive", "Vox Nightling", "Vox Heart", "Vox Tiger"))
-	var/datum/body_marking_set/BMS = GLOB.body_marking_sets[name]
-	var/list/markings = list()
-	if(BMS)
-		markings = assemble_body_markings_from_set(BMS, passed_features, src)
-	return markings
+/datum/species/vox/get_random_marking_sets()
+	return list(/datum/body_marking_set/vox/vox, /datum/body_marking_set/vox/vox_hive, /datum/body_marking_set/vox/vox_nightling, /datum/body_marking_set/vox/vox_heart, /datum/body_marking_set/vox/vox_tiger)
 
 /datum/species/vox/get_custom_worn_icon(item_slot, obj/item/item)
-	// APHELION EDIT CHANGE - Current leg shape is checked by generate_custom_worn_icon().
+	// Current leg shape is checked by generate_custom_worn_icon().
 	return item.worn_icon_vox
 
 /datum/species/vox/set_custom_worn_icon(item_slot, obj/item/item, icon/icon)

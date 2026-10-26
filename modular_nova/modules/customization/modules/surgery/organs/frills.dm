@@ -20,7 +20,7 @@
 	var/static/list/cached_frill_icons
 	var/icon/cached_icon = LAZYACCESS(cached_frill_icons, frill_cache_key)
 	if(isnull(cached_icon))
-		cached_icon = icon(icon_override || sprite_datum.get_special_icon(owner), image_icon_state)
+		cached_icon = icon(icon_override || sprite_datum.get_special_icon(owner, src), image_icon_state)
 		for(var/datum/hair_mask/mask as anything in hair_masks_to_use)
 			cached_icon.Blend(icon(mask::icon, mask::icon_state), ICON_ADD)
 		LAZYSET(cached_frill_icons, frill_cache_key, cached_icon)
