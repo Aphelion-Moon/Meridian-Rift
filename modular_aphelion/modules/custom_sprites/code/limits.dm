@@ -568,7 +568,7 @@ SUBSYSTEM_DEF(custom_sprite_work)
 	if(!islist(transaction))
 		return 0
 	if("mask" in transaction)
-		return custom_sprite_mask_pixels(transaction["mask"]) || width * height
+		return custom_sprite_mask_pixels(transaction["mask"], CEILING(width * height / 6, 1)) || width * height
 	// A placement's area, or a move's box.
 	for(var/key in list("area", "rect"))
 		var/list/box = transaction[key]
@@ -576,13 +576,13 @@ SUBSYSTEM_DEF(custom_sprite_work)
 			return isnum(box[1]) && isnum(box[2]) && isnum(box[3]) && isnum(box[4]) ? max(0, (box[3] - box[1] + 1) * (box[4] - box[2] + 1)) : width * height
 	return islist(transaction["points"]) ? length(transaction["points"]) : 1
 
-/// The pixels a compact stroke mask marks, or null when a character isn't in the alphabet.
-/proc/custom_sprite_mask_pixels(mask)
-	if(!istext(mask))
+/// The pixels a compact stroke mask of `size` characters marks, or null when it is another size, which custom_sprite_mask_points() refuses unread, or a character isn't in the alphabet.
+/proc/custom_sprite_mask_pixels(mask, size)
+	if(!istext(mask) || length(mask) != size)
 		return null
 	var/list/counts = custom_sprite_mask_tables()[2]
 	. = 0
-	for(var/index in 1 to length(mask))
+	for(var/index in 1 to size)
 		var/code = text2ascii(mask, index)
 		var/bits = code < 128 ? counts[code + 1] : null
 		if(isnull(bits))

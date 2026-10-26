@@ -772,8 +772,9 @@ the history stay as they are.
 Pencil and eraser strokes travel as a bit mask of the canvas, one character per
 six pixels, so a stroke across a whole view is a single short message instead of
 a point list split into many (a long stroke used to be cut off by the per-second
-message limit). The server refuses a mask whose length doesn't match the canvas
-or that marks a pixel past its end. A placed selection can't bring more values
+message limit). The server refuses a mask whose length doesn't match the canvas,
+without reading it, even to count it against the stroke budget, and one that
+marks a pixel past its end. A placed selection can't bring more values
 than pixels it covers, and each distinct value is checked once however often it
 repeats. Every action's parameters are validated before any icon work, and
 malformed input is refused without drawing anything.
