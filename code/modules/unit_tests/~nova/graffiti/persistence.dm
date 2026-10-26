@@ -422,7 +422,8 @@
 /**
  * An account at its placement cap loses its oldest placement to its next one, a sixth piece on a tile buries the oldest
  * for good, and a map at its placement cap or out of art bytes loses the lowest-ranked placement of an owner who isn't
- * connected.
+ * connected. New art for a placement meets the same caps, its own old art going with it, and with nothing else to go it
+ * is refused and the placement keeps its old art.
  */
 /datum/unit_test/graffiti_registry_caps
 	priority = TEST_LONGER
@@ -434,9 +435,11 @@
 	var/list/floors = graffiti_test_floors(tiles)
 	TEST_ASSERT_EQUAL(length(floors), tiles, "Runtime Station must have enough floors.")
 	var/list/art = graffiti_test_art(1)
-	// Placed in one second, so their ids, made up as they come, must still differ.
+	// The account's unique-art cap, GRAFFITI_CKEY_UNIQUE_CAP, which registry.dm keeps to itself.
+	var/unique_cap = GRAFFITI_MAP_UNIQUE_CAP / 10
+	// Placed in one second, so their ids, made up as they come, must still differ. The account reaches both its caps.
 	for(var/position in 1 to GRAFFITI_CKEY_PLACEMENT_CAP)
-		SSgraffiti.add_placement(floors[CEILING(position / GRAFFITI_STACK_CAP, 1)], art, "graffiti_test", "Jane Doe")
+		SSgraffiti.add_placement(floors[CEILING(position / GRAFFITI_STACK_CAP, 1)], graffiti_test_art(min(position, unique_cap)), "graffiti_test", "Jane Doe")
 	TEST_ASSERT_EQUAL(length(SSgraffiti.placements), GRAFFITI_CKEY_PLACEMENT_CAP, "An account must keep placements up to its cap.")
 	var/oldest = SSgraffiti.unpack(SSgraffiti.placements[1])["pid"]
 	var/next = SSgraffiti.unpack(SSgraffiti.placements[2])["pid"]
@@ -447,7 +450,14 @@
 	for(var/list/placement as anything in data["placements"])
 		pids[placement["pid"]] = TRUE
 	TEST_ASSERT(length(pids) == GRAFFITI_CKEY_PLACEMENT_CAP && !pids[oldest] && pids[next] && pids["graffiti_test-more"], "A placement past an account's cap must evict its oldest from the file.")
-	TEST_ASSERT(SSgraffiti.update_placement_art(SSgraffiti.placements[1], graffiti_test_art(2)), "A placement must take new art.")
+	// The oldest's art goes with the change, so even at both caps it takes nothing.
+	var/changed = SSgraffiti.update_placement_art(SSgraffiti.placements[1], graffiti_test_art(unique_cap + 1))
+	TEST_ASSERT(SSgraffiti.placement_info[changed] && length(SSgraffiti.placements) == GRAFFITI_CKEY_PLACEMENT_CAP, "A placement must take new art, taking nothing when its old art goes with it.")
+	// The next to last shares its art with the newest placements, so its change takes the account's oldest.
+	var/list/evicted = list()
+	var/arts = length(SSgraffiti.ckey_arts["graffiti_test"])
+	var/shared = SSgraffiti.update_placement_art(SSgraffiti.placements[length(SSgraffiti.placements) - 1], graffiti_test_art(unique_cap + 2), evicted = evicted)
+	TEST_ASSERT(SSgraffiti.placement_info[shared] && !SSgraffiti.placement_info[changed] && length(evicted) == 1 && length(SSgraffiti.ckey_arts["graffiti_test"]) == arts, "New art past an account's unique-art cap must take its oldest other placement: [length(evicted)] evicted, [length(SSgraffiti.ckey_arts["graffiti_test"])] of [arts] arts.")
 	TEST_ASSERT(SSgraffiti.remove_placement(SSgraffiti.placements[2]), "A placement must be removed.")
 	var/problem = graffiti_test_index_problem()
 	TEST_ASSERT_NULL(problem, "After adding, evicting, changing and removing, the index must match the placements: [problem]")
@@ -486,6 +496,20 @@
 	SSgraffiti.art_byte_budget = SSgraffiti.art_size(graffiti_test_art(2))
 	SSgraffiti.load_file(path)
 	TEST_ASSERT(graffiti_test_placement("graffiti_new-1", SSgraffiti.placements) && !graffiti_test_placement("graffiti_fourth-1", SSgraffiti.placements) && SSgraffiti.art_bytes <= SSgraffiti.art_byte_budget, "A file past the byte budget must load the best-ranked placements whose art fits: [length(SSgraffiti.placements)] placements, [SSgraffiti.art_bytes] of [SSgraffiti.art_byte_budget] bytes.")
+	graffiti_registry_test_begin(path)
+	SSgraffiti.seen["graffiti_old"] = "1792800000"
+	SSgraffiti.seen["graffiti_new"] = "1792886400"
+	var/stale = SSgraffiti.add_placement(floors[1], graffiti_test_art(1), "graffiti_old", "Jane Doe", "graffiti_old-1")
+	var/growing = SSgraffiti.add_placement(floors[2], graffiti_test_art(2), "graffiti_new", "John Doe", "graffiti_new-1")
+	// Bytes enough for the dense art once Old's art goes too, as New's own goes with the change.
+	SSgraffiti.art_byte_budget = SSgraffiti.art_size(dense)
+	growing = SSgraffiti.update_placement_art(growing, dense)
+	TEST_ASSERT(SSgraffiti.placement_info[growing] && !SSgraffiti.placement_info[stale] && SSgraffiti.art_bytes <= SSgraffiti.art_byte_budget, "New art past the map's byte budget must evict the lowest-ranked placement until it fits: [growing], [SSgraffiti.art_bytes] of [SSgraffiti.art_byte_budget] bytes.")
+	var/list/denser = graffiti_test_dense_art(2)
+	SSgraffiti.art_byte_budget = SSgraffiti.art_size(denser) - 1
+	result = SSgraffiti.update_placement_art(growing, denser)
+	problem = graffiti_test_index_problem()
+	TEST_ASSERT(istext(result) && !SSgraffiti.placement_info[result] && SSgraffiti.art_of(growing) == graffiti_art_hash(dense) && isnull(problem), "New art that can't fit, with nothing else to go, must be refused and the placement keep its art, indexed: [result], [problem]")
 
 /**
  * Puts the registry back and deletes the test's files.

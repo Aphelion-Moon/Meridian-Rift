@@ -440,13 +440,13 @@
  * Shows the piece on its tiles as far as `progress` reveals it: new art for each tile's placement, or, once a tile's art
  * has paint, a new placement on top of its stack. Its time counts against every painter's composites
  * (SSgraffiti's spend_composite()). The halves of a two-tile piece share one placement id. A step whose
- * new placements took the painter's own oldest pieces past their caps says so once, even one that stops the job.
+ * paint took the painter's own oldest pieces past their caps says so once, even one that stops the job.
  *
  * Arguments:
  * - progress: Strips revealed, at least 1.
  *
  * Returns:
- * - TRUE/FALSE: FALSE when a placement is gone or the surface refused a new one, which stops the job.
+ * - TRUE/FALSE: FALSE when a placement is gone or the surface refused the paint, which stops the job.
  */
 /datum/graffiti_paint_job/proc/paint(progress)
 	var/started = TICK_USAGE_REAL
@@ -458,20 +458,22 @@
 		var/list/art = arts[position]
 		var/packed = position == 1 ? placement : placement2
 		if(packed)
-			packed = SSgraffiti.update_placement_art(packed, art, records[position])
+			var/result = SSgraffiti.update_placement_art(packed, art, records[position], evicted)
 			// Null once the placement is gone: cleaned, buried or evicted. The job keeps the old packing, so interrupt() sees it went.
-			if(!packed)
+			if(!result)
 				. = FALSE
 				break
+			packed = result
 		else if(length(art["pal"]))
 			var/pid = (placement || placement2) && SSgraffiti.unpack(placement || placement2)["pid"]
 			packed = SSgraffiti.add_placement(position == 1 ? surface : get_step(surface, EAST), art, owner_ckey(), user.real_name, pid, length(arts) == 2 ? position : 0, evicted)
-			if(!(packed in SSgraffiti.placements))
-				to_chat(user, span_warning("Your graffiti can't go there: [packed]."))
-				. = FALSE
-				break
 		else
 			continue
+		// A refusal leaves the job's placements as they were, so the piece resumes from the paint they show.
+		if(!SSgraffiti.placement_info[packed])
+			to_chat(user, span_warning("Your graffiti can't go there: [packed]."))
+			. = FALSE
+			break
 		if(position == 1)
 			placement = packed
 		else

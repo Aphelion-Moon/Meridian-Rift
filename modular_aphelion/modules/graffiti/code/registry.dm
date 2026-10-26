@@ -913,20 +913,31 @@ SUBSYSTEM_DEF(graffiti)
  * Arguments:
  * - ckey: The account's ckey.
  * - hash: The art's hash.
+ * - replaced: The account's placement taking the art as its new art, or null for a new placement. It is never taken,
+ *   and its old art counts as gone from it.
  *
  * Returns:
  * - list: The packed placements, oldest first, which is how the account's index orders them.
  */
-/datum/controller/subsystem/graffiti/proc/own_evictions(ckey, hash)
+/datum/controller/subsystem/graffiti/proc/own_evictions(ckey, hash, replaced = null)
 	. = list()
 	var/list/counts = ckey_arts[ckey]
 	var/count = length(ckey_placements[ckey])
 	var/arts = length(counts)
 	// Art hash -> how many of the placements taken use it.
 	var/list/taken = list()
+	// New art for a placement adds no placement, and gives up its old art.
+	if(replaced)
+		count--
+		var/old_hash = placement_info[replaced][GRAFFITI_INFO_ART]
+		taken[old_hash] = 1
+		if(taken[old_hash] == counts[old_hash])
+			arts--
 	for(var/packed in ckey_placements[ckey])
 		if(count < GRAFFITI_CKEY_PLACEMENT_CAP && (counts[hash] > taken[hash] || arts < GRAFFITI_CKEY_UNIQUE_CAP))
 			break
+		if(packed == replaced)
+			continue
 		. += packed
 		count--
 		var/old_hash = placement_info[packed][GRAFFITI_INFO_ART]
@@ -965,6 +976,37 @@ SUBSYSTEM_DEF(graffiti)
 	return arts < GRAFFITI_MAP_UNIQUE_CAP && bytes + size <= art_byte_budget
 
 /**
+ * Makes room on the map for a placement of an art, a new one or a placement's new art: past the map's caps, counting the
+ * account's own placements that its caps take, the lowest-ranked placement of an owner who isn't connected goes, until
+ * the art fits or nothing else can go. A placement never goes to make room for its own new art.
+ *
+ * Arguments:
+ * - ckey: The painter's ckey, which owns `replaced`.
+ * - hash: The art's hash.
+ * - size: The art's art_size().
+ * - replaced: The placement taking the art as its new art, or null for a new placement.
+ *
+ * Returns:
+ * - list: The account's own placements its caps take (own_evictions()), for the caller to remove once the paint lands.
+ * - null: Nothing else can go, so the paint is refused.
+ */
+/datum/controller/subsystem/graffiti/proc/make_room(ckey, hash, size, replaced = null)
+	var/list/doomed = own_evictions(ckey, hash, replaced)
+	// The placement taking new art gives up its old art as a placement that goes would.
+	var/fits = map_fits(hash, size, replaced ? doomed + replaced : doomed)
+	for(var/attempt in 1 to length(placements))
+		if(fits)
+			break
+		var/lowest = lowest_unconnected()
+		if(!lowest || lowest == replaced)
+			break
+		remove_placement(lowest, FALSE)
+		// The lowest may have been the account's own, as when its owner left mid-job.
+		doomed = own_evictions(ckey, hash, replaced)
+		fits = map_fits(hash, size, replaced ? doomed + replaced : doomed)
+	return fits ? doomed : null
+
+/**
  * Places a piece's art on a turf, on top of its stack, and queues the map file's write.
  *
  * The map's caps are met first, counting the account's own placements that its caps take: past them the lowest-ranked
@@ -992,20 +1034,8 @@ SUBSYSTEM_DEF(graffiti)
 	if(!graffiti_surface_ok(tile) || art?["w"] != GRAFFITI_WIDTH)
 		return "can't paint there"
 	var/hash = graffiti_art_hash(art)
-	var/size = art_size(art)
-	var/list/doomed = own_evictions(ckey, hash)
-	var/fits = map_fits(hash, size, doomed)
-	for(var/attempt in 1 to length(placements))
-		if(fits)
-			break
-		var/lowest = lowest_unconnected()
-		if(!lowest)
-			break
-		remove_placement(lowest, FALSE)
-		// The lowest may have been the account's own, as when its owner left mid-job.
-		doomed = own_evictions(ckey, hash)
-		fits = map_fits(hash, size, doomed)
-	if(!fits)
+	var/list/doomed = make_room(ckey, hash, art_size(art))
+	if(!doomed)
 		queue_save()
 		return "the walls here are caked in paint"
 	for(var/packed in doomed)
@@ -1042,19 +1072,24 @@ SUBSYSTEM_DEF(graffiti)
 	return packed
 
 /**
- * Gives a placement new art, as a freehand session or a paint job reveals more of its piece, and shows it.
+ * Gives a placement new art, as a freehand session or a paint job reveals more of its piece, and shows it. The art meets
+ * the caps a new placement's does (make_room()), its old art going from the placement, and when nothing can make room
+ * the placement keeps its old art.
  *
  * Arguments:
  * - packed: The placement.
  * - art: Its new art, GRAFFITI_WIDTH wide. The registry keeps a copy.
  * - decoded: The art's graffiti_art_decode(), when the caller has it, so its tile doesn't decode it again.
+ * - evicted: When given, filled with the ids of the account's own placements its caps took, for the painter to be told
+ *   how many went.
  *
  * Returns:
  * - text: The placement packed again, which takes the old packing's place everywhere, or as it was when its art is
  *   unchanged. Keep it for the next update.
+ * - text: Why it kept its old art, safe to show the player. It is never in `placements`.
  * - null: The placement is gone.
  */
-/datum/controller/subsystem/graffiti/proc/update_placement_art(packed, list/art, list/decoded = null)
+/datum/controller/subsystem/graffiti/proc/update_placement_art(packed, list/art, list/decoded = null, list/evicted = null)
 	var/position = placements.Find(packed)
 	if(!position || art?["w"] != GRAFFITI_WIDTH)
 		return null
@@ -1063,6 +1098,17 @@ SUBSYSTEM_DEF(graffiti)
 	var/hash = graffiti_art_hash(art)
 	if(hash == old_hash)
 		return packed
+	var/count = length(placements)
+	var/list/doomed = make_room(placement["ckey"], hash, art_size(art), packed)
+	if(!doomed)
+		queue_save()
+		return "the walls here are caked in paint"
+	for(var/gone in doomed)
+		evicted?.Add(placement_info[gone][GRAFFITI_INFO_PID])
+		remove_placement(gone, FALSE)
+	// What went to make room may have come before it.
+	if(length(placements) != count)
+		position = placements.Find(packed)
 	if(!src.art[hash])
 		src.art[hash] = list("w" = art["w"], "pal" = art["pal"], "grid" = art["grid"], "glow" = art["glow"], "k" = graffiti_art_glow_kind(art, decoded))
 		art_bytes += art_size(art)

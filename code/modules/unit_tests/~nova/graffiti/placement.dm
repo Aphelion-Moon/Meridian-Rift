@@ -75,8 +75,9 @@
 	return ..()
 
 /**
- * A paint job stopped partway keeps its piece, progress and placement in the Unfinished slot. Resumed on the same wall it
- * goes on from that strip and finishes in the same stack entry, which empties the slot; on another wall it starts over.
+ * A paint job stopped partway, here by a step whose paint the map has no room for, keeps its piece, progress and
+ * placement in the Unfinished slot, its paint showing as far as the map took it. Resumed on the same wall it goes on from
+ * that strip and finishes in the same stack entry, which empties the slot; on another wall it starts over.
  */
 /datum/unit_test/graffiti_paint_job_resume/Run()
 	graffiti_editor_test_begin()
@@ -94,17 +95,22 @@
 	job.advance()
 	job.advance()
 	job.run_deferred_work()
-	job.interrupt()
+	var/shown_hash = SSgraffiti.art_of(job.placement)
+	// The map is full, and the painter's job is all there is to evict.
+	SSgraffiti.art_byte_budget = SSgraffiti.art_bytes
+	job.advance()
+	job.run_deferred_work()
+	SSgraffiti.art_byte_budget = GRAFFITI_MAP_ART_BYTES
 	var/obj/effect/decal/cleanable/crayon/custom/decal = graffiti_tile_decal(turfs[1])
-	TEST_ASSERT(length(decal?.stack) == 1, "A stopped job must leave its paint on the wall.")
+	TEST_ASSERT(QDELETED(job) && length(decal?.stack) == 1 && SSgraffiti.art_of(decal.stack[1]) == shown_hash, "A step the map has no room for must stop the job, leaving the paint shown so far on the wall.")
 	var/datum/graffiti_library/library = graffiti_library(painter.ckey)
 	var/list/resume = library.unfinished?["resume"]
-	TEST_ASSERT(resume?["progress"] == 2 && resume["pid"] == SSgraffiti.unpack(decal.stack[1])["pid"], "A stopped job must keep its progress and placement in the Unfinished slot: [json_encode(resume)]")
+	TEST_ASSERT(resume?["progress"] == 3 && resume["pid"] == SSgraffiti.unpack(decal.stack[1])["pid"], "A stopped job must keep its progress and placement in the Unfinished slot: [json_encode(resume)]")
 	var/list/slot = graffiti_copy_piece(library.unfinished["piece"])
 	job = allocate(/datum/graffiti_paint_job, painter, can, turfs[2], slot, resume, "unfinished")
 	TEST_ASSERT(job.reveal["progress"] == 0 && !job.placement, "On another wall the job must start over.")
 	job = allocate(/datum/graffiti_paint_job, painter, can, turfs[1], slot, resume, "unfinished")
-	TEST_ASSERT(job.reveal["progress"] == 2 && job.placement == decal.stack[1], "Resumed on its wall, the job must go on from its strip with its placement.")
+	TEST_ASSERT(job.reveal["progress"] == 3 && job.placement == decal.stack[1], "Resumed on its wall, the job must go on from its strip with its placement.")
 	// A test human's do_after ends at once, so the job finishes as it starts.
 	TEST_ASSERT(job.start() && QDELETED(job), "The resumed job must start and finish.")
 	TEST_ASSERT(length(decal.stack) == 1 && graffiti_art_pixels(SSgraffiti.art[SSgraffiti.unpack(decal.stack[1])["art"]]) == 2, "The resumed job must finish in the same stack entry.")

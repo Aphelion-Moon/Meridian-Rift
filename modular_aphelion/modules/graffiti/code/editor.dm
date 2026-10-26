@@ -7,8 +7,8 @@
 #define GRAFFITI_COMPOSITE_BUDGET 600
 /// Shortest time between two surface composites once a painter's budget is spent.
 #define GRAFFITI_COMPOSITE_SLOW_SPACING (10 SECONDS)
-/// How long a freehand session waits before asking a tile that refused its new placement again, its composites only
-/// showing the refusal meanwhile. A refusal costs about 0.02 ms (measured) since the per-ckey index.
+/// How long a freehand session waits before asking a tile that refused its paint again, its composites only showing the
+/// refusal meanwhile. A refusal costs about 0.02 ms (measured) since the per-ckey index.
 #define GRAFFITI_PLACE_RETRY (10 SECONDS)
 /// Longest freehand session on one surface.
 #define GRAFFITI_SESSION_LIMIT (15 MINUTES)
@@ -59,8 +59,8 @@
 	COOLDOWN_DECLARE(spray_cooldown)
 	/// When the surface may be recomposited again.
 	COOLDOWN_DECLARE(composite_cooldown)
-	/// Tile -> list(when it is asked again, the notice it gave) for each tile that refused the piece's new placement: "0"
-	/// for a one-tile piece, "1" and "2" for a two-tile piece's halves.
+	/// Tile -> list(when it is asked again, the notice it gave) for each tile that refused the piece's paint: "0" for a
+	/// one-tile piece, "1" and "2" for a two-tile piece's halves.
 	var/list/refusals
 	/// Layer id -> list(the codes of its view the window was last sent, their serial), so an update sends a view only once
 	/// it changes. Null for a window that has none yet.
@@ -737,8 +737,8 @@
 /**
  * Puts the piece on its surface as it is now, the first time on top of each tile's stack, and counts the composite
  * against the painter's pace and its time against every painter's (SSgraffiti's spend_composite()). An unpainted piece
- * leaves the surface as it is. While every tile still without a placement
- * waits out a refusal, the composite only shows that refusal again, flattening nothing and costing no pace.
+ * leaves the surface as it is. While every tile waits out a refusal, the composite only shows that refusal again,
+ * flattening nothing and costing no pace.
  *
  * Arguments:
  * - user: The painter, whose ckey and character name new placements carry.
@@ -749,7 +749,7 @@
 	var/placing = FALSE
 	for(var/half in (canvas.width == GRAFFITI_WIDE_WIDTH ? list(1, 2) : list(0)))
 		var/list/refusal = refusals?["[half]"]
-		if((half == 2 ? placement2 : placement) || !refusal || world.time >= refusal[1])
+		if(!refusal || world.time >= refusal[1])
 			placing = TRUE
 		else
 			notice ||= refusal[2]
@@ -798,8 +798,9 @@
 
 /**
  * Puts one tile's art of the piece on the surface: as new art for the tile's placement, or as a new placement once the
- * art has paint. The halves of a two-tile piece share one placement id. A tile that refuses a new placement, as a full
- * map of connected painters' graffiti does, isn't asked again for GRAFFITI_PLACE_RETRY; meanwhile its refusal shows again.
+ * art has paint. The halves of a two-tile piece share one placement id. A tile that refuses the paint, as a full map of
+ * connected painters' graffiti does, isn't asked again for GRAFFITI_PLACE_RETRY; meanwhile its refusal shows again, and
+ * a placement it has keeps its old art.
  *
  * Arguments:
  * - packed: The tile's placement so far, packed, or null.
@@ -812,28 +813,33 @@
  *   tell the painter once.
  *
  * Returns:
- * - text: The tile's placement now, packed. One that is gone stays as it was, so the session sees it is gone.
+ * - text: The tile's placement now, packed. One that is gone stays as it was, so the session sees it is gone, and so
+ *   does one refused its new art.
  * - null: The tile has none: its art has no paint yet, or the surface refused it.
  */
 /datum/custom_sprite_editor/graffiti/proc/place_tile(packed, turf/tile, list/art, half, mob/user, list/decoded, list/evicted)
-	if(packed)
-		return SSgraffiti.update_placement_art(packed, art, decoded) || packed
-	if(!length(art["pal"]))
+	if(!packed && !length(art["pal"]))
 		return null
 	var/list/refusal = refusals?["[half]"]
 	if(refusal && world.time < refusal[1])
 		notify(refusal[2])
-		return null
-	var/pid = (placement || placement2) && SSgraffiti.unpack(placement || placement2)["pid"]
-	var/result = SSgraffiti.add_placement(tile, art, user.ckey, user.real_name, pid, half, evicted)
-	if(result in SSgraffiti.placements)
+		return packed
+	var/result
+	if(packed)
+		result = SSgraffiti.update_placement_art(packed, art, decoded, evicted)
+		if(!result)
+			return packed
+	else
+		var/pid = (placement || placement2) && SSgraffiti.unpack(placement || placement2)["pid"]
+		result = SSgraffiti.add_placement(tile, art, user.ckey, user.real_name, pid, half, evicted)
+	if(SSgraffiti.placement_info[result])
 		LAZYREMOVE(refusals, "[half]")
 		return result
 	var/notice = "Your graffiti can't go there: [result]."
 	LAZYSET(refusals, "[half]", list(world.time + GRAFFITI_PLACE_RETRY, notice))
 	notify(notice)
 	push()
-	return null
+	return packed
 
 /**
  * Returns the graffiti a tile shows beneath this session's piece, which the window draws under the canvas. A stack the

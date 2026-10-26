@@ -140,8 +140,9 @@ graffiti too, over their own pixels only, for the round.
   colours (`full`) the picker mixes without changing the brush, and its title's tooltip says why. It sits under the
   colours, which scroll, so a piece gaining colours never moves it. The editor keeps the last `GRAFFITI_PICKED_COLORS`
   (16) picks, and one more drops the oldest even if it is painted, since painted colours stay listed through the paint.
-- **Placing.** A tile that refuses a new placement, as a full map of connected painters' graffiti does, isn't asked
-  again for `GRAFFITI_PLACE_RETRY` (10 s), and its refusal shows meanwhile; the session's last composite asks again.
+- **Placing.** A tile that refuses the paint, a new placement or more art for its placement, as a full map of
+  connected painters' graffiti does, isn't asked again for `GRAFFITI_PLACE_RETRY` (10 s), and its refusal shows
+  meanwhile; the session's last composite asks again.
 
 #### Paint jobs
 
@@ -241,14 +242,17 @@ graffiti too, over their own pixels only, for the round.
   text sorts in time order.
 - **Caps and eviction.** A map keeps `GRAFFITI_MAP_PLACEMENT_CAP` (4,000) placements of `GRAFFITI_MAP_UNIQUE_CAP`
   (2,000) unique arts of at most `GRAFFITI_MAP_ART_BYTES` (5 MiB) in all, and an account `GRAFFITI_CKEY_PLACEMENT_CAP`
-  (400) placements of `GRAFFITI_CKEY_UNIQUE_CAP` (200) arts on each map. A new placement meets the map's caps first,
-  counting the account's own placements that its own caps take (`own_evictions()`, `map_fits()`): past them the
-  lowest-ranked placement of an owner who isn't connected goes (`lowest_unconnected()`), and when every owner is
-  connected the new paint is refused ("the walls here are caked in paint") and the account keeps all of its own. Only a
-  placement that lands takes the account's oldest placements past its caps, and the painter is told, by the editor's
-  notice or a paint job's balloon alert. `rank()` puts a connected owner first, then the owner seen most recently, then
-  the newest placement, then file order; it also decides what a load drops past the placement and unique-art caps. So a
-  full map can evict an offline player's oldest art.
+  (400) placements of `GRAFFITI_CKEY_UNIQUE_CAP` (200) arts on each map. A new placement meets the map's caps first
+  (`make_room()`), counting the account's own placements that its own caps take (`own_evictions()`, `map_fits()`): past
+  them the lowest-ranked placement of an owner who isn't connected goes (`lowest_unconnected()`), and when every owner
+  is connected the new paint is refused ("the walls here are caked in paint") and the account keeps all of its own.
+  Only a placement that lands takes the account's oldest placements past its caps, and the painter is told, by the
+  editor's notice or a paint job's balloon alert. New art for a placement, as a freehand session or a paint job reveals
+  more of its piece, meets the same caps, the placement giving up its old art (art other placements share stays). It
+  never evicts the placement itself, and when nothing can make room the placement keeps its old art: a paint job stops
+  there, its piece going in the Unfinished slot, and a session's tile waits out `GRAFFITI_PLACE_RETRY`. `rank()` puts a
+  connected owner first, then the owner seen most recently, then the newest placement, then file order; it also decides
+  what a load drops past the placement and unique-art caps. So a full map can evict an offline player's oldest art.
 - **Static station only.** Graffiti goes only on the station as the map built it (`graffiti_static_station()`): a
   station level's turf in a station area, neither a shuttle's nor the holodeck's, and outside every map template loaded
   on the station this round, such as a random room, which the `/datum/map_template/load()` override records
@@ -397,7 +401,7 @@ and floor and the narrowing of two-tile pieces (`codec.dm`), surface and studio 
 caps, write pacing and import, and the backup and files a deletion leaves (`library.dm`), the registry's round trip and
 miss drops, map files whose placements still carry names, cleaning, cleaned art leaving the map file, its backup and the
 icon caches, admin deletes, halves, rank with connected owners first, caps with burying and the byte budget, on loading
-too, sheets and the static-station rule (`persistence.dm`), paint jobs, arming and window surfaces (`placement.dm`),
+and on new art too, sheets and the static-station rule (`persistence.dm`), paint jobs, arming and window surfaces (`placement.dm`),
 freehand and paint jobs on posters, kept to the poster's pixels, through a roll-up, a rehanging and a wash, two posters
 sharing one art's icon (`poster.dm`), and the workspace's layers, colour counts and alpha-00 refusal (`workspace.dm`). `graffiti_registry_caps` and
 `graffiti_library_caps`, about 1.1 s and 1.7 s, run with `TEST_LONGER`. The module adds type vars and globals, and
