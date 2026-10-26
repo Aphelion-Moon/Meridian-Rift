@@ -30,7 +30,7 @@ import {
 import { suspendStart } from '../events/handlers/suspense';
 import { useWindowSizing } from '../hooks/useWindowSizing'; // APHELION EDIT ADDITION - window sizing
 import { createLogger } from '../logging';
-import { IconResourceNotice } from './IconResourceNotice'; // APHELION EDIT ADDITION
+import { IconResourceNotice } from './IconResourceNotice'; // APHELION EDIT ADDITION - icon notice above the content
 import { Layout } from './Layout';
 import { TitleBar } from './TitleBar';
 
@@ -160,7 +160,12 @@ export function Window(props: Props) {
           debug.debugLayout && 'debug-layout',
         ])}
       >
+        {/* APHELION EDIT REMOVAL START - icon notice above the content
         {!suspended && children}
+        APHELION EDIT REMOVAL END */}
+        {/* APHELION EDIT ADDITION START - icon notice above the content */}
+        <IconResourceNotice>{!suspended && children}</IconResourceNotice>
+        {/* APHELION EDIT ADDITION END */}
         {showDimmer && <div className="Window__dimmer" />}
       </div>
       <div
@@ -191,16 +196,6 @@ type ContentProps = Partial<{
 function WindowContent(props: ContentProps) {
   const { className, fitted, children, ...rest } = props;
   // const [altDown, setAltDown] = useState(false); // APHELION EDIT REMOVAL
-  // APHELION EDIT ADDITION START
-  // APHELION EDIT ADDITION START
-  const content = (
-    <>
-      <IconResourceNotice />
-      {children}
-    </>
-  );
-  // APHELION EDIT ADDITION END
-  // APHELION EDIT ADDITION END
 
   function dragStartIfAltHeld(event: React.MouseEvent<HTMLDivElement>): void {
     if (event.altKey && event.button === 0 && !event.defaultPrevented) { // APHELION EDIT CHANGE - ORIGINAL: if (altDown) {
@@ -208,10 +203,20 @@ function WindowContent(props: ContentProps) {
     }
   }
 
+  /* // APHELION EDIT REMOVAL START - subscribing during render added a listener every render and never dropped it
   Byond.subscribeTo('resetposition', (payload) => {
     setWindowPosition([0, 0]);
     storeWindowGeometry();
   });
+  */ // APHELION EDIT REMOVAL END
+  // APHELION EDIT ADDITION START
+  useLayoutEffect(() => {
+    return Byond.subscribeTo('resetposition', () => {
+      setWindowPosition([0, 0]);
+      storeWindowGeometry();
+    });
+  }, []);
+  // APHELION EDIT ADDITION END
 
   return (
     <Layout.Content
@@ -234,9 +239,9 @@ function WindowContent(props: ContentProps) {
       />
       // APHELION EDIT REMOVAL END */}
       {fitted ? (
-        content // APHELION EDIT CHANGE - ORIGINAL: children
+        children
       ) : (
-        <div className="Window__contentPadding">{content}</div> // APHELION EDIT CHANGE - ORIGINAL: <div className="Window__contentPadding">{children}</div>
+        <div className="Window__contentPadding">{children}</div>
       )}
     </Layout.Content>
   );

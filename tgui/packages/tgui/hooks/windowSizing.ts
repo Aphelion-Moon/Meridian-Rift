@@ -63,6 +63,15 @@ export function measureWindowContent(prompt = false): ContentSize | undefined {
   };
 }
 
+/** Height the icon notice takes above the content box, in viewport pixels */
+export function measureIconNotice() {
+  return (
+    document
+      .querySelector('.IconResourceNotice__status')
+      ?.getBoundingClientRect().height ?? 0
+  );
+}
+
 function setOverflow(content: HTMLElement, axis: 'x' | 'y', scroll: boolean) {
   const className = `Window__content--overflow-${axis}`;
   if (content.classList.contains(className) !== scroll) {

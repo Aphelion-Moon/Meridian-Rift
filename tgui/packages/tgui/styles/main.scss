@@ -87,6 +87,7 @@
 @include meta.load-css('./meridianos/titlebar.scss');
 // APHELION EDIT ADDITION END
 @include meta.load-css('./layouts/Window.scss');
+@include meta.load-css('./layouts/IconResourceNotice.scss'); // APHELION EDIT ADDITION - icon notice above the content
 
 @include meta.load-css('~highlight.js/scss/a11y-dark.scss');
 

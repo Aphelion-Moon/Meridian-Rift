@@ -100,7 +100,7 @@ export function getRoutedComponent(name: string) {
 
 export function RoutedComponent() {
   const { suspended, config, debug } = useAtomValue(backendStateAtom);
-  useAtomValue(iconMapStateAtom); // APHELION EDIT ADDITION - DmIcon reads a BYOND global; redraw the interface when its map becomes ready.
+  useAtomValue(iconMapStateAtom); // APHELION EDIT ADDITION - DmIcon reads a BYOND global, so we redraw the interface when its map becomes ready
 
   if (suspended) {
     return <SuspendedWindow />;

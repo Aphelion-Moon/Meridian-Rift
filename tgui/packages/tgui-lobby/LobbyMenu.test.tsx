@@ -80,6 +80,9 @@ beforeEach(() => {
   Byond.sendMessage = sendMessage as typeof Byond.sendMessage;
   Byond.subscribeTo = mock((name: string, callback: LobbySubscription) => {
     subscriptions.set(name, callback);
+    return () => {
+      if (subscriptions.get(name) === callback) subscriptions.delete(name);
+    };
   }) as typeof Byond.subscribeTo;
   assetMap['meridian_rift_scanlines_classic.png'] =
     'asset://scanlines-classic.png';

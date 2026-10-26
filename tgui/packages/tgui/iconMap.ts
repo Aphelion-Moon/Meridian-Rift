@@ -17,13 +17,15 @@ let active:
   | undefined;
 
 function validateIconMap(value: unknown): Record<string, string> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('Invalid or empty icon reference map');
+  }
+  const references = Object.values(value);
+  // The generator only writes refs like "[0xc000049]", so an all-string error body is not a map
   if (
-    !value ||
-    typeof value !== 'object' ||
-    Array.isArray(value) ||
-    !Object.keys(value).length ||
-    Object.values(value).some(
-      (reference) => typeof reference !== 'string' || !reference,
+    !references.length ||
+    references.some(
+      (reference) => typeof reference !== 'string' || reference[0] !== '[',
     )
   ) {
     throw new Error('Invalid or empty icon reference map');
