@@ -179,6 +179,17 @@
 		/obj/item/trash/vendor_trash/lizard_box = 1,
 		/obj/item/trash/empty_side_pack/ration = 1,
 		/obj/item/trash/empty_side_pack/ration/bag = 1,
+		/obj/item/trash/british_pack/cheesy_bean_melt = 1,
+		/obj/item/trash/british_pack/chicken_mushroom_pie = 1,
+		/obj/item/trash/british_pack/cornish_pasty = 1,
+		/obj/item/trash/british_pack/eton_mess = 1,
+		/obj/item/trash/british_pack/hunters_chicken = 1,
+		/obj/item/trash/british_pack/pork_pie = 1,
+		/obj/item/trash/british_pack/scones = 1,
+		/obj/item/trash/british_pack/steak_ale_pie = 1,
+		/obj/item/trash/british_pack/steak_ale_pie_slice = 1,
+		/obj/item/trash/british_pack/sticky_toffee_pudding = 1,
+		/obj/item/trash/british_pack/welsh_cawl = 1,
 		// NOVA EDIT END
 	)
 

@@ -1,4 +1,9 @@
 //MAP CONVERTED BY dmm2tgm.py THIS HEADER COMMENT PREVENTS RECONVERSION, DO NOT REMOVE
+"aaa" = (
+/obj/effect/turf_decal/tile/bar/fourcorners,
+/obj/machinery/vending/imported/luvvits,
+/turf/open/floor/iron/checker,
+/area/station/service/kitchen/diner)
 "aal" = (
 /obj/effect/turf_decal/lunar_sand/plating,
 /obj/effect/decal/cleanable/dirt/dust,
@@ -111646,7 +111651,7 @@ aWe
 ifc
 jIr
 lrk
-pLt
+aaa
 twB
 qtB
 sLK
