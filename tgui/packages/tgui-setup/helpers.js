@@ -204,13 +204,25 @@
   };
 
   Byond.subscribeTo = function (type, listener) {
+    var active = true; // APHELION EDIT ADDITION - a removed listener stays quiet during a dispatch already running
     var _listener = function (_type, payload) {
-      if (_type === type) {
+      if (_type === type && active) { // APHELION EDIT CHANGE - ORIGINAL: if (_type === type) {
         listener(payload);
       }
     };
     window.update.flushQueue(_listener);
     window.update.listeners.push(_listener);
+    // APHELION EDIT ADDITION START - return a disposer so a component can drop its listener on unmount
+    return function () {
+      if (!active) {
+        return;
+      }
+      active = false;
+      window.update.listeners = window.update.listeners.filter(function (entry) {
+        return entry !== _listener;
+      });
+    };
+    // APHELION EDIT ADDITION END
   };
 
   // Asset loaders

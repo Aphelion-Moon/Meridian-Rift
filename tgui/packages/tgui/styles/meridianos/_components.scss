@@ -534,6 +534,17 @@
     content: 'x';
   }
 
+  // The light console text reads at 2.3:1 on the warning fill. The icon notice
+  // takes the canvas colour instead (5.4:1 on the stripes), and so does its
+  // focus ring, which the accent colours lose against the same fill.
+  .IconResourceNotice__box {
+    --notice-box-color: var(--console-surface-canvas);
+  }
+
+  .IconResourceNotice__box .Button:focus-visible {
+    outline-color: var(--notice-box-color);
+  }
+
   .Table__cell,
   .LabeledList__cell {
     padding-top: var(--console-space-1);
@@ -864,4 +875,12 @@
   :is(.Dropdown__control, .Dropdown__input) {
     min-height: 24px;
   }
+}
+
+// Classic's white notice text reads at 3.85:1 on tgui-core's fill. The icon
+// notice darkens that fill a step (4.83:1) and keeps Classic's colours.
+.theme-meridian_classic .IconResourceNotice__box {
+  background-color: oklch(
+    from var(--noticebox-background) calc(l * 0.75) calc(c * 0.75) h
+  );
 }
