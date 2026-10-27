@@ -2,6 +2,7 @@
 	name = "Microfusion Attachment Kit"
 
 /obj/item/storage/briefcase/secure/white/mcr_loadout/hellfire
+	name = "Microfusion Attachment Kit (Hellfire)"
 
 /obj/item/storage/briefcase/secure/white/mcr_loadout/hellfire/PopulateContents()
 	var/list/items_inside = list(
@@ -12,6 +13,7 @@
 	generate_items_inside(items_inside,src)
 
 /obj/item/storage/briefcase/secure/white/mcr_loadout/scatter
+	name = "Microfusion Attachment Kit (Scatter)"
 
 /obj/item/storage/briefcase/secure/white/mcr_loadout/scatter/PopulateContents()
 	var/list/items_inside = list(
@@ -22,6 +24,7 @@
 	generate_items_inside(items_inside,src)
 
 /obj/item/storage/briefcase/secure/white/mcr_loadout/lance
+	name = "Microfusion Attachment Kit (Lance)"
 
 /obj/item/storage/briefcase/secure/white/mcr_loadout/lance/PopulateContents()
 	var/list/items_inside = list(
@@ -32,6 +35,7 @@
 	generate_items_inside(items_inside,src)
 
 /obj/item/storage/briefcase/secure/white/mcr_loadout/repeater
+	name = "Microfusion Attachment Kit (Repeater)"
 
 /obj/item/storage/briefcase/secure/white/mcr_loadout/repeater/PopulateContents()
 	var/list/items_inside = list(
@@ -42,6 +46,7 @@
 	generate_items_inside(items_inside,src)
 
 /obj/item/storage/briefcase/secure/white/mcr_loadout/tacticool
+	name = "Microfusion Attachment Kit (Suppressor)"
 
 /obj/item/storage/briefcase/secure/white/mcr_loadout/tacticool/PopulateContents()
 	var/list/items_inside = list(
@@ -58,6 +63,7 @@
 	name = "Microfusion Parts Kit"
 
 /obj/item/storage/briefcase/secure/white/mcr_parts/enhanced
+	name = "Microfusion Parts Kit (Enhanced)"
 
 /obj/item/storage/briefcase/secure/white/mcr_parts/enhanced/PopulateContents()
 	var/list/items_inside = list(
@@ -67,6 +73,7 @@
 	generate_items_inside(items_inside,src)
 
 /obj/item/storage/briefcase/secure/white/mcr_parts/advanced
+	name = "Microfusion Parts Kit (Advanced)"
 
 /obj/item/storage/briefcase/secure/white/mcr_parts/advanced/PopulateContents()
 	var/list/items_inside = list(
@@ -76,6 +83,7 @@
 	generate_items_inside(items_inside,src)
 
 /obj/item/storage/briefcase/secure/white/mcr_parts/bluespace
+	name = "Microfusion Parts Kit (Bluespace)"
 
 /obj/item/storage/briefcase/secure/white/mcr_parts/bluespace/PopulateContents()
 	var/list/items_inside = list(

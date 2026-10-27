@@ -16,6 +16,15 @@
 	name = "Paw Mittens (Worn)"
 	icon_file = 'modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_clothing/lewd_gloves.dmi'
 
+/datum/greyscale_config/cat_paws
+	name = "Cat Paws"
+	icon_file = 'modular_nova/modules/modular_items/lewd_items/icons/obj/lewd_clothing/lewd_gloves.dmi'
+	json_config = 'modular_nova/modules/GAGS/nsfw/json_configs/clothing/gloves/cat_paws.json'
+
+/datum/greyscale_config/cat_paws/worn
+	name = "Cat Paws (Worn)"
+	icon_file = 'modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_clothing/lewd_gloves.dmi'
+
 /datum/greyscale_config/long_gloves
 	name = "Long Gloves"
 	icon_file = 'modular_nova/modules/modular_items/lewd_items/icons/obj/lewd_clothing/lewd_gloves.dmi'

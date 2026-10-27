@@ -52,7 +52,7 @@ SUBSYSTEM_DEF(custom_sprite_work)
 	priority = FIRE_PRIORITY_ASSETS
 	ss_flags = SS_NO_INIT | SS_BACKGROUND
 	runlevels = RUNLEVEL_LOBBY | RUNLEVELS_DEFAULT
-	/// Editors with deferred work, in the order they asked.
+	/// Editors and other /datum/custom_sprite_work_owner with deferred work, in the order they asked.
 	var/list/queue = list()
 	/// How many ms costly work may still run past the ends of ticks now. Below zero, it went over, and that is paid back first.
 	var/overrun_budget = CUSTOM_SPRITE_OVERRUN_BURST
@@ -68,22 +68,21 @@ SUBSYSTEM_DEF(custom_sprite_work)
 /datum/controller/subsystem/custom_sprite_work/fire(resumed)
 	var/list/waiting = list()
 	while(length(queue))
-		var/datum/custom_sprite_editor/editor = popleft(queue)
-		if(QDELETED(editor))
+		var/datum/custom_sprite_work_owner/owner = popleft(queue)
+		if(QDELETED(owner))
 			continue
-		var/costly = editor.costly_work_due()
-		// A rebuild's drawing goes on the turn after its body: a body left waiting is thrown away for a change after it.
-		if(costly && !editor.pending_body_ready)
+		var/costly = owner.costly_work_due()
+		if(costly && owner.costly_work_waits())
 			var/time = world.time
 			overrun_budget = min(overrun_budget + (time - overrun_budget_at) * CUSTOM_SPRITE_OVERRUN_BUDGET / (1 SECONDS), CUSTOM_SPRITE_OVERRUN_BURST)
 			overrun_budget_at = time
 			if(overrun_budget <= 0)
-				waiting += editor
+				waiting += owner
 				continue
 		var/started = TICK_USAGE
 		var/tick = world.time
-		if(!editor.run_deferred_work())
-			waiting += editor
+		if(!owner.run_deferred_work())
+			waiting += owner
 		// Work that slept ran across ticks, and ran over none of them itself.
 		if(costly && world.time == tick)
 			overrun_budget -= TICK_DELTA_TO_MS(max(0, TICK_USAGE - max(started, TICK_LIMIT_RUNNING)))
@@ -116,6 +115,9 @@ SUBSYSTEM_DEF(custom_sprite_work)
 	var/stroke_pixels = 0
 	/// The second stroke_pixels counts.
 	COOLDOWN_DECLARE(stroke_window)
+	/// Graffiti composites this player ran this round, surface sessions' and paint job steps alike. Past
+	/// GRAFFITI_COMPOSITE_BUDGET, sessions' composites slow down.
+	var/graffiti_composites = 0
 
 /// Tops burst up with the pieces that came back since it was last topped up.
 /datum/custom_sprite_pace/proc/refill()
@@ -160,8 +162,43 @@ SUBSYSTEM_DEF(custom_sprite_work)
 	/// Paces this player's costly custom sprite work across all their editors.
 	var/datum/custom_sprite_pace/custom_sprite_pace = new
 
+/**
+ * Anything SScustom_sprite_work runs deferred work for, which goes in its `queue`: the custom sprite editors, and other work
+ * whose costly part shares their overrun budget, such as a graffiti paint job's steps.
+ */
+/datum/custom_sprite_work_owner
+
+/**
+ * Whether the work waiting now would cost tens of milliseconds, which comes out of SScustom_sprite_work's overrun budget.
+ *
+ * Returns:
+ * - TRUE/FALSE
+ */
+/datum/custom_sprite_work_owner/proc/costly_work_due()
+	return FALSE
+
+/**
+ * Whether costly work that is due waits while SScustom_sprite_work's overrun budget is spent. What it runs over comes out
+ * of the budget either way.
+ *
+ * Returns:
+ * - TRUE/FALSE
+ */
+/datum/custom_sprite_work_owner/proc/costly_work_waits()
+	return TRUE
+
+/**
+ * Does the waiting work.
+ *
+ * Returns:
+ * - TRUE/FALSE: FALSE when it has to wait, so SScustom_sprite_work keeps it queued.
+ */
+/datum/custom_sprite_work_owner/proc/run_deferred_work()
+	return TRUE
+
 /// The editor's deferred work, stroke queue and pacing.
 /datum/custom_sprite_editor
+	parent_type = /datum/custom_sprite_work_owner
 	/// CUSTOM_SPRITE_WORK_* flags waiting for SScustom_sprite_work.
 	var/pending_work = NONE
 	/// Paces this editor's costly work when there are no preferences to share a player's pace with.
@@ -184,13 +221,17 @@ SUBSYSTEM_DEF(custom_sprite_work)
 	var/pending_body_for = 0
 
 /// Whether this editor's deferred work would build or rebuild something now, costing tens of milliseconds.
-/datum/custom_sprite_editor/proc/costly_work_due()
+/datum/custom_sprite_editor/costly_work_due()
 	if(closing)
 		return FALSE
 	if(pending_work & CUSTOM_SPRITE_WORK_CANDIDATE)
 		return TRUE
 	var/datum/custom_sprite_pace/pace = pace()
 	return (pending_work & CUSTOM_SPRITE_WORK_REBUILD) && (pending_body_ready || pace.due())
+
+/// A rebuild's drawing goes on the turn after its body and never waits: a body left waiting is thrown away for a change after it.
+/datum/custom_sprite_editor/costly_work_waits()
+	return !pending_body_ready
 
 /// Asks SScustom_sprite_work for work. Whatever the draft holds when it runs is what gets drawn.
 /datum/custom_sprite_editor/proc/request_work(work)
@@ -311,7 +352,7 @@ SUBSYSTEM_DEF(custom_sprite_work)
  *
  * Returns FALSE when the work has to wait, such as for the rebuild spacing, so it stays queued.
  */
-/datum/custom_sprite_editor/proc/run_deferred_work()
+/datum/custom_sprite_editor/run_deferred_work()
 	if(closing)
 		pending_work = NONE
 		return TRUE
@@ -459,38 +500,75 @@ SUBSYSTEM_DEF(custom_sprite_work)
 		open_editor(list("target" = target, "body_zone" = body_zone), user)
 
 /**
+ * Reads compact stroke masks by character code, which text2ascii() takes far faster than copytext() cuts a character.
+ *
+ * Returns:
+ * - list: For codes 0 to 127, at code + 1, the six pixels' bits of that character, or null outside
+ *   CUSTOM_SPRITE_INDEX_ALPHABET; then, at code + 1, how many of them are set; then, at bits + 1, which offsets are set.
+ */
+/proc/custom_sprite_mask_tables()
+	var/static/list/tables
+	if(tables)
+		return tables
+	var/list/values = new /list(128)
+	var/list/counts = new /list(128)
+	var/list/offsets = list()
+	for(var/value in 0 to 63)
+		var/list/bits = list()
+		for(var/bit in 0 to 5)
+			if(value & (1 << bit))
+				bits += bit
+		offsets += list(bits)
+	for(var/position in 1 to length(CUSTOM_SPRITE_INDEX_ALPHABET))
+		var/code = text2ascii(CUSTOM_SPRITE_INDEX_ALPHABET, position)
+		values[code + 1] = position - 1
+		counts[code + 1] = length(offsets[position])
+	tables = list(values, counts, offsets)
+	return tables
+
+/**
  * A stroke's points from its compact mask: CUSTOM_SPRITE_INDEX_ALPHABET characters, six canvas
  * pixels each, row-major from the top left, lowest bit first. A whole view fits in one short string,
  * so a long stroke reaches the server as one message instead of a point list tgui splits into many.
+ * With `allowed`, the mask's six-pixel slots in the same layout, each character is cut down to the
+ * pixels its slot allows as it is read, which checks the points for a canvas that paints only those.
  *
  * Returns list(list(x, y), ...), or null when the mask isn't exactly this canvas's size.
  */
-/proc/custom_sprite_mask_points(mask, width, height)
+/proc/custom_sprite_mask_points(mask, width, height, list/allowed = null)
 	var/cells = width * height
 	if(!istext(mask) || length(mask) != CEILING(cells / 6, 1))
 		return null
-	var/list/values = custom_sprite_index_values()
-	. = list()
+	var/list/tables = custom_sprite_mask_tables()
+	var/list/values = tables[1]
+	var/list/offsets = tables[3]
+	// Sized for every pixel and cut to the points found, so no point is appended to a growing list.
+	var/list/points = new /list(cells)
+	var/count = 0
 	for(var/index in 1 to length(mask))
-		var/bits = values[copytext(mask, index, index + 1)]
+		var/code = text2ascii(mask, index)
+		var/bits = code < 128 ? values[code + 1] : null
 		if(isnull(bits))
 			return null
+		if(allowed)
+			bits &= allowed[index]
 		if(!bits)
 			continue
-		for(var/bit in 0 to 5)
-			if(!(bits & (1 << bit)))
-				continue
-			var/position = (index - 1) * 6 + bit
+		var/start = (index - 1) * 6
+		for(var/bit in offsets[bits + 1])
+			var/position = start + bit
 			if(position >= cells)
 				return null
-			. += list(list(position % width, round(position / width)))
+			points[++count] = list(position % width, round(position / width))
+	points.len = count
+	return points
 
 /// How many pixels a stroke or placement touches, from what the window sent, before any validation.
 /proc/custom_sprite_transaction_pixels(list/transaction, width, height)
 	if(!islist(transaction))
 		return 0
 	if("mask" in transaction)
-		return custom_sprite_mask_pixels(transaction["mask"]) || width * height
+		return custom_sprite_mask_pixels(transaction["mask"], CEILING(width * height / 6, 1)) || width * height
 	// A placement's area, or a move's box.
 	for(var/key in list("area", "rect"))
 		var/list/box = transaction[key]
@@ -498,25 +576,18 @@ SUBSYSTEM_DEF(custom_sprite_work)
 			return isnum(box[1]) && isnum(box[2]) && isnum(box[3]) && isnum(box[4]) ? max(0, (box[3] - box[1] + 1) * (box[4] - box[2] + 1)) : width * height
 	return islist(transaction["points"]) ? length(transaction["points"]) : 1
 
-/// The pixels a compact stroke mask marks, or null when a character isn't in the alphabet.
-/proc/custom_sprite_mask_pixels(mask)
-	var/static/list/bit_counts
-	if(!bit_counts)
-		bit_counts = list()
-		for(var/value in 0 to 63)
-			var/bits = 0
-			for(var/bit in 0 to 5)
-				bits += (value >> bit) & 1
-			bit_counts += bits
-	if(!istext(mask))
+/// The pixels a compact stroke mask of `size` characters marks, or null when it is another size, which custom_sprite_mask_points() refuses unread, or a character isn't in the alphabet.
+/proc/custom_sprite_mask_pixels(mask, size)
+	if(!istext(mask) || length(mask) != size)
 		return null
-	var/list/values = custom_sprite_index_values()
+	var/list/counts = custom_sprite_mask_tables()[2]
 	. = 0
-	for(var/index in 1 to length(mask))
-		var/value = values[copytext(mask, index, index + 1)]
-		if(isnull(value))
+	for(var/index in 1 to size)
+		var/code = text2ascii(mask, index)
+		var/bits = code < 128 ? counts[code + 1] : null
+		if(isnull(bits))
 			return null
-		. += bit_counts[value + 1]
+		. += bits
 
 /// Clamps an undo or redo step count to what a window can ask for. Anything else passes through for the history to refuse.
 /proc/custom_sprite_history_jump(count)

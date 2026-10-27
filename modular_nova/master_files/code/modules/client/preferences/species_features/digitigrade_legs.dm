@@ -89,4 +89,6 @@
 		target.living_flags &= ~STOP_OVERLAY_UPDATE_BODY_PARTS
 		target.update_body()
 		target.update_damage_overlays()
+		target.update_worn_undersuit()
+		target.update_worn_oversuit()
 	return TRUE

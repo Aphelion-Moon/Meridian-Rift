@@ -88,6 +88,14 @@ export const breast_removal_pref: FeatureToggle = {
   component: CheckboxInput,
 };
 
+export const butt_enlargement_pref: FeatureToggle = {
+  name: 'Butt enlargement',
+  category: 'ERP',
+  description:
+    'Determines if you wish to receive the effects of butt enlargement chemicals.',
+  component: CheckboxInput,
+};
+
 export const penis_enlargement_pref: FeatureToggle = {
   name: 'Penis enlargement',
   category: 'ERP',
@@ -140,6 +148,22 @@ export const genitalia_removal_pref: FeatureToggle = {
   category: 'ERP',
   description:
     'If checked, allows drugs to remove existing genitalia on your character.',
+  component: CheckboxInput,
+};
+
+export const scent_transfer_give_pref: FeatureToggle = {
+  name: 'Scent transfer: give',
+  category: 'ERP',
+  description:
+    'Lewd interactions leave your scent on partners who receive scents. It lingers for a while, or until washed off.',
+  component: CheckboxInput,
+};
+
+export const scent_transfer_receive_pref: FeatureToggle = {
+  name: 'Scent transfer: receive',
+  category: 'ERP',
+  description:
+    'Partners who give their scent leave it on you during lewd interactions. It lingers for a while, or until you wash.',
   component: CheckboxInput,
 };
 

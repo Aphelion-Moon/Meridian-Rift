@@ -143,7 +143,7 @@
 
 /// A route to this mob through the device linked to a receiver they are wearing, when user can reach that device.
 /mob/living/carbon/human/proc/get_worn_portal_route(datum/interaction/interaction, mob/living/carbon/human/user)
-	for(var/obj/item/clothing/sextoy/portal_panties/receiver in list(wear_mask, penis, vagina, anus))
+	for(var/obj/item/clothing/sextoy/portal_panties/receiver in list(mouth, penis, vagina, anus))
 		var/datum/interaction_route/route = receiver.linked_fleshlight?.interaction_route_for(src, interaction, user)
 		if(route)
 			return route

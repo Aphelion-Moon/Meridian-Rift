@@ -574,6 +574,12 @@ GLOBAL_DATUM_INIT(steal_item_handler, /datum/objective_item_handler, new())
 		if(isAI(suit.ai_assistant))
 			being = suit.ai_assistant
 	*/ // NOVA EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - AI_OBJECTIVE_CONTRACTS
+	else if(istype(potential_storage, /obj/item/mod/control))
+		var/obj/item/mod/control/suit = potential_storage
+		if(isAI(suit.ai_assistant))
+			being = suit.ai_assistant
+	// APHELION EDIT ADDITION END
 	else
 		stack_trace("check_special_completion() called on [src] with [potential_storage] ([potential_storage.type])! That's not supposed to happen!")
 		return FALSE

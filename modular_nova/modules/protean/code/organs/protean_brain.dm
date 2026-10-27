@@ -86,6 +86,7 @@
 	"current_style",
 	"is_dimorphic",
 	"should_draw_greyscale",
+	"bodyshape",
 )
 
 /// Snapshots all current limb types and visuals into the cache.
@@ -104,12 +105,27 @@
 	LAZYINITLIST(limb_cache)
 	limb_cache[new_limb.body_zone] = snapshot_limb(new_limb)
 
-/// Captures limb type and visual properties.
+/// Captures limb type and visual properties, and a recolourable finish's colours and glow (restore_finish()).
 /obj/item/organ/brain/protean/proc/snapshot_limb(obj/item/bodypart/limb)
-	var/list/data = list("type" = limb.type)
+	var/list/data = list("type" = limb.type, "augment_colors" = limb.augment_colors, "is_emissive" = limb.is_emissive)
 	for(var/visual_var in cached_visual_vars)
 		data[visual_var] = limb.vars[visual_var]
 	return data
+
+/**
+ * Puts the recolourable finish a cached limb wore back on the limb regrown in its place, as the finish's apply_to() sets one
+ * up: its colours, its drawing and its Muscular fit, with the old limb's glow, which followed its owner's preferences.
+ *
+ * Arguments:
+ * - new_limb: The regrown limb, its visual vars already restored.
+ * - cached: The old limb's snapshot (snapshot_limb()).
+ */
+/obj/item/organ/brain/protean/proc/restore_finish(obj/item/bodypart/new_limb, list/cached)
+	var/datum/robotic_style/recolorable/finish = GLOB.robotic_styles_list[cached["current_style"]]
+	if(!istype(finish) || !cached["augment_colors"])
+		return
+	finish.apply_to(new_limb, cached["augment_colors"], null)
+	new_limb.is_emissive = cached["is_emissive"]
 
 /// Intercepts direct death() calls (e.g. chasms, lava) that bypass the normal HARD_CRIT check in on_life.
 /// Schedules retreat for after death() and any caller code finishes executing.
@@ -306,6 +322,7 @@
 		var/obj/item/bodypart/new_limb = new limb_type()
 		for(var/visual_var in cached_visual_vars)
 			new_limb.vars[visual_var] = cached[visual_var]
+		restore_finish(new_limb, cached)
 		new_limb.try_attach_limb(owner, special = TRUE)
 		new_limb.update_limb(is_creating = TRUE)
 	owner.update_body(TRUE)

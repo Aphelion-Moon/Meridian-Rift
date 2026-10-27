@@ -112,6 +112,12 @@ const ALTERNATE_ACTIONS: Record<string, AlternateAction> = {
     icon: 'box-open',
     text: 'Open',
   },
+  // APHELION EDIT ADDITION START - the bridle's strip-menu step (lewd_items)
+  adjust_bridle: {
+    icon: 'mask',
+    text: 'Adjust bridle',
+  },
+  // APHELION EDIT ADDITION END
 };
 
 type StripSlot = {

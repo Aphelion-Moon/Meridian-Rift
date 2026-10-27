@@ -1,4 +1,6 @@
 // THIS IS A NOVA SECTOR UI FILE
+import { Stack } from 'tgui-core/components';
+
 import {
   CheckboxInput,
   type Feature,
@@ -154,13 +156,62 @@ export const feature_womb: Feature<string> = {
   },
 };
 
-export const feature_breasts: Feature<string> = {
+type BreastsServerData = FeatureChoicedServerData & {
+  /** The pec shapes, in the Pecs option dropdown's order. The first stands in for all of them in the breast list. */
+  pec_shapes?: string[];
+};
+
+/** Breast shapes with the pec shapes folded into one Pecs entry, and a Pecs option dropdown while one is chosen. */
+function BreastsInput(
+  props: FeatureValueProps<string, string, BreastsServerData>,
+) {
+  const { serverData, value, handleSetValue } = props;
+  const pecShapes = serverData?.pec_shapes ?? [];
+  const pecsEntry = pecShapes[0];
+  const isPecs = pecShapes.includes(value);
+  const breastChoices = serverData && {
+    ...serverData,
+    choices: serverData.choices.filter(
+      (choice) => choice === pecsEntry || !pecShapes.includes(choice),
+    ),
+  };
+
+  return (
+    <Stack vertical>
+      <Stack.Item>
+        <FeatureDropdownInput
+          buttons
+          {...props}
+          serverData={breastChoices}
+          value={isPecs ? pecsEntry : value}
+          handleSetValue={(choice) => {
+            // Picking Pecs again keeps whichever pec option is set.
+            if (!(isPecs && choice === pecsEntry)) {
+              handleSetValue(choice);
+            }
+          }}
+        />
+      </Stack.Item>
+      {isPecs && (
+        <Stack.Item>
+          <Stack align="center">
+            <Stack.Item color="label">Pecs option</Stack.Item>
+            <Stack.Item grow>
+              <FeatureDropdownInput
+                {...props}
+                serverData={{ choices: pecShapes }}
+              />
+            </Stack.Item>
+          </Stack>
+        </Stack.Item>
+      )}
+    </Stack>
+  );
+}
+
+export const feature_breasts: Feature<string, string, BreastsServerData> = {
   name: 'Breast Choice',
-  component: (
-    props: FeatureValueProps<string, string, FeatureChoicedServerData>,
-  ) => {
-    return <FeatureDropdownInput buttons {...props} />;
-  },
+  component: BreastsInput,
 };
 
 export const breasts_skin_tone: FeatureToggle = {

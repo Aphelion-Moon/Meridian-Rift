@@ -17,10 +17,18 @@ const DIGIT_VALUES = new Map(
 export type CompactCanvas = {
   palette: string[];
   digits: number;
-  views: Record<string, string>;
-  /** Appendage id -> the view the window shows, in the same codes. Hair only. */
+  /** Graffiti sends a view as null when the window was last sent it as it is (fillSentViews()). */
+  views: Record<string, string | null>;
+  /** Appendage id -> the view the window shows, in the same codes; graffiti's layers above the bottom one by id. */
   appendages?: Record<string, Record<string, string | null>>;
+  /** Graffiti: the id of the layer `views` holds, its bottom one. */
+  viewsLayer?: string;
+  /** Graffiti: layer id -> the serial of its view's codes, which changes whenever they do. */
+  viewSerials?: Record<string, number>;
 };
+
+/** A graffiti view as the window keeps it: its codes, and the serial they came with. */
+export type SentView = { codes: string; serial?: number };
 
 export type CompactSprite = Omit<SpriteData, 'layers'> & {
   canvas: CompactCanvas;
@@ -75,12 +83,48 @@ const decodeCodes = (
   return frame;
 };
 
+/**
+ * Graffiti's canvas sends a layer's view as null when the window was last sent exactly those codes: fills each null
+ * from `sent`, which keeps the codes every update brings and their serial, by layer id and view. A view the window
+ * never had, as after a reload, or whose serial isn't the one it kept, as when an update it never drew carried newer
+ * codes, is left out, and `missing` says the server should be asked for them all again.
+ */
+export const fillSentViews = (
+  sprite: CompactSprite,
+  sent: Record<string, SentView>,
+): { sprite: CompactSprite; missing: boolean } => {
+  const { canvas } = sprite;
+  let missing = false;
+  const fill = (id: string, views: Record<string, string | null> = {}) => {
+    const filled: Record<string, string> = {};
+    const serial = canvas.viewSerials?.[id];
+    for (const [dir, codes] of Object.entries(views)) {
+      const key = `${id}|${dir}`;
+      if (codes) sent[key] = { codes, serial };
+      const kept = sent[key];
+      if (kept && kept.serial === serial) filled[dir] = kept.codes;
+      else missing = true;
+    }
+    return filled;
+  };
+  const views = fill(canvas.viewsLayer ?? '', canvas.views);
+  const appendages: Record<string, Record<string, string>> = {};
+  for (const [id, layerViews] of Object.entries(canvas.appendages ?? {})) {
+    appendages[id] = fill(id, layerViews);
+  }
+  return {
+    sprite: { ...sprite, canvas: { ...canvas, views, appendages } },
+    missing,
+  };
+};
+
 /** Expands the server's compact canvas into the per-pixel layer SpriteEditor draws. */
 export const decodeCanvas = (sprite: CompactSprite): SpriteData => {
   const { canvas, ...rest } = sprite;
   const data: Record<string, StringLayer> = {};
   for (const [dir, codes] of Object.entries(canvas.views)) {
-    data[dir] = decodeView(codes, canvas, sprite.width, sprite.height);
+    if (codes)
+      data[dir] = decodeView(codes, canvas, sprite.width, sprite.height);
   }
   const layer = {
     name: 'Drawing',

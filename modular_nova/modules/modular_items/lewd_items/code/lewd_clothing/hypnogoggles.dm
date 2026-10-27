@@ -18,10 +18,6 @@
 	if(check_holidays(APRIL_FOOLS))
 		codephrase = "Become... video deliveryman!"
 
-/obj/item/clothing/glasses/hypno/Destroy()
-	STOP_PROCESSING(SSobj, src)
-	return ..()
-
 /obj/item/clothing/glasses/hypno/attack_self(mob/user)
 	. = ..()
 	var/new_codephrase = tgui_input_text(user, "Change The Hypnotic Phrase.", max_length = MAX_MESSAGE_LEN)
@@ -32,39 +28,70 @@
 	. = ..()
 	if(!(slot & ITEM_SLOT_EYES))
 		return
-	if(!(iscarbon(user) && user.client?.prefs?.read_preference(/datum/preference/toggle/erp/sex_toy)))
-		return
 	if(!codephrase)
 		codephrase = initial(codephrase) // DIE
-	log_game("[key_name(user)] was hypnogoggled.")
-	to_chat(user, span_reallybig(span_hypnophrase(codephrase)))
-	to_chat(user, span_notice(pick("You feel your thoughts focusing on this phrase... you can't seem to get it out of your head.",
+	user.apply_status_effect(/datum/status_effect/hypnotic_phrase, src, codephrase)
+
+/obj/item/clothing/glasses/hypno/dropped(mob/living/user)
+	. = ..()
+	user?.remove_status_effect(/datum/status_effect/hypnotic_phrase, src) // No user when a microwave ejects them.
+
+/// A hypnotic phrase echoing in the wearer's head, from the hypnotic goggles or the MOD hypnotic visor. Needs the sex
+/// toy preference. Stands in for the brain trauma the goggles used to give.
+/datum/status_effect/hypnotic_phrase
+	id = "hypnotic_phrase"
+	status_type = STATUS_EFFECT_MULTIPLE // One per device.
+	alert_type = null // A 30 second hypnosis alert is thrown instead.
+	processing_speed = STATUS_EFFECT_NORMAL_PROCESS
+	tick_interval = 2 SECONDS
+	/// The device giving the phrase. The effect ends when it's deleted.
+	var/obj/item/source
+	/// The phrase.
+	var/phrase
+
+/datum/status_effect/hypnotic_phrase/on_apply(obj/item/source, phrase)
+	var/datum/client_interface/player = GET_CLIENT(owner)
+	if(!iscarbon(owner) || !player?.prefs?.read_preference(/datum/preference/toggle/erp/sex_toy))
+		return FALSE
+	src.source = source
+	src.phrase = phrase
+	RegisterSignal(source, COMSIG_QDELETING, PROC_REF(on_source_deleted))
+	log_game("[key_name(owner)] was hypnotized by [source] with the phrase '[phrase]'.")
+	to_chat(owner, span_reallybig(span_hypnophrase(phrase)))
+	to_chat(owner, span_notice(pick("You feel your thoughts focusing on this phrase... you can't seem to get it out of your head.",
 									"Your head hurts, but this is all you can think of. It must be vitally important.",
 									"You feel a part of your mind repeating this over and over. You need to follow these words.",
 									"Something about this sounds... right, for some reason. You feel like you should follow these words.",
 									"These words keep echoing in your mind. You find yourself completely fascinated by them.")))
-	var/atom/movable/screen/alert/hypnosis/hypno_alert = user.throw_alert("hypnosis", /atom/movable/screen/alert/hypnosis, timeout_override = 30 SECONDS)
-	hypno_alert.desc = "\"[codephrase]\"... your mind seems to be fixated on this concept."
-	START_PROCESSING(SSobj, src)
+	var/atom/movable/screen/alert/hypnosis/hypno_alert = owner.throw_alert(ALERT_HYPNOSIS, /atom/movable/screen/alert/hypnosis, timeout_override = 30 SECONDS)
+	hypno_alert.desc = "\"[phrase]\"... your mind seems to be fixated on this concept."
+	return TRUE
 
-/obj/item/clothing/glasses/hypno/dropped(mob/living/user)
-	. = ..()
-	if(datum_flags & DF_ISPROCESSING)
-		log_game("[key_name(user)] is no longer hypnogoggled.")
-		to_chat(user, span_userdanger("You suddenly snap out of your hypnosis. The phrase '[codephrase]' no longer feels important to you."))
-		STOP_PROCESSING(SSobj, src)
+/datum/status_effect/hypnotic_phrase/before_remove(obj/item/removing_source)
+	return removing_source == source
 
-
-/// We're mimicing behavior that used to be innate in the brain trauma - yes, brain trauma - this used to give you.
-/obj/item/clothing/glasses/hypno/process(seconds_per_tick)
-	. = ..()
-	var/mob/living/carbon/human/wearer = loc
-	if(!istype(wearer) || !SPT_PROB(1, seconds_per_tick))
+/datum/status_effect/hypnotic_phrase/on_remove()
+	if(isnull(source)) // Refused by on_apply(), silently.
 		return
-	if(!(wearer.client?.prefs?.read_preference(/datum/preference/toggle/erp/sex_toy))) // something is really fucked if they're wearing this at this point anyways
+	log_game("[key_name(owner)] is no longer hypnotized by [source].")
+	to_chat(owner, span_userdanger("You suddenly snap out of your hypnosis. The phrase '[phrase]' no longer feels important to you."))
+
+/datum/status_effect/hypnotic_phrase/Destroy()
+	. = ..() // on_remove() reads the source.
+	source = null
+
+/datum/status_effect/hypnotic_phrase/tick(seconds_between_ticks)
+	if(!ishuman(owner) || !SPT_PROB(1, seconds_between_ticks))
 		return
-	switch(rand(1, 2))
-		if(1)
-			to_chat(wearer, span_hypnophrase("<i>...[LOWER_TEXT(codephrase)]...</i>"))
-		if(2)
-			new /datum/hallucination/chat(wearer, TRUE, FALSE, span_hypnophrase("[codephrase]"))
+	var/datum/client_interface/player = GET_CLIENT(owner)
+	if(!player?.prefs?.read_preference(/datum/preference/toggle/erp/sex_toy)) // something is really fucked if they're wearing this at this point anyways
+		return
+	if(prob(50))
+		to_chat(owner, span_hypnophrase("<i>...[LOWER_TEXT(phrase)]...</i>"))
+	else
+		owner.cause_hallucination(/datum/hallucination/chat, "[source]", force_radio = TRUE, specific_message = span_hypnophrase("[phrase]"))
+
+/// Ends the effect when its device is deleted.
+/datum/status_effect/hypnotic_phrase/proc/on_source_deleted(datum/deleted)
+	SIGNAL_HANDLER
+	qdel(src)

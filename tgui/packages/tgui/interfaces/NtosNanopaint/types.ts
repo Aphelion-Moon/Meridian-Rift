@@ -34,11 +34,42 @@ export type NanopaintErrorDialogData = {
   type: 'error';
   message: string;
 };
+// APHELION EDIT ADDITION START - Art Galaxy.
+
+export type NanopaintGalleryEntry = {
+  name: string;
+  ref: string;
+  size: string;
+};
+
+export type NanopaintGalleryOpenDialogData = {
+  type: 'galleryOpen';
+};
+
+export type NanopaintResizeDialogData = {
+  type: 'resize';
+  width: number;
+  height: number;
+};
+
+export type NanopaintGalleryDialogData = {
+  type: 'gallery';
+  defaultTitle?: string;
+  signature?: string;
+  maxTitle?: number;
+  size?: string;
+  message?: string;
+  busy?: BooleanLike;
+};
+// APHELION EDIT ADDITION END
 
 export type NanopaintDialogData =
   | NanopaintNewDialogData
   | NanopaintFileDialogData
   | NanopaintConfirmDialogData
+  | NanopaintGalleryDialogData // APHELION EDIT ADDITION - Art Galaxy.
+  | NanopaintGalleryOpenDialogData // APHELION EDIT ADDITION - Art Galaxy.
+  | NanopaintResizeDialogData // APHELION EDIT ADDITION - Canvas Size.
   | NanopaintErrorDialogData;
 
 export type NanopaintData = {
@@ -54,4 +85,6 @@ export type NanopaintData = {
   maxSize: number;
   dialog?: NanopaintDialogData;
   diskInserted: BooleanLike;
+  galleryBusy: BooleanLike; // APHELION EDIT ADDITION - Art Galaxy.
+  galleryFiles?: NanopaintGalleryEntry[]; // APHELION EDIT ADDITION - Art Galaxy.
 };

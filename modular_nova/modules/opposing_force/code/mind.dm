@@ -6,6 +6,12 @@
 	return ..()
 
 GAME_VERB_DESC(/mob, opposing_force, "Opposing Force", "View your opposing force panel, or request one.", "OOC")
+	// Lobby mobs have minds, so the whitelist gate comes first.
+	var/mob/dead/new_player/lobby = src
+	if(istype(lobby) && lobby.symphony_blocks_play())
+		lobby.symphony_gate_notice()
+		return
+
 	// Mind checks
 	if(!mind)
 		var/fail_message = "You have no mind!"

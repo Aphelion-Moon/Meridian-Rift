@@ -1,4 +1,5 @@
 import { flushSync } from 'react-dom';
+import { cancelUiSnapshot } from '../../capture/controller'; // APHELION EDIT ADDITION - BUG_REPORTING
 import { focusMap } from '../../focus';
 import { logger } from '../../logging';
 import { suspendRenderer } from '../../renderer';
@@ -16,6 +17,7 @@ let suspendInterval: NodeJS.Timeout | null = null;
 
 /** Resets all state and refocuses byond window */
 export function suspend(): void {
+  cancelUiSnapshot(); // APHELION EDIT ADDITION - BUG_REPORTING
   suspendRenderer();
 
   if (suspendInterval) clearInterval(suspendInterval);

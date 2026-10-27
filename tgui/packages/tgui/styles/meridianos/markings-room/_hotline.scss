@@ -494,10 +494,10 @@
     opacity:.7;
   }
 }
-// HAND: the port's room-neonOn stutter, slowed for photosensitivity (mal, 2026-10-05): no lit or dark step is
-// shorter than 1/6s, so it flashes at most three times a second (WCAG 2.3.1). It ends as the tube holds rather than
-// at a later 100%, so the VIP sign has struck before its hum begins (3s) and the hum is back on the compositor
-// (MarkingsRoom/compositor.ts) before it plays.
+// HAND: the port's room-neonOn stutter, slowed for photosensitivity: no lit or dark step is shorter than 1/6s, so it
+// flashes at most three times a second (WCAG 2.3.1). It ends as the tube holds rather than at a later 100%, so the
+// VIP sign has struck before its hum begins (3s) and the hum is back on the compositor (MarkingsRoom/compositor.ts)
+// before it plays.
 @keyframes room-htNeonOn {
   0% {
     opacity:.1;

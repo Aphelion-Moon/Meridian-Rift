@@ -1,0 +1,17 @@
+#if defined(UNIT_TESTS) || defined(SPACEMAN_DMM)
+/// Each adult items family's top types, one line per family. The `adult_items_kill_switch` unit test checks every
+/// concrete subtype.
+/proc/adult_items_gated_types()
+	return list(
+		/obj/item/reagent_containers/hypospray/medipen/lewd, /obj/item/storage/box/medipens/lewd,
+		/obj/item/storage/box/condoms,
+		/obj/item/clothing/sextoy/fleshlight/bluespace,
+		/obj/item/clothing/shoes/ballet_heels/pointe_boots,
+		/obj/item/clothing/under/misc/latex_halfcatsuit,
+		/obj/item/clothing/gloves/ball_mittens/paw_mittens/cat_paws,
+		/obj/item/reagent_containers/cup/bottle/rutt, /obj/item/reagent_containers/applicator/pill/rutt,
+		/obj/item/reagent_containers/cup/bottle/butt_enlarger,
+		/obj/item/clothing/mask/bridle,
+		/obj/item/mod/construction/plating/lustwish, /obj/item/mod/module/lustwish, /obj/item/mod/remote,
+	)
+#endif

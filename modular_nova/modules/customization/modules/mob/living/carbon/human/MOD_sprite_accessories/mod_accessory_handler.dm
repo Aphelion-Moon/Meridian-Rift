@@ -13,10 +13,6 @@
 
 	return cached_icon
 
-/// Is this accessory currently under an active hardlight MOD overlay? Used for determining if we should apply a mod overlay to a bodypart
-/datum/sprite_accessory/proc/mod_overlay_active(mob/living/carbon/human/wearer)
-	return !isnull(get_mod_overlay_theme(wearer))
-
 /// Resolve both eligibility and color from the same suit, including during partial activation and rollback.
 /datum/sprite_accessory/proc/get_mod_overlay_theme(mob/living/carbon/human/wearer)
 	RETURN_TYPE(/datum/mod_theme)

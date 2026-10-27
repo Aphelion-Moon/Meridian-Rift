@@ -86,7 +86,10 @@
 		return null
 	return partner_human
 
+/// Never makes its caller wait - adjust_pleasure() climaxes from Life(), process() and status effects, which must not
+/// sleep, and a climax can stop to ask where to finish. Its caller then gets null, and it ends when the player answers.
 /mob/living/carbon/human/proc/climax(manual = TRUE)
+	set waitfor = FALSE
 	if (CONFIG_GET(flag/disable_erp_preferences))
 		return
 
@@ -98,7 +101,7 @@
 	if(has_status_effect(/datum/status_effect/climax_cooldown) || !client?.prefs?.read_preference(/datum/preference/toggle/erp))
 		return
 
-	if(HAS_TRAIT(src, TRAIT_NEVERBONER) || has_status_effect(/datum/status_effect/climax_cooldown) || (!has_vagina() && !has_penis()))
+	if(HAS_TRAIT(src, TRAIT_NEVERBONER) || HAS_TRAIT(src, TRAIT_NO_CLIMAX) || has_status_effect(/datum/status_effect/climax_cooldown) || (!has_vagina() && !has_penis()))
 		visible_message(span_purple("[src] twitches, trying to cum, but with no result."), \
 			span_purple("You can't have an orgasm!"), pref_to_check = /datum/preference/toggle/erp)
 		return TRUE
@@ -290,7 +293,9 @@
 					var/through_portal = istype(target_relay)
 					var/target_name = through_portal ? "\the [target_relay.name]" : "[target_human]"
 					var/target_human_them = through_portal ? "them" : target_human.p_them()
+					var/target_human_their = through_portal ? "their" : target_human.p_their()
 					var/lower_body_in_reach = !through_portal || target_relay.shows_lower_body()
+					var/portal_view = through_portal ? (lower_body_in_reach ? DIRT_PORTAL_LOWER_BODY : DIRT_PORTAL_PENIS) : DIRT_PORTAL_NONE
 					target_relay = null
 
 					var/list/target_buttons = list()
@@ -305,7 +310,16 @@
 						var/obj/item/organ/genital/penis/other_penis = target_human.get_organ_slot(ORGAN_SLOT_PENIS)
 						if(other_penis.has_sheath())
 							target_buttons += "sheath"
-					target_buttons += "On [target_human_them]"
+					// One entry per region the mess shows on, or "On them" when it shows on none.
+					var/list/region_entries = list()
+					for(var/zone in dirt_mess_regions(target_human, portal_view))
+						if(!dirt_mess_landable(zone))
+							continue
+						var/entry = dirt_mess_entry(zone, target_human_their)
+						region_entries[entry] = zone
+						target_buttons += entry
+					if(!length(region_entries))
+						target_buttons += "On [target_human_them]"
 
 					var/target_prompt = "Where on or in [target_name] do you wish to cum?"
 					target_human = null
@@ -328,11 +342,23 @@
 						var/obj/item/organ/genital/penis/target_penis = target_human.get_organ_slot(ORGAN_SLOT_PENIS)
 						if(!target_penis?.has_sheath())
 							return FALSE
+					var/aimed_zone = climax_into_choice && region_entries[climax_into_choice]
+					if(aimed_zone && !(aimed_zone in dirt_mess_regions(target_human, portal_view)))
+						return FALSE
 
 					if(!climax_into_choice)
 						create_cum_decal = TRUE
 						visible_message(span_userlove("[src] shoots their sticky load onto the floor!"), \
 							span_userlove("You shoot string after string of hot cum, hitting the floor!"), pref_to_check = /datum/preference/toggle/erp)
+					else if(aimed_zone)
+						// through a one-part portal the relay is named for the penis already
+						var/aimed_at = aimed_zone == DIRT_ZONE_COCK ? target_name : "[target_name]'s [aimed_zone]"
+						visible_message(span_userlove("[src] shoots [self_their] sticky load onto [aimed_at]!"), \
+							span_userlove("You shoot string after string of hot cum onto [aimed_at]!"), pref_to_check = /datum/preference/toggle/erp)
+						if(through_portal)
+							to_chat(target_human, span_userlove("Someone on the other side of the portal shoots their load onto you."))
+						// the amount the transfer below spends
+						dirt_mess_land(target_human, aimed_zone, portal_view, dirt_mess_amount_levels(organs.testicles.internal_fluid_count * 0.6))
 					else if(climax_into_choice == "On [target_human_them]")
 						create_cum_decal = TRUE
 						visible_message(span_userlove("[src] shoots their sticky load onto [target_name]!"), \

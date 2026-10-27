@@ -120,6 +120,7 @@
 	// NOVA EDIT ADDITION START
 	// The last mode drawn is the preview's own body's: any other body, new each time, is drawn in full.
 	var/needs_update = preview_pref != previous_preview_pref || mannequin != character_preview_view?.body
+	var/arousal_flag // What the preview sets every genital's arousal to; null for Job and Loadout, which leave it be.
 	switch(preview_pref)
 		if(PREVIEW_PREF_JOB)
 			mannequin.job = preview_job.title
@@ -136,24 +137,31 @@
 
 		if(PREVIEW_PREF_UNDERWEAR)
 			mannequin.underwear_visibility = NONE
+			arousal_flag = AROUSAL_NONE
+
+		if(PREVIEW_PREF_UNDERWEAR_HALF)
+			mannequin.underwear_visibility = NONE
+			arousal_flag = AROUSAL_PARTIAL
+
+		if(PREVIEW_PREF_UNDERWEAR_AROUSED)
+			mannequin.underwear_visibility = NONE
+			arousal_flag = AROUSAL_FULL
 
 		if(PREVIEW_PREF_NAKED)
 			mannequin.underwear_visibility = UNDERWEAR_HIDE_UNDIES | UNDERWEAR_HIDE_SHIRT | UNDERWEAR_HIDE_SOCKS | UNDERWEAR_HIDE_BRA
-			for(var/organ_key in list(ORGAN_SLOT_VAGINA, ORGAN_SLOT_PENIS, ORGAN_SLOT_BREASTS, ORGAN_SLOT_ANUS))
-				var/obj/item/organ/genital/gent = mannequin.get_organ_slot(organ_key)
-				if(gent)
-					gent.aroused = AROUSAL_NONE
-					gent.update_sprite_suffix()
-					needs_update = TRUE
+			arousal_flag = AROUSAL_NONE
 
 		if(PREVIEW_PREF_NAKED_AROUSED)
 			mannequin.underwear_visibility = UNDERWEAR_HIDE_UNDIES | UNDERWEAR_HIDE_SHIRT | UNDERWEAR_HIDE_SOCKS | UNDERWEAR_HIDE_BRA
-			for(var/organ_key in list(ORGAN_SLOT_VAGINA, ORGAN_SLOT_PENIS, ORGAN_SLOT_BREASTS, ORGAN_SLOT_ANUS))
-				var/obj/item/organ/genital/gent = mannequin.get_organ_slot(organ_key)
-				if(gent)
-					gent.aroused = AROUSAL_FULL
-					gent.update_sprite_suffix()
-					needs_update = TRUE
+			arousal_flag = AROUSAL_FULL
+
+	if(arousal_flag)
+		for(var/organ_key in list(ORGAN_SLOT_VAGINA, ORGAN_SLOT_PENIS, ORGAN_SLOT_BREASTS, ORGAN_SLOT_ANUS))
+			var/obj/item/organ/genital/gent = mannequin.get_organ_slot(organ_key)
+			if(gent)
+				gent.aroused = arousal_flag
+				gent.update_sprite_suffix()
+				needs_update = TRUE
 
 	mannequin.dna.update_body_size()
 	if(needs_update)

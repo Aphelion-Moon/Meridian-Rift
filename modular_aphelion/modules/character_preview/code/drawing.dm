@@ -95,6 +95,10 @@ GLOBAL_VAR(character_preview_cleanup_due)
 	COOLDOWN_DECLARE(preview_cooldown)
 	/// When the oldest change still waiting for its answer came, or null when none is waiting.
 	var/waiting_since
+	/// Settling callback owned by the current window, cancelled when it closes.
+	var/answer_timer
+	/// A close ends the window's work even when the same preferences immediately open another window.
+	var/window_generation = 0
 
 /datum/preference_middleware/character_preview/New(datum/preferences/preferences)
 	. = ..()
@@ -137,7 +141,7 @@ GLOBAL_VAR(character_preview_cleanup_due)
 		waiting_since = world.time
 		send_preview_update(list("character_preview_pending" = TRUE))
 	var/wait = min(CHARACTER_PREVIEW_SETTLE, waiting_since + CHARACTER_PREVIEW_MAX_WAIT - world.time)
-	addtimer(CALLBACK(src, PROC_REF(answer_waiting)), max(wait, world.tick_lag), TIMER_UNIQUE | TIMER_OVERRIDE | TIMER_NO_HASH_WAIT)
+	answer_timer = addtimer(CALLBACK(src, PROC_REF(answer_waiting)), max(wait, world.tick_lag), TIMER_UNIQUE | TIMER_OVERRIDE | TIMER_NO_HASH_WAIT | TIMER_STOPPABLE)
 
 /// Asks SScharacter_preview for an answer, which it starts once whatever made the change has finished.
 /datum/preference_middleware/character_preview/proc/answer_soon()
@@ -146,6 +150,7 @@ GLOBAL_VAR(character_preview_cleanup_due)
 
 /// The end of a burst of changes: the latest look, drawn once.
 /datum/preference_middleware/character_preview/proc/answer_waiting()
+	answer_timer = null
 	waiting_since = null
 	answer_soon()
 
@@ -153,15 +158,31 @@ GLOBAL_VAR(character_preview_cleanup_due)
 /// preview if it has changed, and tells the page whether a newer drawing is waiting, sending it the latest drawing if
 /// it holds another.
 /datum/preference_middleware/character_preview/proc/start_answer()
+	var/generation = window_generation
 	answer_due = FALSE
 	update_preview()
+	if(session_over(generation))
+		return
 	COOLDOWN_START(src, preview_cooldown, CHARACTER_PREVIEW_SETTLE)
 	var/list/update = list("character_preview_pending" = !isnull(waiting_since))
 	var/id = preview?["id"]
 	if(!isnull(id) && id != preview_on_page)
 		update["character_preview"] = preview
 		preview_on_page = id
+	for(var/datum/preference_middleware/middleware as anything in preferences?.middleware)
+		middleware.add_preview_answer(update)
 	send_preview_update(update)
+
+/**
+ * Adds what this middleware reads from the preview mob to an answer, which goes to the page right after the mob is rebuilt
+ * for the changes the answer covers (start_answer()). The window's own data, sent as each change is made, may read the mob
+ * before it is rebuilt. Add only what changed since the page last got it.
+ *
+ * Arguments:
+ * - update: The keys the answer sends the page. Changed in place.
+ */
+/datum/preference_middleware/proc/add_preview_answer(list/update)
+	return
 
 #undef CHARACTER_PREVIEW_SETTLE
 #undef CHARACTER_PREVIEW_MAX_WAIT
@@ -171,7 +192,16 @@ GLOBAL_VAR(character_preview_cleanup_due)
 /datum/preference_middleware/character_preview/proc/open_window()
 	var/client/client = preferences?.parent
 	var/datum/tgui/ui = client && SStgui.get_open_ui(client.mob, preferences)
-	return ui?.initialized ? ui : null
+	return ui?.initialized && !ui.closing ? ui : null
+
+/// Whether the window session that `generation` was read in has closed since, or this middleware has gone.
+/datum/preference_middleware/character_preview/proc/session_over(generation)
+	return QDELETED(src) || generation != window_generation
+
+/// Whether a drawing begun for `view` in `window`, in session `generation`, no longer belongs to the open window - setup
+/// may have closed, or reopened with another view, while it waited.
+/datum/preference_middleware/character_preview/proc/drawing_stale(generation, atom/movable/screen/map_view/char_preview/view, datum/tgui/window)
+	return session_over(generation) || QDELETED(view) || preferences?.character_preview_view != view || open_window() != window
 
 /// Sends the page only these keys. tgui merges them into the data it has, which keeps them until they are sent again.
 /datum/preference_middleware/character_preview/proc/send_preview_update(list/update)
@@ -180,7 +210,10 @@ GLOBAL_VAR(character_preview_cleanup_due)
 
 /// Draws the preview mob if its look has changed since it was last drawn. One update at a time; another waits for it.
 /datum/preference_middleware/character_preview/proc/update_preview()
-	UNTIL(!drawing)
+	var/generation = window_generation
+	UNTIL(!drawing || session_over(generation))
+	if(session_over(generation))
+		return
 	drawing = TRUE
 	try
 		draw_changed()
@@ -195,12 +228,14 @@ GLOBAL_VAR(character_preview_cleanup_due)
  * drawing is waited on, so it all shows the same look.
  */
 /datum/preference_middleware/character_preview/proc/draw_changed()
+	var/generation = window_generation
+	var/datum/tgui/window = open_window()
 	var/atom/movable/screen/map_view/char_preview/view = preferences?.character_preview_view
-	if(isnull(view))
+	if(isnull(window) || QDELETED(view))
 		return
 	catch_up(view)
-	// The window closed while it waited.
-	if(QDELETED(view))
+	// The window or its view may have been replaced while this waited for a rebuild.
+	if(drawing_stale(generation, view, window))
 		return
 	var/mob/living/carbon/human/dummy/body = view.body
 	// A silicon job's preview shows its image instead of the mob.
@@ -225,8 +260,8 @@ GLOBAL_VAR(character_preview_cleanup_due)
 	// Which species it shows, so the species page never shows it for the species that replaced it. A silicon is none.
 	var/species = silicon ? null : body.dna.species.id
 	var/list/drawn = draw_preview(walk)
-	// Preferences deleted, or a window closed, while it drew have already let their drawing go.
-	if(isnull(drawn) || QDELETED(src) || isnull(open_window()))
+	// The result belongs to the window and view that requested it, even if setup has reopened since.
+	if(isnull(drawn) || drawing_stale(generation, view, window))
 		forget_unshown(drawn?["name"])
 		return
 	if(drawn["height"] != height)
@@ -259,6 +294,7 @@ GLOBAL_VAR(character_preview_cleanup_due)
  * the page shows its loader. A change after its turn waits for the next drawing, which it asked for. See rebuilds.dm.
  */
 /datum/preference_middleware/character_preview/proc/catch_up(atom/movable/screen/map_view/char_preview/view)
+	var/generation = window_generation
 	if(!view.body_stale || SScharacter_preview.rebuild_or_wait(view))
 		return
 	// A burst waiting to be drawn has already shown the loader.
@@ -268,9 +304,9 @@ GLOBAL_VAR(character_preview_cleanup_due)
 	// No time limit: with many players in line, the queue can take a while to get here, a turn every
 	// CHARACTER_PREVIEW_REBUILD_OVERDUE at worst, and drawings that gave up would rebuild outside it, all at once. The
 	// wait sleeps each tick, so it can't hold the server up, and a queue that fires always gets to it.
-	UNTIL(QDELETED(view) || view.turns != turns || !SScharacter_preview.can_fire)
-	// Its turn would never come.
-	if(!QDELETED(view) && view.turns == turns)
+	UNTIL(session_over(generation) || QDELETED(view) || view.turns != turns || !SScharacter_preview.can_fire)
+	// Its turn would never come. A closed session must not rebuild it instead.
+	if(!session_over(generation) && !QDELETED(view) && view.turns == turns)
 		SScharacter_preview.rebuild(view)
 
 /// This character stops showing a drawing. Once no character shows it, it is forgotten.
@@ -291,6 +327,14 @@ GLOBAL_VAR(character_preview_cleanup_due)
 
 /// The window closed, and the preview mob went with it. So does its drawing: a window opened later asks for a new one.
 /datum/preference_middleware/character_preview/proc/window_closed()
+	window_generation++
+	if(answer_timer)
+		deltimer(answer_timer)
+		answer_timer = null
+	waiting_since = null
+	answer_due = FALSE
+	SScharacter_preview.drawings -= src
+	// An in-flight renderer keeps the drawing lock until it returns and discards its old generation's result.
 	release_drawing(preview?["name"])
 	preview = null
 	preview_key = null

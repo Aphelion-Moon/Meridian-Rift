@@ -67,7 +67,16 @@
     opacity: 0.55;
   }
 
-  :is(.Button, .Tab, .Input, .TextArea, .NumberInput, .Dropdown__control) {
+  // .Button--circular is a single class, so this corner outranked it and
+  // squared every round control, the tram's stop markers among them. :where()
+  // carries no specificity, and a plain list keeps the exclusion off the other
+  // controls, so each selector ranks exactly where the old :is() put it.
+  .Button:not(:where(.Button--circular)),
+  .Tab,
+  .Input,
+  .TextArea,
+  .NumberInput,
+  .Dropdown__control {
     border-radius: 2px;
   }
 

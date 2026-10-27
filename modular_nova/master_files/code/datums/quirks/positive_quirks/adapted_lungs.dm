@@ -19,12 +19,16 @@ GLOBAL_LIST_INIT(possible_adapted_lungs, list(
 	/// the choice of lungs the player has selected
 	var/desired_lungs
 
-/datum/quirk/adapted_lungs/add_unique(client/client_source)
-	if(!quirk_holder.get_organ_slot(ORGAN_SLOT_LUNGS))
-		to_chat(quirk_holder, span_warning("Your [name] quirk couldn't properly execute due to your species/body lacking a pair of lungs!"))
-		qdel(src)
-		return
+/// Check initial lung eligibility before attaching to the holder.
+/datum/quirk/adapted_lungs/add_to_holder(mob/living/new_holder, quirk_transfer = FALSE, client/client_source, unique = TRUE, announce = TRUE)
+	if(!quirk_transfer && unique && ishuman(new_holder) && !new_holder.get_organ_slot(ORGAN_SLOT_LUNGS))
+		// Preserve the base proc's duplicate and ownership assertions.
+		if(!quirk_holder && !new_holder.has_quirk(type))
+			to_chat(new_holder, span_warning("Your [name] quirk couldn't properly execute due to your species/body lacking a pair of lungs!"))
+			return FALSE
+	return ..()
 
+/datum/quirk/adapted_lungs/add_unique(client/client_source)
 	desired_lungs = GLOB.possible_adapted_lungs[client_source?.prefs?.read_preference(/datum/preference/choiced/adapted_lungs)]
 	if(isnull(desired_lungs))  //Client gone or they chose random
 		desired_lungs = GLOB.possible_adapted_lungs[pick(GLOB.possible_adapted_lungs)]

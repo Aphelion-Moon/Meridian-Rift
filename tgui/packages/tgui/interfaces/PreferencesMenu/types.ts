@@ -239,6 +239,8 @@ export type AugmentItem = {
   has_digi: BooleanLike;
   allows_styles: BooleanLike;
   allows_implants: BooleanLike;
+  uses_greyscale?: BooleanLike; // The limb takes the body's skin colour
+  default_style?: string; // The brand style whose sprites are its own unstyled look
   species_blacklist: Record<string, number> | null;
   species_whitelist: Record<string, number> | null;
   ckey_whitelist: string[] | null;
@@ -278,6 +280,36 @@ export type RoboticStyle = {
   name: string;
   supported_slots: number; // Bitflag
   has_digi: BooleanLike;
+};
+
+/** A recolourable finish's colour channel. */
+export type PaintChannel = 'paint' | 'accent' | 'frame' | 'lights';
+
+/** A recolourable finish, from the augment_paint middleware's constant data. */
+export type PaintFinish = {
+  id: string;
+  /** The channels its art uses, in channel order, with the editor's label for each. */
+  channels: { key: PaintChannel; label: string }[];
+  /** Its colours before any are picked: "#rrggbb" four times, paint, accent, frame, lights. */
+  default: string;
+  presets: { name: string; colors: string }[];
+  /** Which packed states each zone has. */
+  zones: Record<string, { paint: BooleanLike; glow: BooleanLike }>;
+};
+
+/** A brand finish's try-on sprites, in the augment_brands spritesheet the window asks for: augment_brands32x32 brand-<key>-<zone>-<dir>, for the zones listed. */
+export type BrandFinish = {
+  key: string;
+  /** The zones it has sprites for: r_arm and the rest, and r_leg_digi or l_leg_digi where digitigrade ones exist. */
+  zones: string[];
+};
+
+/** The augment_paint middleware's constant data: the recolourable finishes by name, and the colour editor's swatches. */
+export type AugmentPaintServerData = {
+  finishes: Record<string, PaintFinish>;
+  swatches: { metal: string[]; lights: string[] };
+  /** The brand finishes' try-on sprites, by name; absent until the server sends them. */
+  brands?: Record<string, BrandFinish>;
 };
 
 export type AugmentSlot = {
@@ -413,6 +445,20 @@ export type PreferencesMenuData = {
   markings: Record<string, Marking[]>;
   augments: Record<string, string>;
   augment_styles: Record<string, string>;
+  /** Each slot's saved colours; a slot with none wears its finish's default. */
+  augment_colors: Record<string, string>;
+  /**
+   * The skin the colour editor tints its preview with, whether it is a mutant colour (the
+   * humanoid ramp), and whether the body's head and chest are drawn feminine, which a dimorphic
+   * brand head or chest tries on as its own `<zone>_f` sprite.
+   */
+  augment_paint_skin: {
+    color: string;
+    humanoid: BooleanLike;
+    feminine: BooleanLike;
+  };
+  /** The character's Allow Emissives: without it the lights don't glow. */
+  augment_paint_emissive: BooleanLike;
 
   allow_mismatched_parts: BooleanLike;
   digi_legs: BooleanLike;
@@ -482,6 +528,7 @@ export type ServerData = {
     marking_presets: MarkingPreset[];
     max_markings: number;
   };
+  augment_paint?: AugmentPaintServerData;
   // NOVA EDIT ADDITION END
   [otherKey: string]: unknown;
 };

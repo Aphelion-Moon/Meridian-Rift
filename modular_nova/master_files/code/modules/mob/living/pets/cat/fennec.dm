@@ -42,9 +42,10 @@
 /datum/ai_controller/basic_controller/cat/fennec
 	behavior_tree_json = "modular_nova/master_files/code/modules/mob/living/pets/cat/fennec.bt.json"
 
+/// Registers fennec-only breeding with a weighted offspring type.
 /mob/living/basic/pet/cat/fennec/add_breeding_component()
 	AddComponent(\
 		/datum/component/breed,\
 		can_breed_with = typecacheof(list(/mob/living/basic/pet/cat/fennec)),\
-		baby_paths = list(/mob/living/basic/pet/cat/fennec),\
+		baby_paths = list(/mob/living/basic/pet/cat/fennec = 1),\
 	)
