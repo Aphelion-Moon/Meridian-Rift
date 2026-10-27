@@ -31,7 +31,8 @@
 	// How the penis is layered under what covers it, while it shows a bulge at all (bulge_layering()). It matters only
 	// through the garment that covers it, so it is not kept: whatever changes it (the genital menus' writers) ends in a
 	// body update that draws the underclothes again, and that re-checks the cover below.
-	var/mode = (penis?.bodypart_overlay == src && penis.aroused >= AROUSAL_PARTIAL) ? bulge_layering(wearer, penis) : NONE
+	// a wall-stuck body draws none (portal_hides_bulge()), and no cover is cut for one
+	var/mode = (penis?.bodypart_overlay == src && penis.aroused >= AROUSAL_PARTIAL && !wearer.portal_hides_bulge()) ? bulge_layering(wearer, penis) : NONE
 	if(!mode)
 		if(bulge_key)
 			bulge_clear()

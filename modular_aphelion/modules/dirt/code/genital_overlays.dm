@@ -31,10 +31,11 @@
 /// mob (limb_icons_for()).
 /datum/bodypart_overlay/mutant/genital/icon_render_key(obj/item/bodypart/limb)
 	. = ..()
+	// checked first, so a clean genital's redraws don't build the key string
+	if(!dirt_share_carrier(limb))
+		return
 	// the override in _genital.dm, included after this one, adds the layering and the device once this returns
-	var/share = dirt_share_key(limb, "[jointext(., "|")]|[is_custom_layered(limb = limb) ? layer_mode : "default"]|[device_state]")
-	if(share)
-		. += share
+	. += dirt_share_key(limb, "[jointext(., "|")]|[is_custom_layered(limb = limb) ? layer_mode : "default"]|[device_state]")
 
 /**
  * Returns what the genital's own mess draws as, for keys, after DIRT_PRIVATE_KEY: its masks' key, "pending" while

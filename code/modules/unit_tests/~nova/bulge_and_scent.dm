@@ -136,20 +136,30 @@
 	TEST_ASSERT(!owner.has_bulge(), "A penis set to never show was a bulge.")
 	TEST_ASSERT(penis.apply_visibility_label("Hidden by clothes"), "The visibility writer was unavailable.")
 
-	// Both portal modes relay the penis, so they relay its bulge too, from either side.
+	// A gloryhole relays the penis, so it relays its bulge too, from either side: it holds only one the penis pokes out
+	// of (checked below). A wall portal shows the hips and butt: a wall-stuck body draws no bulge (portal_hides_bulge()),
+	// so its bulge is offered nowhere, in person or at the relay, and draws it again once out.
 	var/list/pair = make_portal_pair("wallstuck")
 	var/obj/structure/lewd_portal/portal = pair[1]
 	var/datum/interaction/headpat = allocate(/datum/interaction)
 	headpat.name = "Headpat"
-	TEST_ASSERT(portal.relays_interaction(rub), "A wall portal did not relay a bulge.")
-	TEST_ASSERT(portal.relays_interaction(grind, as_user = TRUE), "A wall portal did not relay its occupant's own bulge.")
-	TEST_ASSERT(!portal.relays_interaction(grind), "A wall portal relayed the other side's bulge.")
+	TEST_ASSERT(!portal.relays_interaction(rub), "A wall portal relayed a bulge.")
+	TEST_ASSERT(!portal.relays_interaction(grind, as_user = TRUE), "A wall portal relayed its occupant's own bulge.")
 	TEST_ASSERT(!portal.relays_interaction(headpat), "A wall portal relayed an interaction with no lower body part.")
-	TEST_ASSERT(portal.relays_interaction(grope), "A wall portal did not relay what pokes out of a bulge.")
-	TEST_ASSERT(portal.relays_interaction(flash, as_user = TRUE), "A wall portal did not relay what pokes out of its occupant's own bulge.")
+	TEST_ASSERT(!portal.relays_interaction(grope), "A wall portal relayed what pokes out of a bulge.")
+	TEST_ASSERT(!portal.relays_interaction(flash, as_user = TRUE), "A wall portal relayed what pokes out of its occupant's own bulge.")
+	TEST_ASSERT(owner.has_bulge() && rub.allow_act(partner, owner), "A bulge interaction was refused before the wall portal, so it can't be checked there.")
+	TEST_ASSERT(portal.buckle_mob(owner, force = TRUE, check_loc = FALSE), "The wall portal couldn't start a session.")
+	TEST_ASSERT(owner.portal_hides_bulge() && !owner.has_bulge(), "A wall-stuck occupant kept its bulge.")
+	TEST_ASSERT(!rub.allow_act(partner, owner), "A bulge interaction was offered on a wall-stuck occupant.")
+	portal.unbuckle_mob(owner, force = TRUE, can_fall = FALSE)
+	TEST_ASSERT(owner.has_bulge() && rub.allow_act(partner, owner), "The bulge didn't come back once out of the wall portal.")
 	portal.portal_mode = "gloryhole"
 	TEST_ASSERT(portal.relays_interaction(rub), "A gloryhole did not relay a bulge.")
+	TEST_ASSERT(portal.relays_interaction(grind, as_user = TRUE), "A gloryhole did not relay its occupant's own bulge.")
+	TEST_ASSERT(!portal.relays_interaction(grind), "A gloryhole relayed the other side's bulge.")
 	TEST_ASSERT(portal.relays_interaction(grope), "A gloryhole did not relay what pokes out of a bulge.")
+	TEST_ASSERT(portal.relays_interaction(flash, as_user = TRUE), "A gloryhole did not relay what pokes out of its occupant's own bulge.")
 
 	// The penis's own overlay draws the bulge: the jumpsuit's shape, tinted from the jumpsuit's cloth.
 	owner.underwear = "Nude"
@@ -176,6 +186,7 @@
 	TEST_ASSERT_EQUAL(owner.bulge_pokes_out(), NONE, "A penis under a hiding suit poked out.")
 	owner.dropItemToGround(overapron)
 	TEST_ASSERT(owner.has_bulge() && !owner.bulge_pokes_out(), "A penis the jumpsuit covers at size 4 poked out of it.")
+	TEST_ASSERT(!portal.can_relay(owner), "A gloryhole took a penis the jumpsuit covers, which pokes out of nothing.")
 	owner.dropItemToGround(pants)
 	// Hard jeans at size 6: the tip past the waistband is drawn over the cloth, and the interactions that need it see it
 	// on that participant alone.
@@ -183,6 +194,7 @@
 	TEST_ASSERT(owner.equip_to_slot_if_possible(garment, ITEM_SLOT_ICLOTHING), "Could not put the jeans on.")
 	penis.set_size(49)
 	TEST_ASSERT_EQUAL(owner.bulge_pokes_out(), BULGE_POKES_PAST_CLOTH, "The tip past hard jeans at size 6 did not poke out over the cloth.")
+	TEST_ASSERT(portal.can_relay(owner), "A gloryhole refused a penis poking out of hard jeans.")
 	TEST_ASSERT(grope.allow_act(partner, owner), "An interaction needing the target's penis to poke out was refused on one that does.")
 	TEST_ASSERT(!grope.allow_act(owner, partner), "A target pokes-out interaction checked the user.")
 	TEST_ASSERT(flash.allow_act(owner, partner), "An interaction needing the user's penis to poke out was refused on one that does.")
@@ -194,6 +206,13 @@
 	penis.set_size(12)
 	TEST_ASSERT_EQUAL(owner.bulge_pokes_out(), BULGE_POKES_UNDER_COVER, "The penis under a hard loincloth's drape did not poke out under the cover.")
 	TEST_ASSERT(grope.allow_act(partner, owner), "An interaction needing the penis to poke out was refused under a hard loincloth.")
+	// Wall-stuck, it draws no look, and the loincloth isn't cut for one.
+	var/list/wall_pair = make_portal_pair("wallstuck")
+	var/obj/structure/lewd_portal/wall = wall_pair[1]
+	TEST_ASSERT(drawing.bulge_wanted_cut(owner, UNIFORM_LAYER), "A hard loincloth isn't cut, so the wall portal can't be checked for it.")
+	TEST_ASSERT(wall.buckle_mob(owner, force = TRUE, check_loc = FALSE), "The wall portal couldn't start a session.")
+	TEST_ASSERT_NULL(drawing.bulge_wanted_cut(owner, UNIFORM_LAYER), "A wall-stuck body's loincloth is cut for a bulge it doesn't draw.")
+	wall.unbuckle_mob(owner, force = TRUE, can_fall = FALSE)
 	owner.dropItemToGround(loincloth)
 	// A revealing skirt hard at size 4 has its flap cut away: the shaft shows through it and over its cloth. Half hard it
 	// is not cut, and the penis drawn behind it is not counted, though some of it can show below the hem: the gap

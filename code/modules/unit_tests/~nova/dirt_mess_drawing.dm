@@ -804,14 +804,15 @@
  * Parts take their own share of the mess aimed at them. Breasts drawn above all clothing take theirs over a jumpsuit,
  * which takes the rest, and draw it with their own front layer. Through a one-part portal a shot lands on the penis
  * alone, and the relay draws it; a wall-stuck relay draws no legs, and draws the mess on the hips and butt, on the skin
- * and on a jumpsuit, under a winter coat too. A share follows the part: an erection draws it again for the erect
- * sprite, a butt set to draw above its underwear is read again at its new layer, and a part removed takes its splats
- * with it. A bulge's cloth over boxers draws their mess over itself, a bulge's in a jumpsuit draws the jumpsuit's again
- * once another splat lands, and testicles a bulge look draws lose theirs to a wash. A butt shot takes the butt's share
- * facing north, where its front image draws over the skin, and in profile, where its back image draws under it, shapes
- * the skin's mess past the body's edge. Boxers put on over a butt drawn below them leave its share nothing to draw;
- * put on under a vulva drawn above them, they have its share made again for cloth. A part hidden while underclothes
- * carry mess no longer shapes the skin's.
+ * and on a jumpsuit, under a winter coat too, but not a skirt, nor ever a bulge: a shot lands on what the relay shows
+ * under the skirt. A share follows the part: an erection draws it again for the erect sprite, a butt set to draw above
+ * its underwear is read again at its new layer, and a part removed takes its splats with it. A bulge's cloth over
+ * boxers draws their mess over itself, a bulge's in a jumpsuit draws the jumpsuit's again once another splat lands, and
+ * testicles a bulge look draws lose theirs to a wash. A butt shot takes the butt's share facing north, where its front
+ * image draws over the skin, and in profile, where its back image draws under it, shapes the skin's mess past the
+ * body's edge. Boxers put on over a butt drawn below them leave its share nothing to draw; put on under a vulva drawn
+ * above them, they have its share made again for cloth. A part hidden while underclothes carry mess no longer shapes
+ * the skin's.
  */
 /datum/unit_test/dirt_part_mess
 	parent_type = /datum/unit_test/dirt_genital_test
@@ -825,6 +826,7 @@
 	check_over_clothing()
 	check_part_portal()
 	check_wall()
+	check_wall_skirt()
 	check_state_changes()
 	check_bulge()
 	check_bulge_jumpsuit()
@@ -944,6 +946,68 @@
 	qdel(other_portal)
 	source_portal.unbuckle_mob(occupant, force = TRUE, can_fall = FALSE)
 	qdel(source_portal)
+
+/// A wall relay leaves out a skirt, so a shot through the wall lands where the relay shows it: on the underwear
+/// covering the zone, else the skin. A wall-stuck body draws no bulge (portal_hides_bulge()), on either.
+/datum/unit_test/dirt_part_mess/proc/check_wall_skirt()
+	var/list/portal_pair = make_portal_pair("wallstuck")
+	var/obj/structure/lewd_portal/source_portal = portal_pair[1]
+	var/mob/living/carbon/human/consistent/occupant = allocate(/mob/living/carbon/human/consistent, run_loc_floor_bottom_left)
+	// before the skirt, which hides it
+	var/obj/item/organ/genital/penis/penis = configure_test_penis(occupant)
+	TEST_ASSERT(penis, "Couldn't give the occupant an exposed penis.")
+	occupant.underwear = /datum/sprite_accessory/clothing/underwear/panties_basic::name
+	var/obj/item/clothing/under/skirt = allocate(/obj/item/clothing/under/dress/skirt/plaid)
+	TEST_ASSERT(occupant.equip_to_slot_if_possible(skirt, ITEM_SLOT_ICLOTHING), "Couldn't dress the occupant in a plaid skirt.")
+	occupant.update_body()
+	var/image/skirt_drawn = bulge_drawn_root(occupant.overlays_standing[UNIFORM_LAYER])
+	TEST_ASSERT_EQUAL(skirt_drawn?.layer, -UNIFORM_LAYER, "The skirt isn't drawn at the uniform's layer, so its relay can't be checked for it.")
+	TEST_ASSERT(source_portal.buckle_mob(occupant, force = TRUE, check_loc = FALSE), "The wall portal couldn't start a session.")
+	var/obj/effect/lewd_portal_relay/relay = source_portal.relayed_body
+	source_portal.flush_current_mob_visual_refresh()
+	TEST_ASSERT_EQUAL(images_at(relay.overlays, -UNIFORM_LAYER), 0, "The wall portal's relay draws the plaid skirt.")
+	var/list/groin_surface = dirt_mess_surface(occupant, DIRT_ZONE_GROIN, DIRT_PORTAL_LOWER_BODY)
+	var/datum/component/dirtiness/groin_carrier = groin_surface[1]
+	TEST_ASSERT(groin_carrier.parent == occupant && groin_surface[2] == DIRT_UNDERCLOTHES_UNDERWEAR, "A groin shot through a wall portal on a skirt over panties doesn't land on the panties.")
+	TEST_ASSERT(dirt_mess_land(occupant, DIRT_ZONE_BUTT, DIRT_PORTAL_LOWER_BODY), "A butt shot through a wall portal on a skirt didn't land.")
+	var/datum/component/dirtiness/skirt_carrier = skirt.GetComponent(/datum/component/dirtiness)
+	TEST_ASSERT(!skirt_carrier?.mess_count(), "A butt shot through a wall portal landed on the skirt its relay doesn't draw.")
+	// a wall-stuck body draws no bulge, on the skirt or on pants the relay draws; nothing under them, so no underwear's
+	// hold shapes the look once out of the wall
+	occupant.underwear = /datum/sprite_accessory/clothing/underwear/nude::name
+	occupant.update_body()
+	penis.set_size(12)
+	TEST_ASSERT(penis.apply_arousal_label("Very aroused"), "Couldn't change the penis's state.")
+	var/datum/bodypart_overlay/mutant/genital/penis/look = penis.bodypart_overlay
+	TEST_ASSERT(occupant.portal_hides_bulge() && !look.bulge_key, "A wall-stuck body drew a bulge on its skirt.")
+	source_portal.flush_current_mob_visual_refresh()
+	TEST_ASSERT_EQUAL(images_at(relay.overlays, -UNIFORM_LAYER), 0, "The wall portal's relay draws the skirt over a hard penis.")
+	TEST_ASSERT(dirt_mess_land(occupant, DIRT_ZONE_GROIN, DIRT_PORTAL_LOWER_BODY), "A groin shot through a wall portal on a skirt over a hard penis didn't land.")
+	skirt_carrier = skirt.GetComponent(/datum/component/dirtiness)
+	TEST_ASSERT(!skirt_carrier?.mess_count(), "A groin shot through a wall portal landed on the skirt over a hard penis, which its relay doesn't draw.")
+	occupant.dropItemToGround(skirt)
+	var/obj/item/clothing/under/jumpsuit = allocate(/obj/item/clothing/under/color/grey)
+	TEST_ASSERT(occupant.equip_to_slot_if_possible(jumpsuit, ITEM_SLOT_ICLOTHING), "Couldn't dress the occupant in a jumpsuit.")
+	TEST_ASSERT(!look.bulge_key, "A wall-stuck body drew a bulge on its jumpsuit.")
+	source_portal.flush_current_mob_visual_refresh()
+	TEST_ASSERT(images_at(relay.overlays, -UNIFORM_LAYER), "The wall portal's relay doesn't draw the jumpsuit.")
+	// out of the wall it draws one again, so the wall is what kept it off
+	source_portal.unbuckle_mob(occupant, force = TRUE, can_fall = FALSE)
+	TEST_ASSERT(look.bulge_key && look.bulge_cover_type == jumpsuit.type, "A hard penis in a jumpsuit drew no bulge once out of the wall portal.")
+	qdel(source_portal)
+
+/**
+ * Returns how many images lie at a layer: at -UNIFORM_LAYER in a relay's overlays, its copies of the uniform.
+ *
+ * Arguments:
+ * - images: The images.
+ * - layer: The layer.
+ */
+/datum/unit_test/dirt_part_mess/proc/images_at(list/images, layer)
+	. = 0
+	for(var/image/drawn as anything in images)
+		if(drawn.layer == layer)
+			.++
 
 /**
  * Returns whether a wall relay draws its body to its own render target (body_render_target()), as the filters that
@@ -1578,6 +1642,7 @@
 	var/chest_key = dressed.icon_render_keys[BODY_ZONE_CHEST]
 	dressed.living_flags |= STOP_OVERLAY_UPDATE_BODY_PARTS
 	dressed.dna.species.replace_body(dressed, old_species = dressed.dna.species)
+	TEST_ASSERT_NULL(dressed.private_limb_icons, "The species swap left the body private images, so drawing it holding none isn't checked.")
 	dressed.living_flags &= ~STOP_OVERLAY_UPDATE_BODY_PARTS
 	dressed.update_body_parts()
 	TEST_ASSERT_EQUAL(dressed.icon_render_keys[BODY_ZONE_CHEST], chest_key, "The chest isn't drawn under its key from before the species swap, so drawing it while the body holds no private images can't be checked.")

@@ -7,7 +7,7 @@
  * for the groin and butt; the legs for the thighs). The face is covered when the mouth is, by the item covering it.
  * Underclothes never count: they aren't items. Through a wall portal only the uniform counts, while it's drawn: the
  * relay copies it and no suit (lower_body_only()), so a coat over the lower body leaves the shot to what the relay
- * shows under it.
+ * shows under it. A skirt the relay leaves out (wall_relay_skips_uniform()) leaves it to the underclothes or the skin.
  *
  * Arguments:
  * - target: The person.
@@ -23,8 +23,8 @@
 		return null
 	if(portal_view == DIRT_PORTAL_LOWER_BODY)
 		var/obj/item/uniform = target.w_uniform
-		// as update_worn_undersuit() draws it
-		var/drawn = uniform && !(target.obscured_slots & HIDEJUMPSUIT) && !HAS_TRAIT(uniform, TRAIT_NO_WORN_ICON)
+		// as update_worn_undersuit() draws it, and the relay with it
+		var/drawn = uniform && !(target.obscured_slots & HIDEJUMPSUIT) && !HAS_TRAIT(uniform, TRAIT_NO_WORN_ICON) && !target.wall_relay_skips_uniform()
 		return (drawn && (uniform.body_parts_covered & part)) ? uniform : null
 	for(var/obj/item/worn as anything in list(target.head, target.wear_mask, target.wear_suit, target.w_uniform))
 		if(worn && (worn.body_parts_covered & part))

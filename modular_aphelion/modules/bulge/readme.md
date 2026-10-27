@@ -124,7 +124,8 @@ same `bulge_held_size()`, so a skirt over underwear that holds the penis in is d
   underclothes not covering a genital layered above them, in Nova's `covered_by_clothing()` (`_genital.dm`); and the
   bulge interaction requirements, `INTERACTION_REQUIRE_SELF_BULGE` and `INTERACTION_REQUIRE_TARGET_BULGE` and their
   `_POKES_OUT` pair, in Nova's `~nova_defines/interactions.dm`, checked in Nova's `interaction_datum.dm`, which also
-  fills in the `%[role]_BULGE_COVER%` token, and relayed by Nova's portals (`lewd_portals.dm`).
+  fills in the `%[role]_BULGE_COVER%` token, and relayed by Nova's gloryholes (`lewd_portals.dm`), which take a penis
+  that pokes out of its bulge. A wall-stuck body draws no bulge (`portal_hides_bulge()`, read in `bulge_resolve()`).
 
 ### Adding a garment
 

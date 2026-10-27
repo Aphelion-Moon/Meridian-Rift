@@ -48,6 +48,9 @@
 	var/obj/item/bodypart/chest = penis?.bodypart_owner
 	if(penis?.bodypart_overlay != src || penis.aroused != AROUSAL_FULL || !chest || chest.is_husked || hidden_by_device || device_state || isnull(sprite_datum))
 		return null
+	// a wall-stuck body draws no look (portal_hides_bulge()), so nothing is cut for one
+	if(wearer.portal_hides_bulge())
+		return null
 	var/mode = bulge_layering(wearer, penis)
 	if(!mode)
 		return null

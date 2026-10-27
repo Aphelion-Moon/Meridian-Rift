@@ -41,7 +41,8 @@ far.
 - **Where a shot lands** (`dirt_mess_surface()`). On the outermost of the head, mask, suit and uniform whose
   `body_parts_covered` takes in the zone (the face when the mouth is covered), else on the underclothes, else on the
   skin. The underclothes take it when the pieces reaching into the zone cover at least half of it together. Through a
-  wall portal only the uniform counts, while no suit hides it: the relay draws no suit.
+  wall portal only the uniform counts, while no suit hides it: the relay draws no suit. Nor does a skirt or dress the
+  relay leaves out (`wall_relay_skips_uniform()`).
   - The piece that shows the most of the zone takes it: its pixels there, less those the pieces above it draw over.
   - Ties go to the kind that belongs there (underwear, then socks, on the groin, butt and thighs; an undershirt or bra
     on the chest; an undershirt on the stomach and back), then to the topmost. So a shirt hem over the waistband leaves
@@ -147,7 +148,7 @@ reference generator first, and the manifest is regenerated from it.
 
 - `code/modules/mob/living/carbon/carbon_update_icons.dm`: `/mob/living/carbon/proc/update_body_parts()` takes each
   limb's images from `limb_icons_for()`, which serves a key without `DIRT_PRIVATE_KEY` from `limb_icon_cache` as
-  before; a body holding no private images skips the call and reads the cache itself.
+  before; a body holding no private images reads the cache itself, and skips the call while the cache holds the key.
 
 ### Modular Overrides:
 
@@ -196,7 +197,8 @@ reference generator first, and the manifest is regenerated from it.
   alone, with no legs or shoes, and keeps what it draws over the body (the uniform, the underclothes and the mess
   containers) to the body, through a render target of its own (`body_render_target()`). Images with no sprite of
   their own, the mess containers among them, are always copied (`append_appearance_copies()`) and never taken for
-  an organ's (`compare_organ_icon()`).
+  an organ's (`compare_organ_icon()`). It leaves out a skirt or dress (`wall_relay_skips_uniform()`, by its bulge
+  family), so the body shows under it. A wall-stuck body draws no bulge (`portal_hides_bulge()`).
 - `code/modules/unit_tests/~nova/dirt_mess_drawing.dm`, `dirt_mess_manifest.dm`, `dirt_mess_corpus.json` and
   `dirt_mess_manifest.txt`: the tests, the parity corpus and its manifest.
 - `code/modules/unit_tests/_unit_tests.dm`

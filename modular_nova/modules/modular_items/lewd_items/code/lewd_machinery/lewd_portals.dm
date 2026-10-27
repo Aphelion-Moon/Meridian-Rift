@@ -128,6 +128,9 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 	if(buckled_mob != current_mob || !relayed_body)
 		return
 
+	// drawn again without a bulge (portal_hides_bulge()) before the relay copies the body; end_session() draws it back
+	if(portal_mode == WALLSTUCK)
+		current_mob.update_body()
 	position_relay()
 	if(!apply_current_mob_visuals())
 		return
@@ -174,15 +177,16 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 	for(var/part in (as_user ? interaction.user_required_parts : interaction.target_required_parts))
 		if(part in relayed_parts[portal_mode])
 			return TRUE
-	// A bulge (and what of the penis pokes out of it) or a chastity device sits where the penis or vagina does, so it
-	// goes wherever they do.
+	// A chastity device sits where the penis or vagina does, so it goes wherever they do; so does a bulge through a
+	// gloryhole, which takes only one the penis pokes out of (can_relay()). A wall-stuck body draws none
+	// (portal_hides_bulge()).
 	var/static/list/relayed_requirements = list(
 		GLORYHOLE = list(INTERACTION_REQUIRE_TARGET_BULGE, INTERACTION_REQUIRE_TARGET_POKES_OUT, INTERACTION_REQUIRE_TARGET_CAGED),
-		WALLSTUCK = list(INTERACTION_REQUIRE_TARGET_BULGE, INTERACTION_REQUIRE_TARGET_POKES_OUT, INTERACTION_REQUIRE_TARGET_CAGED, INTERACTION_REQUIRE_TARGET_BELTED),
+		WALLSTUCK = list(INTERACTION_REQUIRE_TARGET_CAGED, INTERACTION_REQUIRE_TARGET_BELTED),
 	)
 	var/static/list/relayed_user_requirements = list(
 		GLORYHOLE = list(INTERACTION_REQUIRE_SELF_BULGE, INTERACTION_REQUIRE_SELF_POKES_OUT, INTERACTION_REQUIRE_SELF_CAGED),
-		WALLSTUCK = list(INTERACTION_REQUIRE_SELF_BULGE, INTERACTION_REQUIRE_SELF_POKES_OUT, INTERACTION_REQUIRE_SELF_CAGED, INTERACTION_REQUIRE_SELF_BELTED),
+		WALLSTUCK = list(INTERACTION_REQUIRE_SELF_CAGED, INTERACTION_REQUIRE_SELF_BELTED),
 	)
 	for(var/requirement in interaction.interaction_requires)
 		if(requirement in (as_user ? relayed_user_requirements : relayed_requirements)[portal_mode])
@@ -194,6 +198,12 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 	var/obj/structure/lewd_portal/portal = buckled
 	return istype(portal) && portal.current_mob == src && !QDELETED(portal.relayed_body) && portal.relays_interaction(interaction, as_user)
 
+/// Whether this human draws no bulge look (bulge_resolve()): while wall-stuck, as a wall relay shows the hips and butt
+/// alone. A gloryhole draws one the penis pokes out of (can_relay()).
+/mob/living/carbon/human/proc/portal_hides_bulge()
+	var/obj/structure/lewd_portal/portal = buckled
+	return istype(portal) && portal.current_mob == src && portal.portal_mode == WALLSTUCK
+
 /// Whether candidate has everything we need to draw the current portal mode.
 /obj/structure/lewd_portal/proc/can_relay(mob/living/carbon/human/candidate)
 	if(QDELETED(candidate) || !candidate.dna?.species)
@@ -201,7 +211,9 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 	if(portal_mode == GLORYHOLE)
 		var/obj/item/organ/genital/penis/penis = candidate.get_organ_slot(ORGAN_SLOT_PENIS)
 		var/datum/bodypart_overlay/mutant/genital/penis/penis_overlay = penis?.bodypart_overlay
-		return candidate.has_penis(REQUIRE_GENITAL_EXPOSED) && penis.bodypart_owner && penis_overlay?.sprite_datum
+		// in the open, or poking out of a big bulge
+		var/shown = candidate.has_penis(REQUIRE_GENITAL_EXPOSED) || (candidate.bulge_pokes_out() & BULGE_POKES_PAST_CLOTH)
+		return shown && penis.bodypart_owner && penis_overlay?.sprite_datum
 	return istype(candidate.get_bodypart(BODY_ZONE_HEAD), /obj/item/bodypart/head)
 
 /// Captures all mob state that this portal changes.
@@ -699,7 +711,8 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
  *
  * A wall relay shows the hips and butt only, so it draws no legs and no shoes. A hidden copy of the chest's own sprites
  * renders to body_render_target(), and the uniform, the underclothes and the chest's images with no sprite of their own
- * (mess containers) are clipped to it, so nothing drawn over the body reaches past it.
+ * (mess containers) are clipped to it, so nothing drawn over the body reaches past it. A skirt or dress isn't drawn
+ * (wall_relay_skips_uniform()): the body shows under it. A wall-stuck body draws no bulge (portal_hides_bulge()).
  */
 /obj/effect/lewd_portal_relay/proc/lower_body_only()
 	var/list/generated_overlays = list()
@@ -722,7 +735,7 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 		generated_overlays.Insert(1, body_holder)
 
 	var/list/worn_copies = list()
-	if(owner.w_uniform)
+	if(owner.w_uniform && !owner.wall_relay_skips_uniform())
 		append_appearance_copies(worn_copies, owner.overlays_standing[UNIFORM_LAYER], apply_mask = TRUE)
 	append_appearance_copies(worn_copies, owner.overlays_standing[BODY_LAYER], apply_mask = TRUE)
 	for(var/mutable_appearance/worn_copy as anything in worn_copies)
@@ -732,6 +745,11 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 		return FALSE
 	add_overlay(generated_overlays)
 	return TRUE
+
+/// Whether a wall relay leaves out this person's uniform: a skirt or dress (a skirt bulge family). Pants stay drawn.
+/mob/living/carbon/human/proc/wall_relay_skips_uniform()
+	var/obj/item/clothing/uniform = w_uniform
+	return istype(uniform) && ispath(uniform.bulge_family, /datum/bulge_family/skirt)
 
 /// Returns the render target this relay's body draws to, its own: two relays in view never clip to each other's.
 /obj/effect/lewd_portal_relay/proc/body_render_target()

@@ -111,12 +111,13 @@
 #define DIRT_PRIVATE_KEY "dirt-private|"
 /// The images update_body_parts() draws a limb with under the key it was last drawn with. A body holding no private
 /// images reads tg's limb_icon_cache as tg does, and calls limb_icons_for() only for a key the cache lacks: a private
-/// one whose entry left with a swapped limb. It reads `key` more than once, so pass it a variable.
+/// one whose entry left with a swapped limb. It reads `key` more than once, so pass it a variable. For a
+/// /mob/living/carbon proc only.
 #define DIRT_LIMB_ICONS_STEADY(limb, key) (private_limb_icons ? limb_icons_for(limb, key, FALSE) \
 	: (limb_icon_cache[key] || limb_icons_for(limb, key, FALSE)))
 /// The images update_body_parts() draws a limb with under a new key. A body holding no private images, drawn under a
 /// key without DIRT_PRIVATE_KEY, fills tg's limb_icon_cache as tg does. It reads `key` more than once, so pass it a
-/// variable.
+/// variable. For a /mob/living/carbon proc only.
 #define DIRT_LIMB_ICONS_CHANGED(limb, key) ((private_limb_icons || findtextEx(key, DIRT_PRIVATE_KEY)) \
 	? limb_icons_for(limb, key, TRUE) : (limb_icon_cache[key] ||= limb.get_limb_icon(FALSE)))
 
