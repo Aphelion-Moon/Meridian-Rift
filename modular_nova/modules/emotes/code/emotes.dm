@@ -12,7 +12,7 @@
 /datum/emote/living/custom
 	mob_type_blacklist_typecache = list(/mob/living/brain)
 	cooldown = 0
-	stat_allowed = SOFT_CRIT
+	can_use_flags = EMOTE_CANUSE_SOFTCRIT
 
 //me-verb emotes should not have a cooldown check
 /datum/emote/living/custom/check_cooldown(mob/user, intentional)
