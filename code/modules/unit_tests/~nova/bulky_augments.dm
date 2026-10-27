@@ -50,7 +50,7 @@
  */
 /datum/unit_test/augment_paint_cache/proc/paint_drawn(mob/living/carbon/human/body)
 	var/obj/item/bodypart/arm = body.get_bodypart(BODY_ZONE_R_ARM)
-	for(var/image/drawn as anything in body.limb_icon_cache[body.icon_render_keys[BODY_ZONE_R_ARM]])
+	for(var/image/drawn as anything in body.drawn_limb_icons(BODY_ZONE_R_ARM))
 		if(drawn.icon_state == "[arm.limb_id]_[BODY_ZONE_R_ARM]_paint")
 			var/list/matrix = drawn.color
 			return rgb(round(matrix[1] * 255, 1), round(matrix[2] * 255, 1), round(matrix[3] * 255, 1))

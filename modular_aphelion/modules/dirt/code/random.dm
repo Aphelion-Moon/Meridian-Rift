@@ -59,8 +59,7 @@
  * - Divides by zero when `count` is 0.
  */
 /datum/dirt_random/proc/randrange(count)
-	var/value = draw()
-	return DIRT_MODULO(value, count)
+	return draw() % count
 
 /**
  * Returns a whole number from `low` to `high`, both included, from one draw.
@@ -158,7 +157,8 @@
  * - seed: The noise field's seed, a whole number.
  */
 /proc/dirt_noise_hash(cell_x, cell_y, seed)
-	var/list/table = dirt_perm_table()
+	var/static/list/table
+	table ||= dirt_perm_table()
 	var/seed_high = floor(seed / 256)
 	var/chained = table[DIRT_MODULO(seed, 256) + 1] + DIRT_MODULO(seed_high, 256)
 	chained = table[DIRT_MODULO(chained, 256) + 1] + cell_x
@@ -166,7 +166,8 @@
 	return table[DIRT_MODULO(chained, 256) + 1] / 255
 
 /**
- * Returns smooth value noise from 0 to 1: the four lattice points round a sample, blended with a smoothstep.
+ * Returns smooth value noise from 0 to 1: the four lattice points round a sample, blended with a smoothstep. Each point
+ * is dirt_noise_hash()'s, its chain's seed steps taken once and each column's step once, for the four.
  *
  * Arguments:
  * - sample_x, sample_y: Where to sample, in pixels.
@@ -174,6 +175,8 @@
  * - scale: The lattice's spacing, in pixels.
  */
 /proc/dirt_value_noise(sample_x, sample_y, seed, scale)
+	var/static/list/table
+	table ||= dirt_perm_table()
 	var/scaled_x = sample_x / scale
 	var/scaled_y = sample_y / scale
 	var/cell_x = floor(scaled_x)
@@ -182,10 +185,21 @@
 	var/blend_y = scaled_y - cell_y
 	blend_x = blend_x * blend_x * (3 - 2 * blend_x)
 	blend_y = blend_y * blend_y * (3 - 2 * blend_y)
-	var/top_left = dirt_noise_hash(cell_x, cell_y, seed)
-	var/top_right = dirt_noise_hash(cell_x + 1, cell_y, seed)
-	var/bottom_left = dirt_noise_hash(cell_x, cell_y + 1, seed)
-	var/bottom_right = dirt_noise_hash(cell_x + 1, cell_y + 1, seed)
+	var/seed_high = floor(seed / 256)
+	var/chained = table[DIRT_MODULO(seed, 256) + 1] + DIRT_MODULO(seed_high, 256)
+	var/seeded = table[DIRT_MODULO(chained, 256) + 1]
+	chained = seeded + cell_x
+	var/left = table[DIRT_MODULO(chained, 256) + 1]
+	chained = seeded + cell_x + 1
+	var/right = table[DIRT_MODULO(chained, 256) + 1]
+	chained = left + cell_y
+	var/top_left = table[DIRT_MODULO(chained, 256) + 1] / 255
+	chained = right + cell_y
+	var/top_right = table[DIRT_MODULO(chained, 256) + 1] / 255
+	chained = left + cell_y + 1
+	var/bottom_left = table[DIRT_MODULO(chained, 256) + 1] / 255
+	chained = right + cell_y + 1
+	var/bottom_right = table[DIRT_MODULO(chained, 256) + 1] / 255
 	return (top_left + (top_right - top_left) * blend_x) * (1 - blend_y) + (bottom_left + (bottom_right - bottom_left) * blend_x) * blend_y
 
 /**

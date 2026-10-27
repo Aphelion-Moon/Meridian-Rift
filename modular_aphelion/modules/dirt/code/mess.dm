@@ -12,7 +12,7 @@
 #define DIRT_AIM_COVER_DRAWS 7
 
 /**
- * Semen aimed at a zone: one deposit's random draws, made once, and the features each level draws from them, as the
+ * A mess aimed at a zone: one deposit's random draws, made once, and the features each level draws from them, as the
  * reference generator's aimed cause draws them.
  * - Level 1: one streak laid along the shot's direction, ending in a small lump with a glint, and a drop. On the butt a
  *   shot beads and runs down instead: across the buttocks streaks read as a crack or a scrawl.
@@ -37,6 +37,7 @@
 	var/beaded = FALSE
 	/// The shot's direction, in degrees: up and across.
 	var/angle
+	// The draws below are shared by every deposit of the same zone and variant: never change them.
 	/// The twelve shots drawn, in draw order, each list(limb, theta, h, aim, length, width, drip fraction, seed, area).
 	var/list/candidates = list()
 	/// The shots kept for streaks, five at most with their starts 3 px apart, in the same form.
@@ -47,23 +48,39 @@
 	var/list/covers = list()
 	/// The thighs' drips the features being made have so far, each list(limb, top, bottom).
 	var/list/runs
+	/// Each level's features once made: the levels above share the features they nest, and their pixels on the view.
+	var/list/made_levels = new /list(DIRT_MESS_MAX_LEVEL)
+	/// Levels 2 and 3's runs and drops once made (hang_runs()), which both draw from.
+	var/list/hung_parts
 
 /**
- * Makes a deposit's draws.
+ * Makes a deposit's draws from the "aimed_<zone>:<variant>" stream, or takes those already made for the same zone and
+ * variant: they're the same wherever it lands, so each is drawn once a round.
  *
  * Arguments:
  * - zone: A DIRT_ZONE_* define, not DIRT_ZONE_COCK.
- * - stream: A fresh stream seeded "aimed_<zone>:<variant>".
+ * - variant: 0 to DIRT_MESS_VARIANTS - 1.
  */
-/datum/dirt_aim/New(zone, datum/dirt_random/stream)
+/datum/dirt_aim/New(zone, variant)
 	. = ..()
 	src.zone = zone
-	var/list/aim_zones = dirt_aim_zones()
-	areas = aim_zones[zone]
+	areas = dirt_aim_zones()[zone]
 	bounded = (zone in dirt_aim_bounds())
 	// each clamped end takes its own bound: on one row they drew garters or a band
 	staggered = bounded && (zone == DIRT_ZONE_STOMACH || zone == DIRT_ZONE_THIGHS)
 	beaded = zone == DIRT_ZONE_BUTT
+	// at most the aimed zones' DIRT_MESS_VARIANTS each
+	var/static/alist/drawn = alist()
+	var/key = "[zone]:[variant]"
+	var/list/draws = drawn[key]
+	if(draws)
+		angle = draws[1]
+		candidates = draws[2]
+		streaks = draws[3]
+		drops = draws[4]
+		covers = draws[5]
+		return
+	var/datum/dirt_random/stream = new("aimed_[zone]:[num2text(variant, 12)]")
 	// one direction for the whole shot, up and across; across a face, where steep ones lost themselves in the eyes
 	angle = zone == DIRT_ZONE_FACE ? stream.uniform(5, 35) : stream.uniform(55, 125)
 	angle *= stream.choose(list(-1, 1))
@@ -82,22 +99,19 @@
 		if(length(streaks) >= 5)
 			continue
 		var/list/metric = dirt_metric(limb)
-		var/spaced = TRUE
-		var/mirrored = FALSE
+		var/clear = TRUE
 		for(var/list/kept as anything in streaks)
 			if(kept[1] != limb)
 				continue
 			var/turn = kept[2] - start_theta
+			var/mirror_turn = -kept[2] - start_theta
 			var/across = DIRT_WRAP_DEGREES(turn) / metric[1]
+			var/mirror_across = DIRT_WRAP_DEGREES(mirror_turn) / metric[1]
 			var/up = (kept[3] - start_along) / metric[2]
-			if(sqrt(across * across + up * up) < 3)
-				spaced = FALSE
-			if(zone == DIRT_ZONE_STOMACH)
-				var/mirror_turn = -kept[2] - start_theta
-				var/mirror_across = DIRT_WRAP_DEGREES(mirror_turn) / metric[1]
-				if(sqrt(mirror_across * mirror_across + up * up) < DIRT_AIM_MIRROR_PX)
-					mirrored = TRUE
-		if(spaced && !mirrored)
+			if(sqrt(across * across + up * up) < 3 || (zone == DIRT_ZONE_STOMACH && sqrt(mirror_across * mirror_across + up * up) < DIRT_AIM_MIRROR_PX))
+				clear = FALSE
+				break
+		if(clear)
 			streaks += list(candidate)
 	for(var/attempt in 1 to 6)
 		var/list/area = stream.choose(areas)
@@ -114,21 +128,26 @@
 		var/cover_length = stream.random()
 		var/seed = stream.randrange(65536)
 		covers += list(list(area[1], cover_theta, cover_along, size, cover_length, seed, area))
+	drawn[key] = list(angle, candidates, streaks, drops, covers)
 
 /**
- * Returns the features of one level.
+ * Returns the features of one level, made once. You should NEVER modify the list it returns.
  *
  * Arguments:
- * - level: 1 to DIRT_SEMEN_MAX_LEVEL.
+ * - level: 1 to DIRT_MESS_MAX_LEVEL.
  */
 /datum/dirt_aim/proc/features(level)
 	RETURN_TYPE(/list)
+	if(made_levels[level])
+		return made_levels[level]
 	runs = list()
-	if(level == DIRT_SEMEN_MAX_LEVEL)
-		return covered()
-	if(level >= 2 && zone != DIRT_ZONE_FACE)
-		return hung(level)
-	return streaked(level)
+	if(level == DIRT_MESS_MAX_LEVEL)
+		. = covered()
+	else if(level >= 2 && zone != DIRT_ZONE_FACE)
+		. = hung(level)
+	else
+		. = streaked(level)
+	made_levels[level] = .
 
 /**
  * Returns the features of level 1, and of the face's levels 2 and 3: streaks laid along the shot, each ending in a
@@ -157,11 +176,11 @@
 		var/streak_length = streak[5]
 		var/seed = streak[8]
 		var/list/area = streak[9]
-		var/list/metric = dirt_metric(limb)
-		var/along_per_pixel = metric[2]
+		var/along_per_pixel = dirt_metric(limb)[2]
 		if(zone == DIRT_ZONE_GROIN && abs(cos(aim)) < sin(35))
 			upright++
-			if(upright > 1) // one streak within 35 degrees of upright at most: two up the belly read as bars, the rest turn to 45
+			// one streak within 35 degrees of upright at most: two up the belly read as bars, the rest turn to 45
+			if(upright > 1)
 				aim = tilted(aim)
 		streak_length *= length_scales[level] * (beaded ? 0.3 : 1)
 		var/list/landed = land(limb, start_theta, streak[3], aim, streak_length, seed, area)
@@ -209,17 +228,17 @@
 				continue
 		placed += list(list(limb, drop_theta, drop_along))
 		features += new /datum/dirt_feature/glob(limb, drop_theta, drop_along, drop[4], drop[4], drop[5], 0.1, FALSE)
-	if(zone == DIRT_ZONE_BACK) // in profile only the back's edge shows, and semen on it read as a strap
+	if(zone == DIRT_ZONE_BACK) // in profile only the back's edge shows, and mess on it read as a strap
 		for(var/datum/dirt_feature/feature as anything in features)
 			feature.profile_hidden = TRUE
 	return features
 
 /**
  * Returns the features of levels 2 and 3 off the face: level 1's exactly, then runs straight down instead of fills.
- * Level 1's streak hangs a run from part of its length (level 2) and level 1's drop one from its middle (level 3). Later
- * shots come from the twelve drawn in draw order, each landing at level 1's length at least DIRT_AIM_RUN_PITCH px round
- * its limb from every shot and from level 1's drop, as a bead with a one-pixel highlight and one run straight down. The
- * other drops follow. A run plan holds level 3's set, so each view keeps the same ones at every level.
+ * Level 1's streak hangs a run from part of its length (level 2) and level 1's drop one from its middle (level 3).
+ * Later shots come from the twelve drawn in draw order, each landing at level 1's length at least DIRT_AIM_RUN_PITCH px
+ * round its limb from every shot and from level 1's drop, as a bead with a one-pixel highlight and one run straight
+ * down. The other drops follow. A run plan holds level 3's set, so each view keeps the same ones at every level.
  *
  * Where level 2 shows nothing new in the zone's main facing, level 1's drop runs a little to a smaller bead, so every
  * level-up shows (dirt_runs_apart() decides).
@@ -231,6 +250,26 @@
 	RETURN_TYPE(/list)
 	var/static/list/drop_counts = list(1, 3, 6)
 	var/list/base = features(1)
+	hung_parts ||= hang_runs()
+	var/list/groups = hung_parts[1]
+	var/list/shots = beaded ? list(1, 2, 3) : list(1, 3, 4)
+	var/list/features = base.Copy()
+	for(var/list/entry as anything in groups)
+		if(entry[1] < shots[level] || (entry[1] >= 11 && entry[1] < 10 + drop_counts[level]) || (entry[1] == 10 && level == 3))
+			for(var/datum/dirt_feature/feature as anything in entry[2])
+				if((feature.from_level || 0) <= level)
+					features += feature
+	if(level == 2)
+		features += hung_parts[2]
+	features += new /datum/dirt_feature/run_plan(groups, (zone == DIRT_ZONE_BACK || zone == DIRT_ZONE_BUTT) ? NORTH : SOUTH, hung_parts[3])
+	return features
+
+/**
+ * Returns levels 2 and 3's runs and drops, made once for both: list(each run or drop as list(its group, its features),
+ * level 2's carry-on from level 1's drop, that drop).
+ */
+/datum/dirt_aim/proc/hang_runs()
+	RETURN_TYPE(/list)
 	runs = list()
 	var/list/shots = beaded ? list(1, 2, 3) : list(1, 3, 4)
 	var/list/first_drop = drops[1]
@@ -276,29 +315,22 @@
 				if((other[2] <= end_theta && end_theta <= other[3]) || min(abs(DIRT_WRAP_DEGREES(low_turn)), abs(DIRT_WRAP_DEGREES(high_turn))) < DIRT_AIM_RUN_PITCH * degrees_per_pixel)
 					crowded = TRUE
 					break
-			if(crowded)
-				continue
-			if(zone == DIRT_ZONE_STOMACH) // a mirrored pair read as a bra or a U
-				var/mirrored = FALSE
-				for(var/list/other as anything in taken)
-					if(other[1] != limb)
-						continue
+				if(zone == DIRT_ZONE_STOMACH) // a mirrored pair read as a bra or a U
 					var/mirror_turn = -other[4] - end_theta
 					var/mirror_across = DIRT_WRAP_DEGREES(mirror_turn) / degrees_per_pixel
 					var/up = (other[5] - end_along) / along_per_pixel
 					if(sqrt(mirror_across * mirror_across + up * up) < DIRT_AIM_MIRROR_PX)
-						mirrored = TRUE
+						crowded = TRUE
 						break
-				if(mirrored)
-					continue
-		upright += straight
-		if(length(groups))
+			if(crowded)
+				continue
 			for(var/pass in 1 to 2) // a row of landings read as a strap: each steps down off another's row
 				for(var/list/other as anything in taken)
 					var/low_turn = end_theta - other[2]
 					var/high_turn = end_theta - other[3]
 					if(other[1] == limb && abs(end_along - other[5]) < along_per_pixel && min(abs(DIRT_WRAP_DEGREES(low_turn)), abs(DIRT_WRAP_DEGREES(high_turn))) < 6 * degrees_per_pixel)
 						end_along = other[5] - along_per_pixel
+		upright += straight
 		var/list/group
 		var/span_low
 		var/span_high
@@ -311,8 +343,7 @@
 			span_low = min(start_theta, end_theta)
 			span_high = max(start_theta, end_theta)
 		else
-			var/datum/dirt_feature/glint/mark = glint_at(limb, end_theta, end_along)
-			group = list(new /datum/dirt_feature/glob(limb, end_theta, end_along, 0.6, 0.6, seed, 0.1), new /datum/dirt_feature/glint/highlight(limb, mark.centre_theta, mark.centre_along))
+			group = list(new /datum/dirt_feature/glob(limb, end_theta, end_along, 0.6, 0.6, seed, 0.1), glint_at(limb, end_theta, end_along, /datum/dirt_feature/glint/highlight))
 			group += hanging(limb, end_theta, end_along, drip_at, seed, area[4], length(groups) < shots[2])
 			span_low = end_theta
 			span_high = end_theta
@@ -338,19 +369,11 @@
 	for(var/drop_number in 2 to length(drops))
 		var/list/drop = drops[drop_number]
 		groups += list(list(9 + drop_number, list(new /datum/dirt_feature/glob(drop[1], drop[2], drop[3], drop[4], drop[4], drop[5], 0.1, FALSE))))
-	var/list/features = base.Copy()
 	for(var/list/entry as anything in groups)
-		var/group = entry[2]
-		var/drawn = entry[1] < shots[level] || (entry[1] >= 11 && entry[1] < 10 + drop_counts[level]) || (entry[1] == 10 && level == 3)
-		for(var/datum/dirt_feature/feature as anything in group)
+		for(var/datum/dirt_feature/feature as anything in entry[2])
 			feature.run_group = entry[1]
 			feature.profile_hidden = zone == DIRT_ZONE_BACK // as level 1's
-			if(drawn && (feature.from_level || 0) <= level)
-				features += feature
-	if(level == 2)
-		features += early
-	features += new /datum/dirt_feature/run_plan(groups, (zone == DIRT_ZONE_BACK || zone == DIRT_ZONE_BUTT) ? NORTH : SOUTH, anchor)
-	return features
+	return list(groups, early, anchor)
 
 /**
  * Returns a run hung straight down from a point, ending in a 2 px bulb. One carried on goes past its bulb to a smaller
@@ -385,15 +408,15 @@
  * - two translucent tongues hanging from where they landed, running past the zone;
  * - three opaque beads, each with a one-pixel highlight and a run straight down ending in a bulb;
  * - two small pools with their grey underside, a translucent rim and a highlight.
- * A tongue or run that reaches the torso's last row carries on down the leg under it, never onto the arms. Seen in
- * profile, where the arm hides the back, the back's coat shows as a thin run-off down the back of the near leg. The coat
- * fades at an outline and breaks near a profile's (dirt_rasterise_level()). The opaque runs keep apart from level 3's
- * and each other, as runs do: beside them they fused into panels that read as garments. The beads, the pools and their
- * highlights stay where they land.
+ * A tongue that reaches the torso's last row carries on down the leg under it, never onto the arms. Seen in
+ * profile, where the arm hides the back, the back's coat shows as a thin run-off down the back of the near leg. The
+ * coat fades at an outline and breaks near a profile's (dirt_rasterise_level()). The opaque runs keep apart from
+ * level 3's and each other, as runs do: beside them they fused into panels that read as garments. The beads, the pools
+ * and their highlights stay where they land.
  */
 /datum/dirt_aim/proc/covered()
 	RETURN_TYPE(/list)
-	var/list/features = features(3)
+	var/list/below = features(3)
 	runs = list()
 	var/list/extra = list()
 	var/back = zone == DIRT_ZONE_BACK
@@ -418,16 +441,12 @@
 		var/along = cover[3]
 		var/seed = cover[6]
 		var/list/area = cover[7]
-		var/list/metric = dirt_metric(limb)
-		var/along_per_pixel = metric[2]
+		var/along_per_pixel = dirt_metric(limb)[2]
 		var/reach = 2.5 + 4 * cover[5]
 		var/bottom = capped(limb, along, max(0, along - reach * along_per_pixel), seed, area[4])
 		extra += new /datum/dirt_feature/glob(limb, cover_theta, along, 0.6, 0.6, seed, 0.1)
-		extra += new /datum/dirt_feature/glint/highlight(limb, cover_theta - 0.3 * metric[1], along + 0.3 * along_per_pixel)
-		var/list/group = list(new /datum/dirt_feature/run(limb, cover_theta, along, bottom), new /datum/dirt_feature/glob(limb, cover_theta, bottom, 0.8, 0.9, seed + 3, 0.05))
-		if(limb == DIRT_LIMB_TORSO && reach - along / along_per_pixel >= 1)
-			group += new /datum/dirt_feature/spill(cover_theta, min(5, round(reach - along / along_per_pixel, 1)), seed)
-		groups += list(list(17 + cover_number, group))
+		extra += glint_at(limb, cover_theta, along, /datum/dirt_feature/glint/highlight)
+		groups += list(list(17 + cover_number, list(new /datum/dirt_feature/run(limb, cover_theta, along, bottom), new /datum/dirt_feature/glob(limb, cover_theta, bottom, 0.8, 0.9, seed + 3, 0.05))))
 	for(var/cover_number in 6 to 7)
 		var/list/cover = covers[cover_number]
 		var/limb = cover[1]
@@ -441,14 +460,14 @@
 		for(var/datum/dirt_feature/feature as anything in entry[2])
 			feature.run_group = zone == DIRT_ZONE_FACE ? null : entry[1] // the face keeps every one, unspaced, as below it
 			extra += feature
-	var/datum/dirt_feature/run_plan/plan = locate() in features
-	features -= plan
+	var/datum/dirt_feature/run_plan/plan = locate() in below
+	var/list/features = below - plan
 	features += new /datum/dirt_feature/run_plan(plan ? plan.groups + groups : groups)
 	var/list/first_cover = covers[1]
 	for(var/datum/dirt_feature/feature as anything in extra)
 		feature.covering = TRUE
 		feature.break_seed = first_cover[6]
-		// the back's other semen stays hidden in profile, as at every level; its tongues show a thin edge there
+		// the back's other mess stays hidden in profile, as at every level; its tongues show a thin edge there
 		feature.profile_hidden = back && !istype(feature, /datum/dirt_feature/glaze)
 	return features + extra
 
@@ -490,16 +509,17 @@
 	return list(start_along, end_theta, end_along)
 
 /**
- * Returns the glint over a streak's end: 0.3 px back round the limb and 0.3 px up.
+ * Returns the glint over a streak's end or a bead: 0.3 px back round the limb and 0.3 px up.
  *
  * Arguments:
  * - limb: The DIRT_LIMB_* define it lies on.
- * - end_theta, end_along: The streak's end.
+ * - end_theta, end_along: The streak's end or the bead.
+ * - glint_type: The glint's type: a highlight lights one pixel only.
  */
-/datum/dirt_aim/proc/glint_at(limb, end_theta, end_along)
+/datum/dirt_aim/proc/glint_at(limb, end_theta, end_along, glint_type = /datum/dirt_feature/glint)
 	RETURN_TYPE(/datum/dirt_feature/glint)
 	var/list/metric = dirt_metric(limb)
-	return new /datum/dirt_feature/glint(limb, end_theta - 0.3 * metric[1], end_along + 0.3 * metric[2])
+	return new glint_type(limb, end_theta - 0.3 * metric[1], end_along + 0.3 * metric[2])
 
 /**
  * Returns a drip's or a run's bottom: on the thighs it ends above the knee, at its own inset, and a matching run on the
@@ -540,8 +560,8 @@
 	return (zone == DIRT_ZONE_THIGHS ? (limb == DIRT_LIMB_R_LEG) : (theta >= 0)) == (angle > 0)
 
 /**
- * Returns a groin streak's direction turned 45 degrees off upright, on the same side: two side by side up the belly read
- * as bars.
+ * Returns a groin streak's direction turned 45 degrees off upright, on the same side: two side by side up the belly
+ * read as bars.
  *
  * Arguments:
  * - aim: Its direction, in degrees.
@@ -620,10 +640,10 @@
 	return list(start_theta + (end_theta - start_theta) * scale, along)
 
 /**
- * Returns how many pixels a clamped streak end's or a capped drip's bound moves in: odd on one side of a pair, 0 or 2 on
- * the other, so the sides keep to different rows. It stays under the room the streak or drip starts with inside its
- * bound, so a streak never shrinks to nothing and a drip never runs up. Without the room an odd one moves 1 px out where
- * that's allowed (the knee); elsewhere it stays on the bound.
+ * Returns how many pixels a clamped streak end's or a capped drip's bound moves in: odd on one side of a pair, 0 or 2
+ * on the other, so the sides keep to different rows. It stays under the room the streak or drip starts with inside its
+ * bound, so a streak never shrinks to nothing and a drip never runs up. Without the room an odd one moves 1 px out
+ * where that's allowed (the knee); elsewhere it stays on the bound.
  *
  * Arguments:
  * - seed: The streak's seed, which picks 0 or 2 on the even side.
@@ -637,17 +657,12 @@
 	return (seed % 2 && room > 2) ? 2 : 0
 
 /**
- * Returns a semen role's tint: list(colour, alpha from 0 to 1). Pearl white, translucent where thin and near opaque where
- * thick, a light grey underside that sets drops apart on pale skin, and a white highlight. Haze is the film's colour at
- * half its alpha, drawn as half coverage in the film mask. You should NEVER modify the list it returns.
- *
- * Arguments:
- * - role: A DIRT_ROLE_* define.
- *
- * Returns:
- * - null for DIRT_ROLE_NONE.
+ * Returns the mess's tints, indexed by DIRT_ROLE_* define, each list(colour, alpha from 0 to 1), as dirt_baked_icon()
+ * takes them. Pearl white, translucent where thin and near opaque where thick, a light grey underside that sets drops
+ * apart on pale skin, and a white highlight. Haze is the film's colour at half its alpha, drawn as film at half coverage.
+ * You should NEVER modify it.
  */
-/proc/dirt_semen_role_colour(role)
+/proc/dirt_mess_role_tints()
 	RETURN_TYPE(/list)
 	var/static/list/tints = list(
 		list("#F1EEE6", 0.21), // haze
@@ -657,7 +672,7 @@
 		list("#ECE7DA", 0.9), // fleck
 		list("#FFFFFF", 1), // glint
 	)
-	return role ? tints[role] : null
+	return tints
 
 #undef DIRT_AIM_MIRROR_PX
 #undef DIRT_AIM_DROP_PX

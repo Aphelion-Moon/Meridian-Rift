@@ -13,6 +13,9 @@
 	var/list/thicknesses
 	/// Whether it's a splat at the top level, which covers: where splats merge, it keeps every piece (dirt_merge()).
 	var/covers = FALSE
+	/// For a mask made again from a cached raster (dirt_pixels_from_drawn()), the pixels it was drawn on, so a merge
+	/// walks those alone; null for one drawn here. Pixels cleared since stay listed.
+	var/list/drawn_indexes
 
 /**
  * Starts an empty mask.
@@ -27,41 +30,6 @@
 	src.height = height
 	roles = new /list(width * height)
 	thicknesses = new /list(width * height)
-
-/**
- * Returns the role drawn on a pixel: a DIRT_ROLE_* define, DIRT_ROLE_NONE where nothing is drawn or off the mask.
- *
- * Arguments:
- * - column, row: The pixel, from the left and from the top, from 0.
- */
-/datum/dirt_pixels/proc/role_at(column, row)
-	if(column < 0 || row < 0 || column >= width || row >= height)
-		return DIRT_ROLE_NONE
-	return roles[row * width + column + 1] || DIRT_ROLE_NONE
-
-/**
- * Draws a role on a pixel of the mask.
- *
- * Arguments:
- * - column, row: The pixel, from the left and from the top, from 0.
- * - role: A DIRT_ROLE_* define, not DIRT_ROLE_NONE.
- * - thickness: How thick it lies, from 0 to 1.
- */
-/datum/dirt_pixels/proc/put(column, row, role, thickness)
-	var/index = row * width + column + 1
-	roles[index] = role
-	thicknesses[index] = thickness
-
-/**
- * Clears a pixel of the mask.
- *
- * Arguments:
- * - column, row: The pixel, from the left and from the top, from 0.
- */
-/datum/dirt_pixels/proc/remove(column, row)
-	var/index = row * width + column + 1
-	roles[index] = null
-	thicknesses[index] = null
 
 /**
  * Returns a copy of the mask, its own lists.
@@ -88,6 +56,23 @@
 			glyph_row += copytext(glyphs, role + 1, role + 2)
 		lines += jointext(glyph_row, "")
 	return jointext(lines, "\n")
+
+/**
+ * Returns list(1, 2, ... count), made once for each count. You should NEVER modify it.
+ *
+ * Arguments:
+ * - count: How many.
+ */
+/proc/dirt_index_range(count)
+	RETURN_TYPE(/list)
+	var/static/alist/ranges = alist()
+	var/list/range = ranges[count]
+	if(!range)
+		range = list()
+		for(var/index in 1 to count)
+			range += index
+		ranges[count] = range
+	return range
 
 /**
  * Returns each role's rank, indexed by its DIRT_ROLE_* define: where masks or levels meet, the higher rank keeps the
@@ -132,17 +117,22 @@
 
 /**
  * Returns a surface's pixels grouped by limb and row, so a feature is weighed only on the rows it can reach:
- * alist(limb = list(list(row, lowest h, highest h, indexes), ...)), rows from the top.
+ * alist(limb = list(list(row, lowest h, highest h, indexes), ...)), rows from the top. Built once for each surface. You
+ * should NEVER modify it.
  *
  * Arguments:
  * - surface: The surface.
  */
 /proc/dirt_surface_rows(datum/dirt_surface/surface)
+	RETURN_TYPE(/alist)
+	if(surface.limb_row_pixels)
+		return surface.limb_row_pixels
 	var/alist/by_limb = alist()
-	var/list/limb_of = surface.limb_of
+	surface.limb_row_pixels = by_limb
+	var/list/flags_of = surface.flags_of
 	var/list/height_of = surface.height_of
-	for(var/index in 1 to length(limb_of))
-		var/limb = limb_of[index]
+	for(var/index in 1 to length(flags_of))
+		var/limb = DIRT_PIXEL_LIMB(flags_of[index])
 		if(!limb)
 			continue
 		var/row = floor((index - 1) / surface.width)
@@ -163,15 +153,15 @@
 	return by_limb
 
 /**
- * Returns semen aimed at a zone, drawn on one direction of a body: levels 1 to `level`, each from the deposit's same
- * draws, merged by role rank with the later level winning a tie, then despeckled. A highlight, once drawn, stays: a later
- * run beside it folded it in. The top level then breaks its flat edges, and keeps every pixel of level 3 as it was drawn,
- * at its role or a darker one.
+ * Returns mess aimed at a zone, drawn on one direction of a body: levels 1 to `level`, each from the deposit's same
+ * draws, merged by role rank with the later level winning a tie, then despeckled. A highlight, once drawn, stays: a
+ * later run beside it folded it in. The top level then breaks its flat edges, and keeps every pixel of level 3 as it
+ * was drawn, at its role or a darker one.
  *
  * Arguments:
  * - zone: A DIRT_ZONE_* define, not DIRT_ZONE_COCK.
- * - level: 1 to DIRT_SEMEN_MAX_LEVEL.
- * - variant: 0 to DIRT_SEMEN_VARIANTS - 1.
+ * - level: 1 to DIRT_MESS_MAX_LEVEL.
+ * - variant: 0 to DIRT_MESS_VARIANTS - 1.
  * - surface_kind: DIRT_SURFACE_SKIN or DIRT_SURFACE_CLOTH.
  * - surface: The direction's surface.
  */
@@ -182,13 +172,10 @@
 	var/datum/dirt_pixels/merged = new(surface.width, surface.height)
 	var/list/merged_roles = merged.roles
 	var/list/merged_thicknesses = merged.thicknesses
-	var/datum/dirt_aim/aim = new(zone, new /datum/dirt_random("aimed_[zone]:[num2text(variant, 12)]"))
+	var/datum/dirt_aim/aim = new(zone, variant)
 	var/datum/dirt_pixels/below
 	for(var/each_level in 1 to level)
-		var/list/features = aim.features(each_level)
-		for(var/datum/dirt_feature/feature as anything in features)
-			feature.bind(surface, surface_rows)
-		features = dirt_runs_apart(features, surface, surface_rows)
+		var/list/features = dirt_runs_apart(aim.features(each_level), surface, surface_rows)
 		var/datum/dirt_pixels/drawn = dirt_rasterise_level(features, surface_kind, surface, surface_rows)
 		var/list/roles = drawn.roles
 		for(var/index in 1 to length(roles))
@@ -201,10 +188,10 @@
 			if(!held || ranks[role] >= ranks[held])
 				merged_roles[index] = role
 				merged_thicknesses[index] = drawn.thicknesses[index]
-		if(level == DIRT_SEMEN_MAX_LEVEL && each_level == DIRT_SEMEN_MAX_LEVEL - 1)
+		if(level == DIRT_MESS_MAX_LEVEL && each_level == DIRT_MESS_MAX_LEVEL - 1)
 			below = dirt_despeckle(merged, surface)
 	merged = dirt_despeckle(merged, surface)
-	if(level != DIRT_SEMEN_MAX_LEVEL)
+	if(level != DIRT_MESS_MAX_LEVEL)
 		return merged
 	// after the despeckle, so what it breaks stays broken; three times, as a rise can meet another edge
 	for(var/pass in 1 to 3)
@@ -224,9 +211,10 @@
 /**
  * Returns a level's features with the runs and drops this view leaves out taken out, and its run plan with them. In the
  * plan's order, each run or drop stays only if it keeps DIRT_RUN_GAP px of skin from level 1's shot and from every one
- * kept before it: side by side they filled into a sheet. The two hung from level 1's shot and drop always stay. Then each
- * kept run's carry-on stays where it keeps as clear, and level 2's carry-on from the first drop where level 2 shows
- * nothing new in the zone's main facing. The plan holds the top run level's set, so every level keeps the same ones.
+ * kept before it: side by side they filled into a sheet. The two hung from level 1's shot and drop always stay. Then
+ * each kept run's carry-on stays where it keeps as clear, and level 2's carry-on from the first drop where level 2
+ * shows nothing new in the zone's main facing. The plan holds the top run level's set, so every level keeps
+ * the same ones.
  *
  * Arguments:
  * - features: The level's features, bound to the view.
@@ -253,8 +241,6 @@
 		var/group = entry[1]
 		var/list/members = list()
 		for(var/datum/dirt_feature/member as anything in entry[2])
-			if(isnull(member.drawn_pixels) && (istype(member, /datum/dirt_feature/run) || istype(member, /datum/dirt_feature/glint/highlight)))
-				member.bind(surface, surface_rows) // kept for a higher level, so not drawn at this one
 			if(!member.from_level)
 				members += member
 		var/alist/pixels = dirt_footprint(members, surface, surface_rows)
@@ -282,14 +268,14 @@
 			carried += tail
 			for(var/index in pixels)
 				taken[index] = TRUE
-	if(length(early) && surface.direction == plan.main && !dirt_level_shows(rest, kept, surface, surface_rows))
+	if(length(early) && surface.direction == plan.main && !dirt_level_shows(always, rest, kept, surface, surface_rows))
 		var/alist/anchor = dirt_footprint(list(plan.anchor), surface, surface_rows)
 		var/alist/pixels = dirt_footprint(early, surface, surface_rows)
 		var/on_body = FALSE
 		for(var/index in anchor)
 			pixels -= index
 		for(var/index in pixels)
-			if(surface.zone_of[index])
+			if(DIRT_PIXEL_ZONE(surface.flags_of[index]))
 				on_body = TRUE
 				break
 		if(on_body && !dirt_footprint_touches(pixels, taken, surface.width, surface.height, list(anchor, owned[10])))
@@ -306,29 +292,26 @@
  * level 1's doesn't, beside either. A lone one would go.
  *
  * Arguments:
+ * - always: Level 1's shot, and whatever else is always drawn but the covering, from dirt_runs_apart().
  * - features: The level's features but its plan.
  * - kept: The runs and drops kept.
  * - surface: The view's surface.
  * - surface_rows: Its pixels by limb and row, from dirt_surface_rows().
  */
-/proc/dirt_level_shows(list/features, list/kept, datum/dirt_surface/surface, alist/surface_rows)
-	var/list/always = list()
+/proc/dirt_level_shows(list/always, list/features, list/kept, datum/dirt_surface/surface, alist/surface_rows)
 	var/list/shown_features = list()
 	for(var/datum/dirt_feature/feature as anything in features)
-		if(isnull(feature.run_group) && !feature.covering)
-			always += feature
-		else if(!isnull(feature.run_group) && (feature.run_group in kept) && !feature.from_level)
+		if(!isnull(feature.run_group) && (feature.run_group in kept) && !feature.from_level)
 			shown_features += feature
 	var/alist/base = dirt_footprint(always, surface, surface_rows)
 	var/alist/shown = dirt_footprint(shown_features, surface, surface_rows)
+	var/list/table = dirt_neighbour_table(surface.width, surface.height)
+	var/list/flags_of = surface.flags_of
 	for(var/index in shown)
-		if(base[index] || !surface.zone_of[index])
+		if(base[index] || !DIRT_PIXEL_ZONE(flags_of[index]))
 			continue
-		var/row = floor((index - 1) / surface.width)
-		var/column = index - 1 - row * surface.width
-		for(var/list/offset as anything in list(list(1, 0), list(-1, 0), list(0, 1), list(0, -1)))
-			var/neighbour = surface.pixel_index(column + offset[1], row + offset[2])
-			if(neighbour && (shown[neighbour] || base[neighbour]))
+		for(var/neighbour in table[index])
+			if(shown[neighbour] || base[neighbour])
 				return TRUE
 	return FALSE
 
@@ -345,30 +328,12 @@
 	RETURN_TYPE(/alist)
 	var/alist/pixels = alist()
 	var/in_profile = surface.direction == EAST || surface.direction == WEST
-	var/list/theta_of = surface.theta_of
-	var/list/height_of = surface.height_of
 	for(var/datum/dirt_feature/feature as anything in features)
 		if(in_profile && feature.profile_hidden)
 			continue
-		if(feature.drawn_pixels)
-			for(var/index, value in feature.drawn_pixels)
-				if(value >= DIRT_THRESHOLD_FILM)
-					pixels[index] = TRUE
-			continue
-		var/limb = feature.limb
-		var/list/rows = surface_rows[limb]
-		if(!rows)
-			continue
-		for(var/list/entry as anything in rows)
-			if(entry[3] < feature.reach_low || entry[2] > feature.reach_high)
-				continue
-			for(var/index in entry[4])
-				var/theta = theta_of[index]
-				var/turn = theta - feature.reach_theta
-				if(abs(DIRT_WRAP_DEGREES(turn)) > feature.reach_degrees)
-					continue
-				if(feature.thickness(limb, theta, height_of[index]) >= DIRT_THRESHOLD_FILM)
-					pixels[index] = TRUE
+		for(var/index, value in feature.pixels_on(surface, surface_rows))
+			if(value >= DIRT_THRESHOLD_FILM)
+				pixels[index] = TRUE
 	return pixels
 
 /**
@@ -421,60 +386,33 @@
 	var/pixel_count = surface.width * surface.height
 	var/list/thickest = new /list(pixel_count)
 	var/list/forced_roles = new /list(pixel_count)
-	var/list/theta_of = surface.theta_of
-	var/list/height_of = surface.height_of
 	var/in_profile = surface.direction == EAST || surface.direction == WEST
-	var/list/outline
-	var/list/band
 	for(var/datum/dirt_feature/feature as anything in features)
 		if(feature.covering)
-			outline = surface.outline()
-			band = in_profile ? surface.outline_band() : null
+			surface.outline()
+			if(in_profile)
+				surface.outline_band()
 			break
+	var/list/flags_of = surface.flags_of
 	for(var/datum/dirt_feature/feature as anything in features)
 		if(in_profile ? feature.profile_hidden : feature.profile_only)
 			continue
 		var/covering = feature.covering
-		if(feature.drawn_pixels)
-			for(var/index, value in feature.drawn_pixels)
-				var/thickness = covering ? dirt_covering_thickness(feature, value, index, outline, band, surface.width) : value
-				if(thickness > (thickest[index] || 0))
-					thickest[index] = thickness
-					forced_roles[index] = feature.role
-			continue
-		var/limb = feature.limb
-		var/list/rows = surface_rows[limb]
-		if(!rows)
-			continue
-		var/reach_theta = feature.reach_theta
-		var/reach_degrees = feature.reach_degrees
-		var/reach_low = feature.reach_low
-		var/reach_high = feature.reach_high
-		for(var/list/entry as anything in rows)
-			if(entry[3] < reach_low || entry[2] > reach_high)
-				continue
-			for(var/index in entry[4])
-				var/theta = theta_of[index]
-				var/turn = theta - reach_theta
-				if(abs(DIRT_WRAP_DEGREES(turn)) > reach_degrees)
-					continue
-				var/thickness = feature.thickness(limb, theta, height_of[index])
-				if(covering)
-					thickness = dirt_covering_thickness(feature, thickness, index, outline, band, surface.width)
-				if(thickness > (thickest[index] || 0))
-					thickest[index] = thickness
-					forced_roles[index] = feature.role
+		for(var/index, value in feature.pixels_on(surface, surface_rows))
+			var/thickness = covering ? dirt_covering_thickness(feature, value, index, flags_of[index], in_profile, surface.width) : value
+			if(thickness > (thickest[index] || 0))
+				thickest[index] = thickness
+				forced_roles[index] = feature.role
 	var/on_skin = surface_kind == DIRT_SURFACE_SKIN
 	var/on_cloth = surface_kind == DIRT_SURFACE_CLOTH
 	var/datum/dirt_pixels/drawn = new(surface.width, surface.height)
 	for(var/index in 1 to pixel_count)
 		var/thickness = thickest[index]
-		if(!thickness)
-			continue
-		var/limb = surface.limb_of[index]
-		if(limb == DIRT_LIMB_HEAD && surface.face_guard[index])
-			continue
 		if(thickness < DIRT_THRESHOLD_FILM)
+			continue
+		var/flags = flags_of[index]
+		var/limb = DIRT_PIXEL_LIMB(flags)
+		if(limb == DIRT_LIMB_HEAD && surface.face_guard[index])
 			continue
 		var/role = forced_roles[index]
 		if(!role)
@@ -488,7 +426,7 @@
 				role = DIRT_ROLE_FILM
 		if(limb == DIRT_LIMB_HEAD && surface.eye_soft[index] && (role == DIRT_ROLE_BODY || role == DIRT_ROLE_CORE))
 			role = DIRT_ROLE_FILM
-		if(on_cloth && surface.rim[index] && role != DIRT_ROLE_CORE)
+		if(on_cloth && (flags & DIRT_PIXEL_RIM) && role != DIRT_ROLE_CORE)
 			role = lighter[role]
 		if(role)
 			drawn.roles[index] = role
@@ -508,14 +446,15 @@
  * - feature: The covering feature.
  * - thickness: How thick it lies there.
  * - index: The pixel.
- * - outline: TRUE on the outline, from /datum/dirt_surface/proc/outline().
- * - band: TRUE on the outline and beside it in profile, from /datum/dirt_surface/proc/outline_band(), or null.
+ * - flags: The pixel's flags, its outline marked (/datum/dirt_surface/proc/outline()), and in profile its band too
+ *   (/datum/dirt_surface/proc/outline_band()).
+ * - in_profile: Whether the view faces east or west, the only views the band breaks.
  * - width: The canvas's width.
  */
-/proc/dirt_covering_thickness(datum/dirt_feature/feature, thickness, index, list/outline, list/band, width)
-	if(outline[index])
+/proc/dirt_covering_thickness(datum/dirt_feature/feature, thickness, index, flags, in_profile, width)
+	if(flags & DIRT_PIXEL_OUTLINE)
 		thickness = min(thickness, DIRT_FILM_T)
-	if(band?[index] && thickness > 0 && feature.role != DIRT_ROLE_GLINT)
+	if(in_profile && (flags & DIRT_PIXEL_BAND) && thickness > 0 && feature.role != DIRT_ROLE_GLINT)
 		var/row = floor((index - 1) / width)
 		var/noise = dirt_spread_noise(index - 1 - row * width, row * 0.5, feature.break_seed, 1.6)
 		if(noise < 0.38)
@@ -526,31 +465,33 @@
 	return thickness
 
 /**
- * Returns a mask with bare legs streaked rather than coated: a solid coat up a bare shin reads as boots. Body pixels
- * more than 2.5 px up a leg mostly thin to film, in clumps about a limb wide.
+ * Streaks bare legs in a mask rather than coating them, and returns it: a solid coat up a bare shin reads as boots.
+ * Body pixels more than 2.5 px up a leg mostly thin to film, in clumps about a limb wide. Each pixel is judged on its
+ * own, so the mask is changed where it is.
  *
  * Arguments:
- * - drawn: The mask.
+ * - drawn: The mask, changed.
  * - surface: The surface it's drawn on.
  */
 /proc/dirt_skin_streaks(datum/dirt_pixels/drawn, datum/dirt_surface/surface)
 	RETURN_TYPE(/datum/dirt_pixels)
-	var/datum/dirt_pixels/streaked = drawn.copy()
 	var/list/roles = drawn.roles
+	var/list/flags_of = surface.flags_of
+	var/list/right_metric = dirt_metric(DIRT_LIMB_R_LEG)
+	var/list/left_metric = dirt_metric(DIRT_LIMB_L_LEG)
 	for(var/index in 1 to length(roles))
 		if(roles[index] != DIRT_ROLE_BODY)
 			continue
-		var/limb = surface.limb_of[index]
+		var/limb = DIRT_PIXEL_LIMB(flags_of[index])
 		if(limb != DIRT_LIMB_R_LEG && limb != DIRT_LIMB_L_LEG)
 			continue
-		var/list/metric = dirt_metric(limb)
+		var/list/metric = limb == DIRT_LIMB_R_LEG ? right_metric : left_metric
 		var/up = surface.height_of[index] / metric[2]
 		if(up <= 2.5)
 			continue
-		var/theta = surface.theta_of[index]
-		if(dirt_spread_noise(DIRT_WRAP_DEGREES(theta) / metric[1], up, 911, 2.4) < 0.62)
-			streaked.roles[index] = DIRT_ROLE_FILM
-	return streaked
+		if(dirt_spread_noise(surface.theta_of[index] / metric[1], up, 911, 2.4) < 0.62)
+			roles[index] = DIRT_ROLE_FILM
+	return drawn
 
 /**
  * Returns a mask cleaned up: a lone film pixel goes, a lone core softens to body, and a pixel whose role none of its
@@ -568,20 +509,28 @@
 		var/role = roles[index]
 		if(!role)
 			continue
-		var/list/around = list()
-		for(var/neighbour in table[index])
+		var/list/neighbours = table[index]
+		var/neighbour_count = 0
+		var/shared = FALSE
+		for(var/neighbour in neighbours)
 			var/neighbour_role = roles[neighbour]
 			if(neighbour_role)
-				around += neighbour_role
-		if(!length(around))
+				neighbour_count++
+				if(neighbour_role == role)
+					shared = TRUE
+		if(!neighbour_count)
 			if(role == DIRT_ROLE_FILM)
 				cleaned.roles[index] = null
 				cleaned.thicknesses[index] = null
 			else if(role == DIRT_ROLE_CORE)
 				cleaned.roles[index] = DIRT_ROLE_BODY
 			continue
-		if(role == DIRT_ROLE_FLECK || (role in around))
+		if(role == DIRT_ROLE_FLECK || shared)
 			continue
+		var/list/around = list()
+		for(var/neighbour in neighbours)
+			if(roles[neighbour])
+				around += roles[neighbour]
 		// of four neighbours, only one role can hold three
 		for(var/candidate in around)
 			var/matches = 0
@@ -594,18 +543,18 @@
 	return cleaned
 
 /**
- * Returns a mask as skin takes goo: no pixel without a neighbour, since a lone body dot reads as a mole and nothing
- * smaller than 2 px stays. Goo keeps its core: flattened, it read as body paint.
+ * Makes a mask as skin takes goo, and returns it: no pixel without a neighbour, since a lone body dot reads as a mole
+ * and nothing smaller than 2 px stays. Goo keeps its core: flattened, it read as body paint.
  *
  * The reference drops lone body pixels, then every group of pixels smaller than two. Neither step leaves a new lone
- * pixel, so together they drop exactly the pixels with no neighbour.
+ * pixel, so together they drop exactly the pixels with no neighbour. A pixel dropped had none, so dropping it where it
+ * is leaves every other pixel's neighbours as they were.
  *
  * Arguments:
- * - drawn: The mask.
+ * - drawn: The mask, changed.
  */
 /proc/dirt_skin_rules(datum/dirt_pixels/drawn)
 	RETURN_TYPE(/datum/dirt_pixels)
-	var/datum/dirt_pixels/wiped = drawn.copy()
 	var/list/roles = drawn.roles
 	var/list/table = dirt_neighbour_table(drawn.width, drawn.height)
 	for(var/index in 1 to length(roles))
@@ -617,9 +566,9 @@
 				alone = FALSE
 				break
 		if(alone)
-			wiped.roles[index] = null
-			wiped.thicknesses[index] = null
-	return wiped
+			roles[index] = null
+			drawn.thicknesses[index] = null
+	return drawn
 
 /**
  * Returns a mask without lone pixels, which read harshly: a lone film or haze pixel goes, and a lone body or core pixel
@@ -642,13 +591,15 @@
 			continue
 		var/list/neighbours = table[index]
 		if(role == DIRT_ROLE_FILM || role == DIRT_ROLE_HAZE)
-			var/list/dark = list()
+			var/dark_count = 0
+			var/first_dark
 			for(var/neighbour in neighbours)
 				if(roles[neighbour] == DIRT_ROLE_BODY || roles[neighbour] == DIRT_ROLE_CORE)
-					dark += neighbour
-			if(length(dark) >= 3)
+					dark_count++
+					first_dark ||= neighbour
+			if(dark_count >= 3)
 				softened_roles[index] = DIRT_ROLE_BODY
-				softened.thicknesses[index] = drawn.thicknesses[dark[1]]
+				softened.thicknesses[index] = drawn.thicknesses[first_dark]
 				continue
 		if(role == DIRT_ROLE_GLINT || role == DIRT_ROLE_FLECK)
 			continue
@@ -665,31 +616,29 @@
 			continue
 		softened_roles[index] = DIRT_ROLE_FILM
 		for(var/neighbour in neighbours)
-			if(!softened_roles[neighbour] && surface.limb_of[neighbour])
+			if(!softened_roles[neighbour] && DIRT_PIXEL_LIMB(surface.flags_of[neighbour]))
 				softened_roles[neighbour] = DIRT_ROLE_HAZE
 				softened.thicknesses[neighbour] = DIRT_HAZE_T
 	return softened
 
 /**
- * Returns a covering mask with no top or bottom edge running flat along one row for more than 2 px: cut level, a sheet
- * read as clipped at a region, an apron, a back patch, a bib. At irregular spots along a flat stretch, film runs on 1 to
- * 3 px below a bottom edge, or rises 1 px over a top edge. It only adds film, on bare skin or haze of the chest and the
- * legs, so what's under it and the highlights stay.
+ * Breaks a covering mask's flat edges, and returns it: no top or bottom edge runs flat along one row for more than 2
+ * px. Cut level, a sheet read as clipped at a region, an apron, a back patch, a bib. At irregular spots along a flat
+ * stretch, film runs on 1 to 3 px below a bottom edge, or rises 1 px over a top edge. It only adds film, on bare skin
+ * or haze of the chest and the legs, so what's under it and the highlights stay. What's solid is read before anything
+ * is added, so the mask is changed where it is.
  *
  * Arguments:
- * - drawn: The mask.
+ * - drawn: The mask, changed.
  * - surface: The surface it's drawn on.
  * - seed: The noise's seed, a whole number.
  */
 /proc/dirt_ragged_edges(datum/dirt_pixels/drawn, datum/dirt_surface/surface, seed)
 	RETURN_TYPE(/datum/dirt_pixels)
-	var/static/list/edge_zones = list(BODY_ZONE_CHEST, BODY_ZONE_L_LEG, BODY_ZONE_R_LEG)
-	var/datum/dirt_pixels/ragged = drawn.copy()
-	var/list/ragged_roles = ragged.roles
 	var/list/roles = drawn.roles
 	var/width = drawn.width
 	var/height = drawn.height
-	// what's solid is read from the mask as it came, the rows holding any of it marked
+	// what's solid is read from the mask as it came, before anything is added, the rows holding any of it marked
 	var/list/solid = new /list(width * height)
 	var/list/solid_rows = new /list(height)
 	for(var/index in 1 to length(roles))
@@ -718,34 +667,36 @@
 						flat++
 						if(flat <= 2 && (flat == 1 || dirt_noise_hash(run_column, row, seed) < 0.65))
 							continue
-						if(!dirt_ragged_free(surface, ragged_roles, run_column, next_row, edge_zones))
+						if(!dirt_ragged_free(surface, roles, run_column, next_row))
 							continue
 						var/spill_length = step_down < 0 ? 1 : 1 + floor(dirt_noise_hash(run_column, row, seed + 1) * 2.99)
 						for(var/spot in 1 to spill_length)
 							var/spot_row = row + step_down * spot
-							if(!dirt_ragged_free(surface, ragged_roles, run_column, spot_row, edge_zones))
+							if(!dirt_ragged_free(surface, roles, run_column, spot_row))
 								break
-							ragged.put(run_column, spot_row, DIRT_ROLE_FILM, DIRT_FILM_T)
+							drawn.put_index(spot_row * width + run_column + 1, DIRT_ROLE_FILM, DIRT_FILM_T)
 						flat = 0
 				run_start = null
-	return ragged
+	return drawn
 
 /**
- * Returns whether a covering mask's flat edge may run on over a pixel: bare skin or haze on the surface, where the chest
- * or a leg shows.
+ * Returns whether a covering mask's flat edge may run on over a pixel: bare skin or haze on the surface, where the
+ * chest or a leg shows.
  *
  * Arguments:
  * - surface: The surface.
  * - roles: The mask's roles so far.
  * - column, row: The pixel.
- * - edge_zones: The body zones it may run on over.
  */
-/proc/dirt_ragged_free(datum/dirt_surface/surface, list/roles, column, row, list/edge_zones)
+/proc/dirt_ragged_free(datum/dirt_surface/surface, list/roles, column, row)
+	var/static/list/edge_zones = list(BODY_ZONE_CHEST, BODY_ZONE_L_LEG, BODY_ZONE_R_LEG)
 	var/index = surface.pixel_index(column, row)
-	if(!index || !surface.limb_of[index])
+	var/flags = index && surface.flags_of[index]
+	if(!DIRT_PIXEL_LIMB(flags))
 		return FALSE
 	var/role = roles[index]
-	return (!role || role == DIRT_ROLE_HAZE) && (surface.zone_of[index] in edge_zones)
+	var/zone = DIRT_PIXEL_ZONE(flags)
+	return (!role || role == DIRT_ROLE_HAZE) && zone && (dirt_pixel_zones()[zone] in edge_zones)
 
 /**
  * Returns masks merged into one: on each pixel the thickest wins, by role rank and then thickness, and the first mask
@@ -768,19 +719,52 @@
 		var/list/roles = pixel_map.roles
 		var/list/thicknesses = pixel_map.thicknesses
 		var/list/left_out = (pixel_map.covers || !length(taken)) ? null : dirt_pieces_near(pixel_map, taken)
-		var/list/kept = list()
-		for(var/index in 1 to length(roles))
+		for(var/index in pixel_map.drawn_indexes || dirt_index_range(length(roles)))
 			var/role = roles[index]
 			if(!role || left_out?[index])
 				continue
-			kept += index
+			taken[index] = TRUE
 			var/held = merged_roles[index]
 			if(!held || ranks[role] > ranks[held] || (ranks[role] == ranks[held] && thicknesses[index] > merged_thicknesses[index]))
 				merged_roles[index] = role
 				merged_thicknesses[index] = thicknesses[index]
-		for(var/index in kept)
-			taken[index] = TRUE
 	return merged
+
+/**
+ * Returns a surface's splats in one direction merged with the parts drawn under and over it. Each splat leaves out the
+ * pixels of the rounded parts on its zone (dirt_part_rounded()): straight streaks carried onto a breast read as blocks.
+ * Then each part drawn under the surface takes each splat on its zone in its own pixels (dirt_part_field()), merged in
+ * after the splats and keeping every piece, as a top-level splat does. A part drawn over the surface takes its share on
+ * itself, so its field isn't drawn here.
+ *
+ * Arguments:
+ * - pixel_maps: Each splat's raster in this direction, at its level here (dirt_part_body_level()), each its own copy:
+ *   the rounded parts' pixels are taken out of it.
+ * - splats: The splats, in the same order.
+ * - under_parts: The parts drawn under the surface in this direction, each a /datum/dirt_part_source, lowest first.
+ * - over_parts: The parts drawn over it in this direction (dirt_split_parts()).
+ * - owns: alist(source = its pixels in this direction, from dirt_part_own()).
+ * - direction: The direction.
+ */
+/proc/dirt_merge_with_parts(list/pixel_maps, list/splats, list/under_parts, list/over_parts, alist/owns, direction)
+	RETURN_TYPE(/datum/dirt_pixels)
+	var/list/sources = under_parts + over_parts
+	var/list/maps = pixel_maps.Copy()
+	for(var/position in 1 to length(splats))
+		var/datum/dirt_splat/splat = splats[position]
+		var/datum/dirt_pixels/pixel_map = pixel_maps[position]
+		for(var/datum/dirt_part_source/source as anything in sources)
+			if(!dirt_part_rounded(source.kind) || dirt_part_zone(source.kind) != splat.zone)
+				continue
+			for(var/index in owns[source])
+				pixel_map.roles[index] = null
+				pixel_map.thicknesses[index] = null
+	for(var/datum/dirt_splat/splat as anything in splats)
+		for(var/datum/dirt_part_source/source as anything in under_parts)
+			var/list/own = owns[source]
+			if(length(own) && dirt_part_zone(source.kind) == splat.zone)
+				maps += dirt_part_field(source.kind, own, splat.zone, splat.level, splat.variant, direction)
+	return dirt_merge(maps)
 
 /**
  * Returns TRUE on each pixel of a mask's pieces, 8-connected, that come within DIRT_RUN_GAP px of a taken pixel.
@@ -796,7 +780,7 @@
 	var/height = pixel_map.height
 	var/list/left_out = new /list(length(roles))
 	var/list/stack = list()
-	for(var/index in 1 to length(roles))
+	for(var/index in pixel_map.drawn_indexes || dirt_index_range(length(roles)))
 		if(!roles[index] || left_out[index])
 			continue
 		var/row = floor((index - 1) / width)

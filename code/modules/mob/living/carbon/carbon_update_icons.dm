@@ -392,12 +392,15 @@
 		var/new_key = limb.get_cache_key()
 
 		if(new_key == old_key)
-			new_limbs += limb_icon_cache[new_key]
+			new_limbs += DIRT_LIMB_ICONS_STEADY(limb, new_key) // APHELION EDIT CHANGE - DIRT - A dirty limb's images are kept on its mob, out of the shared cache - ORIGINAL: new_limbs += limb_icon_cache[new_key]
 		else
 			if(body_zone == BODY_ZONE_HEAD)
 				head_update = TRUE
+			/* // APHELION EDIT REMOVAL START - DIRT - A dirty limb's images are kept on its mob, out of the shared cache
 			limb_icon_cache[new_key] ||= limb.get_limb_icon(dropped = FALSE)
 			new_limbs += limb_icon_cache[new_key]
+			*/ // APHELION EDIT REMOVAL END
+			new_limbs += DIRT_LIMB_ICONS_CHANGED(limb, new_key) // APHELION EDIT ADDITION - DIRT
 			icon_render_keys[limb.body_zone] = new_key
 			limb_count_update += 1
 

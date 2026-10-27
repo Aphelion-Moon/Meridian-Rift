@@ -336,12 +336,14 @@
 
 /**
  * Records what the anatomy a look draws is drawn from beyond its sprite (bulge_anatomy): the penis's colours, alpha,
- * emissive colours and dye, and the shown testicles' overlay with their sprite suffix, the same of theirs and their
- * sprite accessory; and returns the hash of the render keys the penis and those testicles draw with in the open, for
- * the look's key. Those keys (the mutant overlays' icon_render_key()) read nothing else that can change while a look
- * draws: the penis's sprites, the layering and the body shape are in the look's memo (bulge_resolve()), and taur, MOD
- * and device sprites draw no look. When the mutant key comes to read more, record it here and compare it in
- * bulge_anatomy_unchanged().
+ * emissive colours and dye, and the shown testicles' overlay with their sprite suffix, the same of theirs, their
+ * sprite accessory and the mess drawn on them (dirt_share_key(): the look draws it with them, and a wash or a new
+ * splat changes it, which nothing else here sees); and returns the hash of the render keys the penis and those
+ * testicles draw with in the open, for the look's key, after DIRT_PRIVATE_KEY when those keys carry it. Those keys (the
+ * mutant overlays' icon_render_key()) read nothing else that can change while a look draws: the penis's sprites, the
+ * layering and the body shape are in the look's memo (bulge_resolve()), taur, MOD and device sprites draw no look, and
+ * the penis draws no mess of its own while a look stands in for it. When the mutant key comes to read more, record it
+ * here and compare it in bulge_anatomy_unchanged().
  */
 /datum/bodypart_overlay/mutant/genital/penis/proc/bulge_anatomy_record(obj/item/organ/genital/penis/penis, mob/living/carbon/human/wearer)
 	var/obj/item/bodypart/chest = penis.bodypart_owner
@@ -354,9 +356,12 @@
 	if(testicles_overlay)
 		colours = testicles_overlay.draw_color
 		bulge_anatomy += list(testicles_overlay.sprite_suffix, islist(colours) ? colours.Copy() : colours, testicles_overlay.alpha,
-			testicles_overlay.emissive_eligibility_by_color_index?.Copy(), testicles_overlay.dye_color, testicles_overlay.sprite_datum)
+			testicles_overlay.emissive_eligibility_by_color_index?.Copy(), testicles_overlay.dye_color, testicles_overlay.sprite_datum,
+			testicles_overlay.dirt_share_key(chest))
 		keys += testicles_overlay.icon_render_key(chest)
-	return md5(jointext(keys, "-"))
+	var/joined = jointext(keys, "-")
+	// mess drawn with the anatomy keeps the hash off tg's shared limb_icon_cache, as the keys it hashes did
+	return findtextEx(joined, DIRT_PRIVATE_KEY) ? "[DIRT_PRIVATE_KEY][md5(joined)]" : md5(joined)
 
 /**
  * Whether the anatomy a look draws is drawn from what it was recorded for (bulge_anatomy_record()), compared by value
@@ -373,7 +378,8 @@
 		return FALSE
 	return !testicles_overlay || (known[6] == testicles_overlay.sprite_suffix && (known[7] ~= testicles_overlay.draw_color) \
 		&& known[8] == testicles_overlay.alpha && (known[9] ~= testicles_overlay.emissive_eligibility_by_color_index) \
-		&& known[10] == testicles_overlay.dye_color && known[11] == testicles_overlay.sprite_datum)
+		&& known[10] == testicles_overlay.dye_color && known[11] == testicles_overlay.sprite_datum \
+		&& known[12] == testicles_overlay.dirt_share_key(testicles.bodypart_owner))
 
 /**
  * What of the penis its bulge look still shows, for interactions (INTERACTION_REQUIRE_SELF_POKES_OUT and
@@ -630,12 +636,18 @@
 	return root.overlays
 
 /// What a worn cover draws over its own sprite (`overlays`, from bulge_over_overlays()), as one string: each overlay
-/// after the first on the float plane. Null for none.
+/// after the first on the float plane. Null for none. An icon built at run time (mess baked on the cover) has no name of
+/// its own, so it goes in by reference, after DIRT_PRIVATE_KEY: each one is new, so the look's key, the chest's, keeps
+/// its images on the wearer rather than in tg's shared limb_icon_cache (limb_icons_for()).
 /proc/bulge_over_signature(list/overlays)
 	for(var/index in 2 to length(overlays))
 		var/image/over = overlays[index]
-		if(over.plane == FLOAT_PLANE)
-			. = "[.][over.icon]|[over.icon_state]|[over.color]|[over.alpha];"
+		if(over.plane != FLOAT_PLANE)
+			continue
+		var/icon_name = "[over.icon]"
+		if(over.icon && !length(icon_name))
+			icon_name = "[DIRT_PRIVATE_KEY]\ref[over.icon]"
+		. = "[.][icon_name]|[over.icon_state]|[over.color]|[over.alpha];"
 
 /// The first visible appearance of a drawn slot (a slot holds one, or a list with emissive roots beside them).
 /proc/bulge_drawn_root(standing)

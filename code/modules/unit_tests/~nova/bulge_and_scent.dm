@@ -221,7 +221,7 @@
 	var/mask = shape.mask_cloth || shape.mask_light || shape.mask_highlight || shape.mask_shade || shape.mask_deep_shade
 	if(!mask)
 		return "the shape has no kind masks"
-	for(var/image/drawn as anything in owner.limb_icon_cache[owner.icon_render_keys[BODY_ZONE_CHEST]])
+	for(var/image/drawn as anything in owner.drawn_limb_icons(BODY_ZONE_CHEST))
 		if(drawn.icon == mask)
 			return null
 	return "the chest does not draw the shape's masks; chest key [owner.icon_render_keys[BODY_ZONE_CHEST]]"

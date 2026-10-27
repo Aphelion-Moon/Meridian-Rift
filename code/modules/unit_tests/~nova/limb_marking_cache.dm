@@ -25,7 +25,7 @@
  */
 /datum/unit_test/limb_marking_cache/proc/shown_icon(mob/living/carbon/human/body, zone)
 	RETURN_TYPE(/list)
-	return body.limb_icon_cache[body.icon_render_keys[zone]]
+	return body.drawn_limb_icons(zone)
 
 /**
  * Returns the visible appearances of a limb icon that draw one of the given icon states, as their states in draw order.

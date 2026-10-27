@@ -576,6 +576,9 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 	var/portal_mode = GLORYHOLE
 	/// Prevents overlay signals caused by an active render from recursing.
 	var/refreshing_visuals = FALSE
+	/// The render target the body draws to (body_render_target()). An appearance doesn't keep its render_target text
+	/// alive, so the relay does, or the text could be freed and its slot reused while the relay still draws it.
+	var/body_target_name
 
 /obj/effect/lewd_portal_relay/Initialize(mapload, mob/living/carbon/human/owner_ref, obj/structure/lewd_portal/receiving_portal)
 	. = ..()
@@ -691,26 +694,54 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 	add_overlay(copied_overlays)
 	return length(copied_overlays) > 0
 
+/**
+ * Draws the occupant's hips and butt: the chest's images, and what's worn over them clipped to the body they draw.
+ *
+ * A wall relay shows the hips and butt only, so it draws no legs and no shoes. A hidden copy of the chest's own sprites
+ * renders to body_render_target(), and the uniform, the underclothes and the chest's images with no sprite of their own
+ * (mess containers) are clipped to it, so nothing drawn over the body reaches past it.
+ */
 /obj/effect/lewd_portal_relay/proc/lower_body_only()
 	var/list/generated_overlays = list()
-	for(var/limb_zone in list(BODY_ZONE_R_LEG, BODY_ZONE_L_LEG, BODY_ZONE_CHEST))
-		var/obj/item/bodypart/limb = owner.get_bodypart(limb_zone)
-		if(!istype(limb))
-			continue
-		var/list/limb_icons = limb.get_limb_icon()
-		if(limb_zone == BODY_ZONE_CHEST)
-			limb_icons = torso_only(limb_icons)
-		append_appearance_copies(generated_overlays, limb_icons)
+	var/obj/item/bodypart/chest = owner.get_bodypart(BODY_ZONE_CHEST)
+	if(istype(chest))
+		var/list/torso_copies = list()
+		append_appearance_copies(torso_copies, torso_only(chest.get_limb_icon()))
+		// hidden: the body still draws through its own images, each at its own layer among what's worn
+		var/mutable_appearance/body_holder = mutable_appearance(appearance_flags = KEEP_TOGETHER)
+		body_holder.render_target = body_render_target()
+		for(var/mutable_appearance/torso_copy as anything in torso_copies)
+			if(isnull(torso_copy.icon))
+				clip_to_body(torso_copy)
+			// an image on a plane of its own (an emissive) isn't drawn with the holder
+			else if(torso_copy.plane == FLOAT_PLANE)
+				body_holder.overlays += torso_copy
+				body_holder.layer = min(body_holder.layer, torso_copy.layer)
+			generated_overlays += torso_copy
+		// a flattener (getFlatIcon(), a camera) ignores render_target and draws it: first, under all it copies
+		generated_overlays.Insert(1, body_holder)
 
-	if(owner.shoes)
-		append_appearance_copies(generated_overlays, owner.overlays_standing[SHOES_LAYER])
+	var/list/worn_copies = list()
 	if(owner.w_uniform)
-		append_appearance_copies(generated_overlays, owner.overlays_standing[UNIFORM_LAYER], apply_mask = TRUE)
-	append_appearance_copies(generated_overlays, owner.overlays_standing[BODY_LAYER], apply_mask = TRUE)
+		append_appearance_copies(worn_copies, owner.overlays_standing[UNIFORM_LAYER], apply_mask = TRUE)
+	append_appearance_copies(worn_copies, owner.overlays_standing[BODY_LAYER], apply_mask = TRUE)
+	for(var/mutable_appearance/worn_copy as anything in worn_copies)
+		clip_to_body(worn_copy)
+	generated_overlays += worn_copies
 	if(!length(generated_overlays))
 		return FALSE
 	add_overlay(generated_overlays)
 	return TRUE
+
+/// Returns the render target this relay's body draws to, its own: two relays in view never clip to each other's.
+/obj/effect/lewd_portal_relay/proc/body_render_target()
+	body_target_name ||= "*lewd_relay_body_[REF(src)]"
+	return body_target_name
+
+/// Clips an appearance to the body this relay draws, keeping any filters it has (a height's). The mask lies in the
+/// appearance's own space, which its pixel offsets then move (a part's mess, offset for the height): it's moved back.
+/obj/effect/lewd_portal_relay/proc/clip_to_body(mutable_appearance/appearance)
+	appearance.filters += filter(type = "alpha", render_source = body_render_target(), x = -(appearance.pixel_x + appearance.pixel_w), y = -(appearance.pixel_y + appearance.pixel_z))
 
 /// Clones torso appearances before filtering so cached limb appearances are never mutated.
 /obj/effect/lewd_portal_relay/proc/torso_only(list/limb_icon_list)
@@ -735,7 +766,8 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 		"icon" = upper_body_mask,
 	))
 
-/// Clones source appearances before filtering, skipping nonexistent icon states.
+/// Clones source appearances before filtering, skipping nonexistent icon states. An image with no sprite of its own (a
+/// holder of others) is always kept.
 /obj/effect/lewd_portal_relay/proc/append_appearance_copies(list/output, appearance_source, apply_mask = FALSE)
 	if(isnull(appearance_source))
 		return
@@ -753,6 +785,9 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 	output += copied_appearance
 
 /obj/effect/lewd_portal_relay/proc/compare_organ_icon(organ_slot, icon_to_compare)
+	// An image with no sprite of its own (a holder of others) is no organ's, whether or not the organ is there.
+	if(isnull(icon_to_compare))
+		return FALSE
 	var/obj/item/organ/organ = owner?.get_organ_slot(organ_slot)
 	var/datum/bodypart_overlay/mutant/organ_overlay = organ?.bodypart_overlay
 	var/datum/sprite_accessory/accessory = organ_overlay?.sprite_datum

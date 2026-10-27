@@ -63,7 +63,8 @@ One renderer, on the penis's own bodypart overlay: a body update asks the overla
 penis resolves its look, keeps it, and resolves it again only when something it was resolved from has changed: the
 penis, the slots as drawn, the cover and how it is drawn, and the underwear under the cover, so underwear swapped under
 an unchanged skirt or leotard redraws its look and its cut. The look's key stands in for the penis's own render key, so
-the chest's limb icon cache holds a bulge like any limb image.
+the chest's limb icon cache holds a bulge like any limb image. A look drawing mess (on its anatomy, or a cover's over
+its cloth) carries `DIRT_PRIVATE_KEY`, so the wearer keeps those images.
 
 Underwear under the cover is read before anything is drawn (above): it can cap the size every shape below is drawn at,
 and take away the anatomy and cut they would draw. `bulge_wanted_cut()`, which a cover's own render asks, decides by the

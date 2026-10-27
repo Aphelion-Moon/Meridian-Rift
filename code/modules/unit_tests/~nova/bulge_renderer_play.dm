@@ -10,7 +10,7 @@
 
 /// The chest's cached images on the float plane at `layer`, or null.
 /datum/unit_test/portal_test/bulge_renderer/proc/chest_images_at(mob/living/carbon/human/owner, layer)
-	for(var/image/part as anything in owner.limb_icon_cache[owner.icon_render_keys[BODY_ZONE_CHEST]])
+	for(var/image/part as anything in owner.drawn_limb_icons(BODY_ZONE_CHEST))
 		if(part.plane == FLOAT_PLANE && part.layer == layer)
 			LAZYADD(., part)
 

@@ -43,7 +43,7 @@
 	if(!overlay?.bulge_key)
 		return null
 	var/wanted = where == "behind" ? -(overlay.bulge_layer + BULGE_BEHIND_COVER) : -(overlay.bulge_layer - BULGE_ABOVE_COVER)
-	for(var/image/part as anything in owner.limb_icon_cache[owner.icon_render_keys[BODY_ZONE_CHEST]])
+	for(var/image/part as anything in owner.drawn_limb_icons(BODY_ZONE_CHEST))
 		if(part.plane == FLOAT_PLANE && part.layer == wanted)
 			LAZYADD(., part)
 
@@ -275,10 +275,10 @@
 
 	// A body update that changes nothing keeps the look and the chest's cached images.
 	var/chest_key = owner.icon_render_keys[BODY_ZONE_CHEST]
-	var/list/chest_images = owner.limb_icon_cache[chest_key]
+	var/list/chest_images = owner.drawn_limb_icons(BODY_ZONE_CHEST)
 	owner.update_body_parts()
 	TEST_ASSERT_EQUAL(owner.icon_render_keys[BODY_ZONE_CHEST], chest_key, "An idle body update changed the chest's key.")
-	TEST_ASSERT_EQUAL(owner.limb_icon_cache[chest_key], chest_images, "An idle body update rebuilt the chest.")
+	TEST_ASSERT_EQUAL(owner.drawn_limb_icons(BODY_ZONE_CHEST), chest_images, "An idle body update rebuilt the chest.")
 
 	// The length alone, under the sprite's thresholds, still changes the bulge size.
 	penis.set_size(12)
@@ -307,7 +307,7 @@
 	overlay.set_dye_color("#123456", penis)
 	TEST_ASSERT(owner.icon_render_keys[BODY_ZONE_CHEST] != chest_key, "A dyed penis in the open kept the chest's drawing.")
 	var/dyed = 0
-	for(var/image/part as anything in owner.limb_icon_cache[owner.icon_render_keys[BODY_ZONE_CHEST]])
+	for(var/image/part as anything in owner.drawn_limb_icons(BODY_ZONE_CHEST))
 		if(part.plane == FLOAT_PLANE && part.icon == overlay.sprite_datum.icon && part.color == "#123456")
 			dyed++
 	TEST_ASSERT(dyed, "The penis in the open is not drawn in the dye.")
@@ -318,10 +318,10 @@
 	penis.set_size(49)
 	TEST_ASSERT(overlay.bulge_key && overlay.bulge_anatomy_mask, "Hard jeans at size 6 drew no exposed tip.")
 	chest_key = owner.icon_render_keys[BODY_ZONE_CHEST]
-	chest_images = owner.limb_icon_cache[chest_key]
+	chest_images = owner.drawn_limb_icons(BODY_ZONE_CHEST)
 	owner.update_body_parts()
 	TEST_ASSERT_EQUAL(owner.icon_render_keys[BODY_ZONE_CHEST], chest_key, "An idle body update changed the chest's key under the jeans.")
-	TEST_ASSERT_EQUAL(owner.limb_icon_cache[chest_key], chest_images, "An idle body update rebuilt the chest under the jeans.")
+	TEST_ASSERT_EQUAL(owner.drawn_limb_icons(BODY_ZONE_CHEST), chest_images, "An idle body update rebuilt the chest under the jeans.")
 	var/list/colours = overlay.draw_color
 	TEST_ASSERT(islist(colours), "The test penis has no colour list.")
 	var/first = colours[1]

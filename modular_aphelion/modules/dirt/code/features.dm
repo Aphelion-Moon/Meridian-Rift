@@ -1,6 +1,6 @@
 /**
- * One mark a cause leaves on a body's surface: how thick it lies at each point of one limb, from 0, nothing, to 1. Only a
- * contact point or a wet coat's underside passes DIRT_CONTACT, so the darkest role lands there and nowhere else.
+ * One mark a cause leaves on a body's surface: how thick it lies at each point of one limb, from 0, nothing, to 1. Only
+ * a contact point or a wet coat's underside passes DIRT_CONTACT, so the darkest role lands there and nowhere else.
  *
  * A feature also knows how far it can reach, so a mask weighs it only on the pixels round it. A few are drawn on pixels
  * each view picks for them instead (bind()).
@@ -10,22 +10,23 @@
 	var/limb
 	/// The DIRT_ROLE_* define it always draws in, or null to draw in the role its thickness picks.
 	var/role
-	/// Whether it's left out facing east or west: in profile only a back's edge shows, and semen on it read as a strap.
+	/// Whether it's left out facing east or west: in profile only a back's edge shows, and mess on it read as a strap.
 	var/profile_hidden = FALSE
-	/// Whether it's drawn facing east or west only: in profile the arm hides the back, so a back's coat shows down the leg.
+	/// Whether it's drawn facing east or west only:
+	/// in profile the arm hides the back, so a back's coat shows down the leg.
 	var/profile_only = FALSE
-	/// Whether it covers, as the top level does: it fades at the outline and breaks near a profile's (dirt_rasterise_level())
-	/// and is drawn whatever the runs' spacing keeps.
+	/// Whether it covers, as the top level does: it fades at the outline and breaks near a profile's
+	/// (dirt_rasterise_level()) and is drawn whatever the runs' spacing keeps.
 	var/covering = FALSE
 	/// A covering feature's seed for the noise that breaks it near a profile's outline.
 	var/break_seed = 0
-	/// The run or drop it belongs to, which a view may leave out (dirt_runs_apart()): a number, DIRT_RUN_GROUP_EARLY, or
-	/// null for one always drawn.
+	/// The run or drop it belongs to, which a view may leave out (dirt_runs_apart()): a number, DIRT_RUN_GROUP_EARLY,
+	/// or null for one always drawn.
 	var/run_group
 	/// The only level it's drawn from, for a run carried on past its bulb, or null.
 	var/from_level
-	/// For a feature drawn on pixels a view picks: alist(pixel index = thickness), set by bind(). Null for one weighed by
-	/// its thickness round its limb.
+	/// alist(pixel index = thickness) on the view it's drawn on, where it lies at all, set by bind() as it's first
+	/// asked for (pixels_on()).
 	var/alist/drawn_pixels
 	/// Degrees round its limb that one pixel spans, from dirt_metric().
 	var/degrees_per_pixel
@@ -59,27 +60,56 @@
  * Returns how thick the feature lies at a point of the surface, from 0, nothing, to 1.
  *
  * Arguments:
- * - limb: The DIRT_LIMB_* define of the limb the point is on.
- * - theta: Degrees round the limb.
+ * - theta: Degrees round the limb, from -180 up to 180.
  * - along: h along the limb.
  */
-/datum/dirt_feature/proc/thickness(limb, theta, along)
+/datum/dirt_feature/proc/thickness(theta, along)
 	return 0
 
 /**
- * Picks the pixels a feature drawn on pixels draws on in one view, into drawn_pixels. Others draw by thickness() and
- * need nothing.
+ * Returns how thick the feature lies on each pixel of the view it's drawn on, where it lies at all: alist(pixel index =
+ * thickness), worked out the first time (bind()). A feature is drawn on one view only. You should NEVER modify it.
+ *
+ * Arguments:
+ * - surface: The view's surface.
+ * - surface_rows: Its pixels by limb and row, from dirt_surface_rows().
+ */
+/datum/dirt_feature/proc/pixels_on(datum/dirt_surface/surface, alist/surface_rows)
+	RETURN_TYPE(/alist)
+	if(!drawn_pixels)
+		bind(surface, surface_rows)
+	return drawn_pixels
+
+/**
+ * Works out the pixels the feature draws on in one view, into drawn_pixels: by default its thickness() on each pixel
+ * of its limb it can reach. A few pick their pixels instead.
  *
  * Arguments:
  * - surface: The view's surface.
  * - surface_rows: Its pixels by limb and row, from dirt_surface_rows().
  */
 /datum/dirt_feature/proc/bind(datum/dirt_surface/surface, alist/surface_rows)
-	return
+	drawn_pixels = alist()
+	var/list/rows = surface_rows[limb]
+	if(!rows)
+		return
+	var/list/theta_of = surface.theta_of
+	var/list/height_of = surface.height_of
+	for(var/list/entry as anything in rows)
+		if(entry[3] < reach_low || entry[2] > reach_high)
+			continue
+		for(var/index in entry[4])
+			var/theta = theta_of[index]
+			var/turn = theta - reach_theta
+			if(abs(DIRT_WRAP_DEGREES(turn)) > reach_degrees)
+				continue
+			var/thickness = thickness(theta, height_of[index])
+			if(thickness)
+				drawn_pixels[index] = thickness
 
 /**
- * A streak between two surface points, tapering toward its end. A fringe draws a film edge round it; a fluid's drip goes
- * without, since a fringe dithered a 1 px streak.
+ * A streak between two surface points, tapering toward its end. A fringe draws a film edge round it; a fluid's drip
+ * goes without, since a fringe dithered a 1 px streak.
  */
 /datum/dirt_feature/stroke
 	/// The theta it starts at.
@@ -133,9 +163,7 @@
 /**
  * Body within the streak's half width of its line, a film fringe 0.7 px past that.
  */
-/datum/dirt_feature/stroke/thickness(limb, theta, along)
-	if(limb != src.limb)
-		return 0
+/datum/dirt_feature/stroke/thickness(theta, along)
 	var/turn = theta - start_theta
 	var/across = DIRT_WRAP_DEGREES(turn) / degrees_per_pixel
 	var/up = (along - start_along) / along_per_pixel
@@ -183,7 +211,7 @@
  * - ragged: How far its outline wobbles, as a fraction of its radius.
  * - underside: Whether its lower part is the thickest.
  */
-/datum/dirt_feature/glob/New(limb, theta, along, radius_x, radius_y, seed, ragged = 0.18, underside = TRUE)
+/datum/dirt_feature/glob/New(limb, theta, along, radius_x, radius_y, seed, ragged, underside = TRUE)
 	. = ..(limb)
 	centre_theta = theta
 	centre_along = along
@@ -202,9 +230,7 @@
 /**
  * Body inside the wobbling outline, the underside's thickest in its lower part, film in a ring 0.2 radii past it.
  */
-/datum/dirt_feature/glob/thickness(limb, theta, along)
-	if(limb != src.limb)
-		return 0
+/datum/dirt_feature/glob/thickness(theta, along)
 	var/turn = theta - centre_theta
 	var/across = DIRT_WRAP_DEGREES(turn) / degrees_per_pixel
 	var/up = (along - centre_along) / along_per_pixel
@@ -213,8 +239,7 @@
 	var/distance = sqrt(stretched_across * stretched_across + stretched_up * stretched_up)
 	if(distance > 1.6)
 		return 0
-	var/wrapped = DIRT_WRAP_DEGREES(theta)
-	distance += (dirt_spread_noise(wrapped / degrees_per_pixel, along / along_per_pixel, seed, 1.8) - 0.5) * 2 * ragged
+	distance += (dirt_spread_noise(theta / degrees_per_pixel, along / along_per_pixel, seed, 1.8) - 0.5) * 2 * ragged
 	if(distance >= 1)
 		return distance < 1.2 ? DIRT_FILM_T : 0
 	if(underside && up < -0.2 * radius_y && distance < 0.85)
@@ -252,15 +277,13 @@
 /**
  * Full thickness on the one pixel it sits on.
  */
-/datum/dirt_feature/glint/thickness(limb, theta, along)
-	if(limb != src.limb)
-		return 0
+/datum/dirt_feature/glint/thickness(theta, along)
 	var/turn = theta - centre_theta
 	return (abs(DIRT_WRAP_DEGREES(turn)) / degrees_per_pixel < 0.5 && abs(along - centre_along) / along_per_pixel < 0.5) ? 1 : 0
 
 /**
- * A highlight on one pixel only, the nearest to its theta of those a glint lights: on a narrow limb a glint lit two side
- * by side, a white dash.
+ * A highlight on one pixel only, the nearest to its theta of those a glint lights: on a narrow limb a glint lit two
+ * side by side, a white dash.
  */
 /datum/dirt_feature/glint/highlight
 
@@ -278,7 +301,7 @@
 			continue
 		for(var/index in entry[4])
 			var/theta = theta_of[index]
-			if(!thickness(limb, theta, height_of[index]))
+			if(!thickness(theta, height_of[index]))
 				continue
 			var/turn = theta - centre_theta
 			turn = abs(DIRT_WRAP_DEGREES(turn))
@@ -347,7 +370,8 @@
 			drawn_pixels[nearest] = DIRT_BODY_T
 
 /**
- * Returns how many degrees a pixel of a row spans: the turn to the pixels beside it in the row, or a limb's own at least.
+ * Returns how many degrees a pixel of a row spans:
+ * the turn to the pixels beside it in the row, or a limb's own at least.
  *
  * Arguments:
  * - line: The row's pixel indexes, side by side.
@@ -408,17 +432,14 @@
 /**
  * Film inside its ragged outline, broken film and haze toward the edge where its noise is low.
  */
-/datum/dirt_feature/glaze/thickness(limb, theta, along)
-	if(limb != src.limb)
-		return 0
+/datum/dirt_feature/glaze/thickness(theta, along)
 	var/turn = theta - centre_theta
 	var/across = DIRT_WRAP_DEGREES(turn) / degrees_per_pixel
 	var/up = (along - centre_along) / along_per_pixel
 	var/distance = shape(across, up)
 	if(distance > 1.6)
 		return 0
-	var/wrapped = DIRT_WRAP_DEGREES(theta)
-	var/noise = dirt_spread_noise(wrapped / degrees_per_pixel, along / along_per_pixel, seed, 2)
+	var/noise = dirt_spread_noise(theta / degrees_per_pixel, along / along_per_pixel, seed, 2)
 	distance += (noise - 0.5) * 2 * ragged * clamp((distance - 0.35) / 0.5, 0, 1)
 	if(distance < 0.65)
 		return DIRT_FILM_T
@@ -477,14 +498,14 @@
 
 /datum/dirt_feature/spill/bind(datum/dirt_surface/surface, alist/surface_rows)
 	drawn_pixels = alist()
-	var/list/limb_of = surface.limb_of
-	var/list/zone_of = surface.zone_of
+	var/list/flags_of = surface.flags_of
 	var/list/theta_of = surface.theta_of
 	var/width = surface.width
 	// the torso's last row of body pixels, not the margin's
 	var/last = -1
-	for(var/index in 1 to length(limb_of))
-		if(limb_of[index] == DIRT_LIMB_TORSO && zone_of[index])
+	for(var/index in 1 to length(flags_of))
+		var/flags = flags_of[index]
+		if(DIRT_PIXEL_LIMB(flags) == DIRT_LIMB_TORSO && DIRT_PIXEL_ZONE(flags))
 			last = max(last, floor((index - 1) / width))
 	if(last < 0)
 		return
@@ -493,7 +514,8 @@
 	var/nearest_turn
 	for(var/column in 0 to width - 1)
 		var/index = last * width + column + 1
-		if(limb_of[index] != DIRT_LIMB_TORSO || !zone_of[index])
+		var/flags = flags_of[index]
+		if(DIRT_PIXEL_LIMB(flags) != DIRT_LIMB_TORSO || !DIRT_PIXEL_ZONE(flags))
 			continue
 		line += index
 		var/turn = theta_of[index] - centre_theta
@@ -501,21 +523,26 @@
 		if(isnull(nearest) || turn < nearest_turn)
 			nearest = index
 			nearest_turn = turn
-	if(nearest_turn > dirt_pixel_span(line, nearest, theta_of, dirt_metric(DIRT_LIMB_TORSO)[1]) * 0.5) // it left the torso on the side this view doesn't show
+	// it left the torso on the side this view doesn't show
+	if(nearest_turn > dirt_pixel_span(line, nearest, theta_of, dirt_metric(DIRT_LIMB_TORSO)[1]) * 0.5)
 		return
 	var/column = nearest - 1 - last * width
 	var/side = seed % 2 ? 1 : -1
 	for(var/step_down in 1 to rows)
 		var/row = last + step_down
 		var/index = surface.pixel_index(column, row)
-		if(!index || !zone_of[index] || (limb_of[index] != DIRT_LIMB_R_LEG && limb_of[index] != DIRT_LIMB_L_LEG))
+		var/flags = index && flags_of[index]
+		var/pixel_limb = DIRT_PIXEL_LIMB(flags)
+		if(!DIRT_PIXEL_ZONE(flags) || (pixel_limb != DIRT_LIMB_R_LEG && pixel_limb != DIRT_LIMB_L_LEG))
 			break
 		var/next_index = surface.pixel_index(column, row + 1)
-		var/at_end = step_down == rows || !next_index || !zone_of[next_index]
+		var/at_end = step_down == rows || !next_index || !DIRT_PIXEL_ZONE(flags_of[next_index])
 		if(tongue)
 			drawn_pixels[index] = at_end ? DIRT_HAZE_T : DIRT_FILM_T
 			var/beside = surface.pixel_index(column + side, row)
-			if(step_down <= floor(rows / 2) && beside && zone_of[beside] && (limb_of[beside] == DIRT_LIMB_R_LEG || limb_of[beside] == DIRT_LIMB_L_LEG))
+			var/beside_flags = beside && flags_of[beside]
+			var/beside_limb = DIRT_PIXEL_LIMB(beside_flags)
+			if(step_down <= floor(rows / 2) && DIRT_PIXEL_ZONE(beside_flags) && (beside_limb == DIRT_LIMB_R_LEG || beside_limb == DIRT_LIMB_L_LEG))
 				drawn_pixels[beside] = DIRT_FILM_T
 		else
 			drawn_pixels[index] = at_end ? DIRT_CONTACT + 0.05 : DIRT_BODY_T
