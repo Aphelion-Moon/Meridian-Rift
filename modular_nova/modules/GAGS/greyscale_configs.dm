@@ -613,17 +613,6 @@
 	name = "Wide Cape (Worn)"
 	icon_file = 'modular_nova/modules/GAGS/icons/cape_worn.dmi'
 
-// COLLARS
-
-// Spiked
-/datum/greyscale_config/collar_spike
-	name = "Spiked Collar"
-	icon_file = 'modular_nova/modules/GAGS/icons/collar.dmi'
-	json_config = 'modular_nova/modules/GAGS/json_configs/collar/spike.json'
-
-/datum/greyscale_config/collar_spike/worn
-	name = "Spiked Collar (Worn)"
-	json_config = 'modular_nova/modules/GAGS/json_configs/collar/spike_worn.json'
 
 //FACE SCARF
 /datum/greyscale_config/face_scarf
