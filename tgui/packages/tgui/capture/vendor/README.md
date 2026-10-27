@@ -11,7 +11,10 @@ unavailable browser resources can differ from the screen. Always preview it.
 
 ## Meridian changes
 
-Every change is marked `Meridian:` in a comment; nothing else differs from the package.
+Every change is marked `Meridian:` in a comment; apart from what we left out, nothing else differs from the package's
+`es/` files. The `index` and `apply-style` modules and the empty `types.js` are gone, since the snapshot never loads
+them. So are the source maps and their `sourceMappingURL` lines: they pointed at upstream's TypeScript, which the
+package doesn't ship, and stopped matching where we changed the code.
 
 - `clone-node.js`: `cloneCSSStyle` asks `isInstanceOfElement(nativeNode, HTMLIFrameElement)` once a node, not once a
   property (it walked the prototype chain each time, a fifth of the clone's time). The iframe, font-size and `d`

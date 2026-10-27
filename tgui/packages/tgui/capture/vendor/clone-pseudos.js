@@ -54,4 +54,3 @@ export function clonePseudoElements(nativeNode, clonedNode, options) {
     clonePseudoElement(nativeNode, clonedNode, ':before', options);
     clonePseudoElement(nativeNode, clonedNode, ':after', options);
 }
-//# sourceMappingURL=clone-pseudos.js.map
