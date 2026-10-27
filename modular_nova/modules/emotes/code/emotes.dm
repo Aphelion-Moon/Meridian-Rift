@@ -243,7 +243,7 @@
 	message = "meows!"
 	emote_type = EMOTE_AUDIBLE
 	vary = TRUE
-	sound = SFX_CAT_MEOW
+	sound = /datum/sound_effect/assoc/cat_meow
 
 /datum/emote/living/hiss
 	key = "hiss"
@@ -255,7 +255,7 @@
 
 /datum/emote/living/hiss/get_sound(mob/living/user)
 	if(isxenohybrid(user))
-		return SFX_HISS
+		return /datum/sound_effect/hiss
 	else
 		return 'modular_nova/modules/emotes/sound/emotes/hiss.ogg'
 
@@ -550,7 +550,7 @@
 	emote_type = EMOTE_AUDIBLE
 	muzzle_ignore = TRUE
 	vary = TRUE
-	sound = SFX_CAT_PURR
+	sound = /datum/sound_effect/cat_purr
 	manual_specific_emote_audio_cooldown = 5 SECONDS
 
 /datum/emote/living/moo
