@@ -241,7 +241,7 @@
 					var/obj/item/reagent_containers/cup/target_open_container = target_container_ref?.resolve()
 					if(!QDELETED(target_open_container) && (target_open_container in view(1, src)) && target_open_container.is_refillable() && target_open_container.is_drainable())
 						var/load_volume = organs.testicles.genital_size * 10
-						playsound_if_pref(get_turf(src), SFX_DESECRATION, 50, TRUE, pref_to_check = /datum/preference/toggle/erp/sounds)
+						playsound_if_pref(get_turf(src), /datum/sound_effect/desecration, 50, TRUE, pref_to_check = /datum/preference/toggle/erp/sounds)
 						if(target_open_container.reagents.holder_full())
 							// reagent container is full
 							add_cum_splatter_floor(get_turf(target_open_container))
