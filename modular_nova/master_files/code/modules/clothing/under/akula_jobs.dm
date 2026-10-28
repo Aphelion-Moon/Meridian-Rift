@@ -21,7 +21,8 @@
 	body_parts_covered = CHEST|GROIN|LEGS|FEET|ARMS|HANDS
 	can_adjust = FALSE
 	female_sprite_flags = NO_FEMALE_UNIFORM
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE | BODYSHAPE_CERULEAN
 	/// If an akula tail accessory is present, we can overlay an additional icon
 	var/tail_overlay
 

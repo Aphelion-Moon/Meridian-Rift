@@ -125,6 +125,7 @@
 
 //If there's an MMI in the robot, have it ejected when the mob goes away. --NEO
 /mob/living/silicon/robot/Destroy()
+	QDEL_NULL(cyborg_appearance_holder) // APHELION EDIT ADDITION
 	if(connected_ai)
 		set_connected_ai(null)
 	if(shell)
@@ -170,20 +171,9 @@
 		to_chat(src,span_userdanger("ERROR: Lockdown is engaged. Please disengage lockdown to pick module."))
 		return
 
-	// NOVA EDIT START - Making the cyborg model list static to reduce how many times it's generated.
+	// NOVA EDIT ADDITION START - Making the cyborg model list static to reduce how many times it's generated.
 	if(!length(GLOB.cyborg_model_list))
-		GLOB.cyborg_model_list = list(
-			"Engineering" = /obj/item/robot_model/engineering,
-			"Medical" = /obj/item/robot_model/medical,
-			"Cargo" = /obj/item/robot_model/cargo,
-			"Miner" = /obj/item/robot_model/miner,
-			"Janitor" = /obj/item/robot_model/janitor,
-			"Service" = /obj/item/robot_model/service,
-		)
-		if(!CONFIG_GET(flag/disable_peaceborg))
-			GLOB.cyborg_model_list["Peacekeeper"] = /obj/item/robot_model/peacekeeper
-		if(!CONFIG_GET(flag/disable_secborg))
-			GLOB.cyborg_model_list["Security"] = /obj/item/robot_model/security
+		GLOB.cyborg_model_list = cyborg_selectable_models()
 
 		for(var/model in GLOB.cyborg_model_list)
 			// Creating the lists here since we know all the model icons will need them right after.
@@ -195,7 +185,7 @@
 			var/obj/item/robot_model/model = GLOB.cyborg_model_list[option]
 			var/model_icon = initial(model.cyborg_base_icon)
 			GLOB.cyborg_base_models_icon_list[option] = image(icon = 'modular_nova/master_files/icons/mob/robots.dmi', icon_state = model_icon) // NOVA EDIT - CARGO BORGS - ORIGINAL: model_icons[option] = image(icon = 'icons/mob/robots.dmi', icon_state = model_icon)
-	// NOVA EDIT END
+	// NOVA EDIT ADDITION END
 
 	var/input_model = show_radial_menu(src, src, GLOB.cyborg_base_models_icon_list, radius = 42)
 	if(!input_model || model.type != /obj/item/robot_model)
@@ -372,6 +362,7 @@
 /mob/living/silicon/robot/setDir(newdir)
 	var/old_dir = dir
 	. = ..()
+	cyborg_appearance_holder?.update_from_owner() // APHELION EDIT ADDITION
 	if(. != old_dir)
 		update_worn_icons()
 

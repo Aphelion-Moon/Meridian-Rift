@@ -533,6 +533,7 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 
 	close_custom_sprite_editors(FALSE) // APHELION EDIT ADDITION
 	remove_custom_sprite_slot(default_slot) // APHELION EDIT ADDITION - A reused slot starts empty
+	remove_cyborg_layout_slot(default_slot) // APHELION EDIT ADDITION - CYBORG_CUSTOMIZATION
 	savefile.remove_entry("character[default_slot]")
 	tainted_character_profiles = TRUE
 	switch_to_slot(closest_slot)

@@ -247,6 +247,7 @@
 	if(!new_model.be_transformed_to(src, forced))
 		qdel(new_model)
 		return
+	new_model.cyborg_resolve_installed_skin() // APHELION EDIT ADDITION - CYBORG_CUSTOMIZATION
 	cyborg.drop_all_held_items()
 	cyborg.model = new_model
 	cyborg.update_module_innate()
@@ -283,16 +284,17 @@
 				if (TRAIT_R_WIDE in details[SKIN_FEATURES])
 					var/image/reskin = reskin_icons[skin]
 					reskin.pixel_x -= 16
-			//NOVA EDIT END
+			// NOVA EDIT ADDITION END
 		var/borg_skin = show_radial_menu(cyborg, cyborg, reskin_icons, custom_check = CALLBACK(src, PROC_REF(check_menu), cyborg, old_model), radius = 38, require_near = TRUE)
 		if(!borg_skin)
 			return FALSE
 		var/list/details = borg_skins[borg_skin]
-		//NOVA EDIT START
+		// NOVA EDIT ADDITION START
 		if(cyborg.hasExpanded && (((TRAIT_R_WIDE in details[SKIN_FEATURES]) && (TRAIT_R_WIDE in model_features)) || ((TRAIT_R_TALL in details[SKIN_FEATURES]) && (TRAIT_R_TALL in model_features))))
 			to_chat(cyborg, span_warning("You can't make yourself into a larger frame when you've already used an expander!"))
 			return FALSE
-		//NOVA EDIT END
+		cyborg_customization_skin = borg_skin
+		// NOVA EDIT ADDITION END
 		if(!isnull(details[SKIN_ICON_STATE]))
 			cyborg_base_icon = details[SKIN_ICON_STATE]
 		if(!isnull(details[SKIN_ICON]))

@@ -1,0 +1,218 @@
+{
+  "format_version": 2,
+  "source_sha": "090a9cb13722af449567867c720826eb6af215a5",
+  "models": {
+    "modular_nova/modules/borgs/icons/widerobot_eng.dmi#alina-eng": "alina",
+    "modular_nova/modules/borgs/icons/widerobot_eng.dmi#borgi-eng": "borgi",
+    "modular_nova/modules/borgs/icons/widerobot_eng.dmi#drakeeng": "drake",
+    "modular_nova/modules/borgs/icons/widerobot_eng.dmi#engihound": "hound",
+    "modular_nova/modules/borgs/icons/widerobot_eng.dmi#engihounddark": "hound",
+    "modular_nova/modules/borgs/icons/widerobot_eng.dmi#otiee": "otie",
+    "modular_nova/modules/borgs/icons/widerobot_eng.dmi#valeeng": "vale",
+    "modular_nova/modules/borgs/icons/widerobot_jani.dmi#J9": "vale",
+    "modular_nova/modules/borgs/icons/widerobot_jani.dmi#borgi-jani": "borgi",
+    "modular_nova/modules/borgs/icons/widerobot_jani.dmi#drakejanit": "drake",
+    "modular_nova/modules/borgs/icons/widerobot_jani.dmi#otiej": "otie",
+    "modular_nova/modules/borgs/icons/widerobot_mine.dmi#cargohound": "hound",
+    "modular_nova/modules/borgs/icons/widerobot_mine.dmi#cargohounddark": "hound",
+    "modular_nova/modules/borgs/icons/widerobot_mine.dmi#drakemine": "drake",
+    "modular_nova/modules/borgs/icons/widerobot_mine.dmi#otiec": "otie",
+    "modular_nova/modules/borgs/icons/widerobot_mine.dmi#valemine": "vale",
+    "modular_nova/modules/borgs/icons/widerobot_pk.dmi#borgi": "borgi",
+    "modular_nova/modules/borgs/icons/widerobot_pk.dmi#drakepeace": "drake",
+    "modular_nova/modules/borgs/icons/widerobot_pk.dmi#valepeace": "vale",
+    "modular_nova/modules/borgs/icons/widerobot_sec.dmi#alina-sec": "alina",
+    "modular_nova/modules/borgs/icons/widerobot_sec.dmi#borgi-sec": "borgi",
+    "modular_nova/modules/borgs/icons/widerobot_sec.dmi#drakesec": "drake",
+    "modular_nova/modules/borgs/icons/widerobot_sec.dmi#k9": "hound",
+    "modular_nova/modules/borgs/icons/widerobot_sec.dmi#k9dark": "hound",
+    "modular_nova/modules/borgs/icons/widerobot_sec.dmi#oties": "otie",
+    "modular_nova/modules/borgs/icons/widerobot_sec.dmi#valesec": "vale",
+    "modular_nova/modules/borgs/icons/widerobot_serv.dmi#borgi-serv": "borgi",
+    "modular_nova/modules/borgs/icons/widerobot_serv.dmi#drakeserv": "drake",
+    "modular_nova/modules/borgs/icons/widerobot_serv.dmi#k50": "hound",
+    "modular_nova/modules/borgs/icons/widerobot_serv.dmi#valeserv": "vale",
+    "modular_nova/modules/borgs/icons/widerobot_serv.dmi#valeservdark": "vale",
+    "modular_nova/modules/borgs/icons/widerobots_cargo.dmi#borgi-cargo": "borgi",
+    "modular_nova/modules/borgs/icons/widerobots_cargo.dmi#cargohound": "hound",
+    "modular_nova/modules/borgs/icons/widerobots_cargo.dmi#cargohounddark": "hound",
+    "modular_nova/modules/borgs/icons/widerobots_cargo.dmi#drakecargo": "drake",
+    "modular_nova/modules/borgs/icons/widerobots_cargo.dmi#valecargo": "vale"
+  },
+  "profiles": {
+    "alina": {
+      "idle:0": {
+        "south": [{"x": 0.0, "y": -16, "delay": 1.0}],
+        "north": [{"x": 0.0, "y": -17, "delay": 1.0}],
+        "east": [{"x": -8.0, "y": -12, "delay": 1.0}],
+        "west": [{"x": 8.0, "y": -13, "delay": 1.0}]
+      },
+      "idle:1": {
+        "south": [{"x": 0.0, "y": -16, "delay": 1.0}, {"x": 0.0, "y": -16, "delay": 1.0}, {"x": 0.0, "y": -16, "delay": 1.0}, {"x": 0.0, "y": -16, "delay": 1.0}, {"x": 0.0, "y": -16, "delay": 1.0}, {"x": 0.0, "y": -16, "delay": 1.0}],
+        "north": [{"x": 0.0, "y": -18, "delay": 1.0}, {"x": 0.0, "y": -17, "delay": 1.0}, {"x": 0.0, "y": -18, "delay": 1.0}, {"x": 0.0, "y": -18, "delay": 1.0}, {"x": 0.0, "y": -17, "delay": 1.0}, {"x": 0.0, "y": -18, "delay": 1.0}],
+        "east": [{"x": -9.0, "y": -13, "delay": 1.0}, {"x": -9.0, "y": -13, "delay": 1.0}, {"x": -9.0, "y": -13, "delay": 1.0}, {"x": -9.0, "y": -13, "delay": 1.0}, {"x": -9.0, "y": -13, "delay": 1.0}, {"x": -9.0, "y": -13, "delay": 1.0}],
+        "west": [{"x": 7.0, "y": -13, "delay": 1.0}, {"x": 7.0, "y": -13, "delay": 1.0}, {"x": 7.0, "y": -13, "delay": 1.0}, {"x": 7.0, "y": -13, "delay": 1.0}, {"x": 7.0, "y": -13, "delay": 1.0}, {"x": 7.0, "y": -13, "delay": 1.0}]
+      },
+      "rest:0": {
+        "south": [{"x": 3.0, "y": -18, "delay": 1.0}],
+        "north": [{"x": -8.0, "y": -12, "delay": 1.0}],
+        "east": [{"x": -5.0, "y": -20, "delay": 1.0}],
+        "west": [{"x": 4.0, "y": -20, "delay": 1.0}]
+      },
+      "sit:0": {
+        "south": [{"x": 2.0, "y": -18, "delay": 1.0}],
+        "north": [{"x": -8.0, "y": -12, "delay": 1.0}],
+        "east": [{"x": -4.0, "y": -20, "delay": 1.0}],
+        "west": [{"x": 3.0, "y": -20, "delay": 1.0}]
+      },
+      "bellyup:0": {
+        "south": [{"x": 2.0, "y": -18, "delay": 1.0}],
+        "north": [{"x": -8.0, "y": -12, "delay": 1.0}],
+        "east": [{"x": -5.0, "y": -20, "delay": 1.0}],
+        "west": [{"x": 4.0, "y": -21, "delay": 1.0}]
+      }
+    },
+    "borgi": {
+      "idle:0": {
+        "south": [{"x": 0.0, "y": -22, "delay": 1.0}],
+        "north": [{"x": 0.0, "y": -21, "delay": 1.0}],
+        "east": [{"x": -4.0, "y": -20, "delay": 1.0}],
+        "west": [{"x": 5.0, "y": -20, "delay": 1.0}]
+      },
+      "idle:1": {
+        "south": [{"x": 0.0, "y": -22, "delay": 1.0}, {"x": 0.0, "y": -21, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -21, "delay": 1.0}, {"x": 0.0, "y": -22, "delay": 1.0}],
+        "north": [{"x": 0.0, "y": -21, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -19, "delay": 1.0}, {"x": 0.0, "y": -19, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -21, "delay": 1.0}],
+        "east": [{"x": -4.0, "y": -20, "delay": 1.0}, {"x": -4.0, "y": -20, "delay": 1.0}, {"x": -4.0, "y": -19, "delay": 1.0}, {"x": -4.0, "y": -18, "delay": 1.0}, {"x": -4.0, "y": -18, "delay": 1.0}, {"x": -4.0, "y": -18, "delay": 1.0}],
+        "west": [{"x": 5.0, "y": -20, "delay": 1.0}, {"x": 5.0, "y": -20, "delay": 1.0}, {"x": 5.0, "y": -19, "delay": 1.0}, {"x": 5.0, "y": -18, "delay": 1.0}, {"x": 5.0, "y": -18, "delay": 1.0}, {"x": 5.0, "y": -18, "delay": 1.0}]
+      },
+      "rest:0": {
+        "south": [{"x": 0.0, "y": -23, "delay": 1.0}],
+        "north": [{"x": 0.0, "y": -23, "delay": 1.0}],
+        "east": [{"x": -7.0, "y": -22, "delay": 1.0}],
+        "west": [{"x": 8.0, "y": -22, "delay": 1.0}]
+      },
+      "sit:0": {
+        "south": [{"x": 0.0, "y": -22, "delay": 1.0}],
+        "north": [{"x": 0.0, "y": -23, "delay": 1.0}],
+        "east": [{"x": 0.0, "y": -23, "delay": 1.0}],
+        "west": [{"x": 1.0, "y": -23, "delay": 1.0}]
+      },
+      "bellyup:0": {
+        "south": [{"x": 0.0, "y": -9, "delay": 1.0}],
+        "north": [{"x": 0.0, "y": -19, "delay": 1.0}],
+        "east": [{"x": -7.0, "y": -13, "delay": 1.0}],
+        "west": [{"x": 8.0, "y": -13, "delay": 1.0}]
+      }
+    },
+    "drake": {
+      "idle:0": {
+        "south": [{"x": 0.0, "y": -20, "delay": 10.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}],
+        "north": [{"x": 0.0, "y": -19, "delay": 10.0}, {"x": 0.0, "y": -19, "delay": 1.0}, {"x": 0.0, "y": -19, "delay": 1.0}, {"x": 0.0, "y": -19, "delay": 1.0}, {"x": 0.0, "y": -19, "delay": 1.0}, {"x": 0.0, "y": -19, "delay": 1.0}, {"x": 0.0, "y": -19, "delay": 1.0}, {"x": 0.0, "y": -19, "delay": 1.0}, {"x": 0.0, "y": -19, "delay": 1.0}, {"x": 0.0, "y": -19, "delay": 1.0}],
+        "east": [{"x": -8.0, "y": -15, "delay": 10.0}, {"x": -8.0, "y": -15, "delay": 1.0}, {"x": -8.0, "y": -15, "delay": 1.0}, {"x": -8.0, "y": -15, "delay": 1.0}, {"x": -8.0, "y": -15, "delay": 1.0}, {"x": -8.0, "y": -16, "delay": 1.0}, {"x": -8.0, "y": -16, "delay": 1.0}, {"x": -8.0, "y": -15, "delay": 1.0}, {"x": -8.0, "y": -15, "delay": 1.0}, {"x": -8.0, "y": -15, "delay": 1.0}],
+        "west": [{"x": 7.0, "y": -15, "delay": 10.0}, {"x": 7.0, "y": -15, "delay": 1.0}, {"x": 7.0, "y": -15, "delay": 1.0}, {"x": 7.0, "y": -15, "delay": 1.0}, {"x": 7.0, "y": -15, "delay": 1.0}, {"x": 7.0, "y": -16, "delay": 1.0}, {"x": 7.0, "y": -16, "delay": 1.0}, {"x": 7.0, "y": -15, "delay": 1.0}, {"x": 7.0, "y": -15, "delay": 1.0}, {"x": 7.0, "y": -15, "delay": 1.0}]
+      },
+      "idle:1": {
+        "south": [{"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 1.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}, {"x": -1.0, "y": -19, "delay": 1.0}, {"x": 0.0, "y": -19, "delay": 1.0}, {"x": 0.0, "y": -19, "delay": 1.0}, {"x": 0.0, "y": -20, "delay": 1.0}],
+        "north": [{"x": 0.0, "y": -19, "delay": 1.0}, {"x": 0.0, "y": -19, "delay": 1.0}, {"x": 0.0, "y": -18, "delay": 1.0}, {"x": 1.0, "y": -18, "delay": 1.0}, {"x": 0.0, "y": -18, "delay": 1.0}, {"x": 0.0, "y": -19, "delay": 1.0}, {"x": 0.0, "y": -19, "delay": 1.0}, {"x": 0.0, "y": -18, "delay": 1.0}, {"x": 0.0, "y": -18, "delay": 1.0}, {"x": 0.0, "y": -19, "delay": 1.0}],
+        "east": [{"x": -8.0, "y": -15, "delay": 1.0}, {"x": -8.0, "y": -15, "delay": 1.0}, {"x": -8.0, "y": -15, "delay": 1.0}, {"x": -8.0, "y": -15, "delay": 1.0}, {"x": -8.0, "y": -14, "delay": 1.0}, {"x": -8.0, "y": -14, "delay": 1.0}, {"x": -8.0, "y": -15, "delay": 1.0}, {"x": -8.0, "y": -15, "delay": 1.0}, {"x": -8.0, "y": -15, "delay": 1.0}, {"x": -8.0, "y": -15, "delay": 1.0}],
+        "west": [{"x": 6.0, "y": -15, "delay": 1.0}, {"x": 6.0, "y": -15, "delay": 1.0}, {"x": 6.0, "y": -15, "delay": 1.0}, {"x": 6.0, "y": -15, "delay": 1.0}, {"x": 6.0, "y": -14, "delay": 1.0}, {"x": 6.0, "y": -14, "delay": 1.0}, {"x": 6.0, "y": -15, "delay": 1.0}, {"x": 6.0, "y": -15, "delay": 1.0}, {"x": 6.0, "y": -15, "delay": 1.0}, {"x": 6.0, "y": -15, "delay": 1.0}]
+      },
+      "rest:0": {
+        "south": [{"x": 0.0, "y": -23, "delay": 1.0}],
+        "north": [{"x": 0.0, "y": -21, "delay": 1.0}],
+        "east": [{"x": -1.0, "y": -22, "delay": 1.0}],
+        "west": [{"x": 2.0, "y": -22, "delay": 1.0}]
+      },
+      "sit:0": {
+        "south": [{"x": 0.0, "y": -22, "delay": 1.0}],
+        "north": [{"x": 0.0, "y": -22, "delay": 1.0}],
+        "east": [{"x": 0.0, "y": -22, "delay": 1.0}],
+        "west": [{"x": 1.0, "y": -22, "delay": 1.0}]
+      },
+      "bellyup:0": {
+        "south": [{"x": 0.0, "y": -1, "delay": 1.0}],
+        "north": [{"x": 0.0, "y": -12, "delay": 1.0}],
+        "east": [{"x": -5.0, "y": -14, "delay": 1.0}],
+        "west": [{"x": 3.0, "y": -14, "delay": 1.0}]
+      }
+    },
+    "hound": {
+      "idle:0": {
+        "south": [{"x": 0.0, "y": -14, "delay": 1.0}],
+        "north": [{"x": 0.0, "y": -14, "delay": 1.0}],
+        "east": [{"x": -12.0, "y": -12, "delay": 1.0}],
+        "west": [{"x": 13.0, "y": -12, "delay": 1.0}]
+      },
+      "idle:1": {
+        "south": [{"x": 0.0, "y": -14, "delay": 0.7}, {"x": 0.0, "y": -13, "delay": 0.7}, {"x": 0.0, "y": -13, "delay": 0.7}, {"x": 0.0, "y": -13, "delay": 0.7}, {"x": 0.0, "y": -14, "delay": 0.7}, {"x": 0.0, "y": -15, "delay": 0.7}, {"x": 0.0, "y": -15, "delay": 0.7}, {"x": 0.0, "y": -15, "delay": 0.7}, {"x": 0.0, "y": -16, "delay": 0.7}, {"x": 0.0, "y": -15, "delay": 0.7}],
+        "north": [{"x": 0.0, "y": -14, "delay": 0.7}, {"x": 0.0, "y": -14, "delay": 0.7}, {"x": 0.0, "y": -14, "delay": 0.7}, {"x": 0.0, "y": -13, "delay": 0.7}, {"x": 0.0, "y": -13, "delay": 0.7}, {"x": 0.0, "y": -13, "delay": 0.7}, {"x": 0.0, "y": -14, "delay": 0.7}, {"x": 0.0, "y": -16, "delay": 0.7}, {"x": 0.0, "y": -15, "delay": 0.7}, {"x": 0.0, "y": -14, "delay": 0.7}],
+        "east": [{"x": -12.0, "y": -12, "delay": 0.7}, {"x": -12.0, "y": -12, "delay": 0.7}, {"x": -12.0, "y": -11, "delay": 0.7}, {"x": -12.0, "y": -10, "delay": 0.7}, {"x": -12.0, "y": -10, "delay": 0.7}, {"x": -12.0, "y": -10, "delay": 0.7}, {"x": -12.0, "y": -11, "delay": 0.7}, {"x": -12.0, "y": -12, "delay": 0.7}, {"x": -12.0, "y": -12, "delay": 0.7}, {"x": -12.0, "y": -12, "delay": 0.7}],
+        "west": [{"x": 13.0, "y": -12, "delay": 0.7}, {"x": 13.0, "y": -12, "delay": 0.7}, {"x": 13.0, "y": -11, "delay": 0.7}, {"x": 13.0, "y": -10, "delay": 0.7}, {"x": 13.0, "y": -10, "delay": 0.7}, {"x": 13.0, "y": -10, "delay": 0.7}, {"x": 13.0, "y": -11, "delay": 0.7}, {"x": 13.0, "y": -12, "delay": 0.7}, {"x": 13.0, "y": -12, "delay": 0.7}, {"x": 13.0, "y": -12, "delay": 0.7}]
+      },
+      "rest:0": {
+        "south": [{"x": 0.0, "y": -20, "delay": 1.0}],
+        "north": [{"x": 0.0, "y": -22, "delay": 1.0}],
+        "east": [{"x": -8.0, "y": -20, "delay": 1.0}],
+        "west": [{"x": 9.0, "y": -20, "delay": 1.0}]
+      },
+      "sit:0": {
+        "south": [{"x": 0.0, "y": -19, "delay": 1.0}],
+        "north": [{"x": 0.0, "y": -22, "delay": 1.0}],
+        "east": [{"x": -5.0, "y": -18, "delay": 1.0}],
+        "west": [{"x": 6.0, "y": -18, "delay": 1.0}]
+      },
+      "bellyup:0": {
+        "south": [{"x": 1.0, "y": -4, "delay": 1.0}],
+        "north": [{"x": 1.0, "y": -12, "delay": 1.0}],
+        "east": [{"x": -9.0, "y": -11, "delay": 1.0}],
+        "west": [{"x": 10.0, "y": -11, "delay": 1.0}]
+      }
+    },
+    "otie": {
+      "idle:0": {
+        "south": [{"x": 0.0, "y": -18, "delay": 1.0}],
+        "north": [{"x": 0.0, "y": -17, "delay": 1.0}],
+        "east": [{"x": -8.0, "y": -15, "delay": 1.0}],
+        "west": [{"x": 9.0, "y": -15, "delay": 1.0}]
+      },
+      "idle:1": {
+        "south": [{"x": 0.0, "y": -18, "delay": 0.9}, {"x": 0.0, "y": -18, "delay": 0.9}, {"x": 1.0, "y": -18, "delay": 0.9}, {"x": 0.0, "y": -18, "delay": 0.9}, {"x": -1.0, "y": -18, "delay": 0.9}, {"x": 0.0, "y": -18, "delay": 0.9}],
+        "north": [{"x": 0.0, "y": -17, "delay": 0.9}, {"x": 1.0, "y": -17, "delay": 0.9}, {"x": 0.0, "y": -17, "delay": 0.9}, {"x": -1.0, "y": -17, "delay": 0.9}, {"x": 0.0, "y": -17, "delay": 0.9}, {"x": 0.0, "y": -17, "delay": 0.9}],
+        "east": [{"x": -7.0, "y": -14, "delay": 0.9}, {"x": -7.0, "y": -15, "delay": 0.9}, {"x": -7.0, "y": -16, "delay": 0.9}, {"x": -8.0, "y": -16, "delay": 0.9}, {"x": -9.0, "y": -15, "delay": 0.9}, {"x": -8.0, "y": -14, "delay": 0.9}],
+        "west": [{"x": 8.0, "y": -14, "delay": 0.9}, {"x": 8.0, "y": -15, "delay": 0.9}, {"x": 8.0, "y": -16, "delay": 0.9}, {"x": 9.0, "y": -16, "delay": 0.9}, {"x": 10.0, "y": -15, "delay": 0.9}, {"x": 9.0, "y": -14, "delay": 0.9}]
+      }
+    },
+    "vale": {
+      "idle:0": {
+        "south": [{"x": 0.0, "y": -14, "delay": 1.0}],
+        "north": [{"x": 0.0, "y": -15, "delay": 1.0}],
+        "east": [{"x": -8.0, "y": -12, "delay": 1.0}],
+        "west": [{"x": 9.0, "y": -12, "delay": 1.0}]
+      },
+      "idle:1": {
+        "south": [{"x": 0.0, "y": -14, "delay": 0.7}, {"x": 0.0, "y": -14, "delay": 0.7}, {"x": 0.0, "y": -13, "delay": 0.7}, {"x": 0.0, "y": -12, "delay": 0.7}, {"x": 0.0, "y": -13, "delay": 0.7}, {"x": 0.0, "y": -14, "delay": 0.7}, {"x": 0.0, "y": -15, "delay": 0.7}, {"x": 0.0, "y": -16, "delay": 0.7}, {"x": 0.0, "y": -16, "delay": 0.7}, {"x": 0.0, "y": -16, "delay": 0.7}],
+        "north": [{"x": 0.0, "y": -15, "delay": 0.7}, {"x": 0.0, "y": -15, "delay": 0.7}, {"x": 0.0, "y": -15, "delay": 0.7}, {"x": 0.0, "y": -14, "delay": 0.7}, {"x": 0.0, "y": -14, "delay": 0.7}, {"x": 0.0, "y": -14, "delay": 0.7}, {"x": 0.0, "y": -15, "delay": 0.7}, {"x": 0.0, "y": -16, "delay": 0.7}, {"x": 0.0, "y": -16, "delay": 0.7}, {"x": 0.0, "y": -16, "delay": 0.7}],
+        "east": [{"x": -9.0, "y": -12, "delay": 0.7}, {"x": -9.0, "y": -12, "delay": 0.7}, {"x": -9.0, "y": -11, "delay": 0.7}, {"x": -9.0, "y": -10, "delay": 0.7}, {"x": -9.0, "y": -9, "delay": 0.7}, {"x": -9.0, "y": -10, "delay": 0.7}, {"x": -9.0, "y": -12, "delay": 0.7}, {"x": -9.0, "y": -12, "delay": 0.7}, {"x": -9.0, "y": -13, "delay": 0.7}, {"x": -9.0, "y": -12, "delay": 0.7}],
+        "west": [{"x": 9.0, "y": -11, "delay": 0.7}, {"x": 9.0, "y": -11, "delay": 0.7}, {"x": 9.0, "y": -10, "delay": 0.7}, {"x": 9.0, "y": -9, "delay": 0.7}, {"x": 9.0, "y": -8, "delay": 0.7}, {"x": 9.0, "y": -9, "delay": 0.7}, {"x": 9.0, "y": -10, "delay": 0.7}, {"x": 9.0, "y": -10, "delay": 0.7}, {"x": 9.0, "y": -11, "delay": 0.7}, {"x": 9.0, "y": -10, "delay": 0.7}]
+      },
+      "rest:0": {
+        "south": [{"x": 0.0, "y": -21, "delay": 1.0}],
+        "north": [{"x": -1.0, "y": -23, "delay": 1.0}],
+        "east": [{"x": -7.0, "y": -20, "delay": 1.0}],
+        "west": [{"x": 9.0, "y": -20, "delay": 1.0}]
+      },
+      "sit:0": {
+        "south": [{"x": 0.0, "y": -20, "delay": 1.0}],
+        "north": [{"x": 0.0, "y": -21, "delay": 1.0}],
+        "east": [{"x": -1.0, "y": -18, "delay": 1.0}],
+        "west": [{"x": 2.0, "y": -18, "delay": 1.0}]
+      },
+      "bellyup:0": {
+        "south": [{"x": 0.0, "y": -7, "delay": 1.0}],
+        "north": [{"x": 0.0, "y": -14, "delay": 1.0}],
+        "east": [{"x": -9.0, "y": -10, "delay": 1.0}],
+        "west": [{"x": 10.0, "y": -10, "delay": 1.0}]
+      }
+    }
+  }
+}

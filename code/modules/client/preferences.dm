@@ -108,6 +108,7 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	QDEL_NULL(custom_sprite_savefile) // APHELION EDIT ADDITION
 	// QDEL_NULL(character_preview_view) // APHELION EDIT REMOVAL - CUSTOM_EDITOR_LIFETIME - Released before saving editors.
 	QDEL_LIST(middleware)
+	QDEL_NULL(cyborg_layout_savefile) // APHELION EDIT ADDITION - Flush account-owned cyborg writes after draft teardown
 	value_cache = null
 	return ..()
 
@@ -407,6 +408,7 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	QDEL_NULL(character_preview_view)
 	// APHELION EDIT ADDITION END
 	close_custom_sprite_editors(drain_pending_strokes = TRUE) // APHELION EDIT ADDITION - CUSTOM_EDITOR_LIFETIME
+	cyborg_session()?.close_editor() // APHELION EDIT ADDITION - CYBORG_CUSTOMIZATION
 	save_character()
 	save_preferences()
 	// QDEL_NULL(character_preview_view) // APHELION EDIT REMOVAL - CUSTOM_EDITOR_LIFETIME - Released before saving editors.
