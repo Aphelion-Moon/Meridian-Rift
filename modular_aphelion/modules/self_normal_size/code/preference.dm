@@ -1,4 +1,4 @@
-/// Whether a player with a body resized up sees their own body at normal size. Everyone else always sees its true size.
+/// Whether a player with a body resized up clicks it as if it were at normal size. Everyone still sees its true size.
 /datum/preference/toggle/see_self_normal_size
 	category = PREFERENCE_CATEGORY_SECONDARY_FEATURES
 	savefile_identifier = PREFERENCE_PLAYER
