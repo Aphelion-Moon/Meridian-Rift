@@ -11,6 +11,25 @@
 /obj/effect/abstract/self_normal_size_view
 	mouse_opacity = MOUSE_OPACITY_TRANSPARENT
 
+/// Routes standard overlay-helper updates to both of the component's appearance copies.
+/datum/atom_hud/alternate_appearance/basic/one_person/self_normal_size
+	/// The component owns this appearance; the callback must not keep that component alive.
+	var/datum/weakref/component_ref
+
+/datum/atom_hud/alternate_appearance/basic/one_person/self_normal_size/New(key, image/I, options, mob/living/seer, datum/component/self_normal_size/component)
+	component_ref = WEAKREF(component)
+	// The initial appearance is already complete. basic.New() would copy overlays directly onto I.
+	. = ..(key, I, options & ~AA_MATCH_TARGET_OVERLAYS, seer)
+	transfer_overlays = TRUE
+
+/datum/atom_hud/alternate_appearance/basic/one_person/self_normal_size/Destroy()
+	component_ref = null
+	return ..()
+
+/datum/atom_hud/alternate_appearance/basic/one_person/self_normal_size/copy_overlays(atom/other, cut_old)
+	var/datum/component/self_normal_size/component = component_ref?.resolve()
+	component?.queue_refresh()
+
 /**
  * Lets the owner of a resized-up body click as if it were at normal size, and only them. They see it at its true size, as
  * everyone does. Their view is two one-person alternate appearances: an image that overrides their mob with a hitbox, a
@@ -24,7 +43,7 @@
  * that copies the body's look (mirrors, photos, afterimages), clicks and sees it as it is. tg's alternate appearance shows
  * the images to the owner alone, keeps them on the body's z-level's planes and holds them.
  *
- * The copies are made again the tick after the body's look changes (an overlay, an icon update, its transform, offsets or
+ * The copies are made again the tick after the body's look changes (an overlay helper, an icon update, its transform, offsets or
  * colour, its death), so changes made together are copied once; a change with no signal of its own, like a filter or an
  * alpha set directly, shows with the next copy. What the game only animates on the body (a jitter, a flip, a fade) the
  * view doesn't play: the owner sees where it ends up.
@@ -124,7 +143,7 @@
 		return
 	var/image/hitbox_image = image(loc = owner)
 	hitbox_image.appearance = hitbox
-	owner.add_alt_appearance(/datum/atom_hud/alternate_appearance/basic/one_person, SELF_NORMAL_SIZE_KEY, hitbox_image, NONE, owner)
+	owner.add_alt_appearance(/datum/atom_hud/alternate_appearance/basic/one_person/self_normal_size, SELF_NORMAL_SIZE_KEY, hitbox_image, NONE, owner, src)
 	// Drawn on the body's plane and layer, as an image's are by default, and never written again, so it keeps the view.
 	var/image/view_image = image(loc = owner)
 	view_image.vis_contents += view
