@@ -920,12 +920,12 @@ export class Select extends Tool {
    * Ctrl+V: floats the copied paint in this view where it was copied from, with part of it kept on
    * the canvas. Floating paint already here is dropped first.
    *
-   * Returns whether there was anything to paste.
+   * Returns whether there was anything to paste. A canvas that takes no paste (data.noPaste) never has.
    */
   paste(context: SpriteEditorToolContext, data: SpriteData) {
     this.reconcilePending(context, data);
     const clip = this.clipboard;
-    if (!clip || this.drag) return false;
+    if (!clip || this.drag || data.noPaste) return false;
     const [left, top, right, bottom] = clip.rect;
     const base = clip.baseCopy;
     const destination = data.baseCopyInfo;

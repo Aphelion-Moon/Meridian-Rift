@@ -92,7 +92,7 @@
 
 /obj/item/radio/headset/heads/nanotrasen_consultant/alt/Initialize(mapload)
 	. = ..()
-	AddComponent(/datum/component/wearertargeting/earprotection, list(ITEM_SLOT_EARS))
+	AddComponent(/datum/component/wearertargeting/earprotection)
 
 /obj/effect/landmark/start/nanotrasen_consultant
 	name = "Astraeus Federation Consultant"

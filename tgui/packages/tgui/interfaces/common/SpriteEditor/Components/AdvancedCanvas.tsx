@@ -51,6 +51,7 @@ export type AdvancedCanvasPropsBase = {
   selectionMask?: SelectionMask; // APHELION EDIT ADDITION
   shade?: ShadeRenderer; // APHELION EDIT ADDITION
   overlay?: (canvasWidth: number, canvasHeight: number) => React.ReactNode; // APHELION EDIT ADDITION
+  pixelColor?: (pixel: string) => string; // APHELION EDIT ADDITION - the colour a pixel is drawn in, when not its own
 } & Partial<BooleanStyleMap & StringStyleMap & InlineStyle>;
 
 type AdvancedCanvasProps = IncludeOrOmitEntireType<
@@ -98,6 +99,7 @@ export const AdvancedCanvas = (props: AdvancedCanvasProps) => {
     selectionMask, // APHELION EDIT ADDITION
     shade, // APHELION EDIT ADDITION
     overlay, // APHELION EDIT ADDITION
+    pixelColor, // APHELION EDIT ADDITION
     ...rest
   } = extractBaseProps(props);
   const { onClick } = propsHaveClickHandler(props) ? props : {};
@@ -173,8 +175,16 @@ export const AdvancedCanvas = (props: AdvancedCanvasProps) => {
     }
     data.forEach((row: string[] | EditorColor[], y) => {
       row.forEach((pixel: string | EditorColor, x) => {
+        /* // APHELION EDIT REMOVAL START
         context.fillStyle =
           typeof pixel === 'string' ? pixel : colorToCssString(pixel);
+        */ // APHELION EDIT REMOVAL END
+        // APHELION EDIT ADDITION START
+        context.fillStyle =
+          typeof pixel === 'string'
+            ? (pixelColor?.(pixel) ?? pixel)
+            : colorToCssString(pixel);
+        // APHELION EDIT ADDITION END
         context.fillRect(
           x * scalingFactor,
           y * scalingFactor,
@@ -225,6 +235,7 @@ export const AdvancedCanvas = (props: AdvancedCanvasProps) => {
     backgroundImage,
     shadedAreas,
     shade,
+    pixelColor,
     // APHELION EDIT ADDITION END
   ]);
   return (

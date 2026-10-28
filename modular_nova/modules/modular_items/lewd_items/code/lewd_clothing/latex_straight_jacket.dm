@@ -17,6 +17,7 @@
 	equip_delay_self = NONE
 	strip_delay = 12 SECONDS
 	breakouttime = 1 SECONDS
+	clothing_traits = list(TRAIT_RESTRAINED)
 	resist_cooldown = CLICK_CD_SLOW
 
 /obj/item/clothing/suit/straight_jacket/latex_straight_jacket/Initialize(mapload)

@@ -240,6 +240,11 @@ GLOBAL_LIST_INIT(unrecommended_builds, list(
 
 //This stops files larger than UPLOAD_LIMIT being sent from client to server via input(), client.Import() etc.
 /client/AllowUpload(filename, filelength)
+	// APHELION EDIT ADDITION START - BUG_REPORTING - a bug report's open screenshot prompt takes one image past the upload limit
+	if(bug_report_draft?.upload_until > world.time && bug_report_image_name(filename))
+		bug_report_draft.upload_until = 0
+		return filelength > 0 && filelength <= BUG_REPORT_UPLOAD_LIMIT
+	// APHELION EDIT ADDITION END - BUG_REPORTING
 	var/client_max_file_size = CONFIG_GET(number/upload_limit)
 	if (holder)
 		var/admin_max_file_size = CONFIG_GET(number/upload_limit_admin)
@@ -257,6 +262,7 @@ GLOBAL_LIST_INIT(unrecommended_builds, list(
 	///////////
 
 /client/New(TopicData)
+	new_started = TRUE
 	var/tdata = TopicData //save this for later use
 	TopicData = null //Prevent calls to client.Topic from connect
 
@@ -622,6 +628,10 @@ GLOBAL_LIST_INIT(unrecommended_builds, list(
 	return ..()
 
 /client/Destroy()
+	if(!new_started)
+		..()
+		return QDEL_HINT_HARDDEL_NOW
+
 	if(mob)
 		var/stealth_admin = mob.client?.holder?.fakekey
 		var/announce_join = mob.client?.prefs?.read_preference(/datum/preference/toggle/broadcast_login_logout)

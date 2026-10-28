@@ -77,7 +77,7 @@ SUBSYSTEM_DEF(symphony)
 		if(isnewplayer(checked.mob))
 			var/mob/dead/new_player/lobby = checked.mob
 			if(lobby.ready != PLAYER_NOT_READY)
-				lobby.ready = PLAYER_NOT_READY
+				lobby.unready()
 				lobby.show_title_screen()
 			continue
 		if(!checked.mob)

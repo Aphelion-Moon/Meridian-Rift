@@ -1553,7 +1553,7 @@ GLOBAL_LIST_INIT(subspace_ballmatter_spheres, list(
 	initial_reagent_flags = OPENCONTAINER | DUNKABLE
 	icon = 'modular_aphelion/modules/admin_tech/icons/admin_items.dmi'
 	icon_state = "sub-beaker"
-	reagent_container_liquid_sound = SFX_DEFAULT_LIQUID_SLOSH
+	reagent_container_liquid_sound = /datum/sound_effect/default_liquid_slosh
 	/// Like Edible's food type, what kind of drink is this?
 	drink_type = NONE
 	/// How much we drink at once, shot glasses drink more.

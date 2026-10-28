@@ -5,9 +5,9 @@
 	greyscale_colors = "#2d2d33#dead39"
 	icon = 'icons/map_icons/clothing/neck.dmi'
 	icon_state = "/obj/item/clothing/neck/size_collar"
-	post_init_icon_state = "tagged_collar"
-	greyscale_config = /datum/greyscale_config/thin_collar/tagged
-	greyscale_config_worn = /datum/greyscale_config/thin_collar/tagged/worn
+	post_init_icon_state = "thin_tagged_collar"
+	greyscale_config = /datum/greyscale_config/tagged_collar
+	greyscale_config_worn = /datum/greyscale_config/tagged_collar/worn
 	flags_1 = IS_PLAYER_COLORABLE_1
 	obj_flags_nova = ERP_ITEM
 	/// Have we given the user the warning message yet?

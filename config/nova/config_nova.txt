@@ -242,3 +242,20 @@ SAVEFILE_UPLOAD_LIMIT 2000
 
 ## Uncomment to disable the custom hair and body-marking pixel editors. Saved drawings still render.
 #DISALLOW_CUSTOM_SPRITE_EDITING
+
+## In-game bug reports (modular_aphelion/modules/bug_reporting).
+## Uncomment to use the in-game report window instead of the GitHub issue form. It needs a reporting host on this
+## machine and the three settings below; the module's module.md says how. Downstreams: leave all four commented out,
+## and Report a bug opens your GitHub issue form as before.
+#USE_FANCY_BUG_REPORTING
+
+## Where the reporting host listens on this machine: 127.0.0.1 and the port your host is set to. Any other address
+## is refused.
+#BUG_REPORT_BRIDGE_URL http://127.0.0.1:<port>
+
+## The shared secret the reporting host checks on every call from the game. Set it only in your server's own
+## config, never in the repo.
+#BUG_REPORT_BRIDGE_TOKEN <secret>
+
+## The name the reporting host knows this server by. It must match the host's own config.
+#BUG_REPORT_SERVER_ID <server name>

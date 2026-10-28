@@ -6,7 +6,7 @@ Discord-role whitelist gate for the server, paired with the **SSymphony** bridge
 
 ## How it works
 
-- Un-whitelisted players can't ready up or late-join. Ready actions, round-start admission, and `AttemptLateSpawn` are gated, fail-closed. They use the **Get Whitelisted** verb (OOC tab), which opens SSymphony's OAuth flow using a one-time `discord_links` token.
+- Un-whitelisted players can't ready up or late-join. Ready actions, round-start admission, and `AttemptLateSpawn` are gated, fail-closed, as are character setup, preferences import and Opposing Force from the lobby, whichever verb or menu opens them. They use the **Get Whitelisted** verb (OOC tab), which opens SSymphony's OAuth flow using a one-time `discord_links` token.
 - The whitelist check reads the shared MySQL: a ckey is whitelisted iff its linked `discord_id` holds a role mapped to the in-game `whitelist` role in `symphony_role_grants` (kept current by SSymphony). The generic helper `symphony_has_ingame_role(ckey, key)` supports other in-game roles too (e.g. `staff`, `donator`). The Discord-role to in-game-role mapping is managed in SSymphony's panel, not in game config.
 - SSymphony pushes `whitelist_revoke` / `whitelist_grant` world topics; on revoke, the player gets a grace period then is returned to the lobby. `SSsymphony` re-checks connected players periodically as a safety net.
 - **Symphony Status** (admin verb, Server tab) reports this module's version, what SSymphony last said about itself and when, and which of the two is behind if they disagree. The panel shows the same thing per server under Server settings. Bump `SYMPHONY_MODULE_VERSION` in `_version.dm` and `EXPECTED_GAME_MODULE` in SSymphony together.

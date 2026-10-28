@@ -150,7 +150,7 @@
  *
  * Tracks open UIs for a user.
  */
-/mob/var/list/tgui_open_uis = list()
+/mob/var/list/tgui_open_uis
 
 /**
  * global
@@ -165,6 +165,11 @@
  * TRUE if cache was reloaded by tgui dev server at least once.
  */
 /client/var/tgui_cache_reloaded = FALSE
+// APHELION EDIT ADDITION START - BUG_REPORTING - BYOND_POST_MESSAGE
+
+/// When this client may next have a dropped message logged, so a flood of them logs once a minute
+/client/var/tgui_oversized_log_cooldown = 0
+// APHELION EDIT ADDITION END - BUG_REPORTING
 
 /**
  * public
@@ -233,6 +238,19 @@ GAME_VERB_NATIVE(/client, uiclose, "uiclose", null, window_id as text)
 			return TRUE
 
 	// Decode payload
+	// APHELION EDIT ADDITION START - BUG_REPORTING - bug report captures are bounded before their JSON is decoded
+	if((type == "bug-report/capture-ready" || type == "bug-report/capture-chunk" || type == "bug-report/capture-cancel") && (!window || length(href_list["payload"]) > BUG_REPORT_CAPTURE_CHUNK + 256))
+		return TRUE
+	// APHELION EDIT ADDITION END - BUG_REPORTING
+	// APHELION EDIT ADDITION START - BUG_REPORTING - BYOND_POST_MESSAGE
+	// A posted message can be any size, so we drop a huge one before its JSON costs us anything
+	if(length(href_list["payload"]) > TGUI_MAX_PAYLOAD_BYTES)
+		to_chat(usr, span_warning("That was too long to send. Try something shorter."))
+		if(COOLDOWN_FINISHED(usr.client, tgui_oversized_log_cooldown))
+			COOLDOWN_START(usr.client, tgui_oversized_log_cooldown, 1 MINUTES)
+			log_tgui(usr, "Error: Dropped a [type] message of [length(href_list["payload"])] bytes, over the [TGUI_MAX_PAYLOAD_BYTES] byte limit", context = window_id)
+		return TRUE
+	// APHELION EDIT ADDITION END - BUG_REPORTING
 	var/payload
 	if(href_list["payload"])
 		var/payload_text = href_list["payload"]

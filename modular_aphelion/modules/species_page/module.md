@@ -104,7 +104,3 @@ the window's data. Browsing, the family tabs, search and the holiday toggle are 
 - `tgui/packages/tgfont/icons/zaphelion-alien.svg`, `zaphelion-orange.svg`, `zaphelion-pineapple.svg`
 - `code/modules/unit_tests/screenshots/screenshot_humanoids__datum_species_aquatic.png`,
   `screenshot_humanoids__datum_species_unathi.png` (the humanoid screenshots, with the new previews)
-
-### Credits:
-
-- mal

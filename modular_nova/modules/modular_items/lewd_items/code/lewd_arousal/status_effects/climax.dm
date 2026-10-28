@@ -10,6 +10,10 @@
 	duration = 10 SECONDS
 	alert_type = null
 
+/datum/status_effect/climax/on_apply()
+	SEND_SIGNAL(owner, COMSIG_MOB_CLIMAXED)
+	return TRUE
+
 /datum/status_effect/climax/tick(seconds_between_ticks)
 	if(!owner.client?.prefs?.read_preference(/datum/preference/toggle/erp/sex_toy))
 		return

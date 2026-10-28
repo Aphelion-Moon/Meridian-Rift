@@ -1,0 +1,14 @@
+author: "vinylspiders"
+delete-after: True
+changes:
+  - rscadd: "new persistent graffiti system, pick up a can and get taggin!"
+  - rscadd: "new bug reporting system which does not require a github account to use"
+  - image: "liquid fires and puddles got a facelift"
+  - image: "new mess overlays"
+  - image: "a number of new items can be found in the LustWish, check them out!"
+  - image: "there are now bulge overlays for semi and full mast"
+  - bugfix: "fixes a few minor bugs with the markings and augments menu"
+  - qol: "augments limb style selection now has previews"
+  - rscadd: "body hair options in prefs"
+  - rscadd: "new scent related options in the <3 tab of character preferences"
+  - config: "adds 44 new interactions"

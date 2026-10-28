@@ -343,17 +343,9 @@ ADMIN_VERB(log_viewer_new, R_ADMIN, "View Round Logs", "View the rounds logs.", 
 				continue
 
 			data = recursive_jsonify(serialization_data, semvers)
-			// APHELION EDIT ADDITION START - an empty list is valid data (a mind with no memories), but a datum should serialize to something
 			if(!length(data))
 				stack_trace("recursive_jsonify got an empty list after serialization")
 				continue
-			// APHELION EDIT ADDITION END
-
-		/* // APHELION EDIT REMOVAL START - only datums are checked, above
-		if(islist(data) && !length(data))
-			stack_trace("recursive_jsonify got an empty list after serialization")
-			continue
-		*/ // APHELION EDIT REMOVAL END
 
 		jsonified_list[key] = data
 

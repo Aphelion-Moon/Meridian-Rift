@@ -12,7 +12,7 @@
 /datum/emote/living/custom
 	mob_type_blacklist_typecache = list(/mob/living/brain)
 	cooldown = 0
-	stat_allowed = SOFT_CRIT
+	can_use_flags = EMOTE_CANUSE_SOFTCRIT
 
 //me-verb emotes should not have a cooldown check
 /datum/emote/living/custom/check_cooldown(mob/user, intentional)
@@ -68,8 +68,17 @@
 	message_robot = "synthesizes a yawn."
 	message_AI = "synthesizes a yawns."
 
+/datum/emote/living/sniff
+	message_param = "sniffs %t."
+
 /datum/emote/living/sniff/run_emote(mob/user, params, type_override, intentional)
-	. = ..()
+	// With nothing after the key, sniff whoever you're pulling or facing, and smell them like the Smell verb does.
+	var/mob/living/carbon/human/target = params ? null : get_sniff_target(user)
+	. = ..(user, target ? "[target]" : params, type_override, intentional)
+	if(target && intentional)
+		var/mob/living/carbon/human/sniffer = user
+		if(sniffer.can_see_erp_flavor(target) && !HAS_TRAIT(target, TRAIT_QUICKREFLEXES))
+			sniffer.smell_human(target)
 	var/turf/open/current_turf = get_turf(user)
 	if(istype(current_turf) && current_turf.pollution)
 		if(iscarbon(user))
@@ -78,6 +87,17 @@
 				return
 			carbon_user.next_smell = world.time + SMELL_COOLDOWN
 		current_turf.pollution.smell_act(user)
+
+/// The human a bare *sniff is aimed at: the one [sniffer] is pulling, or the one they face, if adjacent.
+/datum/emote/living/sniff/proc/get_sniff_target(mob/living/sniffer)
+	if(!ishuman(sniffer))
+		return null
+	var/mob/living/carbon/human/pulled = sniffer.pulling
+	if(istype(pulled) && sniffer.Adjacent(pulled))
+		return pulled
+	for(var/mob/living/carbon/human/faced in get_step(sniffer, sniffer.dir))
+		return faced
+	return null
 
 
 /datum/emote/living/peep
@@ -243,7 +263,7 @@
 	message = "meows!"
 	emote_type = EMOTE_AUDIBLE
 	vary = TRUE
-	sound = SFX_CAT_MEOW
+	sound = /datum/sound_effect/assoc/cat_meow
 
 /datum/emote/living/hiss
 	key = "hiss"
@@ -255,7 +275,7 @@
 
 /datum/emote/living/hiss/get_sound(mob/living/user)
 	if(isxenohybrid(user))
-		return SFX_HISS
+		return /datum/sound_effect/hiss
 	else
 		return 'modular_nova/modules/emotes/sound/emotes/hiss.ogg'
 
@@ -550,7 +570,7 @@
 	emote_type = EMOTE_AUDIBLE
 	muzzle_ignore = TRUE
 	vary = TRUE
-	sound = SFX_CAT_PURR
+	sound = /datum/sound_effect/cat_purr
 	manual_specific_emote_audio_cooldown = 5 SECONDS
 
 /datum/emote/living/moo

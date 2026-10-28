@@ -112,8 +112,9 @@ GAME_VERB_HIDDEN(/client, reset_held_keys_verb, "Reset Held Keys")
 	var/list/resources = list()
 
 	var/githuburl = CONFIG_GET(string/githuburl)
-	if(githuburl)
-		resources += list(list("id" = "bug", "label" = "Report Bug", "tooltip" = "Report a bug/issue"))
+	if(githuburl || bug_reports_enabled()) // APHELION EDIT CHANGE - BUG_REPORTING - the report form works without a GitHub URL. ORIGINAL: if(githuburl)
+		resources += list(list("id" = "bug", "label" = "Report Bug", "tooltip" = "Tell staff about something that's broken")) // APHELION EDIT CHANGE - BUG_REPORTING - plain words for bug reports. ORIGINAL: resources += list(list("id" = "bug", "label" = "Report Bug", "tooltip" = "Report a bug/issue"))
+	if(githuburl) // APHELION EDIT ADDITION - BUG_REPORTING
 		resources += list(list("id" = "github", "label" = "Github", "tooltip" = "Open the repository for the game"))
 
 	var/forumurl = CONFIG_GET(string/forumurl)

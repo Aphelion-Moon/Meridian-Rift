@@ -90,6 +90,8 @@ type CustomPaletteSectionProps = {
   canAddColor?: boolean;
   disabledColors?: boolean[];
   footer?: ReactNode;
+  /** Each swatch's width and height. */
+  swatchSize?: string;
 };
 
 const CustomPaletteSection = ({
@@ -104,6 +106,7 @@ const CustomPaletteSection = ({
   canAddColor,
   disabledColors,
   footer,
+  swatchSize = '2em',
 }: CustomPaletteSectionProps) => {
   const [contextIndex, setContextIndex] = useState<number>();
   const anchorRef = useRef<HTMLElement>(null);
@@ -152,8 +155,8 @@ const CustomPaletteSection = ({
               aria-label={`${title} color ${displayColor}`}
               aria-pressed={colorsAreEqual(color, selectedColor)}
               className="SpriteEditor__plainSwatch"
-              width="2em"
-              height="2em"
+              width={swatchSize}
+              height={swatchSize}
               disabled={disabled}
               onClick={() => onClickColor(i)}
               onMouseOver={(ev) => {
@@ -219,6 +222,7 @@ export const CustomSpritePalette = ({
   availableColors,
   maxCustomColors,
   displayTint,
+  defaultPalette,
 }: {
   serverPalette: string[];
   customPalette: string[];
@@ -226,6 +230,8 @@ export const CustomSpritePalette = ({
   maxCustomColors: number;
   displayTint: string | null;
   blending?: ReactNode;
+  /** Colours offered first, before the drawing has its own. */
+  defaultPalette?: string[];
 }) => {
   const { act } = useBackend();
   const [currentColor, setCurrentColor] = useAtom(currentColorAtom);
@@ -317,35 +323,54 @@ export const CustomSpritePalette = ({
       document.removeEventListener('keydown', keyDown);
     };
   });
+  // A swatch's menu: save its colour among the account's Custom ones.
+  const saveMenu = (color: string, close: () => void) => {
+    const unavailable = customPalette.includes(color)
+      ? 'This color is already saved.'
+      : customPalette.length >= maxCustomColors
+        ? 'Remove a custom color to make room.'
+        : undefined;
+    return (
+      <Button
+        icon="save"
+        disabled={!!unavailable}
+        tooltip={unavailable}
+        onClick={() => {
+          act('savePaletteColor', { color });
+          close();
+        }}
+      >
+        Save
+      </Button>
+    );
+  };
   return (
     <Stack vertical>
+      {!!defaultPalette && (
+        <Stack.Item>
+          <CustomPaletteSection
+            title="Default"
+            colors={defaultPalette.map(parseHexColorString)}
+            selectedColor={currentColor}
+            swatchSize="1.5em"
+            onClickColor={(index) =>
+              setCurrentColor(parseHexColorString(defaultPalette[index]))
+            }
+            colorContextMenu={(index, close) =>
+              saveMenu(defaultPalette[index], close)
+            }
+          />
+        </Stack.Item>
+      )}
       <Stack.Item>
         <CustomPaletteSection
           titleTooltip="Wheel or [ / ]: previous / next color."
           colors={colors}
           selectedColor={currentColor}
           onClickColor={selectSwatch}
-          colorContextMenu={(index, close) => {
-            const color = serverPalette[index];
-            const unavailable = customPalette.includes(color)
-              ? 'This color is already saved.'
-              : customPalette.length >= maxCustomColors
-                ? 'Remove a custom color to make room.'
-                : undefined;
-            return (
-              <Button
-                icon="save"
-                disabled={!!unavailable}
-                tooltip={unavailable}
-                onClick={() => {
-                  act('savePaletteColor', { color });
-                  close();
-                }}
-              >
-                Save
-              </Button>
-            );
-          }}
+          colorContextMenu={(index, close) =>
+            saveMenu(serverPalette[index], close)
+          }
         />
       </Stack.Item>
       <Stack.Item>

@@ -52,6 +52,11 @@
 				/obj/item/clothing/gloves/recolorable/long = 5,
 				/obj/item/clothing/gloves/recolorable/fingerless/long = 5,
 				/obj/item/clothing/glasses/fake_sunglasses/aviator = 5,
+				/obj/item/instrument/piano_synth/headphones/studio = 5,
+				/obj/item/instrument/piano_synth/headphones/neon/streetjack = 5,
+				/obj/item/instrument/piano_synth/headphones/neon/raid/no_mic = 5,
+				/obj/item/instrument/piano_synth/headphones/neon/halo = 5,
+				/obj/item/instrument/piano_synth/headphones/neon/halo/sakura = 5,
 			),
 		),
 

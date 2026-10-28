@@ -20,6 +20,7 @@
 	equip_delay_self = 1 SECONDS
 	strip_delay = 2 SECONDS
 	breakouttime = 1 SECONDS
+	clothing_traits = list(TRAIT_RESTRAINED)
 	slowdown = 1
 	pickup_sound = 'sound/items/handling/handcuffs/handcuffs_pick_up.ogg'
 	drop_sound = 'sound/items/handling/handcuffs/handcuffs_drop.ogg'

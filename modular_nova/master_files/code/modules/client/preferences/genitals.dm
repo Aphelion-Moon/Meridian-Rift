@@ -417,6 +417,25 @@
 	relevant_mutant_bodypart = ORGAN_SLOT_BREASTS
 	default_accessory_type = /datum/sprite_accessory/genital/breasts/none
 
+/datum/preference/choiced/genital/breasts/compile_constant_data()
+	. = ..()
+	// The UI shows these as one Pecs entry in the list, and lists them in its Pecs option dropdown.
+	.["pec_shapes"] = pec_shape_names()
+
+/datum/preference/choiced/genital/breasts/init_possible_values()
+	var/list/choices = ..()
+	// The pec shapes sit just above Pair, where the UI's one Pecs entry goes.
+	var/list/pec_names = pec_shape_names()
+	choices -= pec_names
+	choices.Insert(max(1, choices.Find(/datum/sprite_accessory/genital/breasts/pair::name)), pec_names)
+	return choices
+
+/// The pec shapes' names, in the order the Pecs option dropdown lists them.
+/datum/preference/choiced/genital/breasts/proc/pec_shape_names()
+	. = list()
+	for(var/datum/sprite_accessory/genital/breasts/pecs/shape_type as anything in typesof(/datum/sprite_accessory/genital/breasts/pecs))
+		. += initial(shape_type.name)
+
 /datum/preference/toggle/genital_skin_tone/breasts
 	savefile_key = "breasts_skin_tone"
 	relevant_mutant_bodypart = ORGAN_SLOT_BREASTS
@@ -479,7 +498,12 @@
 	var/passed_initial_check = ..(preferences)
 	var/allowed = preferences.read_preference(/datum/preference/toggle/allow_mismatched_parts)
 	var/erp_allowed = preferences.read_preference(/datum/preference/toggle/master_erp_preferences) && preferences.read_preference(/datum/preference/toggle/allow_genitals)
-	var/part_enabled = is_factual_sprite_accessory(relevant_mutant_bodypart, preferences.read_preference(/datum/preference/choiced/genital/breasts))
+	var/shape_name = preferences.read_preference(/datum/preference/choiced/genital/breasts)
+	var/part_enabled = is_factual_sprite_accessory(relevant_mutant_bodypart, shape_name)
+	// Pecs have one sprite whatever the size, and cup letters mean nothing for them.
+	var/datum/sprite_accessory/genital/breasts/shape = SSaccessories.sprite_accessories[relevant_mutant_bodypart]?[shape_name]
+	if(shape?.pecs_flags & PECS_SHAPE)
+		return FALSE
 	return erp_allowed && part_enabled && (passed_initial_check || allowed)
 
 /datum/preference/choiced/breasts_size/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
