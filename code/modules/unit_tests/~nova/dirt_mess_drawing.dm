@@ -1,4 +1,5 @@
-#define DIRT_MESS_CORPUS "code/modules/unit_tests/~nova/dirt_mess_corpus.json"
+// compiled in, since CI's test world is deployed without code/
+#define DIRT_MESS_CORPUS 'code/modules/unit_tests/~nova/dirt_mess_corpus.json'
 
 /**
  * The game's limbs feed the dirt template the sprites the corpus names, so the parity manifest's surfaces are the ones
@@ -10,7 +11,7 @@
 /datum/unit_test/dirt_zone_sources/Run()
 	var/list/corpus = json_decode(file2text(DIRT_MESS_CORPUS) || "{}")
 	var/list/templates = corpus["templates"]
-	TEST_ASSERT(length(templates), "[DIRT_MESS_CORPUS] is missing or has no templates.")
+	TEST_ASSERT(length(templates), "[DIRT_MESS_CORPUS] has no templates.")
 	var/mob/living/carbon/human/consistent/body = allocate(/mob/living/carbon/human/consistent)
 	TEST_ASSERT_EQUAL(describe_sources(dirt_zone_sources(body)), describe_sources(dirt_parity_zone_sources(templates["human_m"])), "A consistent human's sprites aren't the corpus's human_m.")
 	body.dna.features[FEATURE_MUSCLE_SIZE] = MUSCLE_SIZE_MUSCULAR

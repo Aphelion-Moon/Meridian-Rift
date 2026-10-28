@@ -12,9 +12,10 @@
  * readme says how).
  *
  * To accept a reviewed change, copy the manifest this test writes whenever the two differ, data/bulge_manifest.txt,
- * over code/modules/unit_tests/~nova/bulge_manifest.txt.
+ * over code/modules/unit_tests/~nova/bulge_manifest.txt, and compile again: the reviewed manifest is compiled in.
  */
-#define BULGE_MANIFEST_REVIEWED "code/modules/unit_tests/~nova/bulge_manifest.txt"
+// compiled in, since CI's test world is deployed without code/
+#define BULGE_MANIFEST_REVIEWED 'code/modules/unit_tests/~nova/bulge_manifest.txt'
 #define BULGE_MANIFEST_CURRENT "data/bulge_manifest.txt"
 #define BULGE_MANIFEST_SHEETS "modular_aphelion/modules/bulge/icons/templates/"
 
@@ -33,7 +34,7 @@
 		var/list/fields = splittext(line, " ")
 		expected["[fields[1]] [fields[2]]"] = line
 	if(!length(expected))
-		TEST_FAIL("[BULGE_MANIFEST_REVIEWED] is missing or empty.")
+		TEST_FAIL("[BULGE_MANIFEST_REVIEWED] is empty.")
 	var/list/changes = list()
 	for(var/key, line in current)
 		var/old = expected[key]

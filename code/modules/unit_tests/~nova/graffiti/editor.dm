@@ -75,7 +75,7 @@
 /datum/unit_test/graffiti_editor_surface/Run()
 	graffiti_editor_test_begin()
 	var/list/turfs = graffiti_test_walls(1)
-	TEST_ASSERT_EQUAL(length(turfs), 1, "Runtime Station must have a wall between two floors to paint.")
+	TEST_ASSERT_EQUAL(length(turfs), 1, "The test room must have a wall between two floors to paint.")
 	var/turf/wall = turfs[1]
 	var/list/held = graffiti_editor_test_painter(src, wall)
 	var/mob/living/carbon/human/consistent/painter = held[1]
@@ -138,7 +138,7 @@
 	graffiti_editor_test_begin()
 	var/datum/graffiti_library/library = graffiti_library(GRAFFITI_EDITOR_TEST_CKEY)
 	var/list/turfs = graffiti_test_walls(1)
-	TEST_ASSERT_EQUAL(length(turfs), 1, "Runtime Station must have a wall between two floors to paint.")
+	TEST_ASSERT_EQUAL(length(turfs), 1, "The test room must have a wall between two floors to paint.")
 	var/turf/wall = turfs[1]
 	var/list/held = graffiti_editor_test_painter(src, wall)
 	var/mob/living/carbon/human/consistent/painter = held[1]
@@ -218,7 +218,7 @@
 /datum/unit_test/graffiti_editor_permanent_paint/Run()
 	graffiti_editor_test_begin()
 	var/list/turfs = graffiti_test_walls(1)
-	TEST_ASSERT_EQUAL(length(turfs), 1, "Runtime Station must have a wall to paint.")
+	TEST_ASSERT_EQUAL(length(turfs), 1, "The test room must have a wall to paint.")
 	var/turf/wall = turfs[1]
 	var/list/held = graffiti_editor_test_painter(src, wall)
 	var/mob/living/carbon/human/consistent/painter = held[1]
@@ -280,7 +280,7 @@
 /datum/unit_test/graffiti_full_surface_refused/Run()
 	graffiti_editor_test_begin()
 	var/list/turfs = graffiti_test_walls(1)
-	TEST_ASSERT_EQUAL(length(turfs), 1, "Runtime Station must have a wall to paint.")
+	TEST_ASSERT_EQUAL(length(turfs), 1, "The test room must have a wall to paint.")
 	var/turf/wall = turfs[1]
 	var/list/held = graffiti_editor_test_painter(src, wall)
 	var/mob/living/carbon/human/consistent/painter = held[1]

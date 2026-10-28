@@ -5,17 +5,24 @@
  * - path: The scratch map file, under data/graffiti_test/.
  */
 /proc/graffiti_registry_test_begin(path)
-	graffiti_registry_test_end()
+	// The test room stays up for a test that starts the registry over partway
+	graffiti_registry_test_end(keep_room = TRUE)
 	SSgraffiti.frozen = FALSE
 	SSgraffiti.sheet_root = "data/graffiti_test/sheets/"
 	SSgraffiti.load_file(path)
 
 /**
- * Empties the graffiti registry, puts its test settings back and deletes the scratch directory. The registry points at
- * the current map's own file again but stays frozen, so nothing the rest of a test round does is written over it.
+ * Empties the graffiti registry, takes the test room down (graffiti_test_room()), puts the registry's test settings back
+ * and deletes the scratch directory. The registry points at the current map's own file again but stays frozen, so
+ * nothing the rest of a test round does is written over it.
+ *
+ * Arguments:
+ * - keep_room: Whether the test room stays up.
  */
-/proc/graffiti_registry_test_end()
+/proc/graffiti_registry_test_end(keep_room = FALSE)
 	SSgraffiti.wipe_for_test()
+	if(!keep_room)
+		graffiti_test_room_end()
 	SSgraffiti.placement_cap = GRAFFITI_MAP_PLACEMENT_CAP
 	SSgraffiti.art_byte_budget = GRAFFITI_MAP_ART_BYTES
 	SSgraffiti.sheet_root = GRAFFITI_SHEET_DIRECTORY
@@ -42,29 +49,97 @@
 		glow += (position == lit ? 1 : 0)
 	return list("w" = GRAFFITI_WIDTH, "pal" = "#ff0000ff", "grid" = graffiti_encode_flat(indices, 1), "glow" = graffiti_encode_flat(glow, 1))
 
+/// The graffiti test room's width and height, its walls included: 96 floors inside, past the caps test's 81
+#define GRAFFITI_TEST_ROOM_WIDTH 13
+#define GRAFFITI_TEST_ROOM_HEIGHT 11
+/// How many walls stand side by side across the test room's floors
+#define GRAFFITI_TEST_ROOM_ROW 3
+/// Where that row's west end is, in tiles from the room's south-west corner
+#define GRAFFITI_TEST_ROOM_ROW_X 2
+#define GRAFFITI_TEST_ROOM_ROW_Y 5
+
+/// The graffiti test room's turfs while a test has it up (graffiti_test_room())
+GLOBAL_LIST(graffiti_test_room)
+
 /**
- * Returns walls side by side, west to east, where graffiti gets a station anchor, each between two floors so that
- * turning one into a floor opens no room to space, and with nothing wall-mounted on it or around it that the change
- * would knock down. The same walls come back every call.
+ * Returns the room the graffiti tests paint in, built the first time a test asks and taken down by
+ * graffiti_registry_test_end(): walls round floors, with a row of GRAFFITI_TEST_ROOM_ROW walls across them, built on empty
+ * space of a station level and moved into a station area, so its every tile takes graffiti under a station anchor. No
+ * map is relied on to have such walls, as the unit test map, runtimestation_minimal, is all space. The room sits inside
+ * one of the 16-tile chunks build_sheets() packs together.
+ *
+ * Returns:
+ * - list: The room's turfs, from the south-west corner, west to east, then row by row north.
+ * - null: No station level has empty space for it.
+ */
+/proc/graffiti_test_room()
+	if(GLOB.graffiti_test_room)
+		return GLOB.graffiti_test_room
+	var/area/station_area
+	for(var/area/station/place in GLOB.areas)
+		if(!istype(place, /area/station/holodeck))
+			station_area = place
+			break
+	var/z_level = SSmapping.levels_by_trait(ZTRAIT_STATION)[1]
+	for(var/chunk_y = 16 to world.maxy - GRAFFITI_TEST_ROOM_HEIGHT - 1 step 16)
+		for(var/chunk_x = 16 to world.maxx - GRAFFITI_TEST_ROOM_WIDTH - 1 step 16)
+			// The room and a tile round it must be space nothing has touched, so taking it down leaves the level as it was
+			var/clear = TRUE
+			for(var/turf/tile as anything in block(chunk_x, chunk_y, z_level, chunk_x + GRAFFITI_TEST_ROOM_WIDTH + 1, chunk_y + GRAFFITI_TEST_ROOM_HEIGHT + 1, z_level))
+				if(tile.type != world.turf || tile.loc.type != world.area || length(tile.contents))
+					clear = FALSE
+					break
+			if(!clear)
+				continue
+			var/list/room = block(chunk_x + 1, chunk_y + 1, z_level, chunk_x + GRAFFITI_TEST_ROOM_WIDTH, chunk_y + GRAFFITI_TEST_ROOM_HEIGHT, z_level)
+			set_turfs_to_area(room, station_area)
+			for(var/turf/tile as anything in room)
+				var/across = tile.x - chunk_x - 1
+				var/up = tile.y - chunk_y - 1
+				var/edge = !across || !up || across == GRAFFITI_TEST_ROOM_WIDTH - 1 || up == GRAFFITI_TEST_ROOM_HEIGHT - 1
+				var/row = up == GRAFFITI_TEST_ROOM_ROW_Y && across >= GRAFFITI_TEST_ROOM_ROW_X && across < GRAFFITI_TEST_ROOM_ROW_X + GRAFFITI_TEST_ROOM_ROW
+				tile.ChangeTurf((edge || row) ? /turf/closed/wall : /turf/open/floor/iron)
+			GLOB.graffiti_test_room = room
+			return room
+	return null
+
+/**
+ * Takes the graffiti test room down, if a test put it up: deletes all a test left in it, then turns it back into the
+ * space of the space area it was.
+ */
+/proc/graffiti_test_room_end()
+	var/list/room = GLOB.graffiti_test_room
+	if(!room)
+		return
+	GLOB.graffiti_test_room = null
+	// All of it first, so nothing hung on a wall falls off onto a floor as the wall goes
+	for(var/turf/tile as anything in room)
+		for(var/atom/movable/thing as anything in tile)
+			qdel(thing)
+	for(var/turf/tile as anything in room)
+		tile.ChangeTurf(world.turf)
+	set_turfs_to_area(room, GLOB.areas_by_type[world.area])
+
+/**
+ * Returns walls side by side, west to east, in the test room (graffiti_test_room()), each between two floors so that
+ * turning one into a floor opens no room to space, and with nothing wall-mounted on it or around it. The same walls come
+ * back every call.
  *
  * Arguments:
- * - count: How many walls.
+ * - count: How many walls, up to GRAFFITI_TEST_ROOM_ROW.
  *
  * Returns:
  * - list: The walls.
- * - null: No such row exists.
+ * - null: There aren't that many, or no room.
  */
 /proc/graffiti_test_walls(count)
-	for(var/z_level in SSmapping.levels_by_trait(ZTRAIT_STATION))
-		for(var/turf/closed/wall/start in Z_TURFS(z_level))
-			var/list/turfs = list()
-			var/turf/wall = start
-			while(length(turfs) < count && iswallturf(wall) && isfloorturf(get_step(wall, NORTH)) && isfloorturf(get_step(wall, SOUTH)) && !graffiti_test_mounted(wall) && graffiti_anchor_for(wall)?["kind"] == GRAFFITI_ANCHOR_STATION)
-				turfs += wall
-				wall = get_step(wall, EAST)
-			if(length(turfs) == count)
-				return turfs
-	return null
+	var/list/room = graffiti_test_room()
+	if(!room || count > GRAFFITI_TEST_ROOM_ROW)
+		return null
+	var/turf/corner = room[1]
+	. = list()
+	for(var/offset in 0 to count - 1)
+		. += locate(corner.x + GRAFFITI_TEST_ROOM_ROW_X + offset, corner.y + GRAFFITI_TEST_ROOM_ROW_Y, corner.z)
 
 /**
  * Whether anything wall-mounted is on a wall or on the turfs beside it, where it may hang from the wall.
@@ -96,7 +171,7 @@
 			.++
 
 /**
- * Returns floors where graffiti gets a station anchor.
+ * Returns floors of the test room (graffiti_test_room()), where graffiti gets a station anchor.
  *
  * Arguments:
  * - count: How many floors.
@@ -106,12 +181,11 @@
  */
 /proc/graffiti_test_floors(count)
 	. = list()
-	for(var/z_level in SSmapping.levels_by_trait(ZTRAIT_STATION))
-		for(var/turf/open/floor/floor in Z_TURFS(z_level))
-			if(graffiti_surface_ok(floor) && graffiti_anchor_for(floor)?["kind"] == GRAFFITI_ANCHOR_STATION)
-				. += floor
-				if(length(.) == count)
-					return
+	for(var/turf/open/floor/floor in graffiti_test_room())
+		if(graffiti_surface_ok(floor) && graffiti_anchor_for(floor)?["kind"] == GRAFFITI_ANCHOR_STATION)
+			. += floor
+			if(length(.) == count)
+				return
 
 /**
  * Finds a placement by its id.
@@ -194,7 +268,7 @@
 	graffiti_registry_test_begin(path)
 	var/cameras = graffiti_test_cameras()
 	var/list/turfs = graffiti_test_walls(3)
-	TEST_ASSERT_EQUAL(length(turfs), 3, "Runtime Station must have three walls side by side between floors.")
+	TEST_ASSERT_EQUAL(length(turfs), 3, "The test room must have three walls side by side between floors.")
 	for(var/turf/place as anything in turfs)
 		TEST_ASSERT(!graffiti_test_mounted(place), "The walls picked must have nothing wall-mounted on or beside them: [AREACOORD(place)]")
 	var/list/art = graffiti_test_art(1)
@@ -275,7 +349,7 @@
 	var/path = "data/graffiti_test/cleaned.json"
 	graffiti_registry_test_begin(path)
 	var/list/turfs = graffiti_test_walls(2)
-	TEST_ASSERT_EQUAL(length(turfs), 2, "Runtime Station must have two walls side by side between floors.")
+	TEST_ASSERT_EQUAL(length(turfs), 2, "The test room must have two walls side by side between floors.")
 	var/first = SSgraffiti.add_placement(turfs[1], graffiti_test_art(1), "graffiti_test", "Jane Doe", "graffiti_test-washed")
 	var/second = SSgraffiti.add_placement(turfs[2], graffiti_test_art(2), "graffiti_test", "Jane Doe", "graffiti_test-broken")
 	SSgraffiti.save_now()
@@ -320,7 +394,7 @@
 	graffiti_registry_test_begin("data/graffiti_test/admin.json")
 	graffiti_library_test_reset("data/graffiti_test/library/")
 	var/list/turfs = graffiti_test_walls(1)
-	TEST_ASSERT_EQUAL(length(turfs), 1, "Runtime Station must have a wall between two floors to paint.")
+	TEST_ASSERT_EQUAL(length(turfs), 1, "The test room must have a wall between two floors to paint.")
 	var/list/stack = list()
 	for(var/position in 1 to 3)
 		stack += SSgraffiti.add_placement(turfs[1], graffiti_test_art(position), "graffiti_test", "Jane Doe", "graffiti_test-[position]")
@@ -353,7 +427,7 @@
 	var/path = "data/graffiti_test/gone.json"
 	graffiti_registry_test_begin(path)
 	var/list/turfs = graffiti_test_walls(2)
-	TEST_ASSERT_EQUAL(length(turfs), 2, "Runtime Station must have two walls side by side between floors.")
+	TEST_ASSERT_EQUAL(length(turfs), 2, "The test room must have two walls side by side between floors.")
 	SSgraffiti.add_placement(turfs[1], graffiti_test_art(1), "graffiti_test", "Jane Doe", "graffiti_test-left")
 	// Lit and unlit paint in a colour no other art has, so it draws both caches' icons and is found by its palette.
 	var/list/art = graffiti_test_art(2, 3)
@@ -384,7 +458,7 @@
 	var/path = "data/graffiti_test/halves.json"
 	graffiti_registry_test_begin(path)
 	var/list/turfs = graffiti_test_walls(2)
-	TEST_ASSERT_EQUAL(length(turfs), 2, "Runtime Station must have two walls side by side between floors.")
+	TEST_ASSERT_EQUAL(length(turfs), 2, "The test room must have two walls side by side between floors.")
 	var/list/sides = graffiti_split_wide(graffiti_flatten(graffiti_validate_piece(graffiti_test_piece(GRAFFITI_WIDE_WIDTH))))
 	TEST_ASSERT_EQUAL(length(sides), 2, "A wide piece must split into two halves.")
 	var/left = SSgraffiti.add_placement(turfs[1], sides[1], "graffiti_test", "Jane Doe", "graffiti_test-wide", 1)
@@ -433,7 +507,7 @@
 	graffiti_registry_test_begin(path)
 	var/tiles = GRAFFITI_CKEY_PLACEMENT_CAP / GRAFFITI_STACK_CAP + 1
 	var/list/floors = graffiti_test_floors(tiles)
-	TEST_ASSERT_EQUAL(length(floors), tiles, "Runtime Station must have enough floors.")
+	TEST_ASSERT_EQUAL(length(floors), tiles, "The test room must have enough floors.")
 	var/list/art = graffiti_test_art(1)
 	// The account's unique-art cap, GRAFFITI_CKEY_UNIQUE_CAP, which registry.dm keeps to itself.
 	var/unique_cap = GRAFFITI_MAP_UNIQUE_CAP / 10
@@ -527,7 +601,7 @@
 	var/path = "data/graffiti_test/sheets.json"
 	graffiti_registry_test_begin(path)
 	var/list/turfs = graffiti_test_walls(2)
-	TEST_ASSERT_EQUAL(length(turfs), 2, "Runtime Station must have two walls side by side between floors.")
+	TEST_ASSERT_EQUAL(length(turfs), 2, "The test room must have two walls side by side between floors.")
 	SSgraffiti.add_placement(turfs[1], graffiti_test_art(1), "graffiti_test", "Jane Doe")
 	SSgraffiti.add_placement(turfs[1], graffiti_test_art(2, 3), "graffiti_test", "Jane Doe")
 	SSgraffiti.add_placement(turfs[2], graffiti_test_art(4, 4), "graffiti_test", "Jane Doe")
@@ -590,8 +664,8 @@
 	return list("w" = GRAFFITI_WIDTH, "pal" = graffiti_palette_pack(palette), "grid" = graffiti_encode_flat(indices, 40), "glow" = graffiti_encode_flat(glow, 1))
 
 /**
- * Returns tiles that take graffiti under a station anchor, all in one of the 16-tile chunks build_sheets() packs
- * together, the same ones every call.
+ * Returns tiles of the test room (graffiti_test_room()) that take graffiti under a station anchor, all in one of the
+ * 16-tile chunks build_sheets() packs together, the same ones every call.
  *
  * Arguments:
  * - count: How many.
@@ -602,18 +676,17 @@
 /proc/graffiti_test_chunk_turfs(count)
 	// Chunk key -> its turfs so far.
 	var/list/chunks = list()
-	for(var/z_level in SSmapping.levels_by_trait(ZTRAIT_STATION))
-		for(var/turf/tile as anything in Z_TURFS(z_level))
-			if(!graffiti_surface_ok(tile) || graffiti_anchor_for(tile)?["kind"] != GRAFFITI_ANCHOR_STATION)
-				continue
-			var/key = "[tile.z]-[round(tile.y / 16)]-[round(tile.x / 16)]"
-			var/list/turfs = chunks[key]
-			if(!turfs)
-				turfs = list()
-				chunks[key] = turfs
-			turfs += tile
-			if(length(turfs) == count)
-				return turfs
+	for(var/turf/tile as anything in graffiti_test_room())
+		if(!graffiti_surface_ok(tile) || graffiti_anchor_for(tile)?["kind"] != GRAFFITI_ANCHOR_STATION)
+			continue
+		var/key = "[tile.z]-[round(tile.y / 16)]-[round(tile.x / 16)]"
+		var/list/turfs = chunks[key]
+		if(!turfs)
+			turfs = list()
+			chunks[key] = turfs
+		turfs += tile
+		if(length(turfs) == count)
+			return turfs
 	return list()
 
 /**
@@ -624,7 +697,7 @@
 	var/path = "data/graffiti_test/chunk.json"
 	graffiti_registry_test_begin(path)
 	var/list/turfs = graffiti_test_chunk_turfs(12)
-	TEST_ASSERT_EQUAL(length(turfs), 12, "Runtime Station must have 12 tiles that take graffiti in one 16-tile chunk.")
+	TEST_ASSERT_EQUAL(length(turfs), 12, "The test room must have 12 tiles that take graffiti in one 16-tile chunk.")
 	// Written as a map file rather than placed, so no icon is drawn before the sheets are.
 	var/list/arts = list()
 	var/list/entries = list()
@@ -666,7 +739,7 @@
 	var/path = "data/graffiti_test/static.json"
 	graffiti_registry_test_begin(path)
 	var/list/turfs = graffiti_test_walls(1)
-	TEST_ASSERT_EQUAL(length(turfs), 1, "Runtime Station must have a wall between two floors to paint.")
+	TEST_ASSERT_EQUAL(length(turfs), 1, "The test room must have a wall between two floors to paint.")
 	var/turf/wall = turfs[1]
 	var/list/station_anchor = graffiti_anchor_for(wall)
 	var/list/entry = list("x" = wall.x - 1, "y" = wall.y - 1, "z" = wall.z, "w" = 3, "h" = 3)
@@ -696,3 +769,9 @@
 /datum/unit_test/graffiti_static_station_only/Destroy()
 	graffiti_registry_test_end()
 	return ..()
+
+#undef GRAFFITI_TEST_ROOM_WIDTH
+#undef GRAFFITI_TEST_ROOM_HEIGHT
+#undef GRAFFITI_TEST_ROOM_ROW
+#undef GRAFFITI_TEST_ROOM_ROW_X
+#undef GRAFFITI_TEST_ROOM_ROW_Y

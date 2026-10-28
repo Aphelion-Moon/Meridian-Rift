@@ -23,7 +23,7 @@
 /datum/unit_test/graffiti_poster_freehand/Run()
 	graffiti_editor_test_begin()
 	var/list/turfs = graffiti_test_walls(1)
-	TEST_ASSERT_EQUAL(length(turfs), 1, "Runtime Station must have a wall between two floors to paint.")
+	TEST_ASSERT_EQUAL(length(turfs), 1, "The test room must have a wall between two floors to paint.")
 	var/turf/wall = turfs[1]
 	var/turf/floor = get_step(wall, SOUTH)
 	var/obj/structure/sign/poster/poster = allocate(GRAFFITI_POSTER_TEST_TYPE, floor)
@@ -90,7 +90,7 @@
 /datum/unit_test/graffiti_poster_paint_job/Run()
 	graffiti_editor_test_begin()
 	var/list/turfs = graffiti_test_walls(2)
-	TEST_ASSERT_EQUAL(length(turfs), 2, "Runtime Station must have two walls side by side between floors.")
+	TEST_ASSERT_EQUAL(length(turfs), 2, "The test room must have two walls side by side between floors.")
 	var/obj/structure/sign/poster/first = allocate(GRAFFITI_POSTER_TEST_TYPE, get_step(turfs[1], SOUTH))
 	var/obj/structure/sign/poster/second = allocate(GRAFFITI_POSTER_TEST_TYPE, get_step(turfs[2], SOUTH))
 	var/list/held = graffiti_editor_test_painter(src, turfs[1])

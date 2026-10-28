@@ -8,8 +8,9 @@
  * Whenever a case differs, the text of every case is written to data/dirt_mess_masks.txt, to compare case by case
  * with the reference generator's.
  */
-#define DIRT_MESS_CORPUS "code/modules/unit_tests/~nova/dirt_mess_corpus.json"
-#define DIRT_MESS_MANIFEST "code/modules/unit_tests/~nova/dirt_mess_manifest.txt"
+// compiled in, since CI's test world is deployed without code/
+#define DIRT_MESS_CORPUS 'code/modules/unit_tests/~nova/dirt_mess_corpus.json'
+#define DIRT_MESS_MANIFEST 'code/modules/unit_tests/~nova/dirt_mess_manifest.txt'
 #define DIRT_MESS_MASKS_CURRENT "data/dirt_mess_masks.txt"
 
 /datum/unit_test/dirt_mess_manifest
@@ -18,7 +19,7 @@
 
 /datum/unit_test/dirt_mess_manifest/Run()
 	var/list/corpus = json_decode(file2text(DIRT_MESS_CORPUS) || "{}")
-	TEST_ASSERT(length(corpus["cases"]), "[DIRT_MESS_CORPUS] is missing or has no cases.")
+	TEST_ASSERT(length(corpus["cases"]), "[DIRT_MESS_CORPUS] has no cases.")
 	var/list/digests = list()
 	for(var/line in splittext(file2text(DIRT_MESS_MANIFEST) || "", regex(@"\r?\n")))
 		if(length(line) && copytext(line, 1, 2) != "#")

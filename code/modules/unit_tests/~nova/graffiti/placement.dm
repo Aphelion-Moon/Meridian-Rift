@@ -9,7 +9,7 @@
 /datum/unit_test/graffiti_paint_job_steps/Run()
 	graffiti_editor_test_begin()
 	var/list/turfs = graffiti_test_walls(1)
-	TEST_ASSERT_EQUAL(length(turfs), 1, "Runtime Station must have a wall between two floors to paint.")
+	TEST_ASSERT_EQUAL(length(turfs), 1, "The test room must have a wall between two floors to paint.")
 	var/turf/wall = turfs[1]
 	var/list/held = graffiti_editor_test_painter(src, wall)
 	var/mob/living/carbon/human/consistent/painter = held[1]
@@ -85,7 +85,7 @@
 /datum/unit_test/graffiti_paint_job_resume/Run()
 	graffiti_editor_test_begin()
 	var/list/turfs = graffiti_test_walls(2)
-	TEST_ASSERT_EQUAL(length(turfs), 2, "Runtime Station must have two walls side by side between floors.")
+	TEST_ASSERT_EQUAL(length(turfs), 2, "The test room must have two walls side by side between floors.")
 	var/list/held = graffiti_editor_test_painter(src, turfs[1])
 	var/mob/living/carbon/human/consistent/painter = held[1]
 	var/obj/item/toy/crayon/spraycan/can = held[2]
@@ -136,7 +136,7 @@
 /datum/unit_test/graffiti_paint_job_wide/Run()
 	graffiti_editor_test_begin()
 	var/list/turfs = graffiti_test_walls(2)
-	TEST_ASSERT_EQUAL(length(turfs), 2, "Runtime Station must have two walls side by side between floors.")
+	TEST_ASSERT_EQUAL(length(turfs), 2, "The test room must have two walls side by side between floors.")
 	var/list/held = graffiti_editor_test_painter(src, turfs[1])
 	var/mob/living/carbon/human/consistent/painter = held[1]
 	var/obj/item/toy/crayon/spraycan/can = held[2]
@@ -153,11 +153,11 @@
 	TEST_ASSERT(left["half"] == 1 && right["half"] == 2 && left["pid"] == right["pid"], "The halves must share one placement id: [left["pid"]] [right["pid"]]")
 	TEST_ASSERT_EQUAL(can.charges_left, charges - GRAFFITI_COST, "A two-tile job must charge the can once.")
 	var/turf/wall
-	for(var/turf/closed/wall/start in Z_TURFS(painter.z))
+	for(var/turf/closed/wall/start in graffiti_test_room())
 		if(graffiti_surface_ok(start) && !graffiti_tile_decal(start) && isfloorturf(get_step(start, EAST)) && graffiti_surface_ok(get_step(start, EAST)))
 			wall = start
 			break
-	TEST_ASSERT(wall, "Runtime Station must have a wall with a floor to its right.")
+	TEST_ASSERT(wall, "The test room must have a wall with a floor to its right.")
 	job = allocate(/datum/graffiti_paint_job, painter, can, wall, piece)
 	TEST_ASSERT(!job.start() && !job.placement && !job.placement2 && !graffiti_tile_decal(wall) && !graffiti_tile_decal(get_step(wall, EAST)) && !SSgraffiti.paint_jobs[painter.ckey], "A two-tile job must not start on a wall with a floor to its right.")
 
@@ -183,7 +183,7 @@
 		if(isfloorturf(get_step(candidate, SOUTH)) && isfloorturf(get_step(candidate, EAST)) && !(locate(/obj/structure) in candidate) && !(locate(/obj/machinery) in candidate))
 			floor = candidate
 			break
-	TEST_ASSERT(floor, "Runtime Station must have a station floor clear of structures with floors south and east of it.")
+	TEST_ASSERT(floor, "The test room must have a station floor clear of structures with floors south and east of it.")
 	var/obj/structure/window/fulltile/window = allocate(/obj/structure/window/fulltile, floor)
 	TEST_ASSERT(graffiti_surface_ok(floor) && graffiti_surface_kind(floor) == GRAFFITI_KIND_WINDOW && graffiti_window_of(floor) == window, "A full-tile window must make its tile a window surface: [graffiti_surface_kind(floor)]")
 	var/packed = SSgraffiti.add_placement(floor, graffiti_test_art(1), "graffiti_test", "Jane Doe")
