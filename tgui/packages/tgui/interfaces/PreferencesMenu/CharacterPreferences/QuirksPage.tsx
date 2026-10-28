@@ -40,7 +40,7 @@ function getColorValueClass(quirk: Quirk) {
 
 function getCorrespondingPreferences(
   customization_options: string[],
-  relevant_preferences: Record<string, string> = {},
+  relevant_preferences: Record<string, unknown> = {}, // APHELION EDIT CHANGE - Manually rendered preferences also contain toggles and numbers.
 ) {
   return Object.fromEntries(
     filter(Object.entries(relevant_preferences), ([key, value]) =>

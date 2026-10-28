@@ -382,7 +382,7 @@ export type CharacterPreferencesData = {
   };
   secondary_features: Record<string, unknown>;
   supplemental_features: Record<string, unknown>;
-  manually_rendered_features: Record<string, string>;
+  manually_rendered_features: Record<string, unknown>; // APHELION EDIT CHANGE - Includes player toggles and numeric body controls.
 
   names: Record<string, string>;
   vocals: Record<string, string>; // NOVA EDIT ADDITION

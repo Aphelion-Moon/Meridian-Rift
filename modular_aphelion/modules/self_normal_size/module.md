@@ -5,8 +5,8 @@ Module ID: SELF_NORMAL_SIZE
 ### Description:
 
 A body resized up (Oversized, or the body size slider above 1) covers the tiles round its own, so its owner clicked
-their own face instead of what stood north of them. With the "See yourself at normal size" game preference on (the
-default), the owner alone sees their body at normal size; everyone else sees its true size, as before.
+their own face instead of what stood north of them. The "See yourself at normal size" preference below Body Size is off by
+default. When enabled, the owner alone sees their body at normal size; everyone else sees its true size, as before.
 
 - **Only the owner's client sees it.** The owner's view is a one-person alternate appearance (tg's
   `/datum/atom_hud/alternate_appearance/basic/one_person`): an image that overrides their mob with a copy of the mob's
@@ -50,6 +50,7 @@ None.
 
 - `modular_nova/modules/customization/datums/dna/dna.dm`: `/datum/dna/proc/update_body_size()` calls
   `update_self_normal_size()` on a human once its size has changed.
-- `tgui/packages/tgui/interfaces/PreferencesMenu/preferences/features/game_preferences/aphelion/self_normal_size.tsx`:
-  the preference in Game Preferences, under Gameplay.
+- `tgui/packages/tgui/interfaces/PreferencesMenu/preferences/features/character_preferences/aphelion/self_normal_size.tsx`:
+  the player-wide preference shown directly below Body Size in character preferences.
+- `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/BodySize.tsx`: groups the size input and self-view toggle.
 - `tgstation.dme`

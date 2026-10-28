@@ -1,6 +1,8 @@
 // THIS IS A NOVA SECTOR UI FILE
 import { Stack } from 'tgui-core/components';
 
+import { BodySizeInput } from '../../../../CharacterPreferences/BodySize'; // APHELION EDIT ADDITION - Self-view preference beside body size
+
 import {
   CheckboxInput,
   type Feature,
@@ -256,7 +258,7 @@ export const feature_anus: Feature<string> = {
 
 export const body_size: FeatureNumeric = {
   name: 'Body Size',
-  component: FeatureNumberInput,
+  component: BodySizeInput, // APHELION EDIT CHANGE - Keep the owner's normal-size view preference below Body Size. ORIGINAL: FeatureNumberInput,
 };
 
 export const erp_status_pref: FeatureChoiced = {
