@@ -71,8 +71,10 @@
 				/obj/item/clothing/shoes/jackboots/knee = 3,
 
 				/obj/item/clothing/under/misc/latex_catsuit = 8,
+				/obj/item/clothing/under/misc/latex_halfcatsuit = 8,
 				/obj/item/clothing/gloves/long_gloves = 8,
 				/obj/item/clothing/shoes/ballet_heels = 4,
+				/obj/item/clothing/shoes/ballet_heels/pointe_boots = 4,
 				/obj/item/clothing/shoes/latex_socks = 8,
 
 				/obj/item/clothing/head/costume/nova/maid = 5,
@@ -97,6 +99,7 @@
 				/obj/item/clothing/mask/muzzle/ballgag = 8,
 				/obj/item/clothing/mask/muzzle/ballgag/choking = 8,
 				/obj/item/clothing/mask/muzzle/ring = 4,
+				/obj/item/clothing/mask/bridle = 8,
 				/obj/item/clothing/head/deprivation_helmet = 5,
 				/obj/item/clothing/glasses/blindfold/dorms = 5,
 				/obj/item/clothing/ears/dorms_headphones = 5,
@@ -120,6 +123,22 @@
 				//hands
 				/obj/item/clothing/gloves/ball_mittens = 8,
 				/obj/item/clothing/gloves/ball_mittens/paw_mittens = 8,
+				/obj/item/clothing/gloves/ball_mittens/paw_mittens/cat_paws = 5,
+
+				//chastity
+				/obj/item/clothing/sextoy/chastity = 6,
+				/obj/item/clothing/sextoy/chastity/shielded = 4,
+				/obj/item/clothing/sextoy/chastity/flat = 4,
+				/obj/item/clothing/sextoy/chastity/flat/shielded = 4,
+				/obj/item/clothing/sextoy/chastity/insert = 6,
+				/obj/item/clothing/sextoy/chastity/insert/shielded = 4,
+				/obj/item/clothing/sextoy/chastity/belt = 6,
+				/obj/item/clothing/sextoy/chastity/belt/intersex = 4,
+				/obj/item/clothing/sextoy/chastity/belt/plate = 4,
+				/obj/item/clothing/sextoy/chastity/chrome = 4,
+				/obj/item/clothing/sextoy/chastity/insert/chrome = 4,
+				/obj/item/clothing/sextoy/chastity/industrial = 4,
+				/obj/item/clothing/sextoy/chastity/belt/industrial = 4,
 			),
 		),
 			list(
@@ -128,6 +147,7 @@
 			"products" = list(
 				//Sex toys
 				/obj/item/condom_pack = 20,
+				/obj/item/storage/box/condoms = 10,
 				/obj/item/serviette_pack = 10,
 				/obj/item/fancy_pillow = 32,
 
@@ -136,14 +156,31 @@
 				/obj/item/reagent_containers/applicator/pill/camphor = 10,
 				/obj/item/reagent_containers/cup/bottle/crocin = 6,
 				/obj/item/reagent_containers/cup/bottle/camphor = 3,
+				/obj/item/reagent_containers/applicator/pill/dapoxetine = 20,
+				/obj/item/reagent_containers/cup/bottle/dapoxetine = 6,
 				/obj/item/reagent_containers/cup/bottle/succubus_milk = 6, //Those are legal 'cause you can just turn off prefs in round in "CLOWN SMOKE MACHINE+PENIS ENLARGEMENT CHEMICAL CASE". Yes, i have special code-phrase for this. I've seen some shit.
 				/obj/item/reagent_containers/cup/bottle/incubus_draft = 6,
+				/obj/item/reagent_containers/cup/bottle/butt_enlarger = 6,
+				/obj/item/reagent_containers/hypospray/medipen/lewd/crocin = 6,
+				/obj/item/reagent_containers/hypospray/medipen/lewd/succubus_milk = 6,
+				/obj/item/reagent_containers/hypospray/medipen/lewd/incubus_draft = 6,
 
 				//neurowares
 				/obj/item/disk/neuroware/crocin = 30,
 				/obj/item/disk/neuroware/camphor = 20,
 				/obj/item/storage/box/flat/neuroware/crocin = 15,
 				/obj/item/storage/box/flat/neuroware/camphor = 10,
+				/obj/item/disk/neuroware/dapoxetine = 20,
+				/obj/item/storage/box/flat/neuroware/dapoxetine = 10,
+			),
+		),
+		list(
+			"name" = "MOD Suit",
+			"icon" = FA_ICON_USER_ASTRONAUT,
+			"products" = list(
+				/obj/item/mod/construction/plating/lustwish = 5,
+				/obj/item/mod/module/lustwish/hypno_visor = 5,
+				/obj/item/mod/module/lustwish/remote_control = 5,
 			),
 		),
 		list(
@@ -164,6 +201,7 @@
 
 	premium = list(
 		/obj/item/clothing/neck/size_collar = 8,//It only works in the Interlink anyways
+		/obj/item/clothing/sextoy/fleshlight/bluespace = 1,
 	)
 
 	contraband = list(
@@ -174,12 +212,20 @@
 		/obj/item/disk/nifsoft_uploader/dorms/contract = 5,
 		/obj/item/reagent_containers/applicator/pill/hexacrocin = 10,
 		/obj/item/reagent_containers/applicator/pill/pentacamphor = 5,
+		/obj/item/reagent_containers/applicator/pill/rutt = 10,
 		/obj/item/reagent_containers/cup/bottle/hexacrocin = 4,
 		/obj/item/reagent_containers/cup/bottle/pentacamphor = 2,
+		/obj/item/reagent_containers/cup/bottle/rutt = 4,
+		/obj/item/reagent_containers/hypospray/medipen/lewd/crocin/hexacrocin = 4,
+		/obj/item/reagent_containers/hypospray/medipen/lewd/coom_bomb = 4,
 		/obj/item/disk/neuroware/hexacrocin = 15,
 		/obj/item/disk/neuroware/pentacamphor = 10,
+		/obj/item/disk/neuroware/rutt = 15,
 		/obj/item/storage/box/flat/neuroware/hexacrocin = 4,
 		/obj/item/storage/box/flat/neuroware/pentacamphor = 2,
+		/obj/item/storage/box/flat/neuroware/rutt = 4,
+		/obj/item/storage/box/medipens/lewd = 4,
+		/obj/item/clothing/sextoy/chastity/cursed = 1,
 	)
 
 	refill_canister = /obj/item/vending_refill/lustwish

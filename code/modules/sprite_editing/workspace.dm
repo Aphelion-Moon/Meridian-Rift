@@ -157,24 +157,27 @@
 			var/list/points = transaction["points"]
 			if(!islist(points) || length(points) > width * height)
 				return FALSE
-			var/list/filtered = list()
-			var/list/seen = list()
-			for(var/list/point as anything in points)
-				// A mask's points are whole canvas pixels by construction.
-				if(!mask_stroke && !valid_point_pair(point))
-					return FALSE
-				var/x = point[1]
-				var/y = point[2]
-				if(!is_point_allowed(x, y, direction))
-					continue
-				if(!mask_stroke)
-					if(seen["[x],[y]"])
+			// A mask's points are whole canvas pixels by construction, its own fresh lists, so on a canvas that takes every
+			// pixel there is nothing to check.
+			if(!mask_stroke || !all_points_allowed(direction))
+				var/list/filtered = list()
+				var/list/seen = list()
+				for(var/list/point as anything in points)
+					if(!mask_stroke && !valid_point_pair(point))
+						return FALSE
+					var/column = point[1]
+					var/row = point[2]
+					if(!is_point_allowed(column, row, direction))
 						continue
-					seen["[x],[y]"] = TRUE
-				// A mask's points are its own fresh lists; anyone else's are copied, as the history writes into them.
-				filtered += mask_stroke ? list(point) : list(list(x, y))
-			transaction["points"] = filtered
-			if(!length(filtered))
+					if(!mask_stroke)
+						if(seen["[column],[row]"])
+							continue
+						seen["[column],[row]"] = TRUE
+					// Anyone else's points are copied, as the history writes into them.
+					filtered += mask_stroke ? list(point) : list(list(column, row))
+				points = filtered
+				transaction["points"] = points
+			if(!length(points))
 				return FALSE
 	// APHELION EDIT ADDITION END
 	switch(transaction["type"])

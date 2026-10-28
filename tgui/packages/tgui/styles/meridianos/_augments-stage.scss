@@ -1152,13 +1152,12 @@
   transition:transform .15s;
 }
 .AugStage .opt:hover,
-.AugStage .opt:focus-visible,
-.AugStage .opt.peek {
+.AugStage .opt:focus-visible {
   border-color:var(--aug-hot);
   background:linear-gradient(90deg,rgb(var(--aug-hot-rgb)/.16),transparent 80%),var(--aug-recess);
 }
 .AugStage .opt:hover::before,
-.AugStage .opt.peek::before {
+.AugStage .opt:focus-visible::before {
   transform:scaleY(1);
 }
 .AugStage .opt.cur {

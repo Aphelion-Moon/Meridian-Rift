@@ -392,12 +392,15 @@
 		var/new_key = limb.get_cache_key()
 
 		if(new_key == old_key)
-			new_limbs += limb_icon_cache[new_key]
+			new_limbs += DIRT_LIMB_ICONS_STEADY(limb, new_key) // APHELION EDIT CHANGE - DIRT - A dirty limb's images are kept on its mob, out of the shared cache - ORIGINAL: new_limbs += limb_icon_cache[new_key]
 		else
 			if(body_zone == BODY_ZONE_HEAD)
 				head_update = TRUE
+			/* // APHELION EDIT REMOVAL START - DIRT - A dirty limb's images are kept on its mob, out of the shared cache
 			limb_icon_cache[new_key] ||= limb.get_limb_icon(dropped = FALSE)
 			new_limbs += limb_icon_cache[new_key]
+			*/ // APHELION EDIT REMOVAL END
+			new_limbs += DIRT_LIMB_ICONS_CHANGED(limb, new_key) // APHELION EDIT ADDITION - DIRT
 			icon_render_keys[limb.body_zone] = new_key
 			limb_count_update += 1
 
@@ -544,7 +547,12 @@ GLOBAL_LIST_EMPTY(masked_leg_icons_cache)
 		new_leg_icon_lower = icon(limb_overlay.icon, limb_overlay.icon_state)
 		new_leg_icon_lower.Blend(leg_crop_mask_lower, ICON_MULTIPLY)
 
+		/* // APHELION EDIT REMOVAL START - Measure only finalized owned masked-leg icons.
 		GLOB.masked_leg_icons_cache[icon_cache_key] = list(new_leg_icon, new_leg_icon_lower)
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - Exact dimensions share the cache entry's ownership lifecycle.
+		set_owned_masked_leg_icons(icon_cache_key, list(new_leg_icon, new_leg_icon_lower))
+		// APHELION EDIT ADDITION END
 	new_leg_icon = GLOB.masked_leg_icons_cache[icon_cache_key][1]
 	new_leg_icon_lower = GLOB.masked_leg_icons_cache[icon_cache_key][2]
 

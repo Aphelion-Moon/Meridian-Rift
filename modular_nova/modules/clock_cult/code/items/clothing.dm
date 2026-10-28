@@ -407,7 +407,7 @@
 
 /obj/item/clothing/head/helmet/clockwork/Initialize(mapload)
 	. = ..()
-	AddComponent(/datum/component/wearertargeting/earprotection, list(ITEM_SLOT_HEAD))
+	AddComponent(/datum/component/wearertargeting/earprotection)
 	AddElement(/datum/element/clockwork_pickup, ~(ITEM_SLOT_HANDS))
 
 

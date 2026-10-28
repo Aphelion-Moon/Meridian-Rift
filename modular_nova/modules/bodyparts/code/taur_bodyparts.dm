@@ -47,6 +47,7 @@
 /obj/item/bodypart/leg/right/synth/taur
 	icon_greyscale = BODYPART_ICON_TAUR
 	limb_id = LIMBS_TAUR
+	keeps_type_name = FALSE
 	bodypart_flags = parent_type::bodypart_flags | BODYPART_UNREMOVABLE
 	change_exempt_flags = BP_BLOCK_CHANGE_SPECIES
 	bodyshape = parent_type::bodyshape | BODYSHAPE_TAUR_GENERIC
@@ -70,6 +71,7 @@
 /obj/item/bodypart/leg/left/synth/taur
 	icon_greyscale = BODYPART_ICON_TAUR
 	limb_id = LIMBS_TAUR
+	keeps_type_name = FALSE
 	bodypart_flags = parent_type::bodypart_flags | BODYPART_UNREMOVABLE
 	change_exempt_flags = BP_BLOCK_CHANGE_SPECIES
 	bodyshape = parent_type::bodyshape | BODYSHAPE_TAUR_GENERIC

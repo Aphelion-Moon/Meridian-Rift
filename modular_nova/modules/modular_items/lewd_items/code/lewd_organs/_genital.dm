@@ -16,6 +16,8 @@
 	var/internal_fluid_datum
 	/// The currently inserted sex toy.
 	var/obj/item/inserted_item
+	/// A worn device closing this genital off, like a chastity cage. Interactions that need it are refused meanwhile.
+	var/obj/item/blocked_by
 	///Size value of the genital, needs to be translated to proper lengths/diameters/cups
 	var/genital_size = 1
 	///The maximum sprite affix for this type
@@ -147,15 +149,35 @@
 		max_sprite_size_affix = accessory.max_sprite_size_affix
 	return
 
-/// Whether the mob's worn clothing physically covers this genital's location.
+/// Whether the mob's worn clothing covers this genital where it is drawn: underclothes do not cover a genital layered above them.
 /obj/item/organ/genital/proc/covered_by_clothing(mob/living/carbon/human/human)
+	return covered_by_outer_clothing(human) || covered_by_underclothes(human)
+
+/**
+ * Whether the mob's uniform, suit or hospital gown covers this genital.
+ *
+ * Arguments:
+ * - human: The genital's owner.
+ */
+/obj/item/organ/genital/proc/covered_by_outer_clothing(mob/living/carbon/human/human)
 	//Do they have a Uniform or Suit that covers them?
 	var/obj/item/worn_suit = human.wear_suit
 	if((human.w_uniform?.body_parts_covered | worn_suit?.body_parts_covered) & genital_location)
 		return TRUE
 	//Do they have a Hospital Gown covering them? (The gown has no body_parts_covered so needs its own check)
-	if(istype(worn_suit, /obj/item/clothing/suit/toggle/labcoat/nova/surgical_gown))
-		return TRUE
+	return istype(worn_suit, /obj/item/clothing/suit/toggle/labcoat/nova/surgical_gown)
+
+/**
+ * Whether the mob's undershirt, underwear or bra covers this genital where it is drawn: they do not cover a genital layered
+ * above them.
+ *
+ * Arguments:
+ * - human: The genital's owner.
+ */
+/obj/item/organ/genital/proc/covered_by_underclothes(mob/living/carbon/human/human)
+	//Is it layered above their underclothes? (Custom "Above underwear" draws it over them, under the uniform and suit)
+	if(visibility_preference == GENITAL_CUSTOM && get_effective_layer_mode() == GENITAL_LAYER_ABOVE_UNDIES)
+		return FALSE
 	var/hidden_underwear = human.underwear_visibility
 	//Are they wearing an Undershirt?
 	if(human.undershirt != "Nude" && !(hidden_underwear & UNDERWEAR_HIDE_SHIRT))
@@ -177,6 +199,27 @@
 	//Nothing they're wearing covers them
 	return FALSE
 
+/**
+ * Whether this genital is part of the body's shape, like pecs: the underclothes covering it are drawn over it
+ * rather than hiding it (hidden_by_clothing()).
+ */
+/obj/item/organ/genital/proc/shapes_body()
+	return FALSE
+
+/**
+ * Whether clothing hides this genital: whatever covers it where it is drawn (covered_by_clothing()). A genital that shapes the
+ * body (shapes_body()) is the exception while drawn: it draws under the underclothes covering it, and only a uniform, suit or
+ * gown hides it. Examine still reads it as covered by them.
+ *
+ * Arguments:
+ * - human: The genital's owner.
+ * - drawing: Whether its overlay asks, to draw it.
+ */
+/obj/item/organ/genital/proc/hidden_by_clothing(mob/living/carbon/human/human, drawing)
+	if(drawing && shapes_body())
+		return covered_by_outer_clothing(human)
+	return covered_by_clothing(human)
+
 /obj/item/organ/genital/proc/is_exposed()
 	if(!owner)
 		return TRUE
@@ -190,7 +233,7 @@
 		if(GENITAL_HIDDEN_BY_CLOTHES, GENITAL_CUSTOM)
 			if(is_shown_over_clothing())
 				return TRUE //Renders over everything, so it's on display regardless of clothing
-			//Every other case - including Custom's under-uniform layers and Custom + Normal - comes down to physical coverage.
+			//Every other case - including Custom's under-uniform layers and Custom + Normal - comes down to what covers it where it is drawn (underclothes do not cover a genital layered above them).
 			return !covered_by_clothing(human)
 		else //Never show, and anything unexpected.
 			return FALSE
@@ -272,6 +315,14 @@
 	var/layer_mode = GENITAL_LAYER_NORMAL
 	/// Stacking rank among genitals in the same layer mode. LOWER = rendered on top.
 	var/genital_stack_rank = 1
+	/// Icon file of a worn device drawn in this genital's place, like a chastity cage.
+	var/device_icon
+	/// That device's worn state, without the body's "_m" or "_f". Null while nothing is worn over it.
+	var/device_state
+	/// Whether a device worn over a neighbouring genital covers this one too.
+	var/hidden_by_device = FALSE
+	/// Whether that device's lights glow, from its "_e" emissive state.
+	var/device_glows = FALSE
 
 /datum/bodypart_overlay/mutant/genital/override_color(rgb_value)
 	return draw_color
@@ -293,6 +344,11 @@
 /datum/bodypart_overlay/mutant/genital/icon_render_key(obj/item/bodypart/limb)
 	. = ..()
 	. += is_custom_layered(limb = limb) ? "[layer_mode]" : "default"
+	if(device_state)
+		. += "device=[device_state][device_glows ? "_e" : ""]"
+
+/datum/bodypart_overlay/mutant/genital/can_draw_on_bodypart(obj/item/bodypart/bodypart_owner, mob/living/carbon/owner)
+	return !hidden_by_device && ..()
 
 /datum/bodypart_overlay/mutant/genital/get_overlay(obj/item/bodypart/limb, layer_index, layer_real)
 	if(is_custom_layered(layer_index, limb))
@@ -303,6 +359,14 @@
 				layer_real = -(UNDER_UNIFORM_LAYER - 0.1 + genital_stack_rank * GENITAL_STACK_STEP)
 			if(GENITAL_LAYER_ABOVE_ALL)
 				layer_real = -(BODY_FRONT_LAYER - 0.1 + genital_stack_rank * GENITAL_STACK_STEP)
+	// A worn device draws in the genital's place, so it shows and hides and layers exactly as the genital would.
+	if(device_state)
+		var/state = "[device_state]_[limb?.limb_gender || "m"]"
+		. = list()
+		.[mutable_appearance(device_icon, state, layer = layer_real)] = NONE // A worn item, not skin: no limb texture.
+		if(device_glows)
+			.[emissive_appearance(device_icon, "[state]_e", limb, layer = layer_real)] = LIMB_OVERLAY_META
+		return .
 	return ..()
 
 /// Per-organ menu for genital visibility + render layering.

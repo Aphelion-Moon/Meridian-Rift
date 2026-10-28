@@ -33,6 +33,12 @@ GAME_VERB_PROC_DESC(/client, import_preferences, "Import Character Preferences",
 		to_chat(src, span_warning("Guest accounts cannot import preferences."))
 		return
 
+	// The gate's cache answers repeats, so a blocked player can't spam the uncached role query below.
+	var/mob/dead/new_player/lobby = mob
+	if(istype(lobby) && lobby.symphony_blocks_play())
+		lobby.symphony_gate_notice()
+		return
+
 	var/datum/preferences/import_prefs = prefs
 	if(!prefs_import_available(import_prefs))
 		return

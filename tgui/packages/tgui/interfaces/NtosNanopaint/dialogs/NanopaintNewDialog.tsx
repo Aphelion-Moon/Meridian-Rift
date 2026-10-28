@@ -19,8 +19,13 @@ type NanopaintNewDialogProps = {
 
 export const NanopaintNewDialog = (props: NanopaintNewDialogProps) => {
   const { minSize, maxSize, templateSizes } = props;
-  const [width, setWidth] = useState(32);
-  const [height, setHeight] = useState(32);
+  // APHELION EDIT CHANGE START - a canvas size by default, so a new drawing can reach Art Galaxy.
+  // ORIGINAL:
+  // const [width, setWidth] = useState(32);
+  // const [height, setHeight] = useState(32);
+  const [width, setWidth] = useState(24);
+  const [height, setHeight] = useState(24);
+  // APHELION EDIT CHANGE END
   const [templatesOpen, setTemplatesOpen] = useState(false);
   return (
     <Dimmer>

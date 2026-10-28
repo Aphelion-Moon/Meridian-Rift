@@ -21,6 +21,7 @@
 // Synth bois!
 /obj/item/bodypart/head/synth
 	name = "android head"
+	keeps_type_name = TRUE
 	desc = "A standard base for an androids head, filled with various cameras and sensors with an optional slot for a posi-interface."
 	inhand_icon_state = "buildpipe"
 	icon_static = BODYPART_ICON_IPC
@@ -77,6 +78,7 @@
 // Restrict to Synths only to avoid Mind related issues
 /obj/item/bodypart/chest/synth
 	name = "android torso"
+	keeps_type_name = TRUE
 	desc = "A heavily customized robotic torso designed for androids, an armored core in the center holds their logic core."
 	inhand_icon_state = "buildpipe"
 	icon_static = BODYPART_ICON_IPC
@@ -171,6 +173,7 @@
 
 /obj/item/bodypart/arm/left/synth
 	name = "android left arm"
+	keeps_type_name = TRUE
 	desc = "A custom limb designed for androids, customizable to a degree your wallet agrees with."
 	limb_id = SPECIES_SYNTH
 	attack_verb_simple = list("slapped", "punched")
@@ -224,6 +227,7 @@
 
 /obj/item/bodypart/arm/right/synth
 	name = "android right arm"
+	keeps_type_name = TRUE
 	desc = "A custom limb designed for androids, customizable to a degree your wallet agrees with."
 	attack_verb_simple = list("slapped", "punched")
 	inhand_icon_state = "buildpipe"
@@ -278,6 +282,7 @@
 
 /obj/item/bodypart/leg/left/synth
 	name = "android left leg"
+	keeps_type_name = TRUE
 	desc = "A custom leg designed for androids, customizable to a degree your wallet agrees with."
 	attack_verb_simple = list("kicked", "stomped")
 	inhand_icon_state = "buildpipe"
@@ -333,6 +338,7 @@
 
 /obj/item/bodypart/leg/right/synth
 	name = "android right leg"
+	keeps_type_name = TRUE
 	desc = "A custom leg designed for androids, customizable to a degree your wallet agrees with."
 	attack_verb_simple = list("kicked", "stomped")
 	inhand_icon_state = "buildpipe"
@@ -389,6 +395,7 @@
 /obj/item/bodypart/leg/left/synth/digitigrade
 	icon_greyscale = BODYPART_ICON_SYNTHLIZARD
 	limb_id = "synthliz"
+	keeps_type_name = FALSE
 	bodyshape = parent_type::bodyshape | BODYSHAPE_DIGITIGRADE
 	custom_materials = list(/datum/material/iron = SHEET_MATERIAL_AMOUNT * 3, /datum/material/gold = SMALL_MATERIAL_AMOUNT * 2)
 
@@ -409,6 +416,7 @@
 /obj/item/bodypart/leg/right/synth/digitigrade
 	icon_greyscale = BODYPART_ICON_SYNTHLIZARD
 	limb_id = "synthliz"
+	keeps_type_name = FALSE
 	bodyshape = parent_type::bodyshape | BODYSHAPE_DIGITIGRADE
 	custom_materials = list(/datum/material/iron = SHEET_MATERIAL_AMOUNT * 3, /datum/material/gold = SMALL_MATERIAL_AMOUNT * 2)
 

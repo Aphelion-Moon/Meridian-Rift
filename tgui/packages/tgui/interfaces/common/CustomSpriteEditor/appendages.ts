@@ -273,6 +273,20 @@ export type StackItem =
   | { type: 'hat' }
   | { type: 'hatch' };
 
+/** Whether two stack parts draw the same: each item of the same kind in turn, every frame the very same frame. */
+export const sameStackItems = (first: StackItem[], second: StackItem[]) =>
+  first.length === second.length &&
+  first.every((item, index) => {
+    const other = second[index];
+    if (item.type !== other.type) return false;
+    return (
+      item.type !== 'frame' ||
+      (other.type === 'frame' &&
+        item.key === other.key &&
+        item.frame === other.frame)
+    );
+  });
+
 /** How strongly the canvas shows the layers that aren't being painted, and the tried-on hat. */
 export const OTHER_LAYER_ALPHA = 0.38;
 export const HAT_ALPHA = 0.5;

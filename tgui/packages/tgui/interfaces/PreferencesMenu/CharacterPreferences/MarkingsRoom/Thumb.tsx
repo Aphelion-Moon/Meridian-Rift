@@ -15,7 +15,7 @@ import {
 export type ThumbMarking = {
   icon: string;
   color: string;
-  /** The full-size mirror sprite, when the picker uses a scaled thumbnail. */
+  /** The full-size mirror sprite, for art on a sheet larger than the picker's 32x32 tile. */
   nativeIcon?: string;
 };
 

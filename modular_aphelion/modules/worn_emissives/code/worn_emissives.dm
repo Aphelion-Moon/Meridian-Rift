@@ -1,3 +1,58 @@
+/// Dimensions belong only to finalized icons retained by masked_leg_icons_cache, never arbitrary runtime icons.
+/// Each owned slot retains its original and renderer-file keys; aliases release only after their last owner.
+GLOBAL_ALIST_EMPTY(owned_masked_leg_icon_dimensions)
+GLOBAL_ALIST_EMPTY(owned_masked_leg_icon_references)
+
+/**
+ * Publish or evict a finalized masked-leg pair and its exact native dimensions together.
+ * The caller must finish icon mutation before publishing. Existing cache entries are immutable.
+ * Retain the replacement before releasing the old pair, including when they share icons.
+ * Raw cache writes/removals must use this proc so metadata does not outlive its owning cache.
+ */
+/proc/set_owned_masked_leg_icons(cache_key, list/final_icons)
+	var/list/previous_icons = GLOB.masked_leg_icons_cache[cache_key]
+	for(var/icon/final_icon as anything in final_icons)
+		var/list/dimensions = GLOB.owned_masked_leg_icon_dimensions[final_icon]
+		if(isnull(dimensions))
+			// BYOND displays a cached resource file, distinct from the original dynamic /icon.
+			// Canonicalize once per cold original; repeated owners and hot cache hits reuse this row.
+			var/image/canonical_appearance = image(final_icon)
+			var/new_canonical_file = canonical_appearance.icon
+			dimensions = GLOB.owned_masked_leg_icon_dimensions[new_canonical_file]
+			if(isnull(dimensions))
+				dimensions = list("width" = final_icon.Width(), "height" = final_icon.Height(), "canonical_file" = new_canonical_file)
+			GLOB.owned_masked_leg_icon_dimensions[final_icon] = dimensions
+		GLOB.owned_masked_leg_icon_references[final_icon] = (GLOB.owned_masked_leg_icon_references[final_icon] || 0) + 1
+		var/final_canonical_file = dimensions["canonical_file"]
+		if(final_canonical_file != final_icon)
+			GLOB.owned_masked_leg_icon_dimensions[final_canonical_file] = dimensions
+			GLOB.owned_masked_leg_icon_references[final_canonical_file] = (GLOB.owned_masked_leg_icon_references[final_canonical_file] || 0) + 1
+	if(isnull(final_icons))
+		GLOB.masked_leg_icons_cache -= cache_key
+	else
+		GLOB.masked_leg_icons_cache[cache_key] = final_icons
+	for(var/icon/previous_icon as anything in previous_icons)
+		// Read the immutable alias before either last-owner key can be removed.
+		var/previous_canonical_file = GLOB.owned_masked_leg_icon_dimensions[previous_icon]["canonical_file"]
+		var/references = GLOB.owned_masked_leg_icon_references[previous_icon] - 1
+		if(references)
+			GLOB.owned_masked_leg_icon_references[previous_icon] = references
+		else
+			GLOB.owned_masked_leg_icon_references -= previous_icon
+			GLOB.owned_masked_leg_icon_dimensions -= previous_icon
+		if(previous_canonical_file != previous_icon)
+			var/file_references = GLOB.owned_masked_leg_icon_references[previous_canonical_file] - 1
+			if(file_references)
+				GLOB.owned_masked_leg_icon_references[previous_canonical_file] = file_references
+			else
+				GLOB.owned_masked_leg_icon_references -= previous_canonical_file
+				GLOB.owned_masked_leg_icon_dimensions -= previous_canonical_file
+
+/// Release owned metadata when the existing masked-leg cache is explicitly cleared.
+/proc/clear_owned_masked_leg_icons()
+	for(var/cache_key in GLOB.masked_leg_icons_cache)
+		set_owned_masked_leg_icons(cache_key, null)
+
 /// Traversal selector for underlays, visited first. The two selectors are contiguous, so a range visits both without
 /// allocating a selector list.
 #define WORN_EMISSIVE_UNDERLAYS 1
@@ -167,8 +222,15 @@ GLOBAL_LIST_INIT(worn_overlay_layers, list(
 		var/list/children = child_set == WORN_EMISSIVE_UNDERLAYS ? source.underlays : source.overlays
 		var/list/visible_children
 		var/list/mask_children
-		for(var/index in 1 to length(children))
-			var/mutable_appearance/child = children[index]
+		var/index = 0
+		for(var/mutable_appearance/child as anything in children)
+			index++
+			// An ordinary floating leaf is returned unchanged by the recursive case.
+			// Retain it when earlier siblings already caused a visible-tree copy.
+			if(child.plane == FLOAT_PLANE && !length(child.underlays) && !length(child.overlays))
+				if(!isnull(visible_children))
+					visible_children += child
+				continue
 			var/mutable_appearance/child_mask = split_worn_emissive_branches(child, visible_result)
 			if(child_mask)
 				if(isnull(visible_children))

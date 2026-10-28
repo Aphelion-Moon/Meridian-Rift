@@ -70,8 +70,13 @@ export function NavMenu({
         disabled={!serverState.assetsReady}
         onClick={() => sendAction('character_setup')}
       >
-        SETUP CHARACTER (
-        <span id="character_slot">{serverState.characterName}</span>)
+        {/* The name and its brackets are one piece - Foundry lays its rows
+        out as flex, where a loose "(" becomes an item of its own, torn off
+        the name. */}
+        SETUP CHARACTER{' '}
+        <span className="menu_button__slot">
+          (<span id="character_slot">{serverState.characterName}</span>)
+        </span>
       </MenuButton>
       <MenuButton
         disabled={!serverState.assetsReady}

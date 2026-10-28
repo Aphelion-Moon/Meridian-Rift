@@ -12,6 +12,8 @@
 	var/has_digi
 	/// If this style's source utilizes a dimorphic bodypart, it goes in this list assoc list keyed to the body_zone
 	var/list/dimorphic_overrides
+	/// The species whose worn offsets a limb made in this style carries, for a style drawn in that species' shape - see [/datum/species/proc/add_worn_offsets]
+	var/datum/species/worn_offsets_species
 
 /datum/robotic_style/New()
 	if(LAZYLEN(dimorphic_overrides))
@@ -189,6 +191,7 @@
 	name = "Vox"
 	icon = BODYPART_ICON_VOX
 	limb_id_override = /obj/item/bodypart/chest/mutant/vox::limb_id
+	worn_offsets_species = /datum/species/vox
 	has_digi = TRUE
 
 /datum/robotic_style/dimorphic/xenohybrid
