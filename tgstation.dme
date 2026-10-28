@@ -447,6 +447,7 @@
 #include "code\__DEFINES\traits\declarations.dm"
 #include "code\__DEFINES\traits\macros.dm"
 #include "code\__DEFINES\traits\sources.dm"
+#include "code\__DEFINES\~aphelion_defines\_pragmas.dm"
 #include "code\__DEFINES\~aphelion_defines\admin_tech.dm"
 #include "code\__DEFINES\~aphelion_defines\banning.dm"
 #include "code\__DEFINES\~aphelion_defines\bug_reporting.dm"
