@@ -1,6 +1,6 @@
 /// Whether a player with a body resized up sees their own body at normal size. Everyone else always sees its true size.
 /datum/preference/toggle/see_self_normal_size
-	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
+	category = PREFERENCE_CATEGORY_SECONDARY_FEATURES
 	savefile_identifier = PREFERENCE_PLAYER
 	savefile_key = "see_self_normal_size"
 	default_value = FALSE
