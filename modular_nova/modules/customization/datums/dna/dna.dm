@@ -26,9 +26,6 @@
 	holder.transform = holder.transform.Translate(translate_x, translate_y)
 	holder.maptext_height = 32 * features["body_size"] // Adjust runechat height
 	current_body_size = features["body_size"]
-	if(ishuman(holder))
-		var/mob/living/carbon/human/human_holder = holder
-		human_holder.update_self_normal_size() // The owner may see their own body at normal size (self_normal_size module)
 
 /mob/living/carbon/proc/apply_customizable_dna_features_to_species()
 	if(!has_dna())
