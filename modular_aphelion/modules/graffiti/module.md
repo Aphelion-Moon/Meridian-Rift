@@ -75,7 +75,8 @@ graffiti too, over their own pixels only, for the round.
   Each attempt waits out `GRAFFITI_START_COOLDOWN` (3 s) from the last, refused or not, and is refused before any costly
   work: by an empty can, a paint job already running, or a two-tile piece without a matching tile to its right (the can
   stays armed); a two-tile piece that paints nothing on its right tile paints one tile (`graffiti_trim_wide()`). A
-  session or job that starts uses the arming up. A click on anything else disarms the can ("graffiti disarmed") and
+  freehand session that starts uses the arming up. A paint job keeps it, so the next surface clicked gets the piece too,
+  until a finished Unfinished piece disarms the can. A click on anything else disarms the can ("graffiti disarmed") and
   sprays as usual, and so do opening the can's window afresh, picking a stencil, and deleting, keeping or discarding the
   armed piece.
 

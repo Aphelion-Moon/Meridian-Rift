@@ -198,8 +198,8 @@
 /**
  * Paints with an armed can. A click on an adjacent wall or floor, a full-tile window fastened down, or graffiti on one,
  * on the static station (graffiti_static_station(), else "can't paint here!" and the can stays armed), opens a freehand
- * session there, continues a freehand draft on its own tile, or starts a paint job of the armed piece, and a session or
- * job that starts uses the arming up. An Unfinished piece whose paint still shows goes on only there: a click on
+ * session there, continues a freehand draft on its own tile, or starts a paint job of the armed piece. A session that
+ * starts uses the arming up, and a job keeps it. An Unfinished piece whose paint still shows goes on only there: a click on
  * another surface is refused ("wrong wall!") and starts no cooldown. Each attempt waits out GRAFFITI_START_COOLDOWN
  * from the last, refused or not, and is refused before any costly work: by an empty can, a paint job already running,
  * or a two-tile piece without a surface like this one to the right. A two-tile piece that paints nothing on its right
@@ -316,7 +316,6 @@
 	if(!job.start())
 		qdel(job)
 		return ITEM_INTERACT_BLOCKING
-	graffiti_armed = null
 	return ITEM_INTERACT_SUCCESS
 
 /**

@@ -352,7 +352,7 @@ const GraffitiRow = memo((props: GraffitiRowProps) => {
         <Button
           icon="spray-can"
           selected={armed}
-          tooltip="Arms the can: the next wall, floor or full-tile window you click gets this piece."
+          tooltip="Arms the can: every wall, floor or full-tile window you click gets this piece until you disarm it."
           onClick={() => act('graffitiArm', { id: entry.id })}
         >
           Paint
