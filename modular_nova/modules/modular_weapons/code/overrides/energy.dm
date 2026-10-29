@@ -101,8 +101,7 @@
 	e_cost = LASER_SHOTS(30, STANDARD_CELL_CHARGE)
 
 /obj/item/stock_parts/power_store/cell/mini_egun
-	maxcharge = STANDARD_CELL_CHARGE * 0.75
-	// up from STANDARD_CELL_CHARGE * 0.6
+	maxcharge = STANDARD_CELL_CHARGE * 0.5 // NOVA EDIT CHANGE - ORIGINAL: maxcharge = STANDARD_CELL_CHARGE * 0.75
 
 // lore
 
