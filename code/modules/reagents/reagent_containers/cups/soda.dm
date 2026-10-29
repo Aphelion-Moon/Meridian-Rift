@@ -28,10 +28,10 @@
 	var/fuse_color = null
 	/// Timer for our explosion
 	var/fuse_timer = null
-	// APHELION EDIT ADDITION START - BRITISH_FOOD - crushed sprite overrides, for cans that don't use a janitor.dmi state named after themselves
-	/// Icon file the crushed can we leave behind uses. Null keeps the crushed can's own icon.
-	var/crushed_icon
-	/// Icon state the crushed can we leave behind uses. Null copies our icon_state.
+	// APHELION EDIT ADDITION START - BRITISH_FOOD - crushed sprite overrides, for cans whose crushed sprite isn't a state named after them
+	/// Icon file the crushed can we leave behind uses.
+	var/crushed_icon = /obj/item/trash/can::icon
+	/// Icon state the crushed can we leave behind uses. Set from our own icon_state when left null.
 	var/crushed_icon_state
 	// APHELION EDIT ADDITION END
 
@@ -39,6 +39,10 @@
 	. = ..()
 	AddElement(/datum/element/slapcrafting, string_list(list(/datum/crafting_recipe/improv_explosive)))
 	AddElement(/datum/element/atmos_sensitive, mapload) //Enables soda cans to explode in vaccuum.
+	// APHELION EDIT ADDITION START - BRITISH_FOOD
+	if(isnull(crushed_icon_state))
+		crushed_icon_state = icon_state
+	// APHELION EDIT ADDITION END
 
 /obj/item/reagent_containers/cup/soda_cans/random/Initialize(mapload)
 	..()
@@ -82,20 +86,6 @@
 	sleep(2 SECONDS) //dramatic pause
 	return TOXLOSS
 
-// APHELION EDIT ADDITION START - BRITISH_FOOD
-/**
- * Gives the crushed can this can just became its sprite: our crushed_icon_state in our crushed_icon,
- * falling back to our own icon_state in the crushed can's own icon.
- *
- * Arguments:
- * - crushed_can: The crushed can.
- */
-/obj/item/reagent_containers/cup/soda_cans/proc/style_crushed_can(obj/item/trash/can/crushed_can)
-	if(crushed_icon)
-		crushed_can.icon = crushed_icon
-	crushed_can.icon_state = crushed_icon_state || icon_state
-
-// APHELION EDIT ADDITION END
 /obj/item/reagent_containers/cup/soda_cans/interact_with_atom(atom/target, mob/living/user, list/modifiers)
 	if(!iscarbon(target) || reagents.total_volume || !user.combat_mode || user.zone_selected != BODY_ZONE_HEAD)
 		return ..()
@@ -112,7 +102,10 @@
 		)
 	playsound(src, 'sound/items/weapons/pierce.ogg', rand(10, 50), TRUE)
 	var/obj/item/trash/can/crushed_can = new /obj/item/trash/can(target.drop_location())
-	style_crushed_can(crushed_can) // APHELION EDIT CHANGE - BRITISH_FOOD - ORIGINAL: crushed_can.icon_state = icon_state
+	// APHELION EDIT CHANGE START - BRITISH_FOOD - ORIGINAL: crushed_can.icon_state = icon_state
+	crushed_can.icon = crushed_icon
+	crushed_can.icon_state = crushed_icon_state
+	// APHELION EDIT CHANGE END
 	qdel(src)
 	return ITEM_INTERACT_SUCCESS
 
@@ -123,7 +116,10 @@
 	if(!proj.damage || proj.damage_type != BRUTE)
 		return
 	var/obj/item/trash/can/crushed_can = new /obj/item/trash/can(loc)
-	style_crushed_can(crushed_can) // APHELION EDIT CHANGE - BRITISH_FOOD - ORIGINAL: crushed_can.icon_state = icon_state
+	// APHELION EDIT CHANGE START - BRITISH_FOOD - ORIGINAL: crushed_can.icon_state = icon_state
+	crushed_can.icon = crushed_icon
+	crushed_can.icon_state = crushed_icon_state
+	// APHELION EDIT CHANGE END
 	var/atom/throw_target = get_edge_target_turf(crushed_can, pick(GLOB.alldirs))
 	crushed_can.throw_at(throw_target, rand(1,2), 7)
 	qdel(src)
@@ -296,7 +292,10 @@
 	burst_soda(hit_atom, hide_message = TRUE)
 	visible_message(span_danger("[src]'s impact with [hit_atom] causes it to rupture, spilling everywhere!"))
 	var/obj/item/trash/can/crushed_can = new /obj/item/trash/can(loc)
-	style_crushed_can(crushed_can) // APHELION EDIT CHANGE - BRITISH_FOOD - ORIGINAL: crushed_can.icon_state = icon_state
+	// APHELION EDIT CHANGE START - BRITISH_FOOD - ORIGINAL: crushed_can.icon_state = icon_state
+	crushed_can.icon = crushed_icon
+	crushed_can.icon_state = crushed_icon_state
+	// APHELION EDIT CHANGE END
 	moveToNullspace()
 	QDEL_IN(src, 1 SECONDS) // give it a second so it can still be logged for the throw impact
 
