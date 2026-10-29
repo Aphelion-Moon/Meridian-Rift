@@ -4,6 +4,7 @@
 	icon = 'modular_nova/modules/deforest_medical_items/icons/vendor.dmi'
 	icon_state = "medvend"
 	panel_type = "panel15"
+	panel_over_light_mask = TRUE
 	light_mask = "medvend-light-mask"
 	light_color = LIGHT_COLOR_LIGHT_CYAN
 	product_slogans = "Medical care at regulation-mandated reasonable prices!;DeForest is not liable for accidents due to supply misuse!"

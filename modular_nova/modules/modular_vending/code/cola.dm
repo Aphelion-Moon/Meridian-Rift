@@ -3,6 +3,8 @@
 		/obj/item/reagent_containers/cup/soda_cans/nova/lubricola = 10,
 		/obj/item/reagent_containers/cup/soda_cans/nova/welding_fizz = 10,
 		/obj/item/reagent_containers/cup/soda_cans/thc = 10,
+		/obj/item/reagent_containers/cup/soda_cans/irn_bru = 10,
+		/obj/item/reagent_containers/cup/soda_cans/dandelion_burdock = 10,
 	)
 
 /obj/machinery/vending/cola/Initialize(mapload)

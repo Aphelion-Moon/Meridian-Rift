@@ -2,6 +2,13 @@
 "aaa" = (
 /turf/open/space/basic,
 /area/space)
+"aab" = (
+/obj/effect/turf_decal/trimline/white/filled/line{
+	dir = 9
+	},
+/obj/machinery/vending/imported/luvvits,
+/turf/open/floor/iron/smooth_large,
+/area/centcom/interlink)
 "aam" = (
 /obj/structure/closet{
 	name = "coat closet"
@@ -2091,11 +2098,11 @@
 "aBH" = (
 /obj/structure/disposalpipe/segment,
 /obj/machinery/light/directional/north,
-/mob/living/basic/bot/cleanbot,
 /obj/effect/turf_decal/tile/neutral,
 /obj/effect/turf_decal/trimline/dark_purple/filled/line{
 	dir = 1
 	},
+/obj/machinery/vending/imported/luvvits,
 /turf/open/floor/iron,
 /area/centcom/holding/cafe)
 "aBP" = (
@@ -6139,11 +6146,19 @@
 /turf/open/floor/fakebasalt,
 /area/centcom/holding/cafepark)
 "dNe" = (
-/obj/effect/turf_decal/trimline/white/filled/line{
-	dir = 9
+/obj/effect/turf_decal/tile/dark_purple,
+/obj/effect/turf_decal/tile/dark_purple{
+	dir = 8
 	},
-/turf/open/floor/iron/smooth_large,
-/area/centcom/interlink)
+/obj/effect/turf_decal/tile/dark_purple{
+	dir = 1
+	},
+/obj/effect/turf_decal/tile/dark_purple{
+	dir = 4
+	},
+/mob/living/basic/bot/cleanbot,
+/turf/open/floor/iron,
+/area/centcom/holding/cafe)
 "dNn" = (
 /obj/structure/chair/wood{
 	dir = 4
@@ -45775,7 +45790,7 @@ wTk
 wTk
 wTk
 wmd
-dNe
+aab
 qOz
 dbl
 cVm
@@ -67617,7 +67632,7 @@ mRV
 pOX
 aOR
 aWq
-azT
+dNe
 pDM
 lcD
 agG

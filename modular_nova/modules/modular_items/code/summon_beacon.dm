@@ -205,6 +205,7 @@
 		/obj/machinery/vending/imported/mothic, // "Nomad Fleet Ration Chit Exchange"
 		/obj/machinery/vending/imported/tiziran, // "Tiziran Imported Delicacies"
 		/obj/machinery/vending/imported/yangyu, // "Fudobenda"
+		/obj/machinery/vending/imported/luvvits, // "Mrs. Luvvit's Pie & Mash"
 		/obj/machinery/vending/deforest_medvend, // "DeForest Med-Vend"
 	)
 
