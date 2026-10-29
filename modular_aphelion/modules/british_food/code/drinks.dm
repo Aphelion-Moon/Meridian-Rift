@@ -9,10 +9,8 @@
 	righthand_file = 'modular_aphelion/modules/british_food/icons/british_food_righthand.dmi'
 	list_reagents = list(/datum/reagent/consumable/irn_bru = 30)
 	drink_type = SUGAR
-
-/obj/item/reagent_containers/cup/soda_cans/irn_bru/style_crushed_can(obj/item/trash/can/crushed_can)
-	crushed_can.icon = icon
-	crushed_can.icon_state = "irn_bru_crushed"
+	crushed_icon = 'modular_aphelion/modules/british_food/icons/british_food.dmi'
+	crushed_icon_state = "irn_bru_crushed"
 
 /obj/item/reagent_containers/cup/soda_cans/dandelion_burdock
 	name = "dandelion and burdock"
@@ -25,10 +23,8 @@
 	righthand_file = 'modular_aphelion/modules/british_food/icons/british_food_righthand.dmi'
 	list_reagents = list(/datum/reagent/consumable/dandelion_burdock = 30)
 	drink_type = SUGAR
-
-/obj/item/reagent_containers/cup/soda_cans/dandelion_burdock/style_crushed_can(obj/item/trash/can/crushed_can)
-	crushed_can.icon = icon
-	crushed_can.icon_state = "dandelion_burdock_crushed"
+	crushed_icon = 'modular_aphelion/modules/british_food/icons/british_food.dmi'
+	crushed_icon_state = "dandelion_burdock_crushed"
 
 /datum/reagent/consumable/irn_bru
 	name = "Irn-Bru"

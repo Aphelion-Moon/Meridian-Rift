@@ -32,7 +32,4 @@
 /obj/item/reagent_containers/cup/soda_cans/nova
 	icon = 'modular_nova/master_files/icons/obj/drinks.dmi'
 	icon_state = null
-
-/obj/item/reagent_containers/cup/soda_cans/nova/style_crushed_can(obj/item/trash/can/crushed_can)
-	crushed_can.icon = 'modular_nova/master_files/icons/obj/janitor.dmi'
-	crushed_can.icon_state = icon_state
+	crushed_icon = 'modular_nova/master_files/icons/obj/janitor.dmi'

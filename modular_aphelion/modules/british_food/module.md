@@ -32,13 +32,11 @@ British dishes with their recipes, grab-and-go vendor versions, and the vendor t
 - `code/game/objects/effects/spawners/random/trash.dm`: the empty containers join
   `/obj/effect/spawner/random/trash/food_packaging`
 - `code/modules/unit_tests/trash_food.dm`: the drinking glass joins the blacklist, beside plates and bowls
-- `code/modules/reagents/reagent_containers/cups/soda.dm`: the three crush paths style their crushed can with
-  `style_crushed_can()`
+- `code/modules/reagents/reagent_containers/cups/soda.dm`: `crushed_icon` and `crushed_icon_state` let a can
+  name its crushed sprite, which `style_crushed_can()` applies on the three crush paths
 
 ### Modular Overrides:
 
-- `modular_aphelion/master_files/code/modules/reagents/reagent_containers/cups/soda.dm`:
-  `/obj/item/reagent_containers/cup/soda_cans/proc/style_crushed_can()`, which the cans here override
 - `modular_aphelion/master_files/code/modules/vending/vendor/_vending.dm`: `panel_over_light_mask`, for
   vendors whose light mask lies under their open panel
 
@@ -50,7 +48,7 @@ British dishes with their recipes, grab-and-go vendor versions, and the vendor t
 
 - `modular_nova/modules/deforest_medical_items/code/vendor.dm` and `icons/vendor.dmi`: the DeForest
   Med-Vend's `panel15`, which blocks its light mask while open
-- `modular_nova/modules/customization/modules/reagents/chemistry/reagents/drinks.dm`: the imported cans' crushed
-  cans take their sprites through `style_crushed_can()`
+- `modular_nova/modules/customization/modules/reagents/chemistry/reagents/drinks.dm`: the imported cans set
+  `crushed_icon` instead of overriding the crush styling
 - `modular_nova/modules/modular_vending/code/cola.dm`: the two cans join the Robust Softdrinks stock
 - `modular_nova/modules/modular_items/code/summon_beacon.dm`: the vendor joins the summonable machines

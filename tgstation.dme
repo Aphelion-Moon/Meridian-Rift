@@ -7376,7 +7376,6 @@
 #include "modular_aphelion\master_files\code\modules\client\preferences\species_features\basic.dm"
 #include "modular_aphelion\master_files\code\modules\clothing\under\akula_jobs.dm"
 #include "modular_aphelion\master_files\code\modules\power\lighting\light_items.dm"
-#include "modular_aphelion\master_files\code\modules\reagents\reagent_containers\cups\soda.dm"
 #include "modular_aphelion\master_files\code\modules\research\techweb\techweb_types.dm"
 #include "modular_aphelion\master_files\code\modules\surgery\surgery_tools.dm"
 #include "modular_aphelion\master_files\code\modules\tgui_input\color.dm"

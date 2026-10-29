@@ -28,6 +28,12 @@
 	var/fuse_color = null
 	/// Timer for our explosion
 	var/fuse_timer = null
+	// APHELION EDIT ADDITION START - BRITISH_FOOD - crushed sprite overrides, for cans that don't use a janitor.dmi state named after themselves
+	/// Icon file the crushed can we leave behind uses. Null keeps the crushed can's own icon.
+	var/crushed_icon
+	/// Icon state the crushed can we leave behind uses. Null copies our icon_state.
+	var/crushed_icon_state
+	// APHELION EDIT ADDITION END
 
 /obj/item/reagent_containers/cup/soda_cans/Initialize(mapload, vol)
 	. = ..()
@@ -76,6 +82,20 @@
 	sleep(2 SECONDS) //dramatic pause
 	return TOXLOSS
 
+// APHELION EDIT ADDITION START - BRITISH_FOOD
+/**
+ * Gives the crushed can this can just became its sprite: our crushed_icon_state in our crushed_icon,
+ * falling back to our own icon_state in the crushed can's own icon.
+ *
+ * Arguments:
+ * - crushed_can: The crushed can.
+ */
+/obj/item/reagent_containers/cup/soda_cans/proc/style_crushed_can(obj/item/trash/can/crushed_can)
+	if(crushed_icon)
+		crushed_can.icon = crushed_icon
+	crushed_can.icon_state = crushed_icon_state || icon_state
+
+// APHELION EDIT ADDITION END
 /obj/item/reagent_containers/cup/soda_cans/interact_with_atom(atom/target, mob/living/user, list/modifiers)
 	if(!iscarbon(target) || reagents.total_volume || !user.combat_mode || user.zone_selected != BODY_ZONE_HEAD)
 		return ..()
