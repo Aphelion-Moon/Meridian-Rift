@@ -9,11 +9,9 @@
 	taste_description = "grease"
 	chemical_flags = NONE
 	randomized_spawns = REAGENT_SPAWN_NO_RANDOM
-	// It lingers in the blood, so any nutrition would count many times over toward fullness.
-	nutriment_factor = 0
 	metabolization_rate = 0.05 * REAGENTS_METABOLISM
-	// Food reagents are half pure, which halves this in the blood: the overdose starts at 9u.
-	overdose_threshold = 18
+	// A little over two bars' worth of fat in the blood at once.
+	overdose_threshold = 9
 	/// The most fat this blood has held since the overdose started
 	var/peak_volume = 0
 
