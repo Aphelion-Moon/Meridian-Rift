@@ -309,18 +309,22 @@
 /datum/loadout_item/suit/flannel_aqua
 	name = "Flannel (Aqua)"
 	item_path = /obj/item/clothing/suit/toggle/jacket/nova/flannel/aqua
+	group = "Uncategorized"
 
 /datum/loadout_item/suit/flannel_black
 	name = "Flannel (Black)"
 	item_path = /obj/item/clothing/suit/toggle/jacket/nova/flannel
+	group = "Uncategorized"
 
 /datum/loadout_item/suit/flannel_brown
 	name = "Flannel (Brown)"
 	item_path = /obj/item/clothing/suit/toggle/jacket/nova/flannel/brown
+	group = "Uncategorized"
 
 /datum/loadout_item/suit/flannel_red
 	name = "Flannel (Red)"
 	item_path = /obj/item/clothing/suit/toggle/jacket/nova/flannel/red
+	group = "Uncategorized"
 
 /datum/loadout_item/suit/frontierjacket
 	abstract_type = /datum/loadout_item/suit/frontierjacket
@@ -331,12 +335,14 @@
 	group = "Jackets"
 
 /datum/loadout_item/suit/maxson
-	name = "Furred Coat (Brown)"
+	name = "Fur Coat (Brown)"
 	item_path = /obj/item/clothing/suit/brownbattlecoat
+	group = "Uncategorized"
 
 /datum/loadout_item/suit/bossu
-	name = "Furred Coat (Black)"
+	name = "Fur Coat (Black)"
 	item_path = /obj/item/clothing/suit/blackfurrich
+	group = "Uncategorized"
 
 /datum/loadout_item/suit/leather_jacket
 	name = "Leather Jacket"
@@ -408,18 +414,22 @@
 /datum/loadout_item/suit/bltrench
 	name = "Trenchcoat (Black)"
 	item_path = /obj/item/clothing/suit/trenchblack
+	group = "Uncategorized"
 
 /datum/loadout_item/suit/frenchtrench
 	name = "Trenchcoat (Blue)"
 	item_path = /obj/item/clothing/suit/frenchtrench
+	group = "Uncategorized"
 
 /datum/loadout_item/suit/brtrench
 	name = "Trenchcoat (Brown)"
 	item_path = /obj/item/clothing/suit/trenchbrown
+	group = "Uncategorized"
 
 /datum/loadout_item/suit/frontiertrench
 	name = "Trenchcoat - Frontier"
 	item_path = /obj/item/clothing/suit/jacket/frontier_colonist
+	group = "Uncategorized"
 
 /datum/loadout_item/suit/cossak
 	name = "Ukrainian Coat"
@@ -430,7 +440,7 @@
 	item_path = /obj/item/clothing/suit/urban
 
 /datum/loadout_item/suit/warm_coat
-	name = "Warm Coat (Colorable)"
+	name = "Fur Coat (Colorable)"
 	item_path = /obj/item/clothing/suit/warm_coat
 
 /datum/loadout_item/suit/warm_sweater
@@ -492,50 +502,62 @@
 /datum/loadout_item/suit/hoodie/black
 	name = "Hoodie (Black)"
 	item_path = /obj/item/clothing/suit/toggle/jacket/nova/hoodie/black
+	group = "Uncategorized"
 
 /datum/loadout_item/suit/hoodie/red
 	name = "Hoodie (Red)"
 	item_path = /obj/item/clothing/suit/toggle/jacket/nova/hoodie/red
+	group = "Uncategorized"
 
 /datum/loadout_item/suit/hoodie/blue
 	name = "Hoodie (Blue)"
 	item_path = /obj/item/clothing/suit/toggle/jacket/nova/hoodie/blue
+	group = "Uncategorized"
 
 /datum/loadout_item/suit/hoodie/green
 	name = "Hoodie (Green)"
 	item_path = /obj/item/clothing/suit/toggle/jacket/nova/hoodie/green
+	group = "Uncategorized"
 
 /datum/loadout_item/suit/hoodie/orange
 	name = "Hoodie (Orange)"
 	item_path = /obj/item/clothing/suit/toggle/jacket/nova/hoodie/orange
+	group = "Uncategorized"
 
 /datum/loadout_item/suit/hoodie/yellow
 	name = "Hoodie (Yellow)"
 	item_path = /obj/item/clothing/suit/toggle/jacket/nova/hoodie/yellow
+	group = "Uncategorized"
 
 /datum/loadout_item/suit/hoodie/grey
 	name = "Hoodie (Grey)"
 	item_path = /obj/item/clothing/suit/toggle/jacket/nova/hoodie/grey
+	group = "Uncategorized"
 
 /datum/loadout_item/suit/hoodie/nt
 	name = "Hoodie - NT"
 	item_path = /obj/item/clothing/suit/toggle/jacket/nova/hoodie/branded
+	group = "Uncategorized"
 
 /datum/loadout_item/suit/hoodie/smw
 	name = "Hoodie - SMW"
 	item_path = /obj/item/clothing/suit/toggle/jacket/nova/hoodie/branded/smw
+	group = "Uncategorized"
 
 /datum/loadout_item/suit/hoodie/nrti
 	name = "Hoodie - NRTI"
 	item_path = /obj/item/clothing/suit/toggle/jacket/nova/hoodie/branded/nrti
+	group = "Uncategorized"
 
 /datum/loadout_item/suit/hoodie/cti
 	name = "Hoodie - CTI"
 	item_path = /obj/item/clothing/suit/toggle/jacket/nova/hoodie/branded/cti
+	group = "Uncategorized"
 
 /datum/loadout_item/suit/hoodie/mu
 	name = "Hoodie - MU"
 	item_path = /obj/item/clothing/suit/toggle/jacket/nova/hoodie/branded/mu
+	group = "Uncategorized"
 
 /datum/loadout_item/suit/recolorable_apron
 	name = "Apron"
@@ -1237,17 +1259,11 @@
 	name = "Digicoat - Nanotrasen"
 	item_path = /obj/item/clothing/suit/toggle/digicoat/nanotrasen
 
-/datum/loadout_item/suit/donator/furredjacket
-	name = "Furred Jacket"
+/datum/loadout_item/suit/donator/furcoat
+	name = "Fur Coat"
 	item_path = /obj/item/clothing/suit/brownfurrich/public
-
-/datum/loadout_item/suit/donator/whitefurredjacket
-	name = "Furred Jacket (White)"
-	item_path = /obj/item/clothing/suit/brownfurrich/white
-
-/datum/loadout_item/suit/donator/creamfurredjacket
-	name = "Furred Jacket (Cream)"
-	item_path = /obj/item/clothing/suit/brownfurrich/cream
+	reskin_datum = /datum/atom_skin/furcoat
+	group = "Uncategorized"
 
 /datum/loadout_item/suit/donator/chokha //All-donators donator item for BlindPoet
 	name = "Iseurian Chokha"
