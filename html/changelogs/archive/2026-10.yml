@@ -652,3 +652,41 @@
   - bugfix: fixed loadout styles that change an item's name failing to apply when
       you spawn.
   - bugfix: fixed a runtime when a cyborg or AI joined the round
+2026-10-29:
+  ATHATH:
+  - balance: Added a flash to the captain's locker for consistency with the other
+      heads of staff.
+  Co0kie-GG:
+  - rscadd: Added the glow of Borg eyes and the ability to turn them off
+  - bugfix: Borg eyes are displayed correctly when switching between z-levels.
+  EnterTheJake:
+  - balance: Burning lantern has been reworked into the Lumen Mendax
+  - balance: ' Lumen Mendax consumes firestacks on the Heretic to gain power, at max
+      charges it can unleash a blast that blinds heathens and makes them hallucinate,
+      while triggering the Ash recharge mechanic.'
+  - image: New sprite for the Lumen Mendax
+  ImogenOC, vinylspiders:
+  - rscadd: Adds a Cyborg tab and customizer to the Character Preferences panel
+  JohnFulpWillard:
+  - rscadd: Plaques are now more customizable, and in the loadout menu.
+  Timberpoes:
+  - bugfix: Blood-Drunk status effect no longer adds increasing stacks of stamina
+      damage resistant to the point of immunity, and increasing stacks of pressure
+      damage vulnerability to the point that you get insta-killed with 600 brute damage
+      in one game tick for daring to open an airlock.
+  vinylspiders:
+  - bugfix: tgui windows that take more than 4 seconds to load the first time no longer
+      close themselves
+  - rscadd: new persistent graffiti system, pick up a can and get taggin!
+  - rscadd: new bug reporting system which does not require a github account to use
+  - image: liquid fires and puddles got a facelift
+  - image: new mess overlays
+  - image: a number of new items can be found in the LustWish, check them out!
+  - image: there are now bulge overlays for semi and full mast
+  - bugfix: fixes a few minor bugs with the markings and augments menu
+  - qol: augments limb style selection now has previews
+  - rscadd: body hair options in prefs
+  - rscadd: new scent related options in the <3 tab of character preferences
+  - config: adds 44 new interactions
+  - bugfix: parrying someone else's projectile now uses the parry multipliers instead
+      of the self-boost ones, so parried shots hit a bit softer than before
