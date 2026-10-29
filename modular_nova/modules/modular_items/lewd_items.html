@@ -1,0 +1,170 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_nova/modules/modular_items/lewd_items/readme.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>Portal items and structures <aside>modular_nova/modules/modular_items/lewd_items/readme.md</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_nova/modules/modular_items/lewd_items/readme.md"><img src="git.png" width="16" height="16" title="modular_nova/modules/modular_items/lewd_items/readme.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><p>The handheld <a href="code/lewd_items/portal_fleshlight.dm">device</a> and
+<a href="code/lewd_items/portal_panties.dm">receiver</a> connect two equipped endpoints. The
+<a href="code/lewd_machinery/lewd_portals.dm">portal bore</a> creates a pair of wall portals
+and a body relay for their occupant. Both use the generic
+<a href="../../interaction_menu/readme.md">interaction route API</a>.</p>
+<h2 id="controls">Controls</h2>
+<ul>
+<li>Link the handheld device and receiver by using either item on the other.</li>
+<li>Put the receiver in a genital slot or the mouth slot through the interaction
+panel. It doesn't show on examine, and a mask can be worn over it.</li>
+<li>Activate the handheld device in hand to cycle the target used when selecting
+the groin. Other selected body zones choose their corresponding endpoint.</li>
+<li>Use the handheld device on yourself or someone else to put the part you aim at
+against it, the groin using the device's target. Ctrl-Shift-click it from up to
+a tile away to open the interaction panel of the receiver's wearer instead,
+listing everything your own parts can do through the portal. The wearer can do
+the same to reach their own receiver.</li>
+<li>Use one linked device on another to pick from the interactions between their
+two wearers. The device in your hand is the active side.</li>
+<li>Right-click the device or receiver to toggle that item's anonymity. Alt-click
+either linked item to unlink it.</li>
+<li>Use the bore on two supported walls to create its portal pair. Activate an
+empty bore to change modes; activate it after placement to collapse its portals.</li>
+<li>Right-click an unoccupied wall portal to change both endpoints' mode. Buckle
+into one endpoint to create the relay at its peer, then unbuckle to leave.
+A gloryhole relays the penis and balls, and a wallstuck portal everything below
+the waist. Interactions with the relayed half only work next to the relay, and
+the rest of the occupant only in person.</li>
+</ul>
+<h2 id="ownership-and-validation">Ownership and validation</h2>
+<p>The handheld device and receiver are linked peers. Neither owns the other:
+unlinking or deleting one clears the surviving item's reciprocal reference.
+Equipped receiver authority comes from its exact inventory slot, not its location
+inside a mob's contents or its cached target alone.</p>
+<p>The bore owns its wall endpoints. Removing either endpoint collapses the pair.
+The occupied endpoint owns its relay and borrows the occupant; teardown deletes
+the relay and restores the occupant's presentation. The interaction component
+only observes the relay through a weak reference. Keep teardown idempotent because
+endpoint, occupant, and relay deletion can enter the same cleanup path.</p>
+<p>A worn receiver is always open: it sits on its part underneath any clothing, so
+clothing, masks and sheaths never close it. The device end follows face to face
+exposure rules through <code>portal_target_is_accessible()</code> in
+<a href="code/lewd_helpers/human.dm">the human helpers</a>. Slot and link checks stay with
+the items that own those relationships. Physical access and visible sprite state
+are distinct: rendering checks native appearances separately and copies them
+before filtering. The occupant's preferences are never changed: a gloryhole
+occupant's penis overlay refuses to draw for the session, and a wallstuck occupant
+has body layers stripped as they are applied. Both keep a rebuild between queued
+refreshes from showing the hidden body for a tick.</p>
+<p>Routes in <a href="code/lewd_machinery/portal_interaction_routes.dm">portal_interaction_routes.dm</a>
+bind interactions to their current endpoints using weak references. Revalidate
+after prompts or delays so unlinking, equipment changes, preference changes, or a
+replacement session cannot authorize an old action. Both participants must allow
+ERP and sex-toy use.</p>
+<h2 id="deployment-configuration">Deployment configuration</h2>
+<p>Handheld interactions resolve the names in the device's <code>interaction_map</code> through
+<code>GLOB.interaction_instances</code>. A deployment must supply the corresponding JSON
+definitions under <code>config/nova/interactions/</code> in the server's working directory.
+The repository's example interaction files do not supply that complete set.</p>
+<p>Each part pairing lists one or more names, default first. A mapped definition must
+be lewd, have <code>usage = &quot;other&quot;</code>, use a visible category, and may only require the
+genitals at its own two endpoints.
+The validator rejects absent or incompatible definitions. JSON filenames do not
+form the contract; the loaded interaction names and metadata do. See the
+<a href="../../interaction_menu/code/interaction_datum.dm">interaction datum</a> for loading
+and message-template fields.</p>
+<h2 id="tests">Tests</h2>
+<p><code>code/modules/unit_tests/~nova/portal_device.dm</code>, <code>portal_lifecycle.dm</code>, and
+<code>portal_routes.dm</code> cover equipment authority, rendering invalidation, ownership,
+route execution, and message formatting. Shared fixtures live in
+<code>portal_test_helpers.dm</code>. Default tests install temporary real interaction datums
+and use neutral message templates, so the ordinary CI deployment can run them
+without production interaction JSON. Each test restores any registry entries it
+replaces.</p>
+<p>Run the DM suite from the repository root with <code>tools/build/build.bat dm-test</code>
+on Windows or <code>tools/build/build.sh dm-test</code> on Linux. For a focused local run,
+temporarily add <code>TEST_FOCUS(/datum/unit_test/portal_device)</code> and
+<code>TEST_FOCUS(/datum/unit_test/portal_lifecycle)</code> after the test includes; remove
+those focus declarations when finished.</p>
+<h1 id="adult-items">Adult items</h1>
+<p>A new item family gets its own file and icons here; an addition to an existing
+family goes in that family's file. The lewd items config removes every item
+(<a href="code/lewd_items/_erp_disabled_item_enforcement.dm"><code>_erp_disabled_item_enforcement.dm</code></a>),
+and the <code>adult_items_kill_switch</code> unit test checks the top types each family
+lists in <code>adult_items_gated_types()</code> (<a href="code/lewd_items/_gated_types.dm"><code>_gated_types.dm</code></a>).
+A new family adds its line there.</p>
+<ul>
+<li><strong>Medipens</strong> (<a href="code/lewd_chemistry/items/medipens.dm">medipens.dm</a>). Five
+single-use 30u medipens: crocin, hexacrocin, succubus milk, incubus draft, and
+the La Coom Bomb (10u each of the last three), plus a box with one of each.
+LustWish sells them (the hexacrocin pen, the La Coom Bomb and the box once
+hacked), and they're in the Erotic loadout.</li>
+<li><strong>Condom box</strong> (<a href="code/lewd_items/condom_box.dm">condom_box.dm</a>). Ten condom
+packs, and it only holds condom packs. LustWish and the Erotic loadout.</li>
+<li><strong>Bluespace fleshlight</strong> (<a href="code/lewd_items/fleshlight.dm">fleshlight.dm</a>).
+Catches an immovable rod, which flings the user up to 12 tiles along its path
+to a soft landing. A wizard in rod form is set down unharmed. A premium
+LustWish item at ten command paychecks.</li>
+<li><strong>Leash</strong> (<a href="code/lewd_items/leash.dm">leash.dm</a>). The leashed follows the
+holder's route a step at a time: round corners and hazards, through doors, up
+and down stairs. Where they can't follow, the leash goes taut and holds the
+holder at two tiles. A leashed who falls drags their holder to the hole after
+a moment to let go. A dropped leash stays hooked and trails the leashed, and
+anyone their sex toy preference allows can pick it up. It unhooks when the
+holder uses it on the leashed, when the leashed breaks free, or with the
+safeword. A line in the strap's colour runs from the holding hand, or from the
+leash on the floor, while the two are in reach.</li>
+<li><strong>Pointe boots</strong> (<a href="code/lewd_clothing/lewd_shoes.dm">lewd_shoes.dm</a>). Ballet
+heels with the feet held en pointe, GAGS, with digitigrade sprites. LustWish,
+the shoes loadout and the Grimoire Libidine NIFSoft.</li>
+<li><strong>Latex half-catsuit</strong> (<a href="code/lewd_clothing/latex_halfcatsuit.dm">latex_halfcatsuit.dm</a>).
+The latex catsuit without the legs. It picks its male or female sprite by body
+type, previews included, and has digitigrade, Vox, Vox Primalis and Teshari
+sprites. Unlike the catsuit, it doesn't bulge or hide the wearer's parts or
+taur body. LustWish, the under loadout and the Grimoire Libidine NIFSoft.</li>
+<li><strong>Paw mood and cat paws</strong> (<a href="code/lewd_clothing/lewd_gloves.dm">lewd_gloves.dm</a>).
+Paw mittens give the paw mood while worn. The cat paws are bigger GAGS paw
+mittens with toe beans and a cuff tag. Both need the sex toy preference.
+LustWish and the Erotic loadout.</li>
+<li><strong>R.U.T.T.</strong> (<a href="code/lewd_chemistry/reagents/rutt.dm">rutt.dm</a>). A much
+stronger aphrodisiac than hexacrocin that can cause climaxes, behind the
+aphrodisiac preference. Mixes from crocin, dopamine, femcum and epinephrine at
+322K. Dopamine, which only came from climaxing, now mixes from diethylamine,
+ephedrine, hydrogen and phenol at 373K. The bottle, pill and Rut-Kit neuroware
+are in a hacked LustWish; the bottle and pill are also in the Erotic loadout.</li>
+<li><strong>Denbu tincture</strong> (<a href="code/lewd_chemistry/reagents/butt_enlarger.dm">butt_enlarger.dm</a>).
+Grows the butt up to the largest pickable size, behind the butt enlargement
+preference, and grows one on players who allow new genital growth. Clothes
+strain and hurt over the last two sizes. A camphor overdose moves the butt back
+to its preference size. Mixes from saline-glucose, sugar, silicon and crocin.
+LustWish and the Erotic loadout.</li>
+<li><strong>Bridle</strong> (<a href="code/lewd_clothing/bridle.dm">bridle.dm</a>). A three-colour GAGS
+bridle. Lowered blinders darken sight like a welding mask, and a set bit
+muffles speech, emotes and spoken spells. Toggled with action buttons or
+alt-click, or from the strip menu by someone with ERP on, if the wearer has the
+sex toy preference on; that warns the wearer and is logged. Securing the straps
+locks it. LustWish and the Erotic loadout.</li>
+<li><strong>Lustwish MOD suit</strong> (<a href="code/lewd_clothing/lustwish_mod.dm">lustwish_mod.dm</a>).
+The standard MOD suit in LustWish's skin, with a purple hardlight. The hypnotic
+visor module hypnotizes the wearer like the hypnotic goggles, while on, or
+always once its wire is cut. The remote control module comes with a remote
+that controls the suit from up to seven tiles away: activation, parts, modules,
+lock and forced emotes. The visor needs the wearer's sex toy preference; the
+remote needs that and the holder's ERP preference. Sold in LustWish's MOD Suit
+category.
+<ul>
+<li>Known issue: a forced emote starting with &quot;says&quot;, &quot;exclaims&quot;, &quot;yells&quot; or
+&quot;asks&quot; shows the wearer &quot;Invalid emote.&quot; and tells the holder nothing,
+because the custom emote's own check (<code>emote_is_valid()</code>) judges the wearer.</li>
+</ul>
+</li>
+</ul>
+<h2 id="files-outside-this-module">Files outside this module</h2>
+<ul>
+<li><code>icons/map_icons/clothing/shoes.dmi</code>, <code>_clothing.dmi</code> and <code>mask.dmi</code>: map
+icons for the pointe boots, cat paws and bridle.</li>
+<li><code>tgui/packages/tgui/interfaces/StripMenu.tsx</code>: the &quot;Adjust bridle&quot; button.</li>
+<li><code>tgui/packages/tgui/interfaces/MODsuitRemote.tsx</code>: the MOD remote's window.</li>
+<li><code>modular_nova/master_files/code/modules/client/preferences/erp_preferences.dm</code>
+and <code>tgui/packages/tgui/interfaces/PreferencesMenu/preferences/features/game_preferences/nova/erp_preferences.tsx</code>:
+the butt enlargement preference and its toggle.</li>
+<li><code>modular_nova/modules/GAGS/nsfw/gloves.dm</code>, <code>masks.dm</code> and <code>shoes.dm</code>, with
+their JSON configs: the cat paws', bridle's and pointe boots' GAGS configs.</li>
+<li><code>modular_nova/modules/loadouts/loadout_items/loadout_datum_erp.dm</code>,
+<code>loadout_datum_shoes.dm</code> and <code>under/loadout_datum_under.dm</code>: loadout entries.</li>
+<li><code>modular_nova/modules/modular_implants/code/nifsofts/dorms.dm</code>: the pointe
+boots and half-catsuit in the Grimoire Libidine NIFSoft.</li>
+<li><code>code/modules/unit_tests/~nova/adult_items_kill_switch.dm</code>: the lewd items
+config test for every family.</li>
+</ul></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/6045a9effef19a65a8c400fa9f86916f0a85485d">6045a9e</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

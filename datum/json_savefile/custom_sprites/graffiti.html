@@ -1,0 +1,51 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../"><link rel="stylesheet" href="dmdoc.css"><title>/datum/json_savefile/custom_sprites/graffiti - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a> — <a href="datum/json_savefile/custom_sprites/graffiti.html#var">Var Details</a> - <a href="datum/json_savefile/custom_sprites/graffiti.html#proc">Proc Details</a></header><main><h1>graffiti <aside>/<a href="datum.html">datum</a>/<a href="datum/json_savefile.html">json_savefile</a>/<a href="datum/json_savefile/custom_sprites.html">custom_sprites</a>/<a href="datum/json_savefile/custom_sprites/graffiti.html">graffiti</a></aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L5"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 5"></a></h1><p>A graffiti JSON file: the custom sprites store's verified writes, loading every top-level entry, held to <code>size_limit</code>.</p><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Vars</h2></td></tr><tr><th><a href="datum/json_savefile/custom_sprites/graffiti.html#var/size_limit">size_limit</a></th><td>Size limit of the file in bytes, on reading and on writing, which each kind of graffiti file sets.</td></tr><tr><td colspan="2"><h2>Procs</h2></td></tr><tr><th><a href="datum/json_savefile/custom_sprites/graffiti.html#proc/load">load</a></th><td>Loads the file as the parent does, then keeps only the md5 of the text it verified, not the text itself, which
+save() reads back from disk. A file loaded from its backup waits for a write as one whose last write failed does,
+since its primary doesn't hold the revision.</td></tr><tr><th><a href="datum/json_savefile/custom_sprites/graffiti.html#proc/load_entries">load_entries</a></th><td>Copies every top-level entry, where the parent copies only character slots.</td></tr><tr><th><a href="datum/json_savefile/custom_sprites/graffiti.html#proc/read_snapshot">read_snapshot</a></th><td>Reads one file as hostile JSON through graffiti_json_decode(), refusing one over <code>size_limit</code> with a log line.</td></tr><tr><th><a href="datum/json_savefile/custom_sprites/graffiti.html#proc/save">save</a></th><td>Saves as the parent does, then writes the revision it verified over the backup too, so that once a save is written
+no file keeps what it dropped. The parent makes the backup hold the last revision before it writes the primary, so an
+interrupted write still recovers that one. A backup that can't be written then leaves the save standing, as the
+primary holds it, and the next save writes the backup again.</td></tr><tr><th><a href="datum/json_savefile/custom_sprites/graffiti.html#proc/write_file">write_file</a></th><td>Writes <code>contents</code> to <code>destination</code>, refusing contents the size check on loading would refuse.</td></tr><tr><th><a href="datum/json_savefile/custom_sprites/graffiti.html#proc/write_hashed">write_hashed</a></th><td>Writes text to a file, held to the size limit, and checks the file by its md5.</td></tr></table><h2 id="var">Var Details</h2><h3 id="var/size_limit"><aside class="declaration">var </aside>size_limit <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L7"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 7"></a></h3><p>Size limit of the file in bytes, on reading and on writing, which each kind of graffiti file sets.</p><h2 id="proc">Proc Details</h2><h3 id="proc/load"><aside class="parent"><a title="/datum/json_savefile/custom_sprites" href="datum/json_savefile/custom_sprites.html#proc/load">↑</a></aside>load<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L74"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 74"></a></aside></h3><p>Loads the file as the parent does, then keeps only the md5 of the text it verified, not the text itself, which
+save() reads back from disk. A file loaded from its backup waits for a write as one whose last write failed does,
+since its primary doesn't hold the revision.</p>
+<p>Returns:</p>
+<ul>
+<li>TRUE/FALSE: Whether a file was loaded.</li>
+</ul><h3 id="proc/load_entries"><aside class="parent"><a title="/datum/json_savefile/custom_sprites" href="datum/json_savefile/custom_sprites.html#proc/load_entries">↑</a></aside>load_entries<aside>(/list/decoded)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L61"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 61"></a></aside></h3><p>Copies every top-level entry, where the parent copies only character slots.</p>
+<p>Arguments:</p>
+<ul>
+<li>decoded: The file's decoded JSON.</li>
+</ul><h3 id="proc/read_snapshot"><aside class="parent"><a title="/datum/json_savefile/custom_sprites" href="datum/json_savefile/custom_sprites.html#proc/read_snapshot">↑</a></aside>read_snapshot<aside>(snapshot_path)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L45"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 45"></a></aside></h3><p>Reads one file as hostile JSON through graffiti_json_decode(), refusing one over <code>size_limit</code> with a log line.</p>
+<p>Returns:</p>
+<ul>
+<li>list(&quot;text&quot;, &quot;data&quot;): The file and its decoded JSON.</li>
+<li>null: The file is missing, too large, unreadable or not a JSON object.</li>
+</ul><h3 id="proc/save"><aside class="parent"><a title="/datum/json_savefile/custom_sprites" href="datum/json_savefile/custom_sprites.html#proc/save">↑</a></aside>save<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L102"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 102"></a></aside></h3><p>Saves as the parent does, then writes the revision it verified over the backup too, so that once a save is written
+no file keeps what it dropped. The parent makes the backup hold the last revision before it writes the primary, so an
+interrupted write still recovers that one. A backup that can't be written then leaves the save standing, as the
+primary holds it, and the next save writes the backup again.</p>
+<p>Trust rule: the primary holds the last verified revision, or the backup does after a failed write or a load from the
+backup; a revision in neither file means the file changed outside the server.</p>
+<p>Only the md5 of the last verified revision stays in memory between saves, so its text is read back first for the
+parent's backup step: from the primary, or from the backup after a failed write or a load from the backup. A save
+that succeeds, as a load from the primary does, leaves the primary holding the revision. So when it no longer does,
+unless the last write failed or the file was loaded from its backup, or when neither file does, the file changed
+outside the server: what the primary holds now, or the backup when there is no primary, becomes the backup instead
+and stays it until the next save, and the save goes ahead.</p>
+<p>Returns:</p>
+<ul>
+<li>TRUE/FALSE: Whether the file on disk now holds the tree. Its backup does too unless the file changed outside the
+server or the backup couldn't be written.</li>
+</ul><h3 id="proc/write_file"><aside class="parent"><a title="/datum/json_savefile/custom_sprites" href="datum/json_savefile/custom_sprites.html#proc/write_file">↑</a></aside>write_file<aside>(contents, destination)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L19"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 19"></a></aside></h3><p>Writes <code>contents</code> to <code>destination</code>, refusing contents the size check on loading would refuse.</p>
+<p>Returns:</p>
+<ul>
+<li>text: rust-g's error or the refusal, empty on success.</li>
+</ul><h3 id="proc/write_hashed"><aside class="declaration">proc </aside>write_hashed<aside>(text, hash, destination)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L35"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 35"></a></aside></h3><p>Writes text to a file, held to the size limit, and checks the file by its md5.</p>
+<p>Arguments:</p>
+<ul>
+<li>text: The text.</li>
+<li>hash: Its md5.</li>
+<li>destination: The file.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE/FALSE: Whether the file holds the text.</li>
+</ul></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/6045a9effef19a65a8c400fa9f86916f0a85485d">6045a9e</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

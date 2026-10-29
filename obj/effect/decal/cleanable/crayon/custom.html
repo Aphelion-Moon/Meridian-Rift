@@ -1,0 +1,125 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../../../"><link rel="stylesheet" href="dmdoc.css"><title>/obj/effect/decal/cleanable/crayon/custom - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a> — <a href="obj/effect/decal/cleanable/crayon/custom.html#var">Var Details</a> - <a href="obj/effect/decal/cleanable/crayon/custom.html#proc">Proc Details</a></header><main><h1>custom <aside>/<a href="obj.html">obj</a>/<a href="obj/effect/decal.html">effect/decal</a>/<a href="obj/effect/decal/cleanable.html">cleanable</a>/<a href="obj/effect/decal/cleanable/crayon.html">crayon</a>/<a href="obj/effect/decal/cleanable/crayon/custom.html">custom</a></aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/decal.dm#L12"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/decal.dm 12"></a></h1><p>One tile's custom graffiti: a stack of placed pieces, oldest at the bottom, shown as one composite with its glow.</p>
+<p>SSgraffiti owns the placements and their art; the decal keeps the packed placements it shows and what it drew from
+them. It lasts while the surface it was made on does, a wall, a floor with ground or a full-tile window's glass, and
+it can't be painted over. A window's graffiti goes with the window, and a floor's stays under one fastened later.</p><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Vars</h2></td></tr><tr><th><a href="obj/effect/decal/cleanable/crayon/custom.html#var/kind">kind</a></th><td>graffiti_surface_kind() of the tile the decal was made on, which the tile must stay: GRAFFITI_KIND_WALL, GRAFFITI_KIND_FLOOR or GRAFFITI_KIND_WINDOW.</td></tr><tr><th><a href="obj/effect/decal/cleanable/crayon/custom.html#var/render_cache">render_cache</a></th><td>list(&quot;base_art&quot; = every piece but the top one merged, &quot;art&quot; = the whole stack merged, &quot;kind&quot; = its
+graffiti_art_glow_kind(), &quot;mask&quot; = its glow mask or the sheet holding it), plus &quot;older&quot;, whether older paint shows
+beneath the top piece, once examined. The merges are kept only while someone paints the tile: a stack shown from
+its sheet, or left by its painters, keeps neither (release_merges()), and stack_merge() and base_merge() make them
+again.</td></tr><tr><th><a href="obj/effect/decal/cleanable/crayon/custom.html#var/stack">stack</a></th><td>The placements shown here, bottom to top, packed as SSgraffiti keeps them.</td></tr><tr><th><a href="obj/effect/decal/cleanable/crayon/custom.html#var/stack_key">stack_key</a></th><td>graffiti_art_hash() of the merged stack, which names its sheet state and its drawn icon.</td></tr><tr><td colspan="2"><h2>Procs</h2></td></tr><tr><th><a href="obj/effect/decal/cleanable/crayon/custom.html#proc/Destroy">Destroy</a></th><td>Drops the decal's placements from the registry for good: its surface was cleaned or is gone.</td></tr><tr><th><a href="obj/effect/decal/cleanable/crayon/custom.html#proc/Initialize">Initialize</a></th><td>Sets the decal up on its surface, untinted and unpaintable. On a window it is drawn over the glass and follows the
+window: it goes when the window is deleted or leaves the tile, and washes off with it.</td></tr><tr><th><a href="obj/effect/decal/cleanable/crayon/custom.html#proc/NeverShouldHaveComeHere">NeverShouldHaveComeHere</a></th><td>Whether the decal must go when its turf changes: the surface it was made on must still be there. A floor's is the
+floor itself, which a window fastened over it later leaves, while a wall's or a window's tile must still offer one.</td></tr><tr><th><a href="obj/effect/decal/cleanable/crayon/custom.html#proc/add_placement">add_placement</a></th><td>Puts a placement on top of the stack. Past GRAFFITI_STACK_CAP, the oldest one is buried for good.</td></tr><tr><th><a href="obj/effect/decal/cleanable/crayon/custom.html#proc/adopt_stack">adopt_stack</a></th><td>Shows the stack under the key and glow kind the map file cached for it, as the load does, without merging it: the
+merges come once a sheet must be drawn or someone paints the tile (stack_merge(), base_merge()).</td></tr><tr><th><a href="obj/effect/decal/cleanable/crayon/custom.html#proc/apply_icon">apply_icon</a></th><td>Shows the merged stack from its sheet, or from an icon of its own when no sheet holds it.</td></tr><tr><th><a href="obj/effect/decal/cleanable/crayon/custom.html#proc/base_merge">base_merge</a></th><td>Returns every piece of the stack but the top one merged, merging them again when the decal keeps no merge of them.</td></tr><tr><th><a href="obj/effect/decal/cleanable/crayon/custom.html#proc/check_window">check_window</a></th><td>Goes for good once its window has left the tile, as it would with its wall. Unfastening the window alone keeps it.</td></tr><tr><th><a href="obj/effect/decal/cleanable/crayon/custom.html#proc/examine">examine</a></th><td>Says it is graffiti, whether it outlasts the shift, and whether older graffiti still shows beneath its top piece.
+Pieces' names and descriptions stay in their painters' libraries.</td></tr><tr><th><a href="obj/effect/decal/cleanable/crayon/custom.html#proc/refresh">refresh</a></th><td>Merges the stack again after it changed, then shows it.</td></tr><tr><th><a href="obj/effect/decal/cleanable/crayon/custom.html#proc/release_merges">release_merges</a></th><td>Lets go of the stack's merges once nobody paints on the tile: they are made again for the next painter, and what the
+decal shows stays.</td></tr><tr><th><a href="obj/effect/decal/cleanable/crayon/custom.html#proc/remove_placement">remove_placement</a></th><td>Takes a placement off the stack, and the decal off its tile once nothing is left.</td></tr><tr><th><a href="obj/effect/decal/cleanable/crayon/custom.html#proc/stack_arts">stack_arts</a></th><td>Returns the art of each piece in the stack that the registry still holds art for.</td></tr><tr><th><a href="obj/effect/decal/cleanable/crayon/custom.html#proc/stack_merge">stack_merge</a></th><td>Returns the whole stack merged, as the decal shows it, merging it again when the decal keeps no merge of it.</td></tr><tr><th><a href="obj/effect/decal/cleanable/crayon/custom.html#proc/stack_signature">stack_signature</a></th><td>Returns the stack's signature: its pieces' art hashes, bottom first, under which the map file caches its merge's key
+and glow kind.</td></tr><tr><th><a href="obj/effect/decal/cleanable/crayon/custom.html#proc/update_overlays">update_overlays</a></th><td>Lights the glowing paint and lets the rest block the glow of whatever lies beneath.</td></tr><tr><th><a href="obj/effect/decal/cleanable/crayon/custom.html#proc/window_gone">window_gone</a></th><td>Goes for good with the window it is on, as it would with its wall.</td></tr><tr><th><a href="obj/effect/decal/cleanable/crayon/custom.html#proc/window_moved">window_moved</a></th><td>Checks whether its window left the tile once the move is over: a shuttle moves the decal after its window.</td></tr><tr><th><a href="obj/effect/decal/cleanable/crayon/custom.html#proc/window_washed">window_washed</a></th><td>Washes off with its window.</td></tr></table><h2 id="var">Var Details</h2><h3 id="var/kind"><aside class="declaration">var </aside>kind <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/decal.dm#L27"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/decal.dm 27"></a></h3><p>graffiti_surface_kind() of the tile the decal was made on, which the tile must stay: GRAFFITI_KIND_WALL, GRAFFITI_KIND_FLOOR or GRAFFITI_KIND_WINDOW.</p><h3 id="var/render_cache"><aside class="declaration">var </aside>render_cache <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/decal.dm#L25"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/decal.dm 25"></a></h3><p>list(&quot;base_art&quot; = every piece but the top one merged, &quot;art&quot; = the whole stack merged, &quot;kind&quot; = its
+graffiti_art_glow_kind(), &quot;mask&quot; = its glow mask or the sheet holding it), plus &quot;older&quot;, whether older paint shows
+beneath the top piece, once examined. The merges are kept only while someone paints the tile: a stack shown from
+its sheet, or left by its painters, keeps neither (release_merges()), and stack_merge() and base_merge() make them
+again.</p><h3 id="var/stack"><aside class="declaration">var </aside>stack <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/decal.dm#L17"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/decal.dm 17"></a></h3><p>The placements shown here, bottom to top, packed as SSgraffiti keeps them.</p><h3 id="var/stack_key"><aside class="declaration">var </aside>stack_key <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/decal.dm#L19"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/decal.dm 19"></a></h3><p>graffiti_art_hash() of the merged stack, which names its sheet state and its drawn icon.</p><h2 id="proc">Proc Details</h2><h3 id="proc/Destroy"><aside class="parent"><a title="/atom" href="atom.html#proc/Destroy">↑</a></aside>Destroy<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/decal.dm#L57"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/decal.dm 57"></a></aside></h3><p>Drops the decal's placements from the registry for good: its surface was cleaned or is gone.</p><h3 id="proc/Initialize"><aside class="parent"><a title="/atom" href="atom.html#proc/Initialize">↑</a></aside>Initialize<aside>(mapload)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/decal.dm#L36"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/decal.dm 36"></a></aside></h3><p>Sets the decal up on its surface, untinted and unpaintable. On a window it is drawn over the glass and follows the
+window: it goes when the window is deleted or leaves the tile, and washes off with it.</p>
+<p>Arguments:</p>
+<ul>
+<li>mapload: Whether the map is loading.</li>
+</ul><h3 id="proc/NeverShouldHaveComeHere"><aside class="parent"><a title="/obj/effect/decal" href="obj/effect/decal.html#proc/NeverShouldHaveComeHere">↑</a></aside>NeverShouldHaveComeHere<aside>(/<a href="turf.html">turf</a>/here_turf)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/decal.dm#L72"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/decal.dm 72"></a></aside></h3><p>Whether the decal must go when its turf changes: the surface it was made on must still be there. A floor's is the
+floor itself, which a window fastened over it later leaves, while a wall's or a window's tile must still offer one.</p>
+<p>Arguments:</p>
+<ul>
+<li>here_turf: The turf the decal is on now.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE/FALSE</li>
+</ul><h3 id="proc/add_placement"><aside class="declaration">proc </aside>add_placement<aside>(packed, deferred)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/decal.dm#L365"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/decal.dm 365"></a></aside></h3><p>Puts a placement on top of the stack. Past GRAFFITI_STACK_CAP, the oldest one is buried for good.</p>
+<p>Arguments:</p>
+<ul>
+<li>packed: The placement, packed as SSgraffiti keeps it.</li>
+<li>deferred: Whether to leave the merge for the caller, which refreshes once it has stacked everything.</li>
+</ul><h3 id="proc/adopt_stack"><aside class="declaration">proc </aside>adopt_stack<aside>(/list/cached)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/decal.dm#L275"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/decal.dm 275"></a></aside></h3><p>Shows the stack under the key and glow kind the map file cached for it, as the load does, without merging it: the
+merges come once a sheet must be drawn or someone paints the tile (stack_merge(), base_merge()).</p>
+<p>Arguments:</p>
+<ul>
+<li>cached: list(the stack's key, its graffiti_art_glow_kind()), from SSgraffiti's stack_cache.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE/FALSE: Whether it took them. A malformed entry is left for refresh() to merge instead.</li>
+</ul><h3 id="proc/apply_icon"><aside class="declaration">proc </aside>apply_icon<aside>(/list/decoded)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/decal.dm#L337"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/decal.dm 337"></a></aside></h3><p>Shows the merged stack from its sheet, or from an icon of its own when no sheet holds it.</p>
+<p>Arguments:</p>
+<ul>
+<li>decoded: The merged stack's graffiti_art_decode(), when the caller has it.</li>
+</ul><h3 id="proc/base_merge"><aside class="declaration">proc </aside>base_merge<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/decal.dm#L307"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/decal.dm 307"></a></aside></h3><p>Returns every piece of the stack but the top one merged, merging them again when the decal keeps no merge of them.</p>
+<p>Returns:</p>
+<ul>
+<li>list: The merged art.</li>
+<li>null: Nothing shows beneath the top piece.</li>
+</ul><h3 id="proc/check_window"><aside class="declaration">proc </aside>check_window<aside>(/<a href="obj.html">obj</a>/<a href="obj/structure.html">structure</a>/<a href="obj/structure/window.html">window</a>/window)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/decal.dm#L103"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/decal.dm 103"></a></aside></h3><p>Goes for good once its window has left the tile, as it would with its wall. Unfastening the window alone keeps it.</p>
+<p>Arguments:</p>
+<ul>
+<li>window: The window it was made on.</li>
+</ul><h3 id="proc/examine"><aside class="parent"><a title="/atom" href="atom.html#proc/examine">↑</a></aside>examine<aside>(/<a href="mob.html">mob</a>/user)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/decal.dm#L131"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/decal.dm 131"></a></aside></h3><p>Says it is graffiti, whether it outlasts the shift, and whether older graffiti still shows beneath its top piece.
+Pieces' names and descriptions stay in their painters' libraries.</p>
+<p>Arguments:</p>
+<ul>
+<li>user: The examining mob.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>list: The examine lines.</li>
+</ul><h3 id="proc/refresh"><aside class="declaration">proc </aside>refresh<aside>(full, deferred, /list/top_record)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/decal.dm#L203"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/decal.dm 203"></a></aside></h3><p>Merges the stack again after it changed, then shows it.</p>
+<p>Only the top piece is merged over the cached merge of the ones beneath, unless <code>full</code> asks for the whole stack, as a
+change below the top needs, or no merge of them is kept. The merge comes decoded, so its glow and icons never decode
+it again.</p>
+<p>While the map loads, the arts come decoded from SSgraffiti's <code>decoded</code> as far as it keeps them, and it keeps the merge
+decoded for its sheet while its budget allows. Nobody paints during the load, so only the whole stack's merge is kept,
+for the sheet.</p>
+<p>Arguments:</p>
+<ul>
+<li>full: Whether the pieces beneath the top one changed.</li>
+<li>deferred: Whether to leave the icon for SSgraffiti.build_sheets() to set.</li>
+<li>top_record: The top piece's art decoded, when the caller has it, as a painter's composite does.</li>
+</ul><h3 id="proc/release_merges"><aside class="declaration">proc </aside>release_merges<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/decal.dm#L325"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/decal.dm 325"></a></aside></h3><p>Lets go of the stack's merges once nobody paints on the tile: they are made again for the next painter, and what the
+decal shows stays.</p><h3 id="proc/remove_placement"><aside class="declaration">proc </aside>remove_placement<aside>(packed, deferred)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/decal.dm#L401"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/decal.dm 401"></a></aside></h3><p>Takes a placement off the stack, and the decal off its tile once nothing is left.</p>
+<p>Arguments:</p>
+<ul>
+<li>packed: The placement, packed as SSgraffiti keeps it.</li>
+<li>deferred: Whether to leave the merge for the caller, which refreshes once it has removed everything.</li>
+</ul><h3 id="proc/stack_arts"><aside class="declaration">proc </aside>stack_arts<aside>(/list/hashes)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/decal.dm#L177"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/decal.dm 177"></a></aside></h3><p>Returns the art of each piece in the stack that the registry still holds art for.</p>
+<p>Arguments:</p>
+<ul>
+<li>hashes: When given, filled with the hash of each art returned, in the same order.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>list: The arts, bottom to top.</li>
+</ul><h3 id="proc/stack_merge"><aside class="declaration">proc </aside>stack_merge<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/decal.dm#L289"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/decal.dm 289"></a></aside></h3><p>Returns the whole stack merged, as the decal shows it, merging it again when the decal keeps no merge of it.</p>
+<p>Returns:</p>
+<ul>
+<li>list: The merged art.</li>
+<li>null: The decal shows nothing.</li>
+</ul><h3 id="proc/stack_signature"><aside class="declaration">proc </aside>stack_signature<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/decal.dm#L259"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/decal.dm 259"></a></aside></h3><p>Returns the stack's signature: its pieces' art hashes, bottom first, under which the map file caches its merge's key
+and glow kind.</p>
+<p>Returns:</p>
+<ul>
+<li>text: The signature.</li>
+</ul><h3 id="proc/update_overlays"><aside class="parent"><a title="/atom" href="atom.html#proc/update_overlays">↑</a></aside>update_overlays<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/decal.dm#L163"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/decal.dm 163"></a></aside></h3><p>Lights the glowing paint and lets the rest block the glow of whatever lies beneath.</p>
+<p>Returns:</p>
+<ul>
+<li>list: The overlays.</li>
+</ul><h3 id="proc/window_gone"><aside class="declaration">proc </aside>window_gone<aside>(/<a href="datum.html">datum</a>/source)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/decal.dm#L83"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/decal.dm 83"></a></aside></h3><p>Goes for good with the window it is on, as it would with its wall.</p>
+<p>Arguments:</p>
+<ul>
+<li>source: The window, being deleted.</li>
+</ul><h3 id="proc/window_moved"><aside class="declaration">proc </aside>window_moved<aside>(/<a href="obj.html">obj</a>/<a href="obj/structure.html">structure</a>/<a href="obj/structure/window.html">window</a>/source)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/decal.dm#L93"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/decal.dm 93"></a></aside></h3><p>Checks whether its window left the tile once the move is over: a shuttle moves the decal after its window.</p>
+<p>Arguments:</p>
+<ul>
+<li>source: The window.</li>
+</ul><h3 id="proc/window_washed"><aside class="declaration">proc </aside>window_washed<aside>(/<a href="datum.html">datum</a>/source, clean_types)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/decal.dm#L117"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/decal.dm 117"></a></aside></h3><p>Washes off with its window.</p>
+<p>Arguments:</p>
+<ul>
+<li>source: The window.</li>
+<li>clean_types: The CLEAN_TYPE_ flags the window is washed with.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>The decal's wash() flags, which the window's wash() reports.</li>
+</ul></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/6045a9effef19a65a8c400fa9f86916f0a85485d">6045a9e</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

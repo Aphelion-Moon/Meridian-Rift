@@ -1,0 +1,28 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../../"><link rel="stylesheet" href="dmdoc.css"><title>/datum/json_savefile/custom_sprites/graffiti/map - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a> — <a href="datum/json_savefile/custom_sprites/graffiti/map.html#proc">Proc Details</a></header><main><h1>map <aside>/<a href="datum.html">datum</a>/<a href="datum/json_savefile.html">json_savefile</a>/<a href="datum/json_savefile/custom_sprites.html">custom_sprites</a>/<a href="datum/json_savefile/custom_sprites/graffiti.html">graffiti</a>/<a href="datum/json_savefile/custom_sprites/graffiti/map.html">map</a></aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L32"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 32"></a></h1><p>A map's graffiti file, held to GRAFFITI_MAP_MAX_BYTES.</p><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Procs</h2></td></tr><tr><th><a href="datum/json_savefile/custom_sprites/graffiti/map.html#proc/write_text">write_text</a></th><td>Writes the map's JSON as the graffiti stores' save() writes a tree (library.dm), with the revision kept as an md5:
+staged and checked first, then the backup made to hold the last verified revision, then the primary written and
+checked, then copied over the backup, so that once a write is done no file keeps what it dropped and an interrupted
+write of the primary still recovers the revision before. Each file is checked by its md5 against the text in hand, so
+nothing written is read back into text, and only the text's md5 stays. The backup is copied from the primary on disk.
+A backup that can't be copied then leaves the write standing, as the primary holds it, and the next write copies the
+backup again.</td></tr></table><h2 id="proc">Proc Details</h2><h3 id="proc/write_text"><aside class="declaration">proc </aside>write_text<aside>(text)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L59"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 59"></a></aside></h3><p>Writes the map's JSON as the graffiti stores' save() writes a tree (library.dm), with the revision kept as an md5:
+staged and checked first, then the backup made to hold the last verified revision, then the primary written and
+checked, then copied over the backup, so that once a write is done no file keeps what it dropped and an interrupted
+write of the primary still recovers the revision before. Each file is checked by its md5 against the text in hand, so
+nothing written is read back into text, and only the text's md5 stays. The backup is copied from the primary on disk.
+A backup that can't be copied then leaves the write standing, as the primary holds it, and the next write copies the
+backup again.</p>
+<p>Trust rule: the primary holds the last verified revision, or the backup does after a failed write or a load from the
+backup; a revision in neither file means the file changed outside the server.</p>
+<p>A write that succeeds, as a load from the primary does, leaves the primary holding the revision. So when it no longer
+does, unless the last write failed or the file was loaded from its backup, or when neither file does, the file
+changed outside the server: what the primary holds now, or else the backup, is kept as the backup instead until the
+next write, and the write goes ahead.</p>
+<p>Arguments:</p>
+<ul>
+<li>text: The file's JSON.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE/FALSE: Whether the file on disk now holds the text. Its backup does too unless the file changed outside the
+server or the backup couldn't be copied.</li>
+</ul></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/6045a9effef19a65a8c400fa9f86916f0a85485d">6045a9e</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

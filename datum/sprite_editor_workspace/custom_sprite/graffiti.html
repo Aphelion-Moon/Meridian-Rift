@@ -1,0 +1,244 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../"><link rel="stylesheet" href="dmdoc.css"><title>/datum/sprite_editor_workspace/custom_sprite/graffiti - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a> — <a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#var">Var Details</a> - <a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc">Proc Details</a></header><main><h1>graffiti <aside>/<a href="datum.html">datum</a>/<a href="datum/sprite_editor_workspace.html">sprite_editor_workspace</a>/<a href="datum/sprite_editor_workspace/custom_sprite.html">custom_sprite</a>/<a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html">graffiti</a></aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L9"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 9"></a></h1><p>A graffiti piece being painted: one view of up to GRAFFITI_MAX_LAYERS layers, in colours that may be translucent.</p>
+<p>The layers are alike. Each has its own name, glow and id (&quot;l1&quot;, &quot;l2&quot;, ...), the bottom one included, so none of the
+hair's rules for its base layer apply. Layer changes are custom sprite history steps, so undo covers them. The piece
+keeps no palette: it takes its colours from its paint when it saves, at most GRAFFITI_MAX_COLORS of them. Every change
+counts the pixels of each colour, so checking a stroke's colour never reads the canvas.</p><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Vars</h2></td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#var/color_counts">color_counts</a></th><td>Pixel value -&gt; how many pixels of all the layers hold it, for each value the paint uses; transparent pixels aren't
+counted. In the order the layers first use them when counted afresh, then as new values come.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#var/draw_mask_bits">draw_mask_bits</a></th><td>The draw mask as a compact stroke mask's slots, a bit for each pixel that takes paint, as a poster's canvas has it,
+or null. A stroke is cut down to it as its points are read (stroke_mask_slots()), so none needs checking.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#var/layer_record_cache">layer_record_cache</a></th><td>Layer id -&gt; its layer_records() record, kept until the layer's pixels or glow change, so a surface session's
+composite reads only the layers painted since the last one. Studio sessions never composite, so never fill it.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#var/next_layer_id">next_layer_id</a></th><td>The number the next layer's id takes. Ids are never reused in a draft, so the window's choice of layer survives undo.</td></tr><tr><td colspan="2"><h2>Procs</h2></td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/New">New</a></th><td>Opens a piece with a layer for each of its own, or a blank one-tile piece.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/add_color">add_color</a></th><td>Checks a colour the player wants to paint with. The piece keeps no palette, so this only says whether the colour can
+be painted now.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/add_layer">add_layer</a></th><td>Adds a blank layer on top, as an undoable step.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/all_points_allowed">all_points_allowed</a></th><td>A stroke read from a compact mask cut down to the draw mask lands only where paint may go.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/apply_step">apply_step</a></th><td>Also applies the layer swap move_layer() records. A swap undoes itself, so both directions swap.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/count_colors">count_colors</a></th><td>Counts every layer's pixels of each colour afresh, in the order the layers first use the colours: layer 1 row by row
+from the top, then each layer above it.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/count_points">count_points</a></th><td>Counts the pixels a stroke, fill, erasure or placement changed: each point keeps the value it replaced. The other
+steps change whole layers, which count_colors() counts.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/has_paint_right_half">has_paint_right_half</a></th><td>Returns whether any layer has paint in the right tile's columns, which narrowing the canvas would lose.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/layer_count">layer_count</a></th><td>Returns how many layers the piece has.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/layer_edited">layer_edited</a></th><td>Returns which views of a layer have paint. Every layer keeps its own map, the bottom one included, so the map moves
+with its layer. edited_directions only serves the base constructor's blank layer, which New() replaces.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/layer_entries">layer_entries</a></th><td>Returns the layers as the editor's window lists them.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/layer_entry">layer_entry</a></th><td>Builds a blank layer under the next id, not yet in the piece.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/layer_glow">layer_glow</a></th><td>Returns whether a layer's paint glows.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/layer_records">layer_records</a></th><td>Returns the layers decoded for graffiti_flatten_records(), read straight from their frames. They flatten to the art
+graffiti_flatten() makes of the piece serialize_piece() returns, without encoding the layers and decoding them again.
+Each layer's record is kept until it changes (layer_record_cache).</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/layer_view">layer_view</a></th><td>Returns a layer's one view.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/layers_changed">layers_changed</a></th><td>Also counts the colours afresh: a layer came or went with its paint.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/move_layer">move_layer</a></th><td>Swaps a layer with the one above or below it, as an undoable step.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/pixels_changed">pixels_changed</a></th><td>Also counts the colours afresh when any view may have changed, as opening a piece, a width change or a layer swap
+leave them. A change to one view is a step, which transact() or reverse_transact() counts.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/prepare_selection_placement">prepare_selection_placement</a></th><td>Also writes the colours a placement lands as their canonical pixels, and refuses a placement that would take the paint
+past GRAFFITI_MAX_COLORS colours, and, in a surface session, one that adds paint. A stroke brings one colour, but a
+placement can bring several, so each one it lands counts, whatever it paints over.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/remove_layer">remove_layer</a></th><td>Removes a layer, paint and all, as an undoable step.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/rename_layer">rename_layer</a></th><td>Renames a layer as an undoable step, cleaning the name as a saved piece's layer names are.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/reverse_transact">reverse_transact</a></th><td>Also counts what reversing a step changed.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/sanitize_transaction">sanitize_transaction</a></th><td>Also writes a stroke's colour as the nine-character pixel it paints, in graffiti_color()'s form, so every pixel value
+stays canonical.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/serialize_piece">serialize_piece</a></th><td>Returns the piece as the library saves it: every layer, painted or not, each grid indexing a palette of the colours
+the paint uses, in the order the layers first use them: layer 1 row by row from the top, then each layer above it. A
+two-tile canvas with nothing painted on its right tile saves one tile wide, though the canvas keeps its width.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/set_layer_glow">set_layer_glow</a></th><td>Turns a layer's glow on or off as an undoable step.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/set_width">set_width</a></th><td>Makes the canvas one or two tiles wide where it stands: columns come and go on the right, so paint keeps its place
+and every layer keeps its id. Paint in columns that go is lost, which has_paint_right_half() lets the caller ask
+about first. History can't span two widths, so it starts over.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/stroke_layer_matches">stroke_layer_matches</a></th><td>Whether a stroke names the layer it paints by its id as well as its place. The bottom layer is named like any other,
+so a stroke meant for a layer that undo just moved can't land on another.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/stroke_mask_slots">stroke_mask_slots</a></th><td>Returns draw_mask_bits, which a stroke's compact mask is cut down to as it is read: a check of each point costs about
+as much as the rest of the stroke (measured). A canvas with a draw mask holds no paint outside it, so an eraser loses
+nothing by it.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/transact">transact</a></th><td>Fills by setting each pixel to the fill colour, as the pencil paints: translucent paint blends only when the layers
+merge. Anything else is applied as a custom sprite workspace applies it. Either way, what changed is counted.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/used_colors">used_colors</a></th><td>Returns the colours the paint uses, read from color_counts. Unlike a drawing's, translucent colours keep their alpha,
+as graffiti_color() writes them.</td></tr><tr><th><a href="datum/sprite_editor_workspace/custom_sprite/graffiti.html#proc/validate_palette_color">validate_palette_color</a></th><td>Takes any brush colour that shows, until the paint uses GRAFFITI_MAX_COLORS colours: then only those.</td></tr></table><h2 id="var">Var Details</h2><h3 id="var/color_counts"><aside class="declaration">var </aside>color_counts <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L16"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 16"></a></h3><p>Pixel value -&gt; how many pixels of all the layers hold it, for each value the paint uses; transparent pixels aren't
+counted. In the order the layers first use them when counted afresh, then as new values come.</p><h3 id="var/draw_mask_bits"><aside class="declaration">var </aside>draw_mask_bits <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L22"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 22"></a></h3><p>The draw mask as a compact stroke mask's slots, a bit for each pixel that takes paint, as a poster's canvas has it,
+or null. A stroke is cut down to it as its points are read (stroke_mask_slots()), so none needs checking.</p><h3 id="var/layer_record_cache"><aside class="declaration">var </aside>layer_record_cache <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L19"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 19"></a></h3><p>Layer id -&gt; its layer_records() record, kept until the layer's pixels or glow change, so a surface session's
+composite reads only the layers painted since the last one. Studio sessions never composite, so never fill it.</p><h3 id="var/next_layer_id"><aside class="declaration">var </aside>next_layer_id <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L13"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 13"></a></h3><p>The number the next layer's id takes. Ids are never reused in a draft, so the window's choice of layer survives undo.</p><h2 id="proc">Proc Details</h2><h3 id="proc/New"><aside class="parent"><a title="/datum/sprite_editor_workspace/custom_sprite" href="datum/sprite_editor_workspace/custom_sprite.html#proc/New">↑</a></aside>New<aside>(/list/piece)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L31"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 31"></a></aside></h3><p>Opens a piece with a layer for each of its own, or a blank one-tile piece.</p>
+<p>Arguments:</p>
+<ul>
+<li>piece: A canonical piece, as graffiti_validate_piece() returns it, or null. A piece without layers opens with one
+blank layer.</li>
+</ul><h3 id="proc/add_color"><aside class="declaration">proc </aside>add_color<aside>(color)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L482"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 482"></a></aside></h3><p>Checks a colour the player wants to paint with. The piece keeps no palette, so this only says whether the colour can
+be painted now.</p>
+<p>Arguments:</p>
+<ul>
+<li>color: <code>#rrggbb</code> or <code>#rrggbbaa</code> text, in either case.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>text: The colour, as graffiti_color() writes it.</li>
+<li>null: It isn't a colour, it paints nothing, or it is new and the paint already uses GRAFFITI_MAX_COLORS colours.</li>
+</ul><h3 id="proc/add_layer"><aside class="declaration">proc </aside>add_layer<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L127"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 127"></a></aside></h3><p>Adds a blank layer on top, as an undoable step.</p>
+<p>Returns:</p>
+<ul>
+<li>number: The new layer's index.</li>
+<li>0: The piece already has GRAFFITI_MAX_LAYERS layers.</li>
+</ul><h3 id="proc/all_points_allowed"><aside class="parent"><a title="/datum/sprite_editor_workspace/custom_sprite" href="datum/sprite_editor_workspace/custom_sprite.html#proc/all_points_allowed">↑</a></aside>all_points_allowed<aside>(direction)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L419"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 419"></a></aside></h3><p>A stroke read from a compact mask cut down to the draw mask lands only where paint may go.</p><h3 id="proc/apply_step"><aside class="parent"><a title="/datum/sprite_editor_workspace/custom_sprite" href="datum/sprite_editor_workspace/custom_sprite.html#proc/apply_step">↑</a></aside>apply_step<aside>(/list/transaction, forward)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L205"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 205"></a></aside></h3><p>Also applies the layer swap move_layer() records. A swap undoes itself, so both directions swap.</p>
+<p>Arguments:</p>
+<ul>
+<li>transaction: The step.</li>
+<li>forward: Whether it is applied or reversed.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE/FALSE: Whether the step was one this workspace records itself.</li>
+</ul><h3 id="proc/count_colors"><aside class="declaration">proc </aside>count_colors<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L242"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 242"></a></aside></h3><p>Counts every layer's pixels of each colour afresh, in the order the layers first use the colours: layer 1 row by row
+from the top, then each layer above it.</p><h3 id="proc/count_points"><aside class="declaration">proc </aside>count_points<aside>(/list/transaction, forward)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L260"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 260"></a></aside></h3><p>Counts the pixels a stroke, fill, erasure or placement changed: each point keeps the value it replaced. The other
+steps change whole layers, which count_colors() counts.</p>
+<p>Arguments:</p>
+<ul>
+<li>transaction: The step, as the history keeps it.</li>
+<li>forward: Whether it was applied rather than reversed.</li>
+</ul><h3 id="proc/has_paint_right_half"><aside class="declaration">proc </aside>has_paint_right_half<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L571"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 571"></a></aside></h3><p>Returns whether any layer has paint in the right tile's columns, which narrowing the canvas would lose.</p>
+<p>Returns:</p>
+<ul>
+<li>TRUE/FALSE</li>
+</ul><h3 id="proc/layer_count"><aside class="declaration">proc </aside>layer_count<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L82"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 82"></a></aside></h3><p>Returns how many layers the piece has.</p>
+<p>Returns:</p>
+<ul>
+<li>number: 1 to GRAFFITI_MAX_LAYERS.</li>
+</ul><h3 id="proc/layer_edited"><aside class="parent"><a title="/datum/sprite_editor_workspace/custom_sprite" href="datum/sprite_editor_workspace/custom_sprite.html#proc/layer_edited">↑</a></aside>layer_edited<aside>(layer)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L324"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 324"></a></aside></h3><p>Returns which views of a layer have paint. Every layer keeps its own map, the bottom one included, so the map moves
+with its layer. edited_directions only serves the base constructor's blank layer, which New() replaces.</p>
+<p>Arguments:</p>
+<ul>
+<li>layer: The layer.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>list: Direction -&gt; whether that view has paint.</li>
+</ul><h3 id="proc/layer_entries"><aside class="declaration">proc </aside>layer_entries<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L115"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 115"></a></aside></h3><p>Returns the layers as the editor's window lists them.</p>
+<p>Returns:</p>
+<ul>
+<li>list: list(&quot;id&quot;, &quot;name&quot;, &quot;glow&quot;) for each layer, bottom first.</li>
+</ul><h3 id="proc/layer_entry"><aside class="declaration">proc </aside>layer_entry<aside>(name, glow)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L73"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 73"></a></aside></h3><p>Builds a blank layer under the next id, not yet in the piece.</p>
+<p>Arguments:</p>
+<ul>
+<li>name: The layer's name, already clean.</li>
+<li>glow: Whether its paint glows.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>list: The layer entry.</li>
+</ul><h3 id="proc/layer_glow"><aside class="declaration">proc </aside>layer_glow<aside>(index)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L106"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 106"></a></aside></h3><p>Returns whether a layer's paint glows.</p>
+<p>Arguments:</p>
+<ul>
+<li>index: The layer.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE/FALSE</li>
+</ul><h3 id="proc/layer_records"><aside class="declaration">proc </aside>layer_records<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L528"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 528"></a></aside></h3><p>Returns the layers decoded for graffiti_flatten_records(), read straight from their frames. They flatten to the art
+graffiti_flatten() makes of the piece serialize_piece() returns, without encoding the layers and decoding them again.
+Each layer's record is kept until it changes (layer_record_cache).</p>
+<p>Returns:</p>
+<ul>
+<li>list: A graffiti_art_decode() record for each layer, bottom first: the colours it paints, the index of each pixel's
+colour, 0 where transparent, and its glow on every pixel.</li>
+</ul><h3 id="proc/layer_view"><aside class="declaration">proc </aside>layer_view<aside>(index)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L94"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 94"></a></aside></h3><p>Returns a layer's one view.</p>
+<p>Arguments:</p>
+<ul>
+<li>index: The layer, 1 at the bottom.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>list: The frame itself, its pixel rows from the top.</li>
+</ul><h3 id="proc/layers_changed"><aside class="parent"><a title="/datum/sprite_editor_workspace/custom_sprite" href="datum/sprite_editor_workspace/custom_sprite.html#proc/layers_changed">↑</a></aside>layers_changed<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L233"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 233"></a></aside></h3><p>Also counts the colours afresh: a layer came or went with its paint.</p><h3 id="proc/move_layer"><aside class="declaration">proc </aside>move_layer<aside>(index, delta)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L190"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 190"></a></aside></h3><p>Swaps a layer with the one above or below it, as an undoable step.</p>
+<p>Arguments:</p>
+<ul>
+<li>index: The layer.</li>
+<li>delta: 1 to move it up, -1 to move it down.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE/FALSE: FALSE when <code>index</code> names no layer, <code>delta</code> is neither, or no layer lies that way.</li>
+</ul><h3 id="proc/pixels_changed"><aside class="parent"><a title="/datum/sprite_editor_workspace/custom_sprite" href="datum/sprite_editor_workspace/custom_sprite.html#proc/pixels_changed">↑</a></aside>pixels_changed<aside>(direction, layer, /list/points)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L224"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 224"></a></aside></h3><p>Also counts the colours afresh when any view may have changed, as opening a piece, a width change or a layer swap
+leave them. A change to one view is a step, which transact() or reverse_transact() counts.</p>
+<p>Arguments:</p>
+<ul>
+<li>direction: The view that changed, or null for all of them.</li>
+<li>layer: The layer that changed.</li>
+<li>points: The step's points, when only they changed.</li>
+</ul><h3 id="proc/prepare_selection_placement"><aside class="parent"><a title="/datum/sprite_editor_workspace" href="datum/sprite_editor_workspace.html#proc/prepare_selection_placement">↑</a></aside>prepare_selection_placement<aside>(/list/transaction)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L371"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 371"></a></aside></h3><p>Also writes the colours a placement lands as their canonical pixels, and refuses a placement that would take the paint
+past GRAFFITI_MAX_COLORS colours, and, in a surface session, one that adds paint. A stroke brings one colour, but a
+placement can bring several, so each one it lands counts, whatever it paints over.</p>
+<p>A surface is painted by hand, so its pieces show the staged reveal's work rather than prepared art. A placement there
+may move, turn, mirror or cut the session's own paint, which never lands more of a colour than it lifts or covers; a
+paste does, and is refused with a notice.</p>
+<p>Arguments:</p>
+<ul>
+<li>transaction: The placement.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE/FALSE: Whether anything changes, within the colour limit and, on a surface, without adding paint.</li>
+</ul><h3 id="proc/remove_layer"><aside class="declaration">proc </aside>remove_layer<aside>(index)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L143"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 143"></a></aside></h3><p>Removes a layer, paint and all, as an undoable step.</p>
+<p>Arguments:</p>
+<ul>
+<li>index: The layer.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE/FALSE: FALSE when <code>index</code> names no layer, or names the only one.</li>
+</ul><h3 id="proc/rename_layer"><aside class="declaration">proc </aside>rename_layer<aside>(index, name)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L158"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 158"></a></aside></h3><p>Renames a layer as an undoable step, cleaning the name as a saved piece's layer names are.</p>
+<p>Arguments:</p>
+<ul>
+<li>index: The layer.</li>
+<li>name: The player's text.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE/FALSE: FALSE when <code>index</code> names no layer, nothing is left of the name once cleaned, or it wouldn't change.</li>
+</ul><h3 id="proc/reverse_transact"><aside class="parent"><a title="/datum/sprite_editor_workspace/custom_sprite" href="datum/sprite_editor_workspace/custom_sprite.html#proc/reverse_transact">↑</a></aside>reverse_transact<aside>(/list/transaction)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L467"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 467"></a></aside></h3><p>Also counts what reversing a step changed.</p>
+<p>Arguments:</p>
+<ul>
+<li>transaction: The step.</li>
+</ul><h3 id="proc/sanitize_transaction"><aside class="parent"><a title="/datum/sprite_editor_workspace" href="datum/sprite_editor_workspace.html#proc/sanitize_transaction">↑</a></aside>sanitize_transaction<aside>(/list/input)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L432"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 432"></a></aside></h3><p>Also writes a stroke's colour as the nine-character pixel it paints, in graffiti_color()'s form, so every pixel value
+stays canonical.</p>
+<p>Arguments:</p>
+<ul>
+<li>input: The checked transaction.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>list: The transaction to apply.</li>
+</ul><h3 id="proc/serialize_piece"><aside class="declaration">proc </aside>serialize_piece<aside>(name, description)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L594"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 594"></a></aside></h3><p>Returns the piece as the library saves it: every layer, painted or not, each grid indexing a palette of the colours
+the paint uses, in the order the layers first use them: layer 1 row by row from the top, then each layer above it. A
+two-tile canvas with nothing painted on its right tile saves one tile wide, though the canvas keeps its width.</p>
+<p>Arguments:</p>
+<ul>
+<li>name: The piece's name.</li>
+<li>description: Its description.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>list: The canonical piece, as graffiti_validate_piece() would return it.</li>
+<li>null: Nothing is painted, or the paint uses more than GRAFFITI_MAX_COLORS colours.</li>
+</ul><h3 id="proc/set_layer_glow"><aside class="declaration">proc </aside>set_layer_glow<aside>(index, glow)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L174"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 174"></a></aside></h3><p>Turns a layer's glow on or off as an undoable step.</p>
+<p>Arguments:</p>
+<ul>
+<li>index: The layer.</li>
+<li>glow: Whether its paint glows.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE/FALSE: FALSE when <code>index</code> names no layer or the glow wouldn't change.</li>
+</ul><h3 id="proc/set_width"><aside class="declaration">proc </aside>set_width<aside>(canvas_width)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L497"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 497"></a></aside></h3><p>Makes the canvas one or two tiles wide where it stands: columns come and go on the right, so paint keeps its place
+and every layer keeps its id. Paint in columns that go is lost, which has_paint_right_half() lets the caller ask
+about first. History can't span two widths, so it starts over.</p>
+<p>Arguments:</p>
+<ul>
+<li>canvas_width: GRAFFITI_WIDTH or GRAFFITI_WIDE_WIDTH.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE/FALSE: FALSE for any other width, or for the width the canvas already has.</li>
+</ul><h3 id="proc/stroke_layer_matches"><aside class="parent"><a title="/datum/sprite_editor_workspace/custom_sprite" href="datum/sprite_editor_workspace/custom_sprite.html#proc/stroke_layer_matches">↑</a></aside>stroke_layer_matches<aside>(/list/transaction)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L310"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 310"></a></aside></h3><p>Whether a stroke names the layer it paints by its id as well as its place. The bottom layer is named like any other,
+so a stroke meant for a layer that undo just moved can't land on another.</p>
+<p>Arguments:</p>
+<ul>
+<li>transaction: The stroke.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE/FALSE</li>
+</ul><h3 id="proc/stroke_mask_slots"><aside class="parent"><a title="/datum/sprite_editor_workspace/custom_sprite" href="datum/sprite_editor_workspace/custom_sprite.html#proc/stroke_mask_slots">↑</a></aside>stroke_mask_slots<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L415"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 415"></a></aside></h3><p>Returns draw_mask_bits, which a stroke's compact mask is cut down to as it is read: a check of each point costs about
+as much as the rest of the stroke (measured). A canvas with a draw mask holds no paint outside it, so an eraser loses
+nothing by it.</p>
+<p>Returns:</p>
+<ul>
+<li>list: The slots, for a one-tile canvas with a draw mask.</li>
+<li>null: The canvas paints everywhere.</li>
+</ul><h3 id="proc/transact"><aside class="parent"><a title="/datum/sprite_editor_workspace/custom_sprite" href="datum/sprite_editor_workspace/custom_sprite.html#proc/transact">↑</a></aside>transact<aside>(/list/transaction)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L445"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 445"></a></aside></h3><p>Fills by setting each pixel to the fill colour, as the pencil paints: translucent paint blends only when the layers
+merge. Anything else is applied as a custom sprite workspace applies it. Either way, what changed is counted.</p>
+<p>Arguments:</p>
+<ul>
+<li>transaction: The step.</li>
+</ul><h3 id="proc/used_colors"><aside class="parent"><a title="/datum/sprite_editor_workspace/custom_sprite" href="datum/sprite_editor_workspace/custom_sprite.html#proc/used_colors">↑</a></aside>used_colors<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L334"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 334"></a></aside></h3><p>Returns the colours the paint uses, read from color_counts. Unlike a drawing's, translucent colours keep their alpha,
+as graffiti_color() writes them.</p>
+<p>Returns:</p>
+<ul>
+<li>list: The colours in color_counts' order, a list the caller may change.</li>
+</ul><h3 id="proc/validate_palette_color"><aside class="parent"><a title="/datum/sprite_editor_workspace/custom_sprite" href="datum/sprite_editor_workspace/custom_sprite.html#proc/validate_palette_color">↑</a></aside>validate_palette_color<aside>(/<a href="datum.html">datum</a>/source, color)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/workspace.dm#L349"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/workspace.dm 349"></a></aside></h3><p>Takes any brush colour that shows, until the paint uses GRAFFITI_MAX_COLORS colours: then only those.</p>
+<p>Arguments:</p>
+<ul>
+<li>source: This workspace.</li>
+<li>color: A well-formed <code>#rrggbb</code> or <code>#rrggbbaa</code> colour, in either case.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>COLOR_IS_INVALID: The colour paints nothing, or would be one colour too many.</li>
+</ul></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/6045a9effef19a65a8c400fa9f86916f0a85485d">6045a9e</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

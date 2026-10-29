@@ -1,0 +1,165 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_aphelion/modules/bug_reporting/module.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>modular_aphelion/modules/bug_reporting/module.md <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/bug_reporting/module.md"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/bug_reporting/module.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><h2 id="bug-reports">Bug reports</h2>
+<p>Module ID: BUG_REPORTING</p>
+<h3 id="description">Description:</h3>
+<p><strong>Report a bug</strong> (OOC, and the escape menu's Report Bug) opens the in-game report window when
+<code>USE_FANCY_BUG_REPORTING</code> is uncommented in <code>config/nova/config_nova.txt</code> and <code>BUG_REPORT_BRIDGE_URL</code> is the
+reporting host's loopback address, <code>http://127.0.0.1:&lt;port&gt;</code>. Otherwise, and always for guests, it opens the GitHub
+issue form as before. The flag ships commented out, and downstreams should leave it that way: the window
+needs a reporting host on the same machine and three private settings (<code>BUG_REPORT_BRIDGE_URL</code>,
+<code>BUG_REPORT_BRIDGE_TOKEN</code>, and <code>BUG_REPORT_SERVER_ID</code>, the name the host knows this server by). <strong>View recent bug reports</strong> (OOC) groups the last
+20 reports from this connection into Drafts and Submitted, newest first. Drafts can be continued;
+submitted reports only offer their GitHub issue, with Refresh for checks or publication still pending.
+The list clears on disconnect. <strong>Report a /tg/station bug</strong> (OOC) opens /tg/station's GitHub form. The
+bridge, the reporting service and their limits are documented with the backend; this module is the
+game's side.</p>
+<ul>
+<li>
+<p><strong>Four short pages</strong>: Report title, Picture, Steps (numbered, with what should have happened, what
+it's about and how much it gets in the way) and Review report, then whatever the service answers:
+checking, sent back to the page it's about, too many this hour, couldn't reach the server, or sent
+with the GitHub link. The title, the steps and what should have happened are required, and the
+window and DM agree on empty: whitespace or a bare &quot;1.&quot; counts as nothing.</p>
+</li>
+<li>
+<p><strong>Context is frozen when the window opens</strong>: round, map, mob, area, versions, build and test merges,
+captured in <code>New()</code> before anything can yield. None of it goes to the window; the bridge gets it.</p>
+</li>
+<li>
+<p><strong>Typing never reaches the server.</strong> Unsent text is kept in the browser's tgui storage per report,
+so it survives the window closing. The window sends its text only with Send, a picture or Keep,
+whole in one message (see below).</p>
+</li>
+<li>
+<p><strong>The bridge sees one request at a time per report and eight across the server</strong>, so no number of
+reporters can pile up rust-g jobs. We skip SShttp on purpose, it logs the bearer token and the text.</p>
+</li>
+<li>
+<p><strong>The window costs nothing while it sits open.</strong> Autoupdate is off. The whole data goes at open and
+after an act; any other update carries only the keys whose value changed, and nothing at all when
+nothing did. The list of open windows to capture goes at open, after an act, when the window gets
+focus and when a window capture ends. One poll timer runs while the report waits on the service,
+backing off from 2 s to a minute, and on the sent page at the receipt's own next try; it stops when
+the window closes.</p>
+</li>
+<li>
+<p><strong>Hourly allowances mirror the service</strong>, per ckey for the round, so a reconnect doesn't refill them:
+5 accepted reports, 10 submissions with new text, 20 new reports (the service allows 30, and
+refusing one there stalls everyone's registration), 5 uploads of your own screenshots (spent once
+the file prompt gives one back), 30 captures and 60 saves of changed text. Acts that reach the
+bridge or check the text wait a second between them, Try again five, a picture's preview and a
+window capture ten, and an in-game capture thirty. Guests get the GitHub issue form instead, since
+every guest login is a new key with every allowance full again.</p>
+</li>
+<li>
+<p><strong>Pictures</strong>, up to three a report (<code>BUG_REPORT_MAX_PICTURES</code>, the service's cap), each a tick box:</p>
+<ul>
+<li><strong>In-game capture</strong>: the server develops the reporter's view at its default size (a ghost's view
+range would cost several times more) the way the photo camera
+does (<code>/obj/item/camera/bug_report</code>, through tg's <code>camera_get_icon</code>, which yields between turfs
+for it), one render at a time per connection and two across the server.</li>
+<li><strong>A window</strong>: a snapshot of one of the reporter's other open TGUI windows, never a report window,
+named by its title, then its object's name, then &quot;Untitled window&quot;. The window shows its copy in
+an overlay in its own theme: drag to crop, Enter adds it, Esc cancels. The report window comes
+forward when the picture arrives, which goes back in 32 KiB acknowledged chunks that DM appends
+to a generated file with rust-g.</li>
+<li><strong>Your own screenshot</strong>: BYOND's file prompt, PNG, JPEG, WebP or GIF to 10 MiB (<code>AllowUpload</code>
+lifts the limit for that one image).</li>
+</ul>
+<p>DM never decodes a file or a window's snapshot, it only stages their bytes; the in-game capture is
+the one picture it draws, and the bridge decodes and checks them all. The private preview comes
+back as a data URL (<code>rustg_hash_file</code>), never <code>browse_rsc</code>, which would keep every image in the
+player's BYOND cache for good. DM asks for a WebP on the preview call only and labels the data URL
+by the reply's <code>Content-Type</code>, so a bridge that only makes PNGs still works. New pictures default
+to public. <strong>Keep this picture private</strong> limits that picture to staff, even if its preview fails;
+switching back to public needs the preview. The choice survives refreshes and retakes and is sent with the report.</p>
+</li>
+<li>
+<p><strong>Snapshot limits</strong>: the clone copies computed values, which already have every <code>var()</code> filled in,
+so CSS variables stay out (Aphelion's inherited base64 images made them 125 KB a node, and the
+Changelog's SVG 213 M characters, which killed its 32-bit renderer). <code>dom-snapshot.ts</code> refuses an SVG
+over <code>MAX_SVG_CHARS</code> (50 M characters; drawing costs about 20.5 bytes a character and the renderer
+dies near 2.5 GB) before its data URL exists, and a window over 5,000 nodes or 4,096 pixels a side
+the same way. A window refuses a second snapshot while it still draws one, even one whose
+capture the server already ended. The window sends <code>bug-report/capture-ready</code> once its overlay is
+up, with a preview or a failure, and the server ends a capture with no ready in 20 seconds, since a
+dead renderer takes the page's own 170-second timer with it. The 3-minute expiry stays for a capture
+left open.</p>
+</li>
+<li>
+<p><strong>Snapshot cost</strong>: the clone writes only the properties a copy needs, what an author rule could set
+that the SVG wouldn't work out by itself (<code>capture/style-copy.ts</code>), and embeds only the font faces
+the page loaded, pseudo-elements' included, keeping a part-range face unless a drawn one covers its
+weight (<code>capture/font-faces.ts</code>). The copier was proven to change no pixel on a corpus of real
+windows, and the face filter only the boxes a pseudo-element draws, which now match the live page.
+A reused window's page keeps every face earlier interfaces loaded, so its snapshot can carry a few
+faces nothing on it draws: bigger, never different.
+Font Awesome goes out as WOFF2 (<code>modular_aphelion/master_files/html/font-awesome</code>), 170 thousand
+characters of a snapshot instead of 568.</p>
+</li>
+</ul>
+<p><strong>Why every tgui message is posted:</strong> tgui's <code>Byond.call</code> sent any URL of 2048 characters or more as
+an XHR GET, which DreamSeeker 516 answers with a 404, so the message never arrived (tgui's act chunking
+exists because of it, and the topic limiter cuts chunked acts short). On a WebView2 client <code>Byond.call</code>
+now posts every URL through <code>postMessage</code>, as BYOND's own page API does, measured byte-identical to
+2.8 MB and in order, and <code>act()</code> skips
+its chunking there. A client without WebView2 keeps the old path and the chunking. Since a posted
+message can be any size, <code>tgui_Topic</code> drops one over 128 KiB before its JSON is decoded (the biggest
+honest one is about 72 KB) and tells the player, the chunk assembler drops a chunked act past the same
+128 KiB and checks its JSON first, and tgui-say counts a say's letters, not its bytes,
+now that a long say in another alphabet arrives whole.</p>
+<h3 id="tg-proc-file-changes">TG Proc/File Changes:</h3>
+<p>Edits to existing files are marked <code>APHELION EDIT ... - BUG_REPORTING</code>; transport changes also
+keep the <code>BYOND_POST_MESSAGE</code> descriptor. Changed lines retain their <code>ORIGINAL</code> code. Dedicated
+shared files use <code>APHELION MODULE - BUG_REPORTING</code> headers. The include ownership lists sit before
+<code>BEGIN_INCLUDE</code>, because Dream Maker manages that block and ticked-file enforcement requires exact
+include lines. <code>helpers.min.js</code> is generated with <code>comments=false</code>; annotate <code>helpers.js</code> and rebuild
+with <code>build:helpers</code>, without adding comments by hand to the generated copy.</p>
+<p>The transport comes from <code>ac1a60cfe7f</code>, the shared Hephaestus display face from <code>debb86ecfa3</code>,
+and the WOFF2 font override from <code>c80237473df</code>, all included in <code>2402f986f0a</code> (Aphelion SP4).
+<code>5e94d7bfc1a</code> updates the report verb, and <code>e776cc919f1</code> adds the recent-report browser and its include.</p>
+<table><thead><tr><th>Existing file</th><th>Purpose</th></tr></thead><tbody>
+<tr><td><code>interface/interface.dm</code></td><td>Report a bug (OOC) opens the window when the bridge is set up (guests get the GitHub form), and reads &quot;Report a bug&quot;</td></tr>
+<tr><td><code>code/modules/escape_menu/escape_menu.dm</code></td><td>Report Bug shows without a GitHub URL, in plain words</td></tr>
+<tr><td><code>code/modules/client/client_procs.dm</code></td><td><code>AllowUpload</code> takes one report screenshot past the upload limit</td></tr>
+<tr><td><code>code/modules/photography/camera/camera_image_capturing.dm</code></td><td><code>camera_get_icon</code> is protected, and can yield between turfs, for the in-game capture camera</td></tr>
+<tr><td><code>code/modules/tgui/external.dm</code></td><td>capture messages are bounded before their JSON is decoded, and any message over 128 KiB is dropped</td></tr>
+<tr><td><code>code/modules/tgui/tgui_window.dm</code></td><td>capture messages skip ui_act, closing the window ends its capture, and a chunked act past 128 KiB or with broken JSON is dropped</td></tr>
+<tr><td><code>code/modules/tgui_input/say_modal/speech.dm</code></td><td>tgui-say counts letters, not bytes</td></tr>
+<tr><td><code>tgui/packages/tgui/events/listeners.ts</code>, <code>handlers/suspense.ts</code></td><td>capture messages, and a suspended window cancels its capture</td></tr>
+<tr><td><code>tgui/packages/tgui-setup/helpers.js</code>, <code>tgui/public/helpers.min.js</code></td><td><code>Byond.call</code> posts every URL through WebView2's <code>postMessage</code> and sets <code>Byond.POST_MESSAGE</code>; the minified copy comes from the package's <code>build:helpers</code></td></tr>
+<tr><td><code>tgui/packages/tgui/events/act.ts</code></td><td>no act chunking when <code>Byond.POST_MESSAGE</code> is set</td></tr>
+<tr><td><code>tgui/global.d.ts</code>, <code>tgui/packages/tgui/__mocks__/byond.ts</code></td><td>the flag's type and its mock</td></tr>
+<tr><td><code>tgui/packages/tgui/styles/meridianos/_index.scss</code></td><td>loads the report and capture styles</td></tr>
+<tr><td><code>tgui/packages/tgui/styles/meridianos/_forge-materials.scss</code>, <code>_forge.scss</code></td><td>shares Hephaestus's display face with report and capture headings</td></tr>
+<tr><td><code>tgui/packages/tgui/styles/meridianos/tests/selection-contrast.test.tsx</code></td><td>report and capture readability checks</td></tr>
+<tr><td><code>tgstation.dme</code>, <code>code/modules/unit_tests/_unit_tests.dm</code></td><td>includes, including recent-report history, the transport bound and the WOFF2 override</td></tr>
+<tr><td><code>biome.json</code></td><td>excludes the vendored capture code; this strict JSON file carries no comment markers</td></tr>
+</tbody></table>
+<h3 id="defines">Defines:</h3>
+<ul>
+<li><code>code/__DEFINES/~aphelion_defines/bug_reporting.dm</code>: <code>BUG_REPORT_UPLOAD_LIMIT</code> and
+<code>BUG_REPORT_CAPTURE_CHUNK</code>, which tg files read, and <code>BUG_REPORT_MAX_PICTURES</code>, which two of this
+module's files read.</li>
+<li><code>code/__DEFINES/~aphelion_defines/tgui.dm</code>: <code>TGUI_MAX_PAYLOAD_BYTES</code>, the common bound for posted
+messages and assembled acts. Everything else is file-local.</li>
+</ul>
+<h3 id="included-files-that-are-not-contained-in-this-module">Included files that are not contained in this module:</h3>
+<ul>
+<li><code>tgui/packages/tgui/interfaces/BugReport/</code>: the window.</li>
+<li><code>tgui/packages/tgui/interfaces/BugReportHistory.tsx</code>: recent drafts and submitted reports.</li>
+<li><code>tgui/packages/tgui/capture/</code>: the snapshot, its overlay, preview and transfer, the style copier
+and the font face filter, and the vendored html-to-image 1.11.13 (<code>vendor/</code>, our changes marked
+<code>Meridian:</code> and listed in its <code>README.md</code>).</li>
+<li><code>tgui/packages/tgui/styles/meridianos/_bug-report.scss</code> (loaded by <code>_index.scss</code>): the window's styles
+in every theme; <code>_forge-materials.scss</code> names Hephaestus's display face and <code>_forge.scss</code> uses
+that same token for its existing headings.</li>
+<li><code>modular_aphelion/master_files/code/modules/asset_cache/assets/fontawesome.dm</code> and
+<code>modular_aphelion/master_files/html/font-awesome/</code>: the WOFF2 override and generated font copies;
+the adjacent <code>README.md</code> records their source and regeneration steps.</li>
+<li><code>tgui/packages/tgui-setup/helpers.test.ts</code>, <code>tgui/packages/tgui/events/act.test.ts</code>: every call posted
+once and verbatim on WebView2, the old paths without it, and a 30 KB act sent whole or chunked.</li>
+<li><code>tgui/packages/tgui/styles/meridianos/tests/selection-contrast.test.tsx</code>: the window's text stays
+readable in every theme.</li>
+<li><code>code/modules/unit_tests/~nova/tgui_say_cut.dm</code>: tgui-say's cut by letter.</li>
+</ul>
+<p>The report window's own tests run against a scripted reporting service, and they're kept outside this repository.</p></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/6045a9effef19a65a8c400fa9f86916f0a85485d">6045a9e</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

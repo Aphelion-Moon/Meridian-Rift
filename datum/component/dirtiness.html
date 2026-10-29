@@ -1,0 +1,286 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>/datum/component/dirtiness - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a> — <a href="datum/component/dirtiness.html#var">Var Details</a> - <a href="datum/component/dirtiness.html#proc">Proc Details</a></header><main><h1>dirtiness <aside>/<a href="datum.html">datum</a>/<a href="datum/component.html">component</a>/<a href="datum/component/dirtiness.html">dirtiness</a></aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L11"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 11"></a></h1><p>The mess a person or an item carries, as splats: each a variant of a zone's mess at a level, from masks SSdirt
+makes. A person's skin splats draw through one /datum/bodypart_overlay/dirt_skin on each limb skin mess draws on,
+under what they wear, and fade out beside it. Their underclothes' splats are kept with each piece, and draw over it
+through one /datum/bodypart_overlay/dirt_underclothes on the chest while it's worn and shows. Their parts' splats
+draw with each part's own front layer, and their taur body's pools with the taur body's own images. A garment's
+splats draw inset over it while a person wears it, and a taur suit's back splats as pools along the taur body's back
+too. The parts a surface's mess reaches shape it (dirt_surface_parts()). Washing clears it, as it clears the floor's
+decals.</p><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Vars</h2></td></tr><tr><th><a href="datum/component/dirtiness.html#var/cloth">cloth</a></th><td>An item's cloth masks, made from its wearer's body.</td></tr><tr><th><a href="datum/component/dirtiness.html#var/cover_key">cover_key</a></th><td>What the body wore over its skin when the skin's request was made, as dirt_sprites_key() writes it.</td></tr><tr><th><a href="datum/component/dirtiness.html#var/mess_splats">mess_splats</a></th><td>This carrier's /datum/dirt_splat, oldest first: a person's skin, or an item's cloth.</td></tr><tr><th><a href="datum/component/dirtiness.html#var/part_drawings">part_drawings</a></th><td>alist(ORGAN_SLOT_* = /datum/dirt_drawing): each part with splats' own masks, made again when its sprite changes.</td></tr><tr><th><a href="datum/component/dirtiness.html#var/part_mess_splats">part_mess_splats</a></th><td>A person's parts' splats: alist(ORGAN_SLOT_* = list of /datum/dirt_splat, oldest first). The taur body's pools are
+ORGAN_SLOT_EXTERNAL_TAUR's.</td></tr><tr><th><a href="datum/component/dirtiness.html#var/parts_key">parts_key</a></th><td>The body's parts as dirt_body_parts_key() wrote them when check_parts() last looked, so a change since draws the
+garments it wears again, which check their own masks as they draw.</td></tr><tr><th><a href="datum/component/dirtiness.html#var/skin">skin</a></th><td>The skin's masks, made again when the splats, the body's sprites or what it wears change. Its parts_key is the
+body's parts when its request was made, as dirt_body_parts_key() writes them.</td></tr><tr><th><a href="datum/component/dirtiness.html#var/skin_overlays">skin_overlays</a></th><td>alist(body zone = /datum/bodypart_overlay/dirt_skin): the overlay on each limb skin mess draws on.</td></tr><tr><th><a href="datum/component/dirtiness.html#var/skin_reads">skin_reads</a></th><td>What the limbs and eyes were drawn from when they last matched the skin's request (skin_read_again()):
+alist(body zone = /obj/item/bodypart/proc/dirt_sprite_reads(), &quot;eyes&quot; = dirt_eye_reads()), for skin_reads_for.</td></tr><tr><th><a href="datum/component/dirtiness.html#var/skin_reads_for">skin_reads_for</a></th><td>The skin's request skin_reads were read for. Another one reads them again.</td></tr><tr><th><a href="datum/component/dirtiness.html#var/taur_cloth">taur_cloth</a></th><td>A taur suit's pools, its back splats along its wearer's taur body's back, made while a taur wears it.</td></tr><tr><th><a href="datum/component/dirtiness.html#var/underclothes_drawings">underclothes_drawings</a></th><td>alist(underclothes key = /datum/dirt_drawing): each piece with splats' masks, made again when what's drawn changes,
+and none while the piece is off or hidden.</td></tr><tr><th><a href="datum/component/dirtiness.html#var/underclothes_overlay">underclothes_overlay</a></th><td>The overlay on the chest drawing the underclothes' splats, while there are any.</td></tr><tr><th><a href="datum/component/dirtiness.html#var/underclothes_splats">underclothes_splats</a></th><td>A person's underclothes' splats: alist(underclothes key = list of /datum/dirt_splat, oldest first), keyed by the
+piece and its accessory (dirt_underclothes_key()). They stay while the piece is off or hidden.</td></tr><tr><td colspan="2"><h2>Procs</h2></td></tr><tr><th><a href="datum/component/dirtiness.html#proc/add_mess">add_mess</a></th><td>Puts a mess on a zone of this carrier: its skin or cloth, or the part in an organ slot. As a shot lands it, the
+levels go on the zone's newest splat, up to DIRT_MESS_MAX_LEVEL, and what's left starts another splat at that level,
+at most the top one, with a variant this carrier doesn't have on that zone yet while one is left. A variant given
+places a new splat at <code>levels</code> with that variant.</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/add_underclothes_mess">add_underclothes_mess</a></th><td>Puts a mess on a zone of the underclothes a person wears in a slot, as add_mess() puts it on the skin. It stays with
+that piece, kept while it's off or hidden.</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/check_cover">check_cover</a></th><td>Has the skin's masks made again if what the body wears over its skin changed since they were asked for, so its mess
+fades out beside what it wears now, and draws the body.</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/check_parts">check_parts</a></th><td>Has the masks the body's parts shape made again if what it draws of them changed since they were asked for (a genital
+shown, hidden, layered otherwise, swapped or resized), and draws the body. The skin and each piece of underclothes
+are judged by the parts their own masks were asked for with, so a piece made again meanwhile can't hide skin masks
+made before; the garments by a change since this last looked.</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/clear_mess">clear_mess</a></th><td>Takes all of this carrier's mess off.</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/drop_part">drop_part</a></th><td>Takes a part's splats and masks off, as it leaves the body. Its leaving draws the body.</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/drop_underclothes_overlay">drop_underclothes_overlay</a></th><td>Takes the underclothes overlay off, wherever it is. Nothing is drawn until the body's next update_body_parts().</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/forget_skin_reads">forget_skin_reads</a></th><td>Drops what the skin's sprites were last read from (skin_reads), which holds the limbs and eyes read, so none that
+leaves is kept: the next draw reads them again.</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/forget_underclothes_masks">forget_underclothes_masks</a></th><td>Has every piece of underclothes' masks made again for what's drawn now: its splats stay with it, worn or not.
+Nothing is drawn until the body's next update_body_parts().</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/fresh_mess_variant">fresh_mess_variant</a></th><td>Returns a variant of a zone's mess this carrier doesn't have on that zone yet, at random, or any once it has them
+all.</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/mess_changed">mess_changed</a></th><td>Draws a change to this carrier's splats: a person's skin and underclothes, a part of theirs, or an item's slot while
+it's worn. A part's change redraws the whole body, which a portal relay drawing the part, or a bulge look drawing it
+behind a cover, follows.</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/mess_count">mess_count</a></th><td>Returns how many splats this carrier holds, parts and underclothes included.</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/note_skin_reads">note_skin_reads</a></th><td>Notes what some zones' limbs, and the eyes when asked, are drawn from now, for the skin's request (skin_reads): its
+zone sources name what they draw.</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/oldest_mess">oldest_mess</a></th><td>Returns this carrier's oldest splat, parts and underclothes included, or null with none.</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/on_clean">on_clean</a></th><td>Clears this carrier's mess when it's washed as the floor's decals are.</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/on_genital_updated">on_genital_updated</a></th><td>Has SSdirt look, once the change settles, whether the parts the body draws changed with a genital's sprite (an
+erection, a new size) and the masks they shape need making again (check_parts()).</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/on_limb_attached">on_limb_attached</a></th><td>Has the masks made again for the body a limb attached to the person makes, every limb shaping the others'
+silhouettes, and gives the limb a skin overlay if skin mess draws on it, and the chest the underclothes overlay. The
+attach draws the body.</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/on_limb_removed">on_limb_removed</a></th><td>Takes the skin overlay off a limb leaving the person, whose mess stays with them, lets go of it and of the eyes it
+may take (forget_skin_reads()), and has the masks made again for the body left. The removal draws the body.</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/on_organ_gained">on_organ_gained</a></th><td>Has SSdirt look again, once the change settles, at a body gaining a taur body, as a genital joining it would have it
+(check_parts()). The taur body's own images ask for its pools as they're drawn.</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/on_organ_lost">on_organ_lost</a></th><td>Takes a taur body's pools off as it leaves the body, as a genital leaving takes its share, and has SSdirt look again
+once the change settles. Its leaving draws the body. Eyes leaving are let go of (forget_skin_reads()).</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/on_overlay_changed">on_overlay_changed</a></th><td>Follows what a person wears: a change to the underclothes has their masks made again for what's drawn now, and a
+change to any slot that covers skin has SSdirt check, once the slots settle, whether the skin's mess fades at other
+edges now (check_cover()).</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/on_worn_overlays">on_worn_overlays</a></th><td>Draws an item's mess over it while a person wears it: inset images in its worn wrapper, from the wearer's cloth
+masks, moved back onto the body's tile by what build_worn_icon() moves the wrapper by (dirt_worn_shift()). On a taur
+suit, a sprite spanning the taur canvas (dirt_taur_fitted()), the suit's back splats draw as pools along the taur
+body's back too, on the canvas round that tile. Off the body it draws none.</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/parts_changed">parts_changed</a></th><td>Has every mask a body's parts shape made again, the old ones drawn meanwhile: the skin's, the underclothes', and the
+garments' it wears, which their own draws make again. Draws the body.</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/ready_cloth_masks">ready_cloth_masks</a></th><td>Returns the masks a worn item's cloth is drawn with on its wearer, or null while there are none to draw, asking for
+them as ready_skin_masks() does. Masks made for a body drawn from other sprites (another wearer, other eyes) are
+dropped and made again; a change to the parts its splats reach (dirt_surface_parts()) makes them again too, the old
+ones drawn meanwhile.</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/ready_part_masks">ready_part_masks</a></th><td>Returns the masks of a person's part's own mess, its share drawn with its front layer, or null while there are none
+to draw, asking for them as ready_skin_masks() does; SSdirt draws the whole body again once they're made. Masks made
+for another sprite of the part (an erection, a jiggle, another size) are dropped and made again: they wouldn't fit
+it. The vulva on bare skin takes the ring of skin round it, so its masks follow the body's template too. A part drawn
+at more than one layer (a butt's front and back images) draws its share only in the directions it shows over what it
+lies on (dirt_zone_layer()): the surface's masks take it in the rest.</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/ready_skin_masks">ready_skin_masks</a></th><td>Returns the masks the skin's mess is drawn with on a limb, or null while there are none to draw. The first ask after
+a change queues them with SSdirt, which draws the body again once they're made; until then the masks before them are
+drawn, so mess already there stays while more is added. Masks made for other sprites than the body draws (a new
+size, a swapped limb, other eyes) are dropped and made again: on every draw each limb skin mess draws on checks its
+own, and the chest the arms, the hands and the eyes. Each is read again only once what it's drawn from has changed
+since it last matched (skin_reads), so a steady draw compares a few vars. They fade out beside what the body wears
+(dirt_cover_sprites()), and the parts the splats reach shape them (dirt_surface_parts()) as each draws over or under
+the skin in each direction: every front image over it, a butt's back image and the pecs guide under it.</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/ready_taur_cloth_masks">ready_taur_cloth_masks</a></th><td>Returns the masks of a taur suit's pools on its wearer, or null while there are none to draw, asking for them as
+ready_skin_masks() does: its back splats along the back of the taur body it hides, as that body would draw them
+(ready_taur_masks()), over the whole taur canvas. Masks made for another taur body or rider are dropped and made
+again.</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/ready_taur_masks">ready_taur_masks</a></th><td>Returns the masks of a person's taur body's pools, drawn with its own images, or null while there are none to draw,
+asking for them as ready_skin_masks() does; SSdirt draws the body again once they're made. They lie along the back of
+the taur body's sprite, keeping clear of the rider's mess, so masks made for another sprite (lying down, another
+kind) or another rider are dropped and made again.</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/ready_underclothes_masks">ready_underclothes_masks</a></th><td>Returns the masks of each piece of a person's underclothes that has some drawn and is worn and shows now, asking for
+those not made yet as ready_skin_masks() does. Each is cloth's, kept to the pixels the piece shows, under those drawn
+over it, and shaped by the parts its splats reach (dirt_surface_parts()): pecs under a tank top, or a genital set to
+draw below the underwear. A piece off or hidden keeps its splats but draws none.</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/remove_mess">remove_mess</a></th><td>Takes one splat off this carrier, wherever it lies.</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/skin_besides_unchanged">skin_besides_unchanged</a></th><td>Returns whether what the chest's draw checks of the skin's sprites besides its own, the arms and hands, the eyes and
+whether the head is a human's, is drawn from what it was when they last matched (skin_reads).</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/skin_read_again">skin_read_again</a></th><td>Returns whether the body draws the sprites the skin's masks were made from, as a limb's draw checks them: its own,
+and for the chest the arms and hands, the eyes and whether the head is a human's (dirt_zone_sources_match(), which
+checks the eyes whichever limb asks). When it does, notes what they're drawn from (skin_reads).</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/stack_mess">stack_mess</a></th><td>Adds a mess to one surface's splats as add_mess() describes, and returns the splat it started, or the one it raised.</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/sync_skin_overlays">sync_skin_overlays</a></th><td>Puts a skin overlay on each limb skin mess draws on while the skin carries any, and takes them off once it doesn't.
+Nothing is drawn until the body's next update_body_parts().</td></tr><tr><th><a href="datum/component/dirtiness.html#proc/sync_underclothes_overlay">sync_underclothes_overlay</a></th><td>Puts the underclothes overlay on the chest while the underclothes carry mess, and takes it off once they don't.
+Nothing is drawn until the body's next update_body_parts().</td></tr></table><h2 id="var">Var Details</h2><h3 id="var/cloth"><aside class="declaration">var </aside>cloth <aside>– /<a href="datum.html">datum</a>/<a href="datum/dirt_drawing.html">dirt_drawing</a></aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L43"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 43"></a></h3><p>An item's cloth masks, made from its wearer's body.</p><h3 id="var/cover_key"><aside class="declaration">var </aside>cover_key <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L28"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 28"></a></h3><p>What the body wore over its skin when the skin's request was made, as dirt_sprites_key() writes it.</p><h3 id="var/mess_splats"><aside class="declaration">var </aside>mess_splats <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L13"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 13"></a></h3><p>This carrier's /datum/dirt_splat, oldest first: a person's skin, or an item's cloth.</p><h3 id="var/part_drawings"><aside class="declaration">var </aside>part_drawings <aside>– /alist</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L18"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 18"></a></h3><p>alist(ORGAN_SLOT_* = /datum/dirt_drawing): each part with splats' own masks, made again when its sprite changes.</p><h3 id="var/part_mess_splats"><aside class="declaration">var </aside>part_mess_splats <aside>– /alist</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L16"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 16"></a></h3><p>A person's parts' splats: alist(ORGAN_SLOT_* = list of /datum/dirt_splat, oldest first). The taur body's pools are
+ORGAN_SLOT_EXTERNAL_TAUR's.</p><h3 id="var/parts_key"><aside class="declaration">var </aside>parts_key <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L21"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 21"></a></h3><p>The body's parts as dirt_body_parts_key() wrote them when check_parts() last looked, so a change since draws the
+garments it wears again, which check their own masks as they draw.</p><h3 id="var/skin"><aside class="declaration">var </aside>skin <aside>– /<a href="datum.html">datum</a>/<a href="datum/dirt_drawing.html">dirt_drawing</a></aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L26"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 26"></a></h3><p>The skin's masks, made again when the splats, the body's sprites or what it wears change. Its parts_key is the
+body's parts when its request was made, as dirt_body_parts_key() writes them.</p><h3 id="var/skin_overlays"><aside class="declaration">var </aside>skin_overlays <aside>– /alist</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L23"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 23"></a></h3><p>alist(body zone = /datum/bodypart_overlay/dirt_skin): the overlay on each limb skin mess draws on.</p><h3 id="var/skin_reads"><aside class="declaration">var </aside>skin_reads <aside>– /alist</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L31"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 31"></a></h3><p>What the limbs and eyes were drawn from when they last matched the skin's request (skin_read_again()):
+alist(body zone = /obj/item/bodypart/proc/dirt_sprite_reads(), &quot;eyes&quot; = dirt_eye_reads()), for skin_reads_for.</p><h3 id="var/skin_reads_for"><aside class="declaration">var </aside>skin_reads_for <aside>– /<a href="datum.html">datum</a>/<a href="datum/dirt_mask_request.html">dirt_mask_request</a></aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L33"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 33"></a></h3><p>The skin's request skin_reads were read for. Another one reads them again.</p><h3 id="var/taur_cloth"><aside class="declaration">var </aside>taur_cloth <aside>– /<a href="datum.html">datum</a>/<a href="datum/dirt_drawing.html">dirt_drawing</a></aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L45"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 45"></a></h3><p>A taur suit's pools, its back splats along its wearer's taur body's back, made while a taur wears it.</p><h3 id="var/underclothes_drawings"><aside class="declaration">var </aside>underclothes_drawings <aside>– /alist</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L39"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 39"></a></h3><p>alist(underclothes key = /datum/dirt_drawing): each piece with splats' masks, made again when what's drawn changes,
+and none while the piece is off or hidden.</p><h3 id="var/underclothes_overlay"><aside class="declaration">var </aside>underclothes_overlay <aside>– /<a href="datum.html">datum</a>/<a href="datum/bodypart_overlay.html">bodypart_overlay</a>/<a href="datum/bodypart_overlay/dirt_underclothes.html">dirt_underclothes</a></aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L41"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 41"></a></h3><p>The overlay on the chest drawing the underclothes' splats, while there are any.</p><h3 id="var/underclothes_splats"><aside class="declaration">var </aside>underclothes_splats <aside>– /alist</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L36"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 36"></a></h3><p>A person's underclothes' splats: alist(underclothes key = list of /datum/dirt_splat, oldest first), keyed by the
+piece and its accessory (dirt_underclothes_key()). They stay while the piece is off or hidden.</p><h2 id="proc">Proc Details</h2><h3 id="proc/add_mess"><aside class="declaration">proc </aside>add_mess<aside>(zone, organ_slot, levels, variant, redraw, new_variant) <span class="as"> as </span>/<a href="datum.html">datum</a>/<a href="datum/dirt_splat.html">dirt_splat</a> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L106"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 106"></a></aside></h3><p>Puts a mess on a zone of this carrier: its skin or cloth, or the part in an organ slot. As a shot lands it, the
+levels go on the zone's newest splat, up to DIRT_MESS_MAX_LEVEL, and what's left starts another splat at that level,
+at most the top one, with a variant this carrier doesn't have on that zone yet while one is left. A variant given
+places a new splat at <code>levels</code> with that variant.</p>
+<p>Arguments:</p>
+<ul>
+<li>zone: A DIRT_ZONE_* define.</li>
+<li>organ_slot: The part's ORGAN_SLOT_* define, or null for the skin or cloth.</li>
+<li>levels: How many levels it adds, 1 or more.</li>
+<li>variant: 0 to DIRT_MESS_VARIANTS - 1, or null.</li>
+<li>redraw: Whether to draw the change. A caller that changes more first, as a landing past the cap does, draws once
+after (mess_changed()), so no masks are made for splats it's about to take off.</li>
+<li>new_variant: The variant a splat started without <code>variant</code> takes, or null for one the zone doesn't have yet: a part
+takes the variant of the shot's splat on the surface under it.</li>
+</ul>
+<p>Returns the splat it started, or the one it raised when it started none.</p><h3 id="proc/add_underclothes_mess"><aside class="declaration">proc </aside>add_underclothes_mess<aside>(zone, piece, levels, variant, redraw) <span class="as"> as </span>/<a href="datum.html">datum</a>/<a href="datum/dirt_splat.html">dirt_splat</a> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L129"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 129"></a></aside></h3><p>Puts a mess on a zone of the underclothes a person wears in a slot, as add_mess() puts it on the skin. It stays with
+that piece, kept while it's off or hidden.</p>
+<p>Arguments:</p>
+<ul>
+<li>zone: A DIRT_ZONE_* define.</li>
+<li>piece: A DIRT_UNDERCLOTHES_* define the person wears.</li>
+<li>levels: How many levels it adds, 1 or more.</li>
+<li>variant: 0 to DIRT_MESS_VARIANTS - 1, or null.</li>
+<li>redraw: Whether to draw the change, as add_mess()'s.</li>
+</ul>
+<p>Returns the splat it started or raised, or null when the person doesn't wear that piece.</p><h3 id="proc/check_cover"><aside class="declaration">proc </aside>check_cover<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L803"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 803"></a></aside></h3><p>Has the skin's masks made again if what the body wears over its skin changed since they were asked for, so its mess
+fades out beside what it wears now, and draws the body.</p><h3 id="proc/check_parts"><aside class="declaration">proc </aside>check_parts<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L758"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 758"></a></aside></h3><p>Has the masks the body's parts shape made again if what it draws of them changed since they were asked for (a genital
+shown, hidden, layered otherwise, swapped or resized), and draws the body. The skin and each piece of underclothes
+are judged by the parts their own masks were asked for with, so a piece made again meanwhile can't hide skin masks
+made before; the garments by a change since this last looked.</p><h3 id="proc/clear_mess"><aside class="declaration">proc </aside>clear_mess<aside>(redraw)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L244"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 244"></a></aside></h3><p>Takes all of this carrier's mess off.</p>
+<p>Arguments:</p>
+<ul>
+<li>redraw: Whether to draw the change. Washing an item draws its slot itself.</li>
+</ul><h3 id="proc/drop_part"><aside class="declaration">proc </aside>drop_part<aside>(organ_slot)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L264"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 264"></a></aside></h3><p>Takes a part's splats and masks off, as it leaves the body. Its leaving draws the body.</p>
+<p>Arguments:</p>
+<ul>
+<li>organ_slot: The part's ORGAN_SLOT_* define.</li>
+</ul><h3 id="proc/drop_underclothes_overlay"><aside class="declaration">proc </aside>drop_underclothes_overlay<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/<a href="mob/living/carbon.html">carbon</a>/<a href="mob/living/carbon/human.html">human</a>/body)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L376"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 376"></a></aside></h3><p>Takes the underclothes overlay off, wherever it is. Nothing is drawn until the body's next update_body_parts().</p>
+<p>Arguments:</p>
+<ul>
+<li>body: The person.</li>
+</ul><h3 id="proc/forget_skin_reads"><aside class="declaration">proc </aside>forget_skin_reads<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L473"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 473"></a></aside></h3><p>Drops what the skin's sprites were last read from (skin_reads), which holds the limbs and eyes read, so none that
+leaves is kept: the next draw reads them again.</p><h3 id="proc/forget_underclothes_masks"><aside class="declaration">proc </aside>forget_underclothes_masks<aside>(drop_masks)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L794"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 794"></a></aside></h3><p>Has every piece of underclothes' masks made again for what's drawn now: its splats stay with it, worn or not.
+Nothing is drawn until the body's next update_body_parts().</p>
+<p>Arguments:</p>
+<ul>
+<li>drop_masks: Whether to stop drawing the masks made before, which no longer fit the body.</li>
+</ul><h3 id="proc/fresh_mess_variant"><aside class="declaration">proc </aside>fresh_mess_variant<aside>(zone, piece)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L179"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 179"></a></aside></h3><p>Returns a variant of a zone's mess this carrier doesn't have on that zone yet, at random, or any once it has them
+all.</p>
+<p>Arguments:</p>
+<ul>
+<li>zone: A DIRT_ZONE_* define.</li>
+<li>piece: A DIRT_UNDERCLOTHES_* define for the underclothes a person wears in that slot, or null for the skin or
+cloth.</li>
+</ul><h3 id="proc/mess_changed"><aside class="declaration">proc </aside>mess_changed<aside>(organ_slot, parts_too, draw)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L304"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 304"></a></aside></h3><p>Draws a change to this carrier's splats: a person's skin and underclothes, a part of theirs, or an item's slot while
+it's worn. A part's change redraws the whole body, which a portal relay drawing the part, or a bulge look drawing it
+behind a cover, follows.</p>
+<p>Arguments:</p>
+<ul>
+<li>organ_slot: The part whose splats changed, or null for the rest.</li>
+<li>parts_too: Whether parts' splats changed with the rest (a wash), so the whole body is drawn again.</li>
+<li>draw: Whether to draw a person now. A caller changing several of their surfaces at once draws them once after.</li>
+</ul><h3 id="proc/mess_count"><aside class="declaration">proc </aside>mess_count<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L269"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 269"></a></aside></h3><p>Returns how many splats this carrier holds, parts and underclothes included.</p><h3 id="proc/note_skin_reads"><aside class="declaration">proc </aside>note_skin_reads<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/<a href="mob/living/carbon.html">carbon</a>/<a href="mob/living/carbon/human.html">human</a>/body, /list/zones, eyes)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L461"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 461"></a></aside></h3><p>Notes what some zones' limbs, and the eyes when asked, are drawn from now, for the skin's request (skin_reads): its
+zone sources name what they draw.</p>
+<p>Arguments:</p>
+<ul>
+<li>body: The person.</li>
+<li>zones: The body zones.</li>
+<li>eyes: Whether to note the eyes and the head they're read through.</li>
+</ul><h3 id="proc/oldest_mess"><aside class="declaration">proc </aside>oldest_mess<aside>() <span class="as"> as </span>/<a href="datum.html">datum</a>/<a href="datum/dirt_splat.html">dirt_splat</a> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L279"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 279"></a></aside></h3><p>Returns this carrier's oldest splat, parts and underclothes included, or null with none.</p><h3 id="proc/on_clean"><aside class="declaration">proc </aside>on_clean<aside>(/<a href="datum.html">datum</a>/source, clean_types)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L680"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 680"></a></aside></h3><p>Clears this carrier's mess when it's washed as the floor's decals are.</p>
+<p>Arguments:</p>
+<ul>
+<li>source: The carrier.</li>
+<li>clean_types: CLEAN_TYPE_* flags.</li>
+</ul><h3 id="proc/on_genital_updated"><aside class="declaration">proc </aside>on_genital_updated<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/<a href="mob/living/carbon.html">carbon</a>/<a href="mob/living/carbon/human.html">human</a>/source, /<a href="obj.html">obj</a>/<a href="obj/item.html">item</a>/<a href="obj/item/organ.html">organ</a>/<a href="obj/item/organ/genital.html">genital</a>/genital)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L747"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 747"></a></aside></h3><p>Has SSdirt look, once the change settles, whether the parts the body draws changed with a genital's sprite (an
+erection, a new size) and the masks they shape need making again (check_parts()).</p>
+<p>Arguments:</p>
+<ul>
+<li>source: The person.</li>
+<li>genital: The genital whose sprite changed.</li>
+</ul><h3 id="proc/on_limb_attached"><aside class="declaration">proc </aside>on_limb_attached<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/<a href="mob/living/carbon.html">carbon</a>/<a href="mob/living/carbon/human.html">human</a>/source, /<a href="obj.html">obj</a>/<a href="obj/item.html">item</a>/<a href="obj/item/bodypart.html">bodypart</a>/limb, special, lazy)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L821"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 821"></a></aside></h3><p>Has the masks made again for the body a limb attached to the person makes, every limb shaping the others'
+silhouettes, and gives the limb a skin overlay if skin mess draws on it, and the chest the underclothes overlay. The
+attach draws the body.</p>
+<p>Arguments:</p>
+<ul>
+<li>source: The person.</li>
+<li>limb: The limb being attached.</li>
+<li>special: Whether it's swapped without the usual effects.</li>
+<li>lazy: Whether the person is still being made.</li>
+</ul><h3 id="proc/on_limb_removed"><aside class="declaration">proc </aside>on_limb_removed<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/<a href="mob/living/carbon.html">carbon</a>/<a href="mob/living/carbon/human.html">human</a>/source, /<a href="obj.html">obj</a>/<a href="obj/item.html">item</a>/<a href="obj/item/bodypart.html">bodypart</a>/limb, special, dismembered)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L851"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 851"></a></aside></h3><p>Takes the skin overlay off a limb leaving the person, whose mess stays with them, lets go of it and of the eyes it
+may take (forget_skin_reads()), and has the masks made again for the body left. The removal draws the body.</p>
+<p>Arguments:</p>
+<ul>
+<li>source: The person.</li>
+<li>limb: The limb being removed.</li>
+<li>special: Whether it's swapped without the usual effects.</li>
+<li>dismembered: Whether it was cut off.</li>
+</ul><h3 id="proc/on_organ_gained"><aside class="declaration">proc </aside>on_organ_gained<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/<a href="mob/living/carbon.html">carbon</a>/<a href="mob/living/carbon/human.html">human</a>/source, /<a href="obj.html">obj</a>/<a href="obj/item.html">item</a>/<a href="obj/item/organ.html">organ</a>/organ, special)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L715"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 715"></a></aside></h3><p>Has SSdirt look again, once the change settles, at a body gaining a taur body, as a genital joining it would have it
+(check_parts()). The taur body's own images ask for its pools as they're drawn.</p>
+<p>Arguments:</p>
+<ul>
+<li>source: The person.</li>
+<li>organ: The organ gained.</li>
+<li>special: Whether it was put in without the usual effects.</li>
+</ul><h3 id="proc/on_organ_lost"><aside class="declaration">proc </aside>on_organ_lost<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/<a href="mob/living/carbon.html">carbon</a>/<a href="mob/living/carbon/human.html">human</a>/source, /<a href="obj.html">obj</a>/<a href="obj/item.html">item</a>/<a href="obj/item/organ.html">organ</a>/organ, special)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L729"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 729"></a></aside></h3><p>Takes a taur body's pools off as it leaves the body, as a genital leaving takes its share, and has SSdirt look again
+once the change settles. Its leaving draws the body. Eyes leaving are let go of (forget_skin_reads()).</p>
+<p>Arguments:</p>
+<ul>
+<li>source: The person.</li>
+<li>organ: The organ lost.</li>
+<li>special: Whether it was taken out without the usual effects.</li>
+</ul><h3 id="proc/on_overlay_changed"><aside class="declaration">proc </aside>on_overlay_changed<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/<a href="mob/living/carbon.html">carbon</a>/<a href="mob/living/carbon/human.html">human</a>/source, cache_index)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L697"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 697"></a></aside></h3><p>Follows what a person wears: a change to the underclothes has their masks made again for what's drawn now, and a
+change to any slot that covers skin has SSdirt check, once the slots settle, whether the skin's mess fades at other
+edges now (check_cover()).</p>
+<p>Arguments:</p>
+<ul>
+<li>source: The person.</li>
+<li>cache_index: The overlays_standing slot applied or removed.</li>
+</ul><h3 id="proc/on_worn_overlays"><aside class="declaration">proc </aside>on_worn_overlays<aside>(/<a href="obj.html">obj</a>/<a href="obj/item.html">item</a>/source, /list/overlays, /mutable_appearance/standing, /mutable_appearance/draw_target, isinhands, icon_file, bodyshape)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L655"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 655"></a></aside></h3><p>Draws an item's mess over it while a person wears it: inset images in its worn wrapper, from the wearer's cloth
+masks, moved back onto the body's tile by what build_worn_icon() moves the wrapper by (dirt_worn_shift()). On a taur
+suit, a sprite spanning the taur canvas (dirt_taur_fitted()), the suit's back splats draw as pools along the taur
+body's back too, on the canvas round that tile. Off the body it draws none.</p>
+<p>Arguments:</p>
+<ul>
+<li>source: The item.</li>
+<li>overlays: build_worn_icon()'s separate overlays, added to.</li>
+<li>standing, icon_file, bodyshape: Unused.</li>
+<li>draw_target: The item's own sprite as worn.</li>
+<li>isinhands: Whether it's drawn held.</li>
+</ul><h3 id="proc/parts_changed"><aside class="declaration">proc </aside>parts_changed<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L777"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 777"></a></aside></h3><p>Has every mask a body's parts shape made again, the old ones drawn meanwhile: the skin's, the underclothes', and the
+garments' it wears, which their own draws make again. Draws the body.</p><h3 id="proc/ready_cloth_masks"><aside class="declaration">proc </aside>ready_cloth_masks<aside>(/<a href="obj.html">obj</a>/<a href="obj/item.html">item</a>/garment, /<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/<a href="mob/living/carbon.html">carbon</a>/<a href="mob/living/carbon/human.html">human</a>/wearer) <span class="as"> as </span>/<a href="datum.html">datum</a>/<a href="datum/dirt_masks.html">dirt_masks</a> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L528"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 528"></a></aside></h3><p>Returns the masks a worn item's cloth is drawn with on its wearer, or null while there are none to draw, asking for
+them as ready_skin_masks() does. Masks made for a body drawn from other sprites (another wearer, other eyes) are
+dropped and made again; a change to the parts its splats reach (dirt_surface_parts()) makes them again too, the old
+ones drawn meanwhile.</p>
+<p>Arguments:</p>
+<ul>
+<li>garment: The item.</li>
+<li>wearer: Who wears it.</li>
+</ul><h3 id="proc/ready_part_masks"><aside class="declaration">proc </aside>ready_part_masks<aside>(organ_slot, /<a href="datum.html">datum</a>/<a href="datum/dirt_part_source.html">dirt_part_source</a>/source) <span class="as"> as </span>/<a href="datum.html">datum</a>/<a href="datum/dirt_masks.html">dirt_masks</a> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L557"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 557"></a></aside></h3><p>Returns the masks of a person's part's own mess, its share drawn with its front layer, or null while there are none
+to draw, asking for them as ready_skin_masks() does; SSdirt draws the whole body again once they're made. Masks made
+for another sprite of the part (an erection, a jiggle, another size) are dropped and made again: they wouldn't fit
+it. The vulva on bare skin takes the ring of skin round it, so its masks follow the body's template too. A part drawn
+at more than one layer (a butt's front and back images) draws its share only in the directions it shows over what it
+lies on (dirt_zone_layer()): the surface's masks take it in the rest.</p>
+<p>Arguments:</p>
+<ul>
+<li>organ_slot: The part's ORGAN_SLOT_* define.</li>
+<li>source: What the part draws now, from its images in the layers its kind is read from (dirt_part_images()), or null.</li>
+</ul><h3 id="proc/ready_skin_masks"><aside class="declaration">proc </aside>ready_skin_masks<aside>(/<a href="obj.html">obj</a>/<a href="obj/item.html">item</a>/<a href="obj/item/bodypart.html">bodypart</a>/limb) <span class="as"> as </span>/<a href="datum.html">datum</a>/<a href="datum/dirt_masks.html">dirt_masks</a> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L398"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 398"></a></aside></h3><p>Returns the masks the skin's mess is drawn with on a limb, or null while there are none to draw. The first ask after
+a change queues them with SSdirt, which draws the body again once they're made; until then the masks before them are
+drawn, so mess already there stays while more is added. Masks made for other sprites than the body draws (a new
+size, a swapped limb, other eyes) are dropped and made again: on every draw each limb skin mess draws on checks its
+own, and the chest the arms, the hands and the eyes. Each is read again only once what it's drawn from has changed
+since it last matched (skin_reads), so a steady draw compares a few vars. They fade out beside what the body wears
+(dirt_cover_sprites()), and the parts the splats reach shape them (dirt_surface_parts()) as each draws over or under
+the skin in each direction: every front image over it, a butt's back image and the pecs guide under it.</p>
+<p>Arguments:</p>
+<ul>
+<li>limb: The limb asking.</li>
+</ul><h3 id="proc/ready_taur_cloth_masks"><aside class="declaration">proc </aside>ready_taur_cloth_masks<aside>(/<a href="obj.html">obj</a>/<a href="obj/item.html">item</a>/garment, /<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/<a href="mob/living/carbon.html">carbon</a>/<a href="mob/living/carbon/human.html">human</a>/wearer) <span class="as"> as </span>/<a href="datum.html">datum</a>/<a href="datum/dirt_masks.html">dirt_masks</a> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L601"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 601"></a></aside></h3><p>Returns the masks of a taur suit's pools on its wearer, or null while there are none to draw, asking for them as
+ready_skin_masks() does: its back splats along the back of the taur body it hides, as that body would draw them
+(ready_taur_masks()), over the whole taur canvas. Masks made for another taur body or rider are dropped and made
+again.</p>
+<p>Arguments:</p>
+<ul>
+<li>garment: The item.</li>
+<li>wearer: The taur wearing it.</li>
+</ul><h3 id="proc/ready_taur_masks"><aside class="declaration">proc </aside>ready_taur_masks<aside>(/<a href="datum.html">datum</a>/<a href="datum/dirt_taur_source.html">dirt_taur_source</a>/source) <span class="as"> as </span>/<a href="datum.html">datum</a>/<a href="datum/dirt_masks.html">dirt_masks</a> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L627"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 627"></a></aside></h3><p>Returns the masks of a person's taur body's pools, drawn with its own images, or null while there are none to draw,
+asking for them as ready_skin_masks() does; SSdirt draws the body again once they're made. They lie along the back of
+the taur body's sprite, keeping clear of the rider's mess, so masks made for another sprite (lying down, another
+kind) or another rider are dropped and made again.</p>
+<p>Arguments:</p>
+<ul>
+<li>source: The taur body as it draws now (/datum/bodypart_overlay/mutant/taur_body/proc/dirt_read_source()), or null.</li>
+</ul><h3 id="proc/ready_underclothes_masks"><aside class="declaration">proc </aside>ready_underclothes_masks<aside>() <span class="as"> as </span>/list <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L483"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 483"></a></aside></h3><p>Returns the masks of each piece of a person's underclothes that has some drawn and is worn and shows now, asking for
+those not made yet as ready_skin_masks() does. Each is cloth's, kept to the pixels the piece shows, under those drawn
+over it, and shaped by the parts its splats reach (dirt_surface_parts()): pecs under a tank top, or a genital set to
+draw below the underwear. A piece off or hidden keeps its splats but draws none.</p><h3 id="proc/remove_mess"><aside class="declaration">proc </aside>remove_mess<aside>(/<a href="datum.html">datum</a>/<a href="datum/dirt_splat.html">dirt_splat</a>/splat, redraw)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L211"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 211"></a></aside></h3><p>Takes one splat off this carrier, wherever it lies.</p>
+<p>Arguments:</p>
+<ul>
+<li>splat: The splat.</li>
+<li>redraw: Whether to draw the change, as add_mess()'s.</li>
+</ul>
+<p>Returns the ORGAN_SLOT_* define of the part it was on, or null for the skin, the cloth or the underclothes: what to
+draw again (mess_changed()).</p><h3 id="proc/skin_besides_unchanged"><aside class="declaration">proc </aside>skin_besides_unchanged<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/<a href="mob/living/carbon.html">carbon</a>/<a href="mob/living/carbon/human.html">human</a>/body)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L426"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 426"></a></aside></h3><p>Returns whether what the chest's draw checks of the skin's sprites besides its own, the arms and hands, the eyes and
+whether the head is a human's, is drawn from what it was when they last matched (skin_reads).</p>
+<p>Arguments:</p>
+<ul>
+<li>body: The person.</li>
+</ul><h3 id="proc/skin_read_again"><aside class="declaration">proc </aside>skin_read_again<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/<a href="mob/living/carbon.html">carbon</a>/<a href="mob/living/carbon/human.html">human</a>/body, /<a href="obj.html">obj</a>/<a href="obj/item.html">item</a>/<a href="obj/item/bodypart.html">bodypart</a>/limb)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L445"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 445"></a></aside></h3><p>Returns whether the body draws the sprites the skin's masks were made from, as a limb's draw checks them: its own,
+and for the chest the arms and hands, the eyes and whether the head is a human's (dirt_zone_sources_match(), which
+checks the eyes whichever limb asks). When it does, notes what they're drawn from (skin_reads).</p>
+<p>Arguments:</p>
+<ul>
+<li>body: The person.</li>
+<li>limb: The limb asking.</li>
+</ul><h3 id="proc/stack_mess"><aside class="declaration">proc </aside>stack_mess<aside>(/list/splats, zone, levels, variant, new_variant) <span class="as"> as </span>/<a href="datum.html">datum</a>/<a href="datum/dirt_splat.html">dirt_splat</a> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L149"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 149"></a></aside></h3><p>Adds a mess to one surface's splats as add_mess() describes, and returns the splat it started, or the one it raised.</p>
+<p>Arguments:</p>
+<ul>
+<li>splats: The surface's splats, oldest first. Added to.</li>
+<li>zone, levels, variant, new_variant: As add_mess()'s.</li>
+</ul><h3 id="proc/sync_skin_overlays"><aside class="declaration">proc </aside>sync_skin_overlays<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/<a href="mob/living/carbon.html">carbon</a>/<a href="mob/living/carbon/human.html">human</a>/body)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L339"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 339"></a></aside></h3><p>Puts a skin overlay on each limb skin mess draws on while the skin carries any, and takes them off once it doesn't.
+Nothing is drawn until the body's next update_body_parts().</p>
+<p>Arguments:</p>
+<ul>
+<li>body: The person.</li>
+</ul><h3 id="proc/sync_underclothes_overlay"><aside class="declaration">proc </aside>sync_underclothes_overlay<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/<a href="mob/living/carbon.html">carbon</a>/<a href="mob/living/carbon/human.html">human</a>/body)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/component.dm#L362"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/component.dm 362"></a></aside></h3><p>Puts the underclothes overlay on the chest while the underclothes carry mess, and takes it off once they don't.
+Nothing is drawn until the body's next update_body_parts().</p>
+<p>Arguments:</p>
+<ul>
+<li>body: The person.</li>
+</ul></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/6045a9effef19a65a8c400fa9f86916f0a85485d">6045a9e</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

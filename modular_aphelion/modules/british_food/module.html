@@ -1,0 +1,52 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_aphelion/modules/british_food/module.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>modular_aphelion/modules/british_food/module.md <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/british_food/module.md"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/british_food/module.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><h2 id="british-food">British food</h2>
+<p>Module ID: BRITISH_FOOD</p>
+<h3 id="description">Description:</h3>
+<p>British dishes with their recipes, grab-and-go vendor versions, and the vendor that sells them.</p>
+<ul>
+<li><strong>Dishes.</strong> Hunter's chicken, steak and ale pie, pork pie, chicken and mushroom pie, Cornish pasty, beans
+on toast, Welsh cawl, Eton mess, scones with jam and cream, sticky toffee pudding, the deep fried Mars bar
+and the sausage, bean and cheese melt. The steak pie cuts into five slices. The pork and chicken pies are
+single servings that cut into quarters. Eton mess comes in a drinking glass: the recipe takes one and eating
+leaves it, as bowl dishes do with bowls. Welsh cawl is a soup from the soup pot, served in a bowl.</li>
+<li><strong>Drinks.</strong> Irn-Bru and dandelion and burdock cans, each with its own in-hand and crushed sprites. Both
+also stock the standard Robust Softdrinks machine.</li>
+<li><strong>Deep fried Mars bar.</strong> Each bar holds saturated fat, which takes minutes to clear from the blood. Three bars
+within about five minutes overdose and damage the heart, and each bar past that hurts more; one now and then
+never does.</li>
+<li><strong>Vendor food.</strong> <code>/obj/item/food/british_pack</code> items are eaten from their container. Most can also be used
+in hand to take the food out, which keeps the bites already taken and leaves the empty container. They are
+junkier and less nutritious than the home-cooked dishes.</li>
+<li><strong>Mrs. Luvvit's Pie &amp; Mash</strong> (<code>/obj/machinery/vending/imported/luvvits</code>), an imported vendor. It is
+mapped into the Interlink, the ghost cafe, two station maps and five ruins, and its refill joins the
+imported vendors' cargo crate. Hot food comes out piping hot
+(<code>/datum/component/piping_hot</code>): it steams for 10 to 30 seconds, and each bite before it cools burns the
+eater's tongue a little and stops them eating for a few seconds. Masochists keep eating. It can't hurt
+mobs that resist heat or lava, can't feel pain, or have a body built for lavaland heat (lizards, golems,
+kobolds) or hotter.</li>
+</ul>
+<h3 id="tg-proc-file-changes">TG Proc/File Changes:</h3>
+<ul>
+<li><code>code/game/objects/effects/spawners/random/trash.dm</code>: the empty containers join
+<code>/obj/effect/spawner/random/trash/food_packaging</code></li>
+<li><code>code/modules/unit_tests/trash_food.dm</code>: the drinking glass joins the blacklist, beside plates and bowls</li>
+<li><code>code/modules/reagents/reagent_containers/cups/soda.dm</code>: <code>crushed_icon</code> and <code>crushed_icon_state</code> let a can
+name its crushed sprite; the three crush paths copy both onto the crushed can</li>
+</ul>
+<h3 id="modular-overrides">Modular Overrides:</h3>
+<ul>
+<li><code>modular_aphelion/master_files/code/modules/vending/vendor/_vending.dm</code>: <code>panel_over_light_mask</code>, for
+vendors whose light mask lies under their open panel</li>
+</ul>
+<h3 id="defines">Defines:</h3>
+<ul>
+<li>N/A</li>
+</ul>
+<h3 id="included-files-that-are-not-contained-in-this-module">Included files that are not contained in this module:</h3>
+<ul>
+<li><code>modular_nova/modules/deforest_medical_items/code/vendor.dm</code> and <code>icons/vendor.dmi</code>: the DeForest
+Med-Vend's <code>panel15</code>, which blocks its light mask while open</li>
+<li><code>modular_nova/modules/customization/modules/reagents/chemistry/reagents/drinks.dm</code>: the imported cans set
+<code>crushed_icon</code> to Nova's janitor icons</li>
+<li><code>modular_nova/modules/modular_vending/code/cola.dm</code>: the two cans join the Robust Softdrinks stock</li>
+<li><code>modular_nova/modules/modular_items/code/summon_beacon.dm</code>: the vendor joins the summonable machines</li>
+</ul></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/6045a9effef19a65a8c400fa9f86916f0a85485d">6045a9e</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

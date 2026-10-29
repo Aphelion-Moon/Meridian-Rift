@@ -1,0 +1,46 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../../"><link rel="stylesheet" href="dmdoc.css"><title>code/modules/unit_tests/~nova/dirt_mess_drawing.dm - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>code/modules/unit_tests/~nova/dirt_mess_drawing.dm <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/code/modules/unit_tests/~nova/dirt_mess_drawing.dm"><img src="git.png" width="16" height="16" title="code/modules/unit_tests/~nova/dirt_mess_drawing.dm"></a></h1><table class="summary" cellspacing="0"><tr><th><a href="datum/unit_test/dirt_zone_sources.html">/datum/unit_test/dirt_zone_sources</a></th><td>The game's limbs feed the dirt template the sprites the corpus names, so the parity manifest's surfaces are the ones
+the game builds: a consistent human gives the corpus's human_m sources, and the same body at the Muscular size gives
+human_muscular's, its size sheet included.</td></tr><tr><th><a href="mob/living/carbon/human/consistent/dirt_redraw_fixture.html">/mob/living/carbon/human/consistent/dirt_redraw_fixture</a></th><td>A body that notes what SSdirt draws again on it.</td></tr><tr><th><a href="datum/unit_test/dirt_mask_queue.html">/datum/unit_test/dirt_mask_queue</a></th><td>SSdirt makes mess masks in the background and caches them: the first ask queues them, finish_all() makes them, and
+the body that asked is drawn again. They're made from the splats as they were when asked for, whatever happens to
+them meanwhile. Skin's masks are clipped to each limb and cloth's cover the canvas, and both match the parity
+manifest's cases, one splat or two merged, the second drawn over a first cached from an earlier ask. A request whose
+limb names a missing state is dropped, cached as failed, and never queued again, and the queue goes on past it. Masks
+asked for on more body types than the template cache holds are all made, though templates drop while they wait.</td></tr><tr><th><a href="datum/unit_test/dirt_skin_mess.html">/datum/unit_test/dirt_skin_mess</a></th><td>The mess on bare skin draws through the limbs' own images: a landing gives each limb it reaches one container image
+at DIRT_SKIN_LAYER, holding the baked image SSdirt makes, and the other limbs nothing. Washing takes it off, even
+while its masks are still being made: they finish without bringing it back. Every zone at once adds one overlay per
+limb that carries mess, the head, the chest and the legs, so four at most, the chest's splats in its one container. A
+shot's amount adds levels to the zone's newest splat, and past the top one what's left starts another, of a variant
+the zone doesn't have yet. A limb drawn from other sprites with none swapped has the masks made again for what the
+body draws, though a steady draw only compares what each is drawn from: the chest at another physique, a restyled
+arm, which the chest checks, and eyes drawn from another state.</td></tr><tr><th><a href="datum/unit_test/dirt_worn_mess.html">/datum/unit_test/dirt_worn_mess</a></th><td>The mess on clothes. A shot at a covered region lands on the outermost garment over it, which draws it inset in its
+own worn wrapper, where the bulge can copy it, from its wearer's cloth masks: moved to a digitigrade lizard, from the
+lizard's. Washing the garment takes it off. A region covered only by underclothes takes it on the piece showing the
+most of it, drawn over that piece and kept to its pixels, and kept with it while it's hidden or swapped. Skin mess
+lies under the underclothes, and fades out beside them.</td></tr><tr><th><a href="datum/unit_test/dirt_genital_test.html">/datum/unit_test/dirt_genital_test</a></th><td>The dirt tests whose bodies need genitals, built from DNA as a real character's.</td></tr><tr><th>/<a href="datum.html">datum</a>/<a href="datum/unit_test.html">unit_test</a>/dirt_mess_regions</th><td>A shot on someone offers the zones mess draws on them (dirt_mess_regions()): all seven on a human, none below the
+waist on a taur, the groin and butt through a wall-stuck portal and the penis alone through a one-part portal, while
+it draws. Odd bodies get only what draws on them: a monkey nothing, a kobold everything, a human without legs no
+thighs. A full amount from size 4 testicles, as climax() spends it, lands at the top level.</td></tr><tr><th><a href="datum/unit_test/dirt_part_mess.html">/datum/unit_test/dirt_part_mess</a></th><td>Parts take their own share of the mess aimed at them. Breasts drawn above all clothing take theirs over a jumpsuit,
+which takes the rest, and draw it with their own front layer. Through a one-part portal a shot lands on the penis
+alone, and the relay draws it; a wall-stuck relay draws no legs, and draws the mess on the hips and butt, on the skin
+and on a jumpsuit, under a winter coat too, but not a skirt, nor ever a bulge: a shot lands on what the relay shows
+under the skirt. A share follows the part: an erection draws it again for the erect sprite, a butt set to draw above
+its underwear is read again at its new layer, and a part removed takes its splats with it. A bulge's cloth over
+boxers draws their mess over itself, a bulge's in a jumpsuit draws the jumpsuit's again once another splat lands, and
+testicles a bulge look draws lose theirs to a wash. A butt shot takes the butt's share facing north, where its front
+image draws over the skin, and in profile, where its back image draws under it, shapes the skin's mess past the
+body's edge. Boxers put on over a butt drawn below them leave its share nothing to draw; put on under a vulva drawn
+above them, they have its share made again for cloth. A part hidden while underclothes carry mess no longer shapes
+the skin's.</td></tr><tr><th><a href="datum/unit_test/dirt_taur_mess.html">/datum/unit_test/dirt_taur_mess</a></th><td>A back shot on a taur lands on the rider's back and along the taur body's: the rider's skin and the taur body's slot
+each take a splat of the same variant. The game reads the rider and the taur body as the parity corpus names them.
+Once the masks are made the taur body's images carry the pools beside them. A Big Legs body, its legs under the rider
+and no taur back, takes the shot on the rider alone. A taur suit takes the pools itself, inset over its 64x32 sprite,
+and the rider's mess on it lands on the body's tile, not 16 px off. Removing the taur body takes its pools with it.
+A taur's penis drawn only behind the body takes no share.</td></tr><tr><th><a href="datum/unit_test/dirt_mess_cap.html">/datum/unit_test/dirt_mess_cap</a></th><td>A person carries DIRT_MESS_MAX_SPLATS splats at most, counted across their skin, their parts and what they wear, and
+past it the oldest go first. A human in a jumpsuit and a labcoat, breasts drawn above all clothing, takes
+DIRT_MESS_MAX_SPLATS + 1 huge shots: on the face's skin, on the labcoat with the breasts' share, and on the jumpsuit.
+At the cap a landing takes the oldest splat off before anything is drawn, so a face landing that evicts a face splat
+asks for one mask at most, and a heavy shot that tops the face's newest splat and starts another asks for exactly
+one, counted with the mask cache at its limit. Drawn, it all adds four overlays at most, and nothing to tg's shared
+limb icon cache: a dirty limb's images are kept on its mob, which a wash drops, mess landed again draws afresh, and a
+limb severed or swapped takes with it, the new limb drawn afresh, even every limb at once as a species change swaps
+them.</td></tr></table></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/6045a9effef19a65a8c400fa9f86916f0a85485d">6045a9e</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

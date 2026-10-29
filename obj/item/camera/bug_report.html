@@ -1,0 +1,22 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../"><link rel="stylesheet" href="dmdoc.css"><title>/obj/item/camera/bug_report - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a> — <a href="obj/item/camera/bug_report.html#proc">Proc Details</a></header><main><h1>bug_report <aside>/<a href="obj.html">obj</a>/<a href="obj/item.html">item</a>/<a href="obj/item/camera.html">camera</a>/<a href="obj/item/camera/bug_report.html">bug_report</a></aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/bug_reporting/code/bug_reporting_view.dm#L15"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/bug_reporting/code/bug_reporting_view.dm 15"></a></h1><p>The camera behind in-game captures, which develops a reporter's whole view the way photos are developed.</p>
+<p>Each capture makes one in nullspace and deletes it after, so two renders at once never share its settings.
+It never flashes, prints or describes anything, and lighting comes out as it does on photos.</p><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Procs</h2></td></tr><tr><th><a href="obj/item/camera/bug_report.html#proc/render_turfs">render_turfs</a></th><td>Develops turfs into one flat icon the size of the view, or returns null when no room could be reserved for it.</td></tr><tr><th><a href="obj/item/camera/bug_report.html#proc/seen_turfs">seen_turfs</a></th><td>Finds the turfs a viewer sees over their whole view, or returns null when there are none.</td></tr></table><h2 id="proc">Proc Details</h2><h3 id="proc/render_turfs"><aside class="declaration">proc </aside>render_turfs<aside>(/list/turfs, /<a href="turf.html">turf</a>/center, width, height, observing)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/bug_reporting/code/bug_reporting_view.dm#L65"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/bug_reporting/code/bug_reporting_view.dm 65"></a></aside></h3><p>Develops turfs into one flat icon the size of the view, or returns null when no room could be reserved for it.</p>
+<p>It yields between turfs and atoms, so a big view spreads over ticks.
+Arguments:</p>
+<ul>
+<li>turfs - the turfs to draw, from seen_turfs()</li>
+<li>center - the turf the view is centered on</li>
+<li>width - tiles across</li>
+<li>height - tiles up</li>
+<li>observing - whether ghosts show, as they do to a ghost</li>
+</ul><h3 id="proc/seen_turfs"><aside class="declaration">proc </aside>seen_turfs<aside>(/<a href="turf.html">turf</a>/center, width, height, observing, cameranet)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/bug_reporting/code/bug_reporting_view.dm#L34"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/bug_reporting/code/bug_reporting_view.dm 34"></a></aside></h3><p>Finds the turfs a viewer sees over their whole view, or returns null when there are none.</p>
+<p>Works like a photo stretched over the view - turfs past walls stay out unless the viewer is a ghost,
+a camera eye sees only what cameras see, and open space shows the level below.
+Arguments:</p>
+<ul>
+<li>center - the turf the viewer's eye is on</li>
+<li>width - tiles across, as getviewsize() gives them</li>
+<li>height - tiles up</li>
+<li>observing - whether the viewer is a ghost, who sees past walls</li>
+<li>cameranet - whether the viewer looks through the camera network, like an AI</li>
+</ul></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/6045a9effef19a65a8c400fa9f86916f0a85485d">6045a9e</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

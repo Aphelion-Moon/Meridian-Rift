@@ -1,0 +1,209 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../"><link rel="stylesheet" href="dmdoc.css"><title>/datum/garment_fit_view - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a> — <a href="datum/garment_fit_view.html#var">Var Details</a> - <a href="datum/garment_fit_view.html#proc">Proc Details</a></header><main><h1>garment_fit_view <aside>/<a href="datum.html">datum</a>/<a href="datum/garment_fit_view.html">garment_fit_view</a></aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L480"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 480"></a></h1><p>One view of a garment being fitted: its frame, the pixels read from it, and the pixels the fitting writes over them.</p>
+<p>Pixels are addressed as the templates give them, from the top left from 0. A pixel is a colour as GetPixel() returns it
+(&quot;#rrggbb&quot;, or &quot;#rrggbbaa&quot; when partly transparent), or 0 where it's clear.</p><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Vars</h2></td></tr><tr><th><a href="datum/garment_fit_view.html#var/colour_counts">colour_counts</a></th><td>Colour (without alpha) -&gt; how many of the view's pixels have it. Counted when a ramp first needs every colour (ramp()), and
+kept up to date from then on.</td></tr><tr><th><a href="datum/garment_fit_view.html#var/frame">frame</a></th><td>One direction of the garment's state, which the fitted pixels are drawn on.</td></tr><tr><th><a href="datum/garment_fit_view.html#var/frame_colours">frame_colours</a></th><td>The frame's own colour counts, known without reading its pixels (garment_sheet_metadata()), or null.</td></tr><tr><th><a href="datum/garment_fit_view.html#var/original">original</a></th><td>The frame's own pixels, by FIT_INDEX(), wherever read: what the fitted pixels are compared with to draw them.</td></tr><tr><th><a href="datum/garment_fit_view.html#var/pending">pending</a></th><td>While a pass runs (begin_pass()), its writes as x, y, pixel triples, made as it ends: a pass reads the view as it began.</td></tr><tr><th><a href="datum/garment_fit_view.html#var/pixels">pixels</a></th><td>The view's pixels as the fitting has them so far, by FIT_INDEX(): a pixel, or null where the frame isn't read yet.</td></tr><tr><th><a href="datum/garment_fit_view.html#var/sizes">sizes</a></th><td>Template limb -&gt; its muscle size, as /datum/garment_fit has them.</td></tr><tr><th><a href="datum/garment_fit_view.html#var/view">view</a></th><td>The view's key in the templates: &quot;S&quot;, &quot;N&quot;, &quot;E&quot; or &quot;W&quot;.</td></tr><tr><th><a href="datum/garment_fit_view.html#var/written_indexes">written_indexes</a></th><td>The FIT_INDEX() of each pixel the fitting has written, once each.</td></tr><tr><td colspan="2"><h2>Procs</h2></td></tr><tr><th><a href="datum/garment_fit_view.html#proc/apply_bands">apply_bands</a></th><td>One pass of the fitting over the templates' bands. Solid: each row the garment covers at the old edge and the pixel inside it
+moves its edge pixel out to the new edge and fills the gap with that inside pixel. Pattern: each new pixel copies the pixel 2
+further in, wherever the garment covers any of the 3 pixels from the old edge in.</td></tr><tr><th><a href="datum/garment_fit_view.html#proc/bare_near_forearm">bare_near_forearm</a></th><td>Side views, for a garment that leaves the near forearm bare below its sleeve, like the polo shirts
+(/datum/sprite_accessory/clothing/proc/bares_near_forearm()): the forearm shows at the bigger arm's own width.</td></tr><tr><th><a href="datum/garment_fit_view.html#proc/begin_pass">begin_pass</a></th><td>Starts a pass: until end_pass(), writes wait, and reads see the view as it was when the pass began.</td></tr><tr><th><a href="datum/garment_fit_view.html#proc/close_hem">close_hem</a></th><td>Side views, under a sleeve: the sleeve covers the arm down to where today's arm begins, so each of the bigger arm's pixels in
+those rows the garment leaves bare takes the colour of the nearest garment pixel in its row, the one nearer the left first.
+Works on the view in place, one pixel after another, so a filled pixel counts for the next. Never for a pattern, whose gaps
+are its own.</td></tr><tr><th><a href="datum/garment_fit_view.html#proc/copy">copy</a></th><td>Returns a copy of the view as fitted so far, on a copy of its frame, which fits on from where this one is and leaves it
+as it is: a top over flexing pecs fits each view to its limbs once, and each frame of the flex to the pecs over a copy.</td></tr><tr><th><a href="datum/garment_fit_view.html#proc/covers">covers</a></th><td>Whether the garment covers at least half of some of a limb's baseline pixels.</td></tr><tr><th><a href="datum/garment_fit_view.html#proc/darken_moved_edges">darken_moved_edges</a></th><td>Shaded sleeves, second step: the pixel at each fitted arm row's new edge goes one step darker in the garment's ramp, to the
+next darker colour that's the sleeve's own (sleeve_colours()) and kin to the pixel's (garment_colours_kin()), or stays as
+it is when none is.</td></tr><tr><th><a href="datum/garment_fit_view.html#proc/draw">draw</a></th><td>Draws the pixels the fitting changed onto <code>frame</code>.</td></tr><tr><th><a href="datum/garment_fit_view.html#proc/end_pass">end_pass</a></th><td>Ends the pass begin_pass() started, making its writes in order: a later write to a pixel wins.</td></tr><tr><th><a href="datum/garment_fit_view.html#proc/fill_colour">fill_colour</a></th><td>Returns the view's fill: its brightest colour covering at least 3 pixels, or its brightest colour when none does.</td></tr><tr><th><a href="datum/garment_fit_view.html#proc/first_pixel">first_pixel</a></th><td>Returns the x of the first pixel that isn't clear in row <code>y</code>, walking from <code>first_x</code> to <code>last_x</code> by <code>step</code>, or null.</td></tr><tr><th><a href="datum/garment_fit_view.html#proc/fit">fit</a></th><td>Fits the view to its limbs in <code>mode</code> (fit_limbs()), then to pecs drawn under it, still (fit_pecs()), and draws what changed
+onto <code>frame</code>.</td></tr><tr><th><a href="datum/garment_fit_view.html#proc/fit_limbs">fit_limbs</a></th><td>Fits the view to its limbs in <code>mode</code>: the arms, the legs and a male chest's glutes, then the mode's own shading, then, in a
+side view, a sleeve's hem down the bigger arm (close_hem()) and, for a garment that leaves the near forearm bare, that
+forearm at its own width (bare_near_forearm()).</td></tr><tr><th><a href="datum/garment_fit_view.html#proc/fit_pecs">fit_pecs</a></th><td>Fits the view, after its limbs, to pecs drawn under the garment.</td></tr><tr><th><a href="datum/garment_fit_view.html#proc/is_one_of">is_one_of</a></th><td>Whether <code>pixel</code> isn't clear and its colour is <code>colour</code> or <code>other_colour</code>.</td></tr><tr><th><a href="datum/garment_fit_view.html#proc/knit_sleeves">knit_sleeves</a></th><td>Ribbed knit sleeves: each sleeve's ribs laid again from its outer edge, in columns anchored to its widest row, its shadow
+against the body thinned to one mid pixel, and its first cuff row ribbed light. Works on the view in place, row by row.</td></tr><tr><th><a href="datum/garment_fit_view.html#proc/limb_templates">limb_templates</a></th><td>Returns the fitted ones of <code>limbs</code> for this view, in order: template limb -&gt; its template.</td></tr><tr><th><a href="datum/garment_fit_view.html#proc/move_panel_edges">move_panel_edges</a></th><td>Moves a solid or knit top's chest panel edges out over the pecs, by the bands of pec_panel_bands(): each edge pixel and its own
+detail, up to the first pixel of the fill and 2 pixels in all, keep their order at the new edge, and the gap behind them
+takes the pixel after the detail, or on a knit the pixel a whole number of 2 pixel rib periods further in.</td></tr><tr><th><a href="datum/garment_fit_view.html#proc/pec_panel_bands">pec_panel_bands</a></th><td>Returns the bands a front or back view's chest panel moves out by over pecs drawn under it: y, step back into the body, new
+edge, old edge, distance, and FALSE for a row that isn't a cap, as apply_bands() takes them.</td></tr><tr><th><a href="datum/garment_fit_view.html#proc/pixel">pixel</a></th><td>Returns the view's pixel at x, y as the fitting has it so far, reading the frame the first time.</td></tr><tr><th><a href="datum/garment_fit_view.html#proc/ramp">ramp</a></th><td>Returns the view's colours, without alpha, brightest first: the garment's own ramp. Counts them the first time: from the
+frame's own counts and what has been written over them, when they're known, otherwise by reading the whole view.</td></tr><tr><th><a href="datum/garment_fit_view.html#proc/recolour">recolour</a></th><td>Returns <code>pixel</code> with its colour swapped for <code>colour</code>, keeping its alpha.</td></tr><tr><th><a href="datum/garment_fit_view.html#proc/shade_arm_form">shade_arm_form</a></th><td>Shaded sleeves, first step: the garment's brightest colour over an arm takes the arm's muscle tone, mapped into the
+garment's own ramp (skin tones 0-5 to ramp steps 0, 0, 1, 1, 2, 2). A step whose colour isn't the sleeve's own
+(sleeve_colours()) or kin to that brightest colour (garment_colours_kin()) takes the next darker one that is, and a pixel
+with none is left as it is.</td></tr><tr><th><a href="datum/garment_fit_view.html#proc/shade_pec_smile">shade_pec_smile</a></th><td>Shades the pecs' lower curve, a &quot;smile&quot; one row above their crease, one shade down in a front view, wherever the top is lit
+there: brighter than 3/4 of its fill, so never a seam. A top with its own centre line, like a shirt's placket, keeps it off the
+pixels either side of that line.</td></tr><tr><th><a href="datum/garment_fit_view.html#proc/shade_step">shade_step</a></th><td>Returns the garment's colour one shade below a pixel: of its darker colours, the one whose brightness is nearest 86% of the
+pixel's, the brighter of two as near. A fixed drop, so a top of many close greys still shades visibly. Null when no colour
+is darker.</td></tr><tr><th><a href="datum/garment_fit_view.html#proc/sleeve_colours">sleeve_colours</a></th><td>Returns each fitted arm's sleeve's own colours, the only ones shaded sleeves step through: fitted arm -&gt; its colours, each
+colour -&gt; TRUE. Read once, after the limbs are fitted and before the sleeves are shaded, so both steps of the shading take
+the same colours. The garment's whole ramp would give a sleeve its skirt's, belt's or boots' colours.</td></tr><tr><th><a href="datum/garment_fit_view.html#proc/sleeve_steps">sleeve_steps</a></th><td>Returns the colour a pixel of colour <code>source</code> takes at each step of the view's ramp: the step's own colour where it's the
+sleeve's own and kin to <code>source</code> (garment_colours_kin()), otherwise the next darker one that is, or null when none is. One
+step longer than the ramp, its last null, so the step past the darkest can be asked for.</td></tr><tr><th><a href="datum/garment_fit_view.html#proc/template_for">template_for</a></th><td>Returns the template of <code>limb</code> at its muscle size for this view, or null when the limb isn't fitted.</td></tr><tr><th><a href="datum/garment_fit_view.html#proc/write">write</a></th><td>Writes a pixel, or queues it while a pass runs.</td></tr></table><h2 id="var">Var Details</h2><h3 id="var/colour_counts"><aside class="declaration">var </aside>colour_counts <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L497"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 497"></a></h3><p>Colour (without alpha) -&gt; how many of the view's pixels have it. Counted when a ramp first needs every colour (ramp()), and
+kept up to date from then on.</p><h3 id="var/frame"><aside class="declaration">var </aside>frame <aside>– /icon</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L482"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 482"></a></h3><p>One direction of the garment's state, which the fitted pixels are drawn on.</p><h3 id="var/frame_colours"><aside class="declaration">var </aside>frame_colours <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L499"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 499"></a></h3><p>The frame's own colour counts, known without reading its pixels (garment_sheet_metadata()), or null.</p><h3 id="var/original"><aside class="declaration">var </aside>original <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L490"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 490"></a></h3><p>The frame's own pixels, by FIT_INDEX(), wherever read: what the fitted pixels are compared with to draw them.</p><h3 id="var/pending"><aside class="declaration">var </aside>pending <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L494"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 494"></a></h3><p>While a pass runs (begin_pass()), its writes as x, y, pixel triples, made as it ends: a pass reads the view as it began.</p><h3 id="var/pixels"><aside class="declaration">var </aside>pixels <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L488"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 488"></a></h3><p>The view's pixels as the fitting has them so far, by FIT_INDEX(): a pixel, or null where the frame isn't read yet.</p><h3 id="var/sizes"><aside class="declaration">var </aside>sizes <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L486"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 486"></a></h3><p>Template limb -&gt; its muscle size, as /datum/garment_fit has them.</p><h3 id="var/view"><aside class="declaration">var </aside>view <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L484"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 484"></a></h3><p>The view's key in the templates: &quot;S&quot;, &quot;N&quot;, &quot;E&quot; or &quot;W&quot;.</p><h3 id="var/written_indexes"><aside class="declaration">var </aside>written_indexes <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L492"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 492"></a></h3><p>The FIT_INDEX() of each pixel the fitting has written, once each.</p><h2 id="proc">Proc Details</h2><h3 id="proc/apply_bands"><aside class="declaration">proc </aside>apply_bands<aside>(/list/templates, pattern, /list/sleeves)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L734"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 734"></a></aside></h3><p>One pass of the fitting over the templates' bands. Solid: each row the garment covers at the old edge and the pixel inside it
+moves its edge pixel out to the new edge and fills the gap with that inside pixel. Pattern: each new pixel copies the pixel 2
+further in, wherever the garment covers any of the 3 pixels from the old edge in.</p>
+<p>A row a limb grew into above its old top is fitted only under a sleeve, so straps over the shoulder stay put. Under a
+sleeve, a solid row is also fitted where the garment covers its old edge alone, a hem a pixel thick against the arm's edge,
+and its gap takes the edge pixel when the one inside it is bare. An arm's sleeve is judged from the garment's front view
+(<code>sleeves</code>), anything else's from the upper third of its own baseline pixels in this view; a template without them, like a
+pec's, never has one.</p>
+<p>Arguments:</p>
+<ul>
+<li>templates: The templates, fitted in order: template limb -&gt; its template, or a part of the body by any name -&gt; its
+template in the same form.</li>
+<li>pattern: Whether to fit as pattern rather than solid.</li>
+<li>sleeves: Template limb -&gt; whether the garment has a sleeve over it, from garment_front_sleeves(), or null.</li>
+</ul><h3 id="proc/bare_near_forearm"><aside class="declaration">proc </aside>bare_near_forearm<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L806"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 806"></a></aside></h3><p>Side views, for a garment that leaves the near forearm bare below its sleeve, like the polo shirts
+(/datum/sprite_accessory/clothing/proc/bares_near_forearm()): the forearm shows at the bigger arm's own width.</p>
+<p>A forearm row is one where the garment as drawn leaves some of today's near arm bare. In each, the garment is cleared over
+the whole near arm of the fitted size. That also takes away the strip a polo edges its cut-out with, which apply_bands()
+moves out across the bigger arm as it would a sleeve's one-pixel hem. Rows where the garment covers all of today's arm,
+its sleeve, are left as fitted. The near arm is the right one facing east and the left one facing west; one at the Normal
+size has no template, and nothing changes.</p><h3 id="proc/begin_pass"><aside class="declaration">proc </aside>begin_pass<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L622"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 622"></a></aside></h3><p>Starts a pass: until end_pass(), writes wait, and reads see the view as it was when the pass began.</p><h3 id="proc/close_hem"><aside class="declaration">proc </aside>close_hem<aside>(/list/sleeves)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L775"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 775"></a></aside></h3><p>Side views, under a sleeve: the sleeve covers the arm down to where today's arm begins, so each of the bigger arm's pixels in
+those rows the garment leaves bare takes the colour of the nearest garment pixel in its row, the one nearer the left first.
+Works on the view in place, one pixel after another, so a filled pixel counts for the next. Never for a pattern, whose gaps
+are its own.</p>
+<p>Arguments:</p>
+<ul>
+<li>sleeves: Fitted arm -&gt; whether the garment has a sleeve over it, from garment_front_sleeves().</li>
+</ul><h3 id="proc/copy"><aside class="declaration">proc </aside>copy<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L583"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 583"></a></aside></h3><p>Returns a copy of the view as fitted so far, on a copy of its frame, which fits on from where this one is and leaves it
+as it is: a top over flexing pecs fits each view to its limbs once, and each frame of the flex to the pecs over a copy.</p><h3 id="proc/covers"><aside class="declaration">proc </aside>covers<aside>(/list/core)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L708"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 708"></a></aside></h3><p>Whether the garment covers at least half of some of a limb's baseline pixels.</p>
+<p>Arguments:</p>
+<ul>
+<li>core: The pixels, as x, y pairs; none covers nothing.</li>
+</ul><h3 id="proc/darken_moved_edges"><aside class="declaration">proc </aside>darken_moved_edges<aside>(/list/colours)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L859"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 859"></a></aside></h3><p>Shaded sleeves, second step: the pixel at each fitted arm row's new edge goes one step darker in the garment's ramp, to the
+next darker colour that's the sleeve's own (sleeve_colours()) and kin to the pixel's (garment_colours_kin()), or stays as
+it is when none is.</p>
+<p>Arguments:</p>
+<ul>
+<li>colours: Each fitted arm's sleeve's own colours, from sleeve_colours().</li>
+</ul><h3 id="proc/draw"><aside class="declaration">proc </aside>draw<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L570"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 570"></a></aside></h3><p>Draws the pixels the fitting changed onto <code>frame</code>.</p>
+<p>Returns:</p>
+<ul>
+<li>TRUE: The frame changed.</li>
+<li>FALSE: Nothing changed, and the frame is the state's own.</li>
+</ul><h3 id="proc/end_pass"><aside class="declaration">proc </aside>end_pass<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L628"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 628"></a></aside></h3><p>Ends the pass begin_pass() started, making its writes in order: a later write to a pixel wins.</p><h3 id="proc/fill_colour"><aside class="declaration">proc </aside>fill_colour<aside>(/list/brightness)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L1295"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 1295"></a></aside></h3><p>Returns the view's fill: its brightest colour covering at least 3 pixels, or its brightest colour when none does.</p>
+<p>Arguments:</p>
+<ul>
+<li>brightness: The view's colours -&gt; their brightness, brightest first, from ramp().</li>
+</ul><h3 id="proc/first_pixel"><aside class="declaration">proc </aside>first_pixel<aside>(y, first_x, last_x, step)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L1089"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 1089"></a></aside></h3><p>Returns the x of the first pixel that isn't clear in row <code>y</code>, walking from <code>first_x</code> to <code>last_x</code> by <code>step</code>, or null.</p>
+<p>Arguments:</p>
+<ul>
+<li>y: The row.</li>
+<li>first_x, last_x: Where the walk starts and ends, both included.</li>
+<li>step: 1 or -1.</li>
+</ul><h3 id="proc/fit"><aside class="declaration">proc </aside>fit<aside>(mode, pec_shape, pec_nipples, /list/sleeves, straight, bare)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L525"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 525"></a></aside></h3><p>Fits the view to its limbs in <code>mode</code> (fit_limbs()), then to pecs drawn under it, still (fit_pecs()), and draws what changed
+onto <code>frame</code>.</p>
+<p>Arguments:</p>
+<ul>
+<li>mode: A GARMENT_FIT_* define.</li>
+<li>pec_shape: The shape of pecs drawn under the garment, as /datum/garment_fit has it, or null.</li>
+<li>pec_nipples: Whether those pecs draw nipples.</li>
+<li>sleeves: Fitted arm -&gt; whether the garment has a sleeve over it, from garment_front_sleeves(), or null.</li>
+<li>straight: Whether the garment hangs straight over those pecs (fit_pecs()).</li>
+<li>bare: Whether the garment leaves the near forearm bare in its side views at the arm's own width (fit_limbs()).</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE: The frame changed.</li>
+<li>FALSE: Nothing in this view changed, and the frame is the state's own.</li>
+</ul><h3 id="proc/fit_limbs"><aside class="declaration">proc </aside>fit_limbs<aside>(mode, /list/sleeves, bare)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L542"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 542"></a></aside></h3><p>Fits the view to its limbs in <code>mode</code>: the arms, the legs and a male chest's glutes, then the mode's own shading, then, in a
+side view, a sleeve's hem down the bigger arm (close_hem()) and, for a garment that leaves the near forearm bare, that
+forearm at its own width (bare_near_forearm()).</p>
+<p>Arguments:</p>
+<ul>
+<li>mode: A GARMENT_FIT_* define.</li>
+<li>sleeves: Fitted arm -&gt; whether the garment has a sleeve over it, from garment_front_sleeves(), or null.</li>
+<li>bare: Whether the garment leaves the near forearm bare in its side views
+(/datum/sprite_accessory/clothing/proc/bares_near_forearm()).</li>
+</ul><h3 id="proc/fit_pecs"><aside class="declaration">proc </aside>fit_pecs<aside>(/list/templates, nipples, mode, straight)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L1124"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 1124"></a></aside></h3><p>Fits the view, after its limbs, to pecs drawn under the garment.</p>
+<p>Front and back views: where a pec reaches the chest's own side, the garment's chest panel moves out over it
+(pec_panel_bands()), unless the garment hangs straight over the pecs, then the front view shades the pecs' lower curve, in
+the modes the GARMENT_FIT_PEC_SMILE_* defines pick (shade_pec_smile()). Side views: the pec's bulge past the body's front
+is fitted as a limb's bands are.</p>
+<p>Arguments:</p>
+<ul>
+<li>templates: The pecs' templates by view: their shape's still ones, or its ones on one frame of a flex
+(garment_pec_flex()).</li>
+<li>nipples: Whether the pecs draw nipples, which picks the smile's pixels.</li>
+<li>mode: A GARMENT_FIT_* define.</li>
+<li>straight: Whether the garment hangs straight over the pecs, its chest panel left as drawn and the pecs peeking out past
+it at the armholes.</li>
+</ul><h3 id="proc/is_one_of"><aside class="declaration">proc </aside>is_one_of<aside>(pixel, colour, other_colour)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L1102"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 1102"></a></aside></h3><p>Whether <code>pixel</code> isn't clear and its colour is <code>colour</code> or <code>other_colour</code>.</p>
+<p>Arguments:</p>
+<ul>
+<li>pixel: A pixel.</li>
+<li>colour, other_colour: Colours without alpha.</li>
+</ul><h3 id="proc/knit_sleeves"><aside class="declaration">proc </aside>knit_sleeves<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L981"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 981"></a></aside></h3><p>Ribbed knit sleeves: each sleeve's ribs laid again from its outer edge, in columns anchored to its widest row, its shadow
+against the body thinned to one mid pixel, and its first cuff row ribbed light. Works on the view in place, row by row.</p>
+<p>The ramp's four brightest colours are the knit's: rib, groove, mid and dark. A garment with fewer isn't a knit.</p><h3 id="proc/limb_templates"><aside class="declaration">proc </aside>limb_templates<aside>(/list/limbs)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L968"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 968"></a></aside></h3><p>Returns the fitted ones of <code>limbs</code> for this view, in order: template limb -&gt; its template.</p>
+<p>Arguments:</p>
+<ul>
+<li>limbs: Template limbs, as /datum/garment_fit names them.</li>
+</ul><h3 id="proc/move_panel_edges"><aside class="declaration">proc </aside>move_panel_edges<aside>(/list/bands, fill, knit)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L1217"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 1217"></a></aside></h3><p>Moves a solid or knit top's chest panel edges out over the pecs, by the bands of pec_panel_bands(): each edge pixel and its own
+detail, up to the first pixel of the fill and 2 pixels in all, keep their order at the new edge, and the gap behind them
+takes the pixel after the detail, or on a knit the pixel a whole number of 2 pixel rib periods further in.</p>
+<p>Arguments:</p>
+<ul>
+<li>bands: From pec_panel_bands().</li>
+<li>fill: The view's fill colour, from fill_colour().</li>
+<li>knit: Whether the top is a ribbed knit.</li>
+</ul><h3 id="proc/pec_panel_bands"><aside class="declaration">proc </aside>pec_panel_bands<aside>(/list/template, /list/brightness)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L1165"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 1165"></a></aside></h3><p>Returns the bands a front or back view's chest panel moves out by over pecs drawn under it: y, step back into the body, new
+edge, old edge, distance, and FALSE for a row that isn't a cap, as apply_bands() takes them.</p>
+<p>Each row the pec spans moves on each side where the pec's outermost pixel reaches the chest's own side; rows where it stays
+inside, like the collar's, never move. Over a bare pec pixel, the garment's outline moves out: from its first pixel inward,
+when it also holds the next two. Under the garment, like a sleeve over it, the panel's own edge moves: its armhole seam,
+the first pixel walking out from the centre that is no brighter than 3/4 of the fill. Either moves at most PEC_PANEL_MAX_MOVE
+pixels, every one of them over the pec.</p>
+<p>Arguments:</p>
+<ul>
+<li>template: The pecs' template for this view.</li>
+<li>brightness: The view's colours -&gt; their brightness, from ramp().</li>
+</ul><h3 id="proc/pixel"><aside class="declaration">proc </aside>pixel<aside>(x, y)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L609"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 609"></a></aside></h3><p>Returns the view's pixel at x, y as the fitting has it so far, reading the frame the first time.</p>
+<p>Arguments:</p>
+<ul>
+<li>x, y: From the view's top left, from 0. Off the view, the pixel is clear.</li>
+</ul><h3 id="proc/ramp"><aside class="declaration">proc </aside>ramp<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L663"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 663"></a></aside></h3><p>Returns the view's colours, without alpha, brightest first: the garment's own ramp. Counts them the first time: from the
+frame's own counts and what has been written over them, when they're known, otherwise by reading the whole view.</p>
+<p>Brightness is 299 R + 587 G + 114 B, Rec. 601 luma in whole numbers. Colours as bright as each other keep the order they were
+counted in, which only a read gives, so garment_metadata.json leaves out the views that have any.</p><h3 id="proc/recolour"><aside class="declaration">proc </aside>recolour<aside>(colour, pixel)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L699"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 699"></a></aside></h3><p>Returns <code>pixel</code> with its colour swapped for <code>colour</code>, keeping its alpha.</p>
+<p>Arguments:</p>
+<ul>
+<li>colour: A colour without alpha, from ramp().</li>
+<li>pixel: A pixel that isn't clear.</li>
+</ul><h3 id="proc/shade_arm_form"><aside class="declaration">proc </aside>shade_arm_form<aside>(/list/colours)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L831"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 831"></a></aside></h3><p>Shaded sleeves, first step: the garment's brightest colour over an arm takes the arm's muscle tone, mapped into the
+garment's own ramp (skin tones 0-5 to ramp steps 0, 0, 1, 1, 2, 2). A step whose colour isn't the sleeve's own
+(sleeve_colours()) or kin to that brightest colour (garment_colours_kin()) takes the next darker one that is, and a pixel
+with none is left as it is.</p>
+<p>Arguments:</p>
+<ul>
+<li>colours: Each fitted arm's sleeve's own colours, from sleeve_colours().</li>
+</ul><h3 id="proc/shade_pec_smile"><aside class="declaration">proc </aside>shade_pec_smile<aside>(/list/points)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L1245"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 1245"></a></aside></h3><p>Shades the pecs' lower curve, a &quot;smile&quot; one row above their crease, one shade down in a front view, wherever the top is lit
+there: brighter than 3/4 of its fill, so never a seam. A top with its own centre line, like a shirt's placket, keeps it off the
+pixels either side of that line.</p>
+<p>Arguments:</p>
+<ul>
+<li>points: The smile's pixels, as x, y pairs.</li>
+</ul><h3 id="proc/shade_step"><aside class="declaration">proc </aside>shade_step<aside>(pixel_brightness, /list/brightness)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L1278"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 1278"></a></aside></h3><p>Returns the garment's colour one shade below a pixel: of its darker colours, the one whose brightness is nearest 86% of the
+pixel's, the brighter of two as near. A fixed drop, so a top of many close greys still shades visibly. Null when no colour
+is darker.</p>
+<p>Arguments:</p>
+<ul>
+<li>pixel_brightness: The pixel's brightness.</li>
+<li>brightness: The view's colours -&gt; their brightness, brightest first, from ramp().</li>
+</ul><h3 id="proc/sleeve_colours"><aside class="declaration">proc </aside>sleeve_colours<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L897"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 897"></a></aside></h3><p>Returns each fitted arm's sleeve's own colours, the only ones shaded sleeves step through: fitted arm -&gt; its colours, each
+colour -&gt; TRUE. Read once, after the limbs are fitted and before the sleeves are shaded, so both steps of the shading take
+the same colours. The garment's whole ramp would give a sleeve its skirt's, belt's or boots' colours.</p>
+<p>A sleeve's own colours are those the view has over the arm, and the view's other colours of the same family, so a garment
+of one material keeps its whole ramp. A lit colour is of the family when it's a grey and a lit colour over the arm is too,
+or its hue is within SLEEVE_MAX_HUE_SPREAD degrees of every lit hue there, which keeps the sleeve one hue, as
+garment_sleeve_mode() judges plain sleeves. A dark one, an outline's or a shadow's, whose hue tells less, when it's a grey
+and a colour over the arm is too, or its hue is within the spread of any hue there.</p><h3 id="proc/sleeve_steps"><aside class="declaration">proc </aside>sleeve_steps<aside>(/list/ramp, /list/colours, source)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L956"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 956"></a></aside></h3><p>Returns the colour a pixel of colour <code>source</code> takes at each step of the view's ramp: the step's own colour where it's the
+sleeve's own and kin to <code>source</code> (garment_colours_kin()), otherwise the next darker one that is, or null when none is. One
+step longer than the ramp, its last null, so the step past the darkest can be asked for.</p>
+<p>Arguments:</p>
+<ul>
+<li>ramp: The view's colours, brightest first, from ramp().</li>
+<li>colours: The sleeve's own colours, from sleeve_colours().</li>
+<li>source: The stepped pixel's colour, without alpha.</li>
+</ul><h3 id="proc/template_for"><aside class="declaration">proc </aside>template_for<aside>(limb)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L597"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 597"></a></aside></h3><p>Returns the template of <code>limb</code> at its muscle size for this view, or null when the limb isn't fitted.</p>
+<p>Arguments:</p>
+<ul>
+<li>limb: A template limb, as /datum/garment_fit names it.</li>
+</ul><h3 id="proc/write"><aside class="declaration">proc </aside>write<aside>(x, y, pixel)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/fitness/code/garment_fitting.dm#L641"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/fitness/code/garment_fitting.dm 641"></a></aside></h3><p>Writes a pixel, or queues it while a pass runs.</p>
+<p>Arguments:</p>
+<ul>
+<li>x, y: From the view's top left, from 0.</li>
+<li>pixel: The pixel to write.</li>
+</ul></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/6045a9effef19a65a8c400fa9f86916f0a85485d">6045a9e</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

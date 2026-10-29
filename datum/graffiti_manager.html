@@ -1,0 +1,64 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../"><link rel="stylesheet" href="dmdoc.css"><title>/datum/graffiti_manager - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a> — <a href="datum/graffiti_manager.html#var">Var Details</a> - <a href="datum/graffiti_manager.html#proc">Proc Details</a></header><main><h1>graffiti_manager <aside>/<a href="datum.html">datum</a>/<a href="datum/graffiti_manager.html">graffiti_manager</a></aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/admin.dm#L7"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/admin.dm 7"></a></h1><p>One admin's Graffiti Manager window: the current map's graffiti a page at a time, to find, look at, jump to and delete.</p><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Vars</h2></td></tr><tr><th><a href="datum/graffiti_manager.html#var/page">page</a></th><td>The page shown, from 1.</td></tr><tr><th><a href="datum/graffiti_manager.html#var/search">search</a></th><td>What a listed placement's ckey or painter's character name holds, escaped as character names are kept, or &quot;&quot; to
+list them all.</td></tr><tr><th><a href="datum/graffiti_manager.html#var/sort">sort</a></th><td>The rows' order: &quot;date&quot; for the newest first, &quot;ckey&quot; or &quot;area&quot;.</td></tr><tr><td colspan="2"><h2>Procs</h2></td></tr><tr><th><a href="datum/graffiti_manager.html#proc/confirm">confirm</a></th><td>Asks the admin to confirm a deletion. The question waits for their answer, so this also checks they are still an
+admin once they give it.</td></tr><tr><th><a href="datum/graffiti_manager.html#proc/placements_with">placements_with</a></th><td>Returns the map's placements whose field has a value, such as one account's or one piece's.</td></tr><tr><th><a href="datum/graffiti_manager.html#proc/report">report</a></th><td>Logs an admin's deletion and tells the other admins.</td></tr><tr><th><a href="datum/graffiti_manager.html#proc/ui_act">ui_act</a></th><td>Handles the window's actions. Each deletion asks the admin first, then is logged and told to the other admins with
+how many placements went. Nothing is deleted while the map's graffiti is still loading.</td></tr><tr><th><a href="datum/graffiti_manager.html#proc/ui_data">ui_data</a></th><td>Lists one page of the map's graffiti.</td></tr><tr><th><a href="datum/graffiti_manager.html#proc/ui_interact">ui_interact</a></th><td>Opens the window, or refreshes the open one. It refreshes only after its own actions, as listing the rows reads every
+placement.</td></tr><tr><th><a href="datum/graffiti_manager.html#proc/ui_state">ui_state</a></th><td>Admins only.</td></tr></table><h2 id="var">Var Details</h2><h3 id="var/page"><aside class="declaration">var </aside>page <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/admin.dm#L14"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/admin.dm 14"></a></h3><p>The page shown, from 1.</p><h3 id="var/search"><aside class="declaration">var </aside>search <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/admin.dm#L10"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/admin.dm 10"></a></h3><p>What a listed placement's ckey or painter's character name holds, escaped as character names are kept, or &quot;&quot; to
+list them all.</p><h3 id="var/sort"><aside class="declaration">var </aside>sort <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/admin.dm#L12"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/admin.dm 12"></a></h3><p>The rows' order: &quot;date&quot; for the newest first, &quot;ckey&quot; or &quot;area&quot;.</p><h2 id="proc">Proc Details</h2><h3 id="proc/confirm"><aside class="declaration">proc </aside>confirm<aside>(/<a href="mob.html">mob</a>/user, question)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/admin.dm#L167"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/admin.dm 167"></a></aside></h3><p>Asks the admin to confirm a deletion. The question waits for their answer, so this also checks they are still an
+admin once they give it.</p>
+<p>Arguments:</p>
+<ul>
+<li>user: The admin.</li>
+<li>question: What goes, and how much of it.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE/FALSE: Whether to go ahead.</li>
+</ul><h3 id="proc/placements_with"><aside class="declaration">proc </aside>placements_with<aside>(key, value)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/admin.dm#L191"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/admin.dm 191"></a></aside></h3><p>Returns the map's placements whose field has a value, such as one account's or one piece's.</p>
+<p>Arguments:</p>
+<ul>
+<li>key: The field, such as &quot;ckey&quot; or &quot;pid&quot;.</li>
+<li>value: Its value.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>list: The packed placements, oldest first.</li>
+</ul><h3 id="proc/report"><aside class="declaration">proc </aside>report<aside>(/<a href="mob.html">mob</a>/user, text)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/admin.dm#L177"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/admin.dm 177"></a></aside></h3><p>Logs an admin's deletion and tells the other admins.</p>
+<p>Arguments:</p>
+<ul>
+<li>user: The admin.</li>
+<li>text: What they did, after their name.</li>
+</ul><h3 id="proc/ui_act"><aside class="parent"><a title="/datum" href="datum.html#proc/ui_act">↑</a></aside>ui_act<aside>(action, /list/params, /<a href="datum.html">datum</a>/<a href="datum/tgui.html">tgui</a>/ui, /<a href="datum.html">datum</a>/<a href="datum/ui_state.html">ui_state</a>/state)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/admin.dm#L76"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/admin.dm 76"></a></aside></h3><p>Handles the window's actions. Each deletion asks the admin first, then is logged and told to the other admins with
+how many placements went. Nothing is deleted while the map's graffiti is still loading.</p>
+<p>Arguments:</p>
+<ul>
+<li>action: The action.</li>
+<li>params: Its params, as the window sent them.</li>
+<li>ui: The window.</li>
+<li>state: The window's state.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE/FALSE: Whether the window updates.</li>
+</ul><h3 id="proc/ui_data"><aside class="parent"><a title="/datum" href="datum.html#proc/ui_data">↑</a></aside>ui_data<aside>(/<a href="mob.html">mob</a>/user)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/admin.dm#L52"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/admin.dm 52"></a></aside></h3><p>Lists one page of the map's graffiti.</p>
+<p>Arguments:</p>
+<ul>
+<li>user: The admin.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>list: SSgraffiti.admin_rows()'s &quot;rows&quot; and &quot;total&quot;, with &quot;search&quot;, &quot;sort&quot;, &quot;page&quot;, &quot;pageSize&quot; and &quot;mapName&quot;.</li>
+</ul><h3 id="proc/ui_interact"><aside class="parent"><a title="/datum" href="datum.html#proc/ui_interact">↑</a></aside>ui_interact<aside>(/<a href="mob.html">mob</a>/user, /<a href="datum.html">datum</a>/<a href="datum/tgui.html">tgui</a>/ui)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/admin.dm#L36"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/admin.dm 36"></a></aside></h3><p>Opens the window, or refreshes the open one. It refreshes only after its own actions, as listing the rows reads every
+placement.</p>
+<p>Arguments:</p>
+<ul>
+<li>user: The admin.</li>
+<li>ui: The open window, when tgui refreshes it.</li>
+</ul><h3 id="proc/ui_state"><aside class="parent"><a title="/datum" href="datum.html#proc/ui_state">↑</a></aside>ui_state<aside>(/<a href="mob.html">mob</a>/user)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/admin.dm#L25"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/admin.dm 25"></a></aside></h3><p>Admins only.</p>
+<p>Arguments:</p>
+<ul>
+<li>user: The admin.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>/datum/ui_state: The admin state.</li>
+</ul></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/6045a9effef19a65a8c400fa9f86916f0a85485d">6045a9e</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

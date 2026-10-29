@@ -1,0 +1,20 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_aphelion/master_files/html/font-awesome/README.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>modular_aphelion/master_files/html/font-awesome/README.md <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/master_files/html/font-awesome/README.md"><img src="git.png" width="16" height="16" title="modular_aphelion/master_files/html/font-awesome/README.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><p>WOFF2 copies of tg's Font Awesome 6.7.2 (<code>html/font-awesome</code>), sent in place of its TrueType fonts by
+<code>modular_aphelion/master_files/code/modules/asset_cache/assets/fontawesome.dm</code>. Solid goes from 426 KB to 128 KB, and
+a bug report snapshot that shows an icon carries 170 thousand characters of it instead of 568.</p>
+<ul>
+<li><code>webfonts/*.woff2</code> are tg's <code>.ttf</code> files saved as WOFF2 by fontTools, which loses nothing: every table and every glyph
+reads back the same.</li>
+<li><code>css/all.min.css</code> is tg's <code>css/all.min.css</code> with its seven <code>.ttf) format(&quot;truetype&quot;)</code> sources changed to
+<code>.woff2) format(&quot;woff2&quot;)</code>, and nothing else.</li>
+</ul>
+<p>When a tg update changes <code>css/all.min.css</code> or any of the three fonts, the game sends tg's own files again and logs a
+stack trace saying so. To make the copies again:</p>
+<ol>
+<li>With <code>fonttools</code> and <code>brotli</code> installed, save each font as WOFF2:
+<code>python -c &quot;from fontTools.ttLib import TTFont; f = TTFont('fa-solid-900.ttf'); f.flavor = 'woff2'; f.save('fa-solid-900.woff2')&quot;</code>
+(likewise <code>fa-regular-400</code> and <code>fa-v4compatibility</code>).</li>
+<li>Copy tg's new <code>css/all.min.css</code> here and swap every source as above. If a face's source reads any other way, or a
+font was added, change <code>fontawesome.dm</code> to match.</li>
+<li>Put the new MD5s of tg's <code>css/all.min.css</code>, <code>fa-regular-400.ttf</code>, <code>fa-solid-900.ttf</code> and <code>fa-v4compatibility.ttf</code>, in
+that order, in <code>FONT_AWESOME_SOURCE_MD5S</code>.</li>
+</ol></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/6045a9effef19a65a8c400fa9f86916f0a85485d">6045a9e</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../../"><link rel="stylesheet" href="dmdoc.css"><title>/obj/item/toy/crayon/spraycan - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a> — <a href="obj/item/toy/crayon/spraycan.html#var">Var Details</a> - <a href="obj/item/toy/crayon/spraycan.html#proc">Proc Details</a></header><main><h1>spraycan <aside>/<a href="obj.html">obj</a>/<a href="obj/item.html">item</a>/<a href="obj/item/toy.html">toy</a>/<a href="obj/item/toy/crayon.html">crayon</a>/<a href="obj/item/toy/crayon/spraycan.html">spraycan</a></aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/code/game/objects/items/crayons.dm#L769"><img src="git.png" width="16" height="16" title="code/game/objects/items/crayons.dm 769"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Vars</h2></td></tr><tr><th><a href="obj/item/toy/crayon/spraycan.html#var/direct_color_types">direct_color_types</a></th><td>Types which use their color var for additional logic, so we need to avoid using transition filters on them.</td></tr><tr><th><a href="obj/item/toy/crayon/spraycan.html#var/graffiti_armed">graffiti_armed</a></th><td>What a click on a wall, a floor, a full-tile window or a poster paints: null for the stencil, &quot;freehand&quot; for a live editor on it, &quot;unfinished&quot; for the Unfinished slot's piece, or a library piece's id.</td></tr><tr><th><a href="obj/item/toy/crayon/spraycan.html#var/graffiti_sent_revision">graffiti_sent_revision</a></th><td>The graffiti library revision the window's static data last carried, or 0 while it carries none.</td></tr><tr><th><a href="obj/item/toy/crayon/spraycan.html#var/graffiti_tab">graffiti_tab</a></th><td>The window's tab: &quot;stencils&quot; or &quot;graffiti&quot;.</td></tr><tr><td colspan="2"><h2>Procs</h2></td></tr><tr><th><a href="obj/item/toy/crayon/spraycan.html#proc/examine">examine</a></th><td>Adds what an armed can paints to its examine. Only its holder, whose library the armed piece is from, sees it named.</td></tr><tr><th><a href="obj/item/toy/crayon/spraycan.html#proc/graffiti_armed_name">graffiti_armed_name</a></th><td>Returns the name of the piece the can is armed with, from the library of the player holding it.</td></tr><tr><th><a href="obj/item/toy/crayon/spraycan.html#proc/graffiti_enabled">graffiti_enabled</a></th><td>Whether the can paints custom graffiti: every spray can that paints, but not the hellcan, lubecan or mimecan.</td></tr><tr><th><a href="obj/item/toy/crayon/spraycan.html#proc/graffiti_open_editor">graffiti_open_editor</a></th><td>Swaps the can's window for a graffiti editor, which reuses its place on screen.</td></tr><tr><th><a href="obj/item/toy/crayon/spraycan.html#proc/graffiti_reopen">graffiti_reopen</a></th><td>Opens the can's window on a tab, as a graffiti editor hands back to it.</td></tr><tr><th><a href="obj/item/toy/crayon/spraycan.html#proc/ui_act">ui_act</a></th><td>Handles the Custom Graffiti tab's actions, after the crayon's own. Picking a stencil also clears what the can was set
+to paint.</td></tr><tr><th><a href="obj/item/toy/crayon/spraycan.html#proc/ui_data">ui_data</a></th><td>Adds the can's graffiti state to the window's data.</td></tr><tr><th><a href="obj/item/toy/crayon/spraycan.html#proc/ui_interact">ui_interact</a></th><td>Opens the window, or refreshes the open one. Opening it afresh clears what the can was set to paint. A refresh after
+the player's graffiti library changed sends the static data too, which carries the library, while its tab is open.</td></tr><tr><th><a href="obj/item/toy/crayon/spraycan.html#proc/ui_static_data">ui_static_data</a></th><td>Adds the player's graffiti library to the window's static data while the Custom Graffiti tab is open, and only then:
+50 pieces' thumbnails take 40 KB as typical art and up to 1.5 MB as adversarial art, which a window open on the
+stencils would carry for nothing. It is sent again once the library changes or the tab opens.</td></tr><tr><th><a href="obj/item/toy/crayon/spraycan.html#proc/use_on">use_on</a></th><td>Paints with an armed can. A click on an adjacent wall or floor, a full-tile window fastened down, or graffiti on one,
+on the static station (graffiti_static_station(), else &quot;can't paint here!&quot; and the can stays armed), opens a freehand
+session there, continues a freehand draft on its own tile, or starts a paint job of the armed piece. A session that
+starts uses the arming up, and a job keeps it. An Unfinished piece whose paint still shows goes on only there: a click on
+another surface is refused (&quot;wrong wall!&quot;) and starts no cooldown. Each attempt waits out GRAFFITI_START_COOLDOWN
+from the last, refused or not, and is refused before any costly work: by an empty can, a paint job already running,
+or a two-tile piece without a surface like this one to the right. A two-tile piece that paints nothing on its right
+tile paints one tile. A click on a poster that isn't ripped paints over the poster itself, one painter at a time, and
+only on its own pixels; it takes no two-tile piece (&quot;too wide!&quot;), and nothing resumes there. A click on anything else
+clears the arming and sprays as usual, as does an unarmed can, which tints a window or a poster.</td></tr></table><h2 id="var">Var Details</h2><h3 id="var/direct_color_types"><aside class="declaration">var </aside>direct_color_types <aside>– /static/list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/code/game/objects/items/crayons.dm#L801"><img src="git.png" width="16" height="16" title="code/game/objects/items/crayons.dm 801"></a></h3><p>Types which use their color var for additional logic, so we need to avoid using transition filters on them.</p><h3 id="var/graffiti_armed"><aside class="declaration">var </aside>graffiti_armed <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/spraycan.dm#L6"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/spraycan.dm 6"></a></h3><p>What a click on a wall, a floor, a full-tile window or a poster paints: null for the stencil, &quot;freehand&quot; for a live editor on it, &quot;unfinished&quot; for the Unfinished slot's piece, or a library piece's id.</p><h3 id="var/graffiti_sent_revision"><aside class="declaration">var </aside>graffiti_sent_revision <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/spraycan.dm#L10"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/spraycan.dm 10"></a></h3><p>The graffiti library revision the window's static data last carried, or 0 while it carries none.</p><h3 id="var/graffiti_tab"><aside class="declaration">var </aside>graffiti_tab <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/spraycan.dm#L8"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/spraycan.dm 8"></a></h3><p>The window's tab: &quot;stencils&quot; or &quot;graffiti&quot;.</p><h2 id="proc">Proc Details</h2><h3 id="proc/examine"><aside class="parent"><a title="/atom" href="atom.html#proc/examine">↑</a></aside>examine<aside>(/<a href="mob.html">mob</a>/user)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/spraycan.dm#L330"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/spraycan.dm 330"></a></aside></h3><p>Adds what an armed can paints to its examine. Only its holder, whose library the armed piece is from, sees it named.</p>
+<p>Arguments:</p>
+<ul>
+<li>user: The examiner.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>list: The examine lines.</li>
+</ul><h3 id="proc/graffiti_armed_name"><aside class="declaration">proc </aside>graffiti_armed_name<aside>(/<a href="mob.html">mob</a>/user)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/spraycan.dm#L394"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/spraycan.dm 394"></a></aside></h3><p>Returns the name of the piece the can is armed with, from the library of the player holding it.</p>
+<p>Arguments:</p>
+<ul>
+<li>user: The player.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>text: The piece's name, escaped as the library keeps it.</li>
+<li>null: The can paints freehand or isn't armed, the player isn't holding it, or the library no longer has the piece.</li>
+</ul><h3 id="proc/graffiti_enabled"><aside class="declaration">proc </aside>graffiti_enabled<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/spraycan.dm#L18"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/spraycan.dm 18"></a></aside></h3><p>Whether the can paints custom graffiti: every spray can that paints, but not the hellcan, lubecan or mimecan.</p>
+<p>Returns:</p>
+<ul>
+<li>TRUE/FALSE</li>
+</ul><h3 id="proc/graffiti_open_editor"><aside class="declaration">proc </aside>graffiti_open_editor<aside>(/<a href="mob.html">mob</a>/user, /list/piece, piece_id, /<a href="turf.html">turf</a>/surface, /list/kept, /<a href="obj.html">obj</a>/<a href="obj/structure.html">structure</a>/<a href="obj/structure/sign.html">sign</a>/<a href="obj/structure/sign/poster.html">poster</a>/poster)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/spraycan.dm#L352"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/spraycan.dm 352"></a></aside></h3><p>Swaps the can's window for a graffiti editor, which reuses its place on screen.</p>
+<p>Arguments:</p>
+<ul>
+<li>user: The player.</li>
+<li>piece: A copy of the canonical piece to open, or null for a blank one.</li>
+<li>piece_id: The library piece it is, or null.</li>
+<li>surface: The wall, floor or window tile to paint live, or a poster's tile, or null for a studio session.</li>
+<li>kept: The placements a freehand draft left on the surface, from graffiti_resume_placements(), which the session goes
+on painting, or null.</li>
+<li>poster: The poster to paint live, or null.</li>
+</ul><h3 id="proc/graffiti_reopen"><aside class="declaration">proc </aside>graffiti_reopen<aside>(/<a href="mob.html">mob</a>/user, tab)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/spraycan.dm#L367"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/spraycan.dm 367"></a></aside></h3><p>Opens the can's window on a tab, as a graffiti editor hands back to it.</p>
+<p>Arguments:</p>
+<ul>
+<li>user: The player.</li>
+<li>tab: &quot;stencils&quot; or &quot;graffiti&quot;.</li>
+</ul><h3 id="proc/ui_act"><aside class="parent"><a title="/datum" href="datum.html#proc/ui_act">↑</a></aside>ui_act<aside>(action, /list/params, /<a href="datum.html">datum</a>/<a href="datum/tgui.html">tgui</a>/ui, /<a href="datum.html">datum</a>/<a href="datum/ui_state.html">ui_state</a>/state)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/spraycan.dm#L110"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/spraycan.dm 110"></a></aside></h3><p>Handles the Custom Graffiti tab's actions, after the crayon's own. Picking a stencil also clears what the can was set
+to paint.</p>
+<p>Arguments:</p>
+<ul>
+<li>action: The action.</li>
+<li>params: Its params, as the window sent them.</li>
+<li>ui: The window.</li>
+<li>state: The window's state.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE/FALSE: Whether the window updates.</li>
+</ul><h3 id="proc/ui_data"><aside class="parent"><a title="/datum" href="datum.html#proc/ui_data">↑</a></aside>ui_data<aside>(/<a href="mob.html">mob</a>/user)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/spraycan.dm#L66"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/spraycan.dm 66"></a></aside></h3><p>Adds the can's graffiti state to the window's data.</p>
+<p>Arguments:</p>
+<ul>
+<li>user: The player.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>list: The data, with &quot;graffiti&quot;: &quot;armed&quot;, &quot;armedName&quot;, &quot;tab&quot; and &quot;hasEditor&quot;.</li>
+</ul><h3 id="proc/ui_interact"><aside class="parent"><a title="/datum" href="datum.html#proc/ui_interact">↑</a></aside>ui_interact<aside>(/<a href="mob.html">mob</a>/user, /<a href="datum.html">datum</a>/<a href="datum/tgui.html">tgui</a>/ui)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/spraycan.dm#L85"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/spraycan.dm 85"></a></aside></h3><p>Opens the window, or refreshes the open one. Opening it afresh clears what the can was set to paint. A refresh after
+the player's graffiti library changed sends the static data too, which carries the library, while its tab is open.</p>
+<p>Arguments:</p>
+<ul>
+<li>user: The player.</li>
+<li>ui: The open window, when tgui refreshes it.</li>
+</ul><h3 id="proc/ui_static_data"><aside class="parent"><a title="/datum" href="datum.html#proc/ui_static_data">↑</a></aside>ui_static_data<aside>(/<a href="mob.html">mob</a>/user)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/spraycan.dm#L42"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/spraycan.dm 42"></a></aside></h3><p>Adds the player's graffiti library to the window's static data while the Custom Graffiti tab is open, and only then:
+50 pieces' thumbnails take 40 KB as typical art and up to 1.5 MB as adversarial art, which a window open on the
+stencils would carry for nothing. It is sent again once the library changes or the tab opens.</p>
+<p>Arguments:</p>
+<ul>
+<li>user: The player.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>list: The static data, with &quot;graffitiLibrary&quot;: &quot;entries&quot;, &quot;unfinished&quot;, &quot;count&quot;, &quot;cap&quot; and &quot;defaultPalette&quot; while
+the tab is open.</li>
+</ul><h3 id="proc/use_on"><aside class="parent"><a title="/obj/item/toy/crayon" href="obj/item/toy/crayon.html#proc/use_on">↑</a></aside>use_on<aside>(/<a href="atom.html">atom</a>/target, /<a href="mob.html">mob</a>/user, /list/modifiers)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/spraycan.dm#L218"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/spraycan.dm 218"></a></aside></h3><p>Paints with an armed can. A click on an adjacent wall or floor, a full-tile window fastened down, or graffiti on one,
+on the static station (graffiti_static_station(), else &quot;can't paint here!&quot; and the can stays armed), opens a freehand
+session there, continues a freehand draft on its own tile, or starts a paint job of the armed piece. A session that
+starts uses the arming up, and a job keeps it. An Unfinished piece whose paint still shows goes on only there: a click on
+another surface is refused (&quot;wrong wall!&quot;) and starts no cooldown. Each attempt waits out GRAFFITI_START_COOLDOWN
+from the last, refused or not, and is refused before any costly work: by an empty can, a paint job already running,
+or a two-tile piece without a surface like this one to the right. A two-tile piece that paints nothing on its right
+tile paints one tile. A click on a poster that isn't ripped paints over the poster itself, one painter at a time, and
+only on its own pixels; it takes no two-tile piece (&quot;too wide!&quot;), and nothing resumes there. A click on anything else
+clears the arming and sprays as usual, as does an unarmed can, which tints a window or a poster.</p>
+<p>Arguments:</p>
+<ul>
+<li>target: What was clicked.</li>
+<li>user: The painter.</li>
+<li>modifiers: The click's modifiers.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>ITEM_INTERACT_SUCCESS or ITEM_INTERACT_BLOCKING, as the parent returns them.</li>
+</ul></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/6045a9effef19a65a8c400fa9f86916f0a85485d">6045a9e</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

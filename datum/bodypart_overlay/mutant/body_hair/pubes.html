@@ -1,0 +1,17 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../../"><link rel="stylesheet" href="dmdoc.css"><title>/datum/bodypart_overlay/mutant/body_hair/pubes - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a> — <a href="datum/bodypart_overlay/mutant/body_hair/pubes.html#proc">Proc Details</a></header><main><h1>pubes <aside>/<a href="datum.html">datum</a>/<a href="datum/bodypart_overlay.html">bodypart_overlay</a>/<a href="datum/bodypart_overlay/mutant.html">mutant</a>/<a href="datum/bodypart_overlay/mutant/body_hair.html">body_hair</a>/<a href="datum/bodypart_overlay/mutant/body_hair/pubes.html">pubes</a></aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/body_hair/code/body_hair.dm#L94"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/body_hair/code/body_hair.dm 94"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Procs</h2></td></tr><tr><th><a href="datum/bodypart_overlay/mutant/body_hair/pubes.html#proc/pubic_hair_clip">pubic_hair_clip</a></th><td>Returns what this pubic hair is clipped to on <code>limb</code>'s owner, while a baring underwear (GLOB.body_hair_baring_clothing) is worn
+and drawn over it, its only cover. The hair is drawn past the crotch's outline to frame the genitals: over a bare groin that's
+as drawn, and under such underwear it would float in the air or show through the underwear's gaps.</td></tr></table><h2 id="proc">Proc Details</h2><h3 id="proc/pubic_hair_clip"><aside class="declaration">proc </aside>pubic_hair_clip<aside>(/<a href="obj.html">obj</a>/<a href="obj/item.html">item</a>/<a href="obj/item/bodypart.html">bodypart</a>/limb)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/body_hair/code/body_hair.dm#L154"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/body_hair/code/body_hair.dm 154"></a></aside></h3><p>Returns what this pubic hair is clipped to on <code>limb</code>'s owner, while a baring underwear (GLOB.body_hair_baring_clothing) is worn
+and drawn over it, its only cover. The hair is drawn past the crotch's outline to frame the genitals: over a bare groin that's
+as drawn, and under such underwear it would float in the air or show through the underwear's gaps.</p>
+<p>Arguments:</p>
+<ul>
+<li>limb: The chest the hair is drawn on.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>A list: the clip's key first; the underwear, then its state, female cut and whether the GAGS digitigrade mask draws its
+legs, all as make_appearance() draws it before any fitting; then the sheet and state the chest, right leg and left leg
+each draw their own sprite from (/obj/item/bodypart/proc/drawn_sheet()), both null for a part that draws none, like a taur's
+legs.</li>
+<li>null: The hair isn't clipped. Nothing it's drawn under covers the groin, or the hair is on no one.</li>
+</ul></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/6045a9effef19a65a8c400fa9f86916f0a85485d">6045a9e</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_aphelion/modules/bulge/icons/README.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>Bulge template sheets <aside>modular_aphelion/modules/bulge/icons/README.md</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/bulge/icons/README.md"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/bulge/icons/README.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><p><code>templates/</code> holds the shapes a bulge is drawn from up to each family's <code>small_cap</code>, the skirts' clearances and flaps,
+and the large heart boxers: 5 sheets, 656 states, each with four directions (north is empty) and one frame. Open them
+in Dream Maker's icon editor. A state is named for what it is, and the code finds it by that name; nothing maps one
+name to another.</p>
+<p>Past <code>small_cap</code> nothing is read from a sheet. The shapes, the anatomy each leaves bare, and a hard loincloth's drape
+and cut are derived at run time from the game's own penis, testicle and loincloth sprites by the approved rule
+(<code>code/templates.dm</code>), under the names below, once each and kept for the round. They were drawn in sheets once
+(1,576 states), and the unit test <code>bulge_derivation</code> holds what is derived to a frozen record of those states.</p>
+<h2 id="what-the-sheets-hold">What the sheets hold</h2><table><thead><tr><th>sheet</th><th style="text-align: right">states</th><th>holds</th></tr></thead><tbody>
+<tr><td><code>cloth_small</code></td><td style="text-align: right">162</td><td>sizes 1 to 4 of every garment family, and jeans hard at size 5</td></tr>
+<tr><td><code>skirt_shapes</code></td><td style="text-align: right">186</td><td>every skirt style, and each revealing skirt's own hem where it differs</td></tr>
+<tr><td><code>skirt_clearance</code></td><td style="text-align: right">42</td><td>where a skirt's shaft shows above the cloth; an empty state draws the anatomy behind the skirt only</td></tr>
+<tr><td><code>skirt_flaps</code></td><td style="text-align: right">54</td><td>the flap a revealing skirt lifts away when hard</td></tr>
+<tr><td><code>printed_patches</code></td><td style="text-align: right">214</td><td>the large heart boxers, sizes 5 to 8 (198 for the profiles of the other penis shapes), made by the print rule</td></tr>
+</tbody></table>
+<p>A shape is a kind map: each kind of pushed-out cloth in its own grey, the approved shading over mid-grey cloth, so a
+sheet shows the bulges as they look on grey cloth. Cloth <code>#808080</code>, light <code>#a3a3a3</code>, highlight <code>#b7b7b7</code>, shade
+<code>#646464</code>, deep shade <code>#4b4b4b</code>. Draw with exactly these five; nothing else is read. Masks are opaque white.</p>
+<h2 id="names">Names</h2>
+<ul>
+<li>Shapes up to a family's <code>small_cap</code>: <code>&lt;shapes&gt;_&lt;half|hard&gt;_&lt;size&gt;_&lt;plain|digi&gt;</code>, for example
+<code>briefs_hard_3_digi</code>.</li>
+<li>Past it, derived: <code>&lt;shapes&gt;_&lt;half|hard&gt;_&lt;size&gt;_&lt;plain|digi&gt;_&lt;penis shape&gt;</code>, with <code>_untoned</code> for a penis shape whose
+untoned sprites have shapes of their own (Human (Alt), Hemi), for example <code>boxers_hard_6_plain_knotted_alt</code>.
+Digitigrade versions exist only where the family says so (<code>large_digi_forms</code>); a penis whose sprite stops growing
+keeps size 6's shape at 7 and 8. The anatomy a shape leaves bare is derived with it, under the same name; a shape
+that covers the whole penis leaves none.</li>
+<li>A skirt's clearance: its shape's name without the legs, <code>&lt;shapes&gt;_&lt;half|hard&gt;_&lt;size&gt;</code>, as a clearance is the same on
+plain and digitigrade legs. Its flap has its hard shape's name.</li>
+<li>Drapes, derived: <code>&lt;drapes&gt;_&lt;penis shape&gt;_&lt;sprite size&gt;</code>, with <code>_untoned</code>, and <code>_flat</code> from the family's
+<code>flat_tip_from</code>. Cuts, derived: <code>&lt;drapes&gt;_cut_&lt;hem&gt;</code>, the hem being the lowest row the drape reaches facing south
+(the family's <code>lifted_hem</code> for a drape that stays above the hem rows).</li>
+<li>The large heart boxers' patches: <code>&lt;printed_patches&gt;_&lt;half|hard&gt;_&lt;size&gt;_&lt;plain|digi&gt;</code> for the human penis, drawn by
+every penis shape without a patch of its own; a shape's own patch is named the same with the penis shape's icon state
+appended, for example <code>heart_boxers_hard_7_plain_knotted</code>, and <code>_untoned</code> after that for a shape drawn without skin
+tones whose untoned sprites draw differently (<code>bulge_untoned</code>), where its untoned profile needs a patch of its own:
+Human (Alt) half and hard 6 to 8, for example <code>heart_boxers_hard_7_plain_human_alt_untoned</code>; untoned at 5 it draws its
+skin-toned patch. Every other penis shape has its own (198 states) where its profile facing east and west needs one:
+drawn there along the anatomy the shape leaves bare, north and south copied from the human patch. Where the penis
+reaches below the hem (the shaft's underside, hard 6 to 8, in the knotted, barbknot, flared, hemiknot and tapered
+profiles), the cloth covers it too, as the boxers' leg hangs over it, and at hard 5 the cloth ends at the shaft's
+lower outline, with no curtain below it; knotted hard 6 has its own patch for that row. The tentacles, and Nondescript
+(Alt), Tapered (Alt) and Hemi (Alt), whose <code>print_cap</code> is 4 (<code>code/templates.dm</code>), have none: in every family they
+draw the family's small_cap shape past it, and under the heart boxers its print, at every size. Each frame is 32x10,
+the tile's whole width from row 20 to row 29 counted from the top (the patches reach row 28).</li>
+</ul>
+<p><code>&lt;shapes&gt;</code> and <code>&lt;drapes&gt;</code> are the family's vars in <code>code/families.dm</code>. A family that draws another family's shapes
+by design names it there (<code>half_shapes_of</code>, <code>hard_shapes_of</code>, <code>large_shapes_of</code>); a garment whose approved look
+differs from its family's has a subtype of the family, as the revealing skirts' hems do, whose <code>own_shape_sizes</code>,
+<code>own_clearance_sizes</code> and <code>own_flap_sizes</code> say at which hard sizes it has its own. Where two families' shapes
+merely happen to look the same, both are stored.</p>
+<p>Each sheet is cropped to one window; the pixel offsets that place it on the 32x32 tile are defined in
+<code>code/templates.dm</code> next to the accessors. Keep a sheet's frame size, or change its offsets with it.</p>
+<h2 id="revealing-skirts">Revealing skirts</h2>
+<p>The common revealing skirt, <code>/datum/bulge_family/skirt/short_reveal</code> (92 skirts), is hemmed at row 25 of the 32x32
+tile facing south, counting rows from 0 at the top. <code>hem_24</code> (40 skirts) and <code>hem_23</code> (14) are hemmed one and two rows
+higher; the miniskirts, the lone skirts and eleven single garments have subtypes of their own, because their hems
+differ at some sizes (<code>code/families.dm</code> says which). Which class fits cannot be read off a sprite by any simple rule, so place a new
+revealing skirt by eye:</p>
+<ol>
+<li>Look at the common class on the garment in game at each hard size, on plain and digitigrade legs: the garment
+with its flap cut away and its print carried onto the bulge, and the shaft over the cloth inside the clearance.</li>
+<li>Where the flap cuts above or below the garment's lifted hem, try <code>short_reveal_hem_24_*</code> and
+<code>short_reveal_hem_23_*</code>, then the single garments' classes.</li>
+<li>Give the garment a block in <code>code/garment_families.dm</code>: <code>bulge_family</code> the class that fits, and
+<code>bulge_printed = TRUE</code>, as every reviewed skirt is printed from its own sprite.</li>
+<li>If no class fits, the skirt needs a family subtype with its own shapes, clearance and flaps where they differ, which
+is new art to review.</li>
+</ol>
+<h2 id="saving-sheets">Saving sheets</h2>
+<p>A changed sheet also changes its MD5 in the reviewed manifest the <code>bulge_manifest</code> unit test checks: once the change
+is reviewed, copy the <code>data/bulge_manifest.txt</code> the failing test writes over
+<code>code/modules/unit_tests/~nova/bulge_manifest.txt</code>.</p>
+<p>Keep every sheet an 8-bit palette PNG. Dream Maker re-saves a sheet of few colours as a 1-bit or 4-bit palette PNG,
+which rust-g's DMI reader, behind tg's <code>icon_exists()</code>, cannot read: re-encode such a sheet at 8 bits with the same
+pixels and DMI metadata. A re-encoded sheet has a new MD5 for the manifest, as above. Do not run ZopfliPNG or other PNG
+optimisers over the sheets: rust-g's DMI reader failed on their output too (PNGs of fewer than eight bits per sample,
+Zopfli streams).</p></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/6045a9effef19a65a8c400fa9f86916f0a85485d">6045a9e</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

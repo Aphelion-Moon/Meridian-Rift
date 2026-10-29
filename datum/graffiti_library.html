@@ -1,0 +1,154 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../"><link rel="stylesheet" href="dmdoc.css"><title>/datum/graffiti_library - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a> — <a href="datum/graffiti_library.html#var">Var Details</a> - <a href="datum/graffiti_library.html#proc">Proc Details</a></header><main><h1>graffiti_library <aside>/<a href="datum.html">datum</a>/<a href="datum/graffiti_library.html">graffiti_library</a></aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L160"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 160"></a></h1><p>One account's graffiti library: up to GRAFFITI_LIBRARY_CAP pieces and the Unfinished slot, kept in one JSON file
+under SSgraffiti.library_root. Get it with graffiti_library().</p>
+<p>Every change is written through and undone when the write fails, so the library holds what its file doesn't only
+while a change the server made waits for the write pacing (save()). A write the file holds stands even when its
+backup couldn't be refreshed after it, which the next save does. It unloads as its owner disconnects, or, while an
+editor session, a paint job or a held write still needs it, once they end (graffiti_library_unload()).</p><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Vars</h2></td></tr><tr><th><a href="datum/graffiti_library.html#var/ckey">ckey</a></th><td>The account's ckey.</td></tr><tr><th><a href="datum/graffiti_library.html#var/next_id">next_id</a></th><td>The number in the next new piece's id, &quot;g[next_id]&quot;.</td></tr><tr><th><a href="datum/graffiti_library.html#var/pieces">pieces</a></th><td>Piece id -&gt; list(&quot;piece&quot; = canonical piece, &quot;created&quot;, &quot;updated&quot;, &quot;thumb&quot; = its flattened art), oldest first. Entries are replaced, never changed.</td></tr><tr><th><a href="datum/graffiti_library.html#var/revealed">revealed</a></th><td>What unfinished_entry() last flattened of a stopped paint job: list(piece, progress, the art revealed). The slot's
+piece is replaced, never changed, so a piece and a progress always reveal the same art.</td></tr><tr><th><a href="datum/graffiti_library.html#var/revision">revision</a></th><td>Its state's number, from SSgraffiti.library_revision and new with each change, so a window that shows it knows to send it again.</td></tr><tr><th><a href="datum/graffiti_library.html#var/store">store</a></th><td>The library's file.</td></tr><tr><th><a href="datum/graffiti_library.html#var/unfinished">unfinished</a></th><td>The last interrupted or unsaved piece, list(&quot;piece&quot;, &quot;resume&quot;, &quot;created&quot;, &quot;thumb&quot;), or null.</td></tr><tr><th><a href="datum/graffiti_library.html#var/unwritten">unwritten</a></th><td>snapshot() of the library as its file holds it, while changes wait for write_timer.</td></tr><tr><th><a href="datum/graffiti_library.html#var/write_timer">write_timer</a></th><td>The timer that writes the changes held back by the write pacing, while one is pending.</td></tr><tr><td colspan="2"><h2>Procs</h2></td></tr><tr><th><a href="datum/graffiti_library.html#proc/New">New</a></th><td>Loads an account's library from its file.</td></tr><tr><th><a href="datum/graffiti_library.html#proc/delete_piece">delete_piece</a></th><td>Deletes a saved piece.</td></tr><tr><th><a href="datum/graffiti_library.html#proc/discard_unfinished">discard_unfinished</a></th><td>Empties the Unfinished slot.</td></tr><tr><th><a href="datum/graffiti_library.html#proc/entries">entries</a></th><td>Returns the saved pieces as the spraycan's Custom Graffiti tab lists them, newest first.</td></tr><tr><th><a href="datum/graffiti_library.html#proc/entry_data">entry_data</a></th><td>Returns one piece as the Custom Graffiti tab lists it.</td></tr><tr><th><a href="datum/graffiti_library.html#proc/export_text">export_text</a></th><td>Returns a saved piece as the text Export writes.</td></tr><tr><th><a href="datum/graffiti_library.html#proc/import_piece">import_piece</a></th><td>Imports a piece as a new piece. It must pass graffiti_validate_piece() as given, its <code>format</code> and <code>version</code>
+included.</td></tr><tr><th><a href="datum/graffiti_library.html#proc/keep_unfinished">keep_unfinished</a></th><td>Moves the Unfinished piece into the library as a new piece.</td></tr><tr><th><a href="datum/graffiti_library.html#proc/piece">piece</a></th><td>Returns a saved piece.</td></tr><tr><th><a href="datum/graffiti_library.html#proc/put">put</a></th><td>Stores a canonical piece in <code>pieces</code> without writing the file.</td></tr><tr><th><a href="datum/graffiti_library.html#proc/rename_piece">rename_piece</a></th><td>Renames a saved piece and sets its description, as the Custom Graffiti tab edits them. Its art stays as it is.</td></tr><tr><th><a href="datum/graffiti_library.html#proc/save">save</a></th><td>Writes the library to its file, or deletes the file once the library holds no pieces and no Unfinished piece, and
+paces the account's next write by how long this one took (graffiti_library_paced()).</td></tr><tr><th><a href="datum/graffiti_library.html#proc/save_piece">save_piece</a></th><td>Saves a piece into the library, as a new piece or over one it holds.</td></tr><tr><th><a href="datum/graffiti_library.html#proc/set_unfinished">set_unfinished</a></th><td>Puts a piece in the Unfinished slot, replacing what it held.</td></tr><tr><th><a href="datum/graffiti_library.html#proc/snapshot">snapshot</a></th><td>Returns the library's state, for save() to put back when a change can't be written.</td></tr><tr><th><a href="datum/graffiti_library.html#proc/unfinished_entry">unfinished_entry</a></th><td>Returns the Unfinished slot as the Custom Graffiti tab shows it.</td></tr><tr><th><a href="datum/graffiti_library.html#proc/write_held">write_held</a></th><td>Writes the changes the write pacing held back, as write_timer fires, then unloads the library if its owner
+disconnected meanwhile (graffiti_library_unload()). A library no longer loaded, as after an admin purge, writes
+nothing.</td></tr></table><h2 id="var">Var Details</h2><h3 id="var/ckey"><aside class="declaration">var </aside>ckey <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L162"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 162"></a></h3><p>The account's ckey.</p><h3 id="var/next_id"><aside class="declaration">var </aside>next_id <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L168"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 168"></a></h3><p>The number in the next new piece's id, &quot;g[next_id]&quot;.</p><h3 id="var/pieces"><aside class="declaration">var </aside>pieces <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L164"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 164"></a></h3><p>Piece id -&gt; list(&quot;piece&quot; = canonical piece, &quot;created&quot;, &quot;updated&quot;, &quot;thumb&quot; = its flattened art), oldest first. Entries are replaced, never changed.</p><h3 id="var/revealed"><aside class="declaration">var </aside>revealed <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L175"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 175"></a></h3><p>What unfinished_entry() last flattened of a stopped paint job: list(piece, progress, the art revealed). The slot's
+piece is replaced, never changed, so a piece and a progress always reveal the same art.</p><h3 id="var/revision"><aside class="declaration">var </aside>revision <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L172"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 172"></a></h3><p>Its state's number, from SSgraffiti.library_revision and new with each change, so a window that shows it knows to send it again.</p><h3 id="var/store"><aside class="declaration">var </aside>store <aside>– /<a href="datum.html">datum</a>/<a href="datum/json_savefile.html">json_savefile</a>/<a href="datum/json_savefile/custom_sprites.html">custom_sprites</a>/<a href="datum/json_savefile/custom_sprites/graffiti.html">graffiti</a>/<a href="datum/json_savefile/custom_sprites/graffiti/library.html">library</a></aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L170"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 170"></a></h3><p>The library's file.</p><h3 id="var/unfinished"><aside class="declaration">var </aside>unfinished <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L166"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 166"></a></h3><p>The last interrupted or unsaved piece, list(&quot;piece&quot;, &quot;resume&quot;, &quot;created&quot;, &quot;thumb&quot;), or null.</p><h3 id="var/unwritten"><aside class="declaration">var </aside>unwritten <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L179"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 179"></a></h3><p>snapshot() of the library as its file holds it, while changes wait for write_timer.</p><h3 id="var/write_timer"><aside class="declaration">var </aside>write_timer <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L177"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 177"></a></h3><p>The timer that writes the changes held back by the write pacing, while one is pending.</p><h2 id="proc">Proc Details</h2><h3 id="proc/New">New<aside>(ckey)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L191"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 191"></a></aside></h3><p>Loads an account's library from its file.</p>
+<p>Every stored piece is validated again, and one that fails is dropped with a log line, as are pieces past
+GRAFFITI_LIBRARY_CAP. When the file can't be read at all, such as one over GRAFFITI_LIBRARY_MAX_BYTES, the library
+starts empty and its store refuses every write, so the file stays for an admin to look at.</p>
+<p>Arguments:</p>
+<ul>
+<li>ckey: The account's ckey.</li>
+</ul><h3 id="proc/delete_piece"><aside class="declaration">proc </aside>delete_piece<aside>(id)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L316"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 316"></a></aside></h3><p>Deletes a saved piece.</p>
+<p>Arguments:</p>
+<ul>
+<li>id: The piece's id.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE/FALSE: Whether it was deleted. It isn't when no piece has that id or the file couldn't be written.</li>
+</ul><h3 id="proc/discard_unfinished"><aside class="declaration">proc </aside>discard_unfinished<aside>(hold)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L401"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 401"></a></aside></h3><p>Empties the Unfinished slot.</p>
+<p>Arguments:</p>
+<ul>
+<li>hold: Whether the server makes the change, as a finished paint job does, so that save() holds it back while the
+write pacing runs rather than writing at once.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE/FALSE: Whether a piece was discarded. None is when the slot is empty or the file couldn't be written.</li>
+</ul><h3 id="proc/entries"><aside class="declaration">proc </aside>entries<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L234"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 234"></a></aside></h3><p>Returns the saved pieces as the spraycan's Custom Graffiti tab lists them, newest first.</p>
+<p>Returns:</p>
+<ul>
+<li>list: One entry_data() list per piece, by creation time. Among pieces made in the same second, the one added
+last comes first.</li>
+</ul><h3 id="proc/entry_data"><aside class="declaration">proc </aside>entry_data<aside>(id, /list/entry)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L543"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 543"></a></aside></h3><p>Returns one piece as the Custom Graffiti tab lists it.</p>
+<p>Arguments:</p>
+<ul>
+<li>id: The piece's id, or null for the Unfinished slot.</li>
+<li>entry: Its entry in <code>pieces</code>, or <code>unfinished</code>.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>list: <code>id</code>, <code>name</code>, <code>description</code>, <code>width</code>, <code>created</code>, <code>updated</code>, <code>glow</code> (whether any layer glows), <code>layers</code>
+(how many) and <code>thumb</code>, the flattened art.</li>
+</ul><h3 id="proc/export_text"><aside class="declaration">proc </aside>export_text<aside>(id)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L418"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 418"></a></aside></h3><p>Returns a saved piece as the text Export writes.</p>
+<p>Arguments:</p>
+<ul>
+<li>id: The piece's id.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>text: The piece's JSON, from graffiti_encode_piece().</li>
+<li>null: No piece has that id.</li>
+</ul><h3 id="proc/import_piece"><aside class="declaration">proc </aside>import_piece<aside>(raw)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L432"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 432"></a></aside></h3><p>Imports a piece as a new piece. It must pass graffiti_validate_piece() as given, its <code>format</code> and <code>version</code>
+included.</p>
+<p>Arguments:</p>
+<ul>
+<li>raw: The piece's JSON text, as Export writes it, or that text decoded.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>text: The new piece's id, a key of <code>pieces</code>.</li>
+<li>text: Why it was refused, safe to show the player. It never repeats the piece's text.</li>
+</ul><h3 id="proc/keep_unfinished"><aside class="declaration">proc </aside>keep_unfinished<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L381"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 381"></a></aside></h3><p>Moves the Unfinished piece into the library as a new piece.</p>
+<p>Returns:</p>
+<ul>
+<li>text: The new piece's id, a key of <code>pieces</code>.</li>
+<li>text: Why it wasn't moved, safe to show the player. The slot keeps its piece.</li>
+</ul><h3 id="proc/piece"><aside class="declaration">proc </aside>piece<aside>(id)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L281"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 281"></a></aside></h3><p>Returns a saved piece.</p>
+<p>Arguments:</p>
+<ul>
+<li>id: The piece's id.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>list: The canonical piece. Never change it.</li>
+<li>null: No piece has that id.</li>
+</ul><h3 id="proc/put"><aside class="declaration">proc </aside>put<aside>(/list/piece, id, /list/art)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L521"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 521"></a></aside></h3><p>Stores a canonical piece in <code>pieces</code> without writing the file.</p>
+<p>Arguments:</p>
+<ul>
+<li>piece: The canonical piece.</li>
+<li>id: The piece it replaces, which keeps its id and creation time, or null for a new piece.</li>
+<li>art: The piece's flattened art, when the caller has it.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>text: The piece's id.</li>
+</ul><h3 id="proc/rename_piece"><aside class="declaration">proc </aside>rename_piece<aside>(id, name, description)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L335"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 335"></a></aside></h3><p>Renames a saved piece and sets its description, as the Custom Graffiti tab edits them. Its art stays as it is.</p>
+<p>Arguments:</p>
+<ul>
+<li>id: The piece's id.</li>
+<li>name: Its new name, cleaned as names are kept, or &quot;Untitled&quot; when nothing is left of it.</li>
+<li>description: Its new description, cleaned as descriptions are kept.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE: The piece has that name and description, written now or already.</li>
+<li>text: Why it wasn't renamed, safe to show the player.</li>
+</ul><h3 id="proc/save"><aside class="declaration">proc </aside>save<aside>(/list/previous, hold)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L455"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 455"></a></aside></h3><p>Writes the library to its file, or deletes the file once the library holds no pieces and no Unfinished piece, and
+paces the account's next write by how long this one took (graffiti_library_paced()).</p>
+<p>A change the server makes is never refused for the pacing: while the account's last write still paces the next, it
+is held back, and write_timer writes it once the pacing allows, with whatever else changed meanwhile. Any write
+takes the changes held so far with it.</p>
+<p>Arguments:</p>
+<ul>
+<li>previous: snapshot()'s state from before the change being written, put back when the write fails.</li>
+<li>hold: Whether to hold the change back while the pacing runs rather than write it at once.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE/FALSE: Whether the file holds the library, or will once the change held back is written.</li>
+</ul><h3 id="proc/save_piece"><aside class="declaration">proc </aside>save_piece<aside>(/list/piece, id)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L295"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 295"></a></aside></h3><p>Saves a piece into the library, as a new piece or over one it holds.</p>
+<p>Arguments:</p>
+<ul>
+<li>piece: The piece, such as the editor serializes it. It is validated and cleaned again.</li>
+<li>id: The piece to replace. A new piece is made when it is null or no longer in the library.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>text: The piece's id, a key of <code>pieces</code>.</li>
+<li>text: Why nothing was saved, safe to show the player. It is never a key of <code>pieces</code>.</li>
+</ul><h3 id="proc/set_unfinished"><aside class="declaration">proc </aside>set_unfinished<aside>(/list/piece, /list/resume, hold)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L366"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 366"></a></aside></h3><p>Puts a piece in the Unfinished slot, replacing what it held.</p>
+<p>Arguments:</p>
+<ul>
+<li>piece: The piece, such as the editor serializes it. It is validated and cleaned again.</li>
+<li>resume: What a stopped paint job or freehand session resumes from, list(&quot;map&quot;, &quot;anchor&quot;, &quot;pid&quot;, &quot;progress&quot;,
+&quot;width&quot;), or null. The library keeps a copy and never reads it.</li>
+<li>hold: Whether the server makes the change, as a session or paint job ends, so that save() holds it back while the
+write pacing runs rather than writing at once.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>null: The slot holds the piece.</li>
+<li>text: Why it doesn't, safe to show the player.</li>
+</ul><h3 id="proc/snapshot"><aside class="declaration">proc </aside>snapshot<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L507"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 507"></a></aside></h3><p>Returns the library's state, for save() to put back when a change can't be written.</p>
+<p>Returns:</p>
+<ul>
+<li>list: A copy of <code>pieces</code>, with <code>unfinished</code> and <code>next_id</code>.</li>
+</ul><h3 id="proc/unfinished_entry"><aside class="declaration">proc </aside>unfinished_entry<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L253"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 253"></a></aside></h3><p>Returns the Unfinished slot as the Custom Graffiti tab shows it.</p>
+<p>Returns:</p>
+<ul>
+<li>list: entry_data()'s fields with a null <code>id</code>, plus <code>resume</code>, as set_unfinished() was given it, <code>progress</code>, its
+&quot;progress&quot; (null without resume data), and <code>revealed</code>, the flattened art of what a stopped paint job revealed
+(null for anything else).</li>
+<li>null: The slot is empty.</li>
+</ul><h3 id="proc/write_held"><aside class="declaration">proc </aside>write_held<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/library.dm#L493"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/library.dm 493"></a></aside></h3><p>Writes the changes the write pacing held back, as write_timer fires, then unloads the library if its owner
+disconnected meanwhile (graffiti_library_unload()). A library no longer loaded, as after an admin purge, writes
+nothing.</p></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/6045a9effef19a65a8c400fa9f86916f0a85485d">6045a9e</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

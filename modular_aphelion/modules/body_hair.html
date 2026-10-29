@@ -1,0 +1,47 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_aphelion/modules/body_hair/readme.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>modular_aphelion/modules/body_hair/readme.md <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/body_hair/readme.md"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/body_hair/readme.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><h2 id="body-hair">Body hair</h2>
+<p>Module ID: BODY_HAIR</p>
+<h3 id="description">Description:</h3>
+<p>Facial hair styles and armpit and pubic hair, adapted from Ratwood-2.0 for our sprites.</p>
+<p><strong>Beards.</strong> New facial hair styles:</p>
+<ul>
+<li>Beard (Commodore), from their Knightly: a drooping horseshoe moustache over a pointed chin beard.</li>
+<li>Beard (Manly): a full, rounded beard that leaves the mouth clear.</li>
+<li>Beard (Twin Braids), from their Viking: a jaw frame closed under the chin, with two short braids.</li>
+<li>Sideburns (Short), from their Burns: three pixels of sideburn in front of each ear.</li>
+</ul>
+<p>Their Stubble and Pipe are not here: Stubble is our Beard (Five o Clock Shadow) and Pipe is our Beard (Hipster)
+with the sideburns a row higher. Ratwood's sheet is already in tg face coordinates, so the shapes sit on our heads
+unmoved. Commodore, Twin Braids and Short Sideburns are lit from above; Manly uses the checker shading of our own
+long beards.</p>
+<p><strong>Armpit and pubic hair.</strong> Character options under the secondary features: armpit hair (Trimmed, Natural,
+Untamed) and pubic hair (the same three, plus Landing Strip, Heart and Arrow; only with ERP preferences and
+genitals allowed). Both default to none. They take the hair colour and follow it while &quot;Body hair matches hair
+color&quot; is on, which is the default; turned off, a colour picker appears for their own colour.</p>
+<p>Each is a mutant bodypart like genitals: the choice goes into <code>dna.mutant_bodyparts</code>, species organ regeneration
+grows a small hidden organ, and its overlay draws <code>&lt;style&gt;_&lt;m|f&gt;</code> from <code>icons/body_hair.dmi</code> over the skin and
+under underwear, clothes and genitals. Ratwood's art is used as drawn, refitted
+to our bodies (armpits a pixel lower on the male body and a pixel higher on the female one, pubic hair a pixel
+lower on the male body); Untamed on the male body uses a softer, fuzzier take. Female Natural also sits a pixel
+further out than the rest, in the armpit rather than the waist notch beside it, and female Trimmed's side view a
+pixel lower, clear of pecs.</p>
+<p>Clothing hides them. Armpit hair shows only on a bare chest, or when everything over the chest bares the armpits:
+<code>code/baring_clothing.dm</code> lists those uniforms, suits and undershirts (tank tops, fishnets, corsets, leotards, bunny
+suits, sleeveless dresses, vests and the like). No bra or underwear hides it. Pubic hair shows only on a bare groin, or
+under a jockstrap or mankini. The list came from a sprite check: every chest-covering garment whose worn sprite covers
+less than a third of the upper arm, confirmed by eye.</p>
+<p>Pubic hair is drawn a pixel or more past the crotch's outline, to frame genitals. Over a bare groin it's drawn just so.
+Under a jockstrap or mankini, its only cover, it keeps only the pixels on bare skin: on the body as it's drawn, the
+chest and legs from their own sprites (any muscle size, a female or male chest, digitigrade legs, another species'
+limbs), and outside the underwear's span in each row, from its leftmost pixel there to its rightmost, in each direction.
+A taur's or Cerulean's legs draw nothing of their own, so there it keeps to the chest. <code>clip_pubic_hair()</code>
+(<code>code/body_hair.dm</code>) makes each clipped sprite once a round, for each hair style, underwear sprite (with its female
+cut) and body; its colour is the overlay's. The chest's cache key carries the same, so a change of underwear, legs or
+muscle size draws it again. Armpit hair is never clipped.</p>
+<p>A razor used on the chest or groin (not in combat mode) trims them to any style or shaves them off, like a beard,
+while they show: whatever hides them keeps the razor off too. Trimming someone else's pubic hair needs their ERP
+preference.</p>
+<p>Armpit interactions (in the staged interaction JSON) need only an arm, via the <code>target_arm</code> requirement, whether
+or not there's hair.</p>
+<h3 id="credits">Credits:</h3>
+<p>Original shapes: Ratwood-2.0 contributors (<code>icons/mob/sprite_accessory/hair/human_facial_hair.dmi</code>,
+<code>icons/mob/sprite_accessory/genitals/pits.dmi</code> and <code>pubes.dmi</code>).</p></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/6045a9effef19a65a8c400fa9f86916f0a85485d">6045a9e</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

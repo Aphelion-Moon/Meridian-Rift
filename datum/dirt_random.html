@@ -1,0 +1,62 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../"><link rel="stylesheet" href="dmdoc.css"><title>/datum/dirt_random - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a> — <a href="datum/dirt_random.html#var">Var Details</a> - <a href="datum/dirt_random.html#proc">Proc Details</a></header><main><h1>dirt_random <aside>/<a href="datum.html">datum</a>/<a href="datum/dirt_random.html">dirt_random</a></aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/random.dm#L9"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/random.dm 9"></a></h1><p>A stream of random draws seeded by text, the same on every server and in the reference generator, so a mask drawn
+here matches the reference's pixel for pixel. The nth draw, counting from 0, is md5(&quot;[seed]:[n]&quot;) cut to its first
+six hex digits: a 24-bit integer, which a DM number holds exactly.</p>
+<p>Everything built on draws spends them in the reference's order. Never take a draw with rand() or prob(), and never
+take a modulo with % or %% on something that may come out negative: use DIRT_MODULO.</p><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Vars</h2></td></tr><tr><th><a href="datum/dirt_random.html#var/draw_count">draw_count</a></th><td>How many draws the stream has made, which is the next draw's number.</td></tr><tr><th><a href="datum/dirt_random.html#var/seed">seed</a></th><td>The text every draw hashes.</td></tr><tr><td colspan="2"><h2>Procs</h2></td></tr><tr><th><a href="datum/dirt_random.html#proc/New">New</a></th><td>Starts a stream at its first draw.</td></tr><tr><th><a href="datum/dirt_random.html#proc/choose">choose</a></th><td>Returns one of <code>options</code>, from one draw.</td></tr><tr><th><a href="datum/dirt_random.html#proc/draw">draw</a></th><td>Returns the next draw, a whole number from 0 to 16777215.</td></tr><tr><th><a href="datum/dirt_random.html#proc/gauss">gauss</a></th><td>Returns a normally distributed number, from two draws (Box-Muller).</td></tr><tr><th><a href="datum/dirt_random.html#proc/randint">randint</a></th><td>Returns a whole number from <code>low</code> to <code>high</code>, both included, from one draw.</td></tr><tr><th><a href="datum/dirt_random.html#proc/random">random</a></th><td>Returns the next draw as a fraction from 0 up to 1, never 1.</td></tr><tr><th><a href="datum/dirt_random.html#proc/randrange">randrange</a></th><td>Returns a whole number from 0 up to <code>count</code>, never <code>count</code>, from one draw.</td></tr><tr><th><a href="datum/dirt_random.html#proc/sample">sample</a></th><td>Returns <code>count</code> of <code>items</code> without repeats, as a new list: a Fisher-Yates from the front, stopped after <code>count</code>
+draws. <code>items</code> is left as it was.</td></tr><tr><th><a href="datum/dirt_random.html#proc/shuffle">shuffle</a></th><td>Shuffles <code>items</code> in place, from the last position down (Fisher-Yates), with one draw for each position but the first.</td></tr><tr><th><a href="datum/dirt_random.html#proc/uniform">uniform</a></th><td>Returns a number from <code>low</code> up to <code>high</code>, from one draw.</td></tr></table><h2 id="var">Var Details</h2><h3 id="var/draw_count"><aside class="declaration">var </aside>draw_count <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/random.dm#L13"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/random.dm 13"></a></h3><p>How many draws the stream has made, which is the next draw's number.</p><h3 id="var/seed"><aside class="declaration">var </aside>seed <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/random.dm#L11"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/random.dm 11"></a></h3><p>The text every draw hashes.</p><h2 id="proc">Proc Details</h2><h3 id="proc/New">New<aside>(seed)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/random.dm#L22"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/random.dm 22"></a></aside></h3><p>Starts a stream at its first draw.</p>
+<p>Arguments:</p>
+<ul>
+<li>seed: The stream's text, spelled as the reference spells it (&quot;aimed_chest:0&quot;). Seeds are text: a number is written
+out in full, which matches the reference for whole numbers only.</li>
+</ul><h3 id="proc/choose"><aside class="declaration">proc </aside>choose<aside>(/list/options)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/random.dm#L83"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/random.dm 83"></a></aside></h3><p>Returns one of <code>options</code>, from one draw.</p>
+<p>Arguments:</p>
+<ul>
+<li>options: The list to pick from.</li>
+</ul>
+<p>Crashes:</p>
+<ul>
+<li>Divides by zero when <code>options</code> is empty.</li>
+</ul><h3 id="proc/draw"><aside class="declaration">proc </aside>draw<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/random.dm#L31"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/random.dm 31"></a></aside></h3><p>Returns the next draw, a whole number from 0 to 16777215.</p>
+<p>The draw's number goes into the hash in full, as the reference writes it, never in scientific notation.</p><h3 id="proc/gauss"><aside class="declaration">proc </aside>gauss<aside>(mean, deviation)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/random.dm#L95"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/random.dm 95"></a></aside></h3><p>Returns a normally distributed number, from two draws (Box-Muller).</p>
+<p>The first draw is turned round to 1 - random(), so the log never sees 0. DM's trigonometry takes degrees.</p>
+<p>Arguments:</p>
+<ul>
+<li>mean: The centre of the distribution.</li>
+<li>deviation: Its standard deviation.</li>
+</ul><h3 id="proc/randint"><aside class="declaration">proc </aside>randint<aside>(low, high)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/random.dm#L71"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/random.dm 71"></a></aside></h3><p>Returns a whole number from <code>low</code> to <code>high</code>, both included, from one draw.</p>
+<p>Arguments:</p>
+<ul>
+<li>low: The smallest result.</li>
+<li>high: The largest result, no less than <code>low</code>.</li>
+</ul><h3 id="proc/random"><aside class="declaration">proc </aside>random<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/random.dm#L39"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/random.dm 39"></a></aside></h3><p>Returns the next draw as a fraction from 0 up to 1, never 1.</p><h3 id="proc/randrange"><aside class="declaration">proc </aside>randrange<aside>(count)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/random.dm#L61"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/random.dm 61"></a></aside></h3><p>Returns a whole number from 0 up to <code>count</code>, never <code>count</code>, from one draw.</p>
+<p>Arguments:</p>
+<ul>
+<li>count: How many results there are, a positive whole number.</li>
+</ul>
+<p>Crashes:</p>
+<ul>
+<li>Divides by zero when <code>count</code> is 0.</li>
+</ul><h3 id="proc/sample"><aside class="declaration">proc </aside>sample<aside>(/list/items, count)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/random.dm#L126"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/random.dm 126"></a></aside></h3><p>Returns <code>count</code> of <code>items</code> without repeats, as a new list: a Fisher-Yates from the front, stopped after <code>count</code>
+draws. <code>items</code> is left as it was.</p>
+<p>Arguments:</p>
+<ul>
+<li>items: The list to pick from.</li>
+<li>count: How many to pick, no more than <code>items</code> holds.</li>
+</ul>
+<p>Crashes:</p>
+<ul>
+<li>Divides by zero when <code>count</code> is more than <code>items</code> holds.</li>
+</ul><h3 id="proc/shuffle"><aside class="declaration">proc </aside>shuffle<aside>(/list/items)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/random.dm#L109"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/random.dm 109"></a></aside></h3><p>Shuffles <code>items</code> in place, from the last position down (Fisher-Yates), with one draw for each position but the first.</p>
+<p>Arguments:</p>
+<ul>
+<li>items: The list to shuffle.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li><code>items</code> itself, shuffled.</li>
+</ul><h3 id="proc/uniform"><aside class="declaration">proc </aside>uniform<aside>(low, high)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/dirt/code/random.dm#L49"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/random.dm 49"></a></aside></h3><p>Returns a number from <code>low</code> up to <code>high</code>, from one draw.</p>
+<p>Arguments:</p>
+<ul>
+<li>low: The smallest result.</li>
+<li>high: The bound the result stays under.</li>
+</ul></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/6045a9effef19a65a8c400fa9f86916f0a85485d">6045a9e</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

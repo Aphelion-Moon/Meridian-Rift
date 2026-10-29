@@ -1,0 +1,35 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_aphelion/modules/chastity/readme.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>modular_aphelion/modules/chastity/readme.md <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/chastity/readme.md"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/chastity/readme.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><h2 id="chastity-devices">Chastity devices</h2>
+<p>Module ID: CHASTITY</p>
+<h3 id="description">Description:</h3>
+<p>Lockable chastity cages, belts and plates, ported from Ratwood-2.0 (less their spiked ones) and rebuilt on Nova's
+lewd slots, plus chrome and industrial station designs. A device goes into the penis or vagina slot through the
+interaction menu like any toy, and needs the wearer's &quot;Chastity devices&quot; preference.</p>
+<p>While worn, a device:</p>
+<ul>
+<li>closes genitals off: interactions that need them are refused and no other toy fits them, and a caged penis
+can't make a bulge;</li>
+<li>draws in place of the genital it sits over, through <code>device_state</code> on the genital's bodypart overlay, so it shows,
+hides under clothes and underwear, and layers exactly as that genital would. Full belts and plates also cover the
+testicles;</li>
+<li>sends the wearer internal-monologue flavour text now and then while they're aroused, and when a partner does
+something lewd to them.</li>
+</ul>
+<p>Each device comes with its key tucked inside (use the device in hand to slide it out); the key locks and unlocks it
+on the wearer or in hand, like Nova's collar keys. A screwdriver on the wearer's groin can pick a locked device open,
+breaking its lock, unless the wearer set &quot;Chastity: key only&quot;. The cursed device has no keyhole: it clamps shut
+when fitted and only a bible or null rod pressed to it lets it off.</p>
+<p>Interactions can require <code>self_caged</code>/<code>target_caged</code> (penis closed off) or <code>self_belted</code>/<code>target_belted</code> (vagina
+closed off), and use <code>%USER_DEVICE%</code>/<code>%TARGET_DEVICE%</code> for the device's name.</p>
+<p>Flavour text is server-owned at <code>config/nova/chastity.json</code> (under the configured directory when
+<code>-config</code> is used). It is ignored by Git and is not included in the repository. The JSON object maps
+bank names to nonempty arrays of strings, using the same banks as the original text file. Without
+this optional file, devices work normally and send no flavour messages. A supplied file must contain
+the banks used by the devices; the normal string loader validates their presence and caches them for
+the process, so text edits take effect on the next process start.</p>
+<p>On TGS, install it in <code>Configuration/GameStaticFiles/config/nova/chastity.json</code>; the live game's
+<code>config</code> directory links there, so the file persists across builds. When migrating an existing server,
+copy and verify the text there before deploying the updated loader. Keep the old build's file available
+until that build has stopped using <code>strings/aphelion/chastity.json</code>.</p>
+<h3 id="credits">Credits:</h3>
+<p>Device sprites and flavour text: Ratwood-2.0 contributors (<code>modular/icons/obj/lewd/chastity*.dmi</code>,
+<code>modular/code/game/objects/items/lewd/chastity/strings/</code>). Worn sprites refitted to our bodies.</p></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/6045a9effef19a65a8c400fa9f86916f0a85485d">6045a9e</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

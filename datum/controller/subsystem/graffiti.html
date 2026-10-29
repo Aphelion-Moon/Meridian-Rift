@@ -1,0 +1,494 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../"><link rel="stylesheet" href="dmdoc.css"><title>/datum/controller/subsystem/graffiti - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a> — <a href="datum/controller/subsystem/graffiti.html#var">Var Details</a> - <a href="datum/controller/subsystem/graffiti.html#proc">Proc Details</a></header><main><h1>graffiti <aside>/<a href="datum.html">datum</a>/<a href="datum/controller/subsystem.html">controller/subsystem</a>/<a href="datum/controller/subsystem/graffiti.html">graffiti</a></aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L109"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 109"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Vars</h2></td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/admin_areas">admin_areas</a></th><td>Packed placement -&gt; the area admin_rows() shows and sorts it under, until the placements change.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/admin_orders">admin_orders</a></th><td>Sort -&gt; every packed placement in that order, for admin_rows(), until the placements change.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/anchor_resolvers">anchor_resolvers</a></th><td>Anchor kind -&gt; the /datum/callback a system registered to turn an anchor of that kind into a turf, or null.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/art">art</a></th><td>Art hash -&gt; the flat art, for every art a placement uses.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/art_byte_budget">art_byte_budget</a></th><td>Most bytes of art the map keeps. Tests lower it.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/art_bytes">art_bytes</a></th><td>The bytes of every art in <code>art</code>, as art_size() counts them.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/art_icons">art_icons</a></th><td>graffiti_art_hash() -&gt; the icon graffiti_art_icon() drew of that art, up to GRAFFITI_ICON_CACHE of them.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/art_refs">art_refs</a></th><td>Art hash -&gt; how many placements use it.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/ckey_arts">ckey_arts</a></th><td>Ckey -&gt; art hash -&gt; how many of its placements use it.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/ckey_placements">ckey_placements</a></th><td>Ckey -&gt; its packed placements, in the order its own caps evict them: by &quot;at&quot;, then as <code>placements</code> orders them.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/composite_line">composite_line</a></th><td>The editors and paint jobs waiting for composite_share, in the order they first asked, -&gt; when each last asked.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/composite_share">composite_share</a></th><td>How many ms of composites may still run now, every painter's together. Below zero, they went over, and that is
+paid back first.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/composite_share_at">composite_share_at</a></th><td>When composite_share was last topped up.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/decoded">decoded</a></th><td>Art hash -&gt; graffiti_art_decode() of the arts and stack composites decoded while the map loads, for the load's
+merges and sheets, within GRAFFITI_DECODE_BUDGET. Null once build_sheets() has drawn them.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/displayed_unique">displayed_unique</a></th><td>Art hash -&gt; how many shown placements use it, so its length counts the unique arts shown.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/dormant">dormant</a></th><td>The packed placements not shown this round.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/editors">editors</a></th><td>Ckey -&gt; that player's graffiti editor. A player has one at a time, opened through graffiti_editor_for().</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/frozen">frozen</a></th><td>Whether the round-end save has run, after which nothing is written.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/glow_icons">glow_icons</a></th><td>graffiti_art_hash() -&gt; the glow mask graffiti_glow_icon() drew of that art, up to GRAFFITI_ICON_CACHE of them.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/libraries">libraries</a></th><td>Account ckey -&gt; its loaded graffiti library.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/library_revision">library_revision</a></th><td>The last revision any graffiti library took. A library loaded again after a purge never repeats one an open window
+saw.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/library_root">library_root</a></th><td>The directory library files go under. Tests point it at a scratch directory; admins can't edit it (vv_edit_var()).</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/load_resumed_at">load_resumed_at</a></th><td>TICK_USAGE when the background load last went on in a tick, which its share of the tick counts from.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/load_share">load_share</a></th><td>Percent of each tick the load takes at most: GRAFFITI_LOAD_SHARE, or the whole tick in unit tests and benchmarks,
+which time the load's work rather than spread it.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/loaded">loaded</a></th><td>Whether the map's graffiti has loaded, which it does in the background once the game reaches the lobby
+(load_in_background()): until then nothing is placed, saved or deleted by an admin.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/loaded_templates">loaded_templates</a></th><td>Map templates loaded this round on station levels, oldest first: list(&quot;id&quot; = the template's map file, &quot;x&quot;, &quot;y&quot;,
+&quot;z&quot; = its low corner, &quot;w&quot;, &quot;h&quot;). Recorded from SSmapping's init on, before this subsystem initializes.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/map_path">map_path</a></th><td>Where the map's graffiti file is. Tests point it at a scratch file through load_file().</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/paint_jobs">paint_jobs</a></th><td>Ckey -&gt; that player's running paint job. A player runs one at a time.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/placement_cap">placement_cap</a></th><td>Most placements the map keeps. Tests lower it.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/placement_info">placement_info</a></th><td>Packed placement -&gt; list(ckey, art hash, &quot;at&quot;, pid, &quot;who&quot;, whether it lasts this round only), read through the
+GRAFFITI_INFO_* indices: what placement operations read of a placement without unpacking it.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/placements">placements</a></th><td>Every placement, packed, in the order they were placed, which each tile's stack follows.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/save_failure_told">save_failure_told</a></th><td>Whether the admins were told this round that the map file couldn't be written.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/save_pending">save_pending</a></th><td>The timer that will write the map file, while one is pending.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/seen">seen</a></th><td>Ckey -&gt; when its owner last connected, as ten-digit unix seconds in text.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/sheet_root">sheet_root</a></th><td>The directory every map's sheet files go under. Tests move it.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/sheets">sheets</a></th><td>Stack key -&gt; list(the sheet file's resource, whether it holds the stack's glow mask).</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/sheets_built">sheets_built</a></th><td>How many sheet files the last build_sheets() wrote rather than reused.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/shown">shown</a></th><td>Packed placement -&gt; the decal showing it, for every placement shown this round.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/stack_cache">stack_cache</a></th><td>Stack signature (stack_signature()) -&gt; list(its key, its graffiti_art_glow_kind()), from the map file, while the
+load places its stacks: a stack it lists takes them without merging, as long as merges still give what they gave
+when the file was written (graffiti_merge_fingerprint()). Null otherwise.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/start_cooldowns">start_cooldowns</a></th><td>Ckey -&gt; the world.time from which that player may start another freehand session or paint job.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/store">store</a></th><td>The map's graffiti file.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#var/total_size">total_size</a></th><td>The estimated bytes <code>decoded</code> holds.</td></tr><tr><td colspan="2"><h2>Procs</h2></td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/Initialize">Initialize</a></th><td>Leaves the map's graffiti for the lobby, so loading it takes none of the server's startup: once every subsystem has
+initialized and the game reaches the lobby, it loads in the background (load_in_background()). Unit tests load it at
+once, as they read the registry straight away.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/Recover">Recover</a></th><td>Takes over everything the subsystem being replaced kept, as the Master Controller restarts: the map's graffiti, the
+libraries and the painting under way.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/Shutdown">Shutdown</a></th><td>Makes the final save when the world stops, for a reboot that skips the round-end save, and writes the library
+changes the write pacing still holds back. After the round-end save the map file isn't written again.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/add_placement">add_placement</a></th><td>Places a piece's art on a turf, on top of its stack, and queues the map file's write.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/admin_area">admin_area</a></th><td>Returns the area admin_rows() lists a placement under: its tile's, or its anchor's when it has none this round.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/admin_changed">admin_changed</a></th><td>Forgets admin_rows()' orders and areas, as the placements or where they show changed.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/admin_clear_all_maps">admin_clear_all_maps</a></th><td>Deletes every placement on every map.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/admin_clear_map">admin_clear_map</a></th><td>Deletes every placement on this map, and the painting under way on them (drop_work()), which may sleep.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/admin_delete">admin_delete</a></th><td>Deletes placements by id, both halves of a wide piece alike, through remove_placements(), which may sleep.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/admin_delete_ckey">admin_delete_ckey</a></th><td>Deletes one account's placements on this map through remove_placements(), which may sleep.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/admin_delete_ckey_everywhere">admin_delete_ckey_everywhere</a></th><td>Deletes one account's graffiti from every map and its graffiti library.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/admin_edit_other_maps">admin_edit_other_maps</a></th><td>Edits the graffiti file of every other map, beside this map's own in the same directory, and drops the art its
+placements no longer use, yielding between files. A file that can't be read, or has a version
+GRAFFITI_MAP_READ_VERSIONS doesn't list, is skipped with a log line. An older version's file keeps its version, as the
+edit only takes placements and art out.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/admin_order">admin_order</a></th><td>Returns every placement in one of admin_rows()' orders, sorting them again only after the placements changed.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/admin_row">admin_row</a></th><td>Returns admin_rows()' row for one placement.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/admin_rows">admin_rows</a></th><td>Returns one page of the map's placements, shown and dormant alike, for the admin panel.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/art_of">art_of</a></th><td>Returns a placement's art hash without unpacking it.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/art_size">art_size</a></th><td>Returns the bytes an art counts against the map's art_byte_budget: its palette and grids.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/build_sheets">build_sheets</a></th><td>Packs every shown stack into sprite sheet files, chunk by chunk, and shows each decal from its sheet.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/check_anchor">check_anchor</a></th><td>Returns an anchor read from a file with only the fields its kind uses, as graffiti_anchor_for() writes them. One
+saved before windows took graffiti records <code>wall</code>, whether its surface is a wall, which is read as a wall or a floor.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/check_placement">check_placement</a></th><td>Returns a placement read from a map file in the form the registry keeps, with its painter's name cleaned again. Fields
+the registry doesn't keep, such as the names and descriptions placements once carried, are left out.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/clear_file">clear_file</a></th><td>Empties a map file's placements and art, for admin_edit_other_maps().</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/composite_turn">composite_turn</a></th><td>Whether it is a painter's turn to composite. Every painter's composites together take at most
+GRAFFITI_COMPOSITE_SHARE ms a second of game time, so under a dilating server they get less, and those waiting for
+room take it in the order they first asked (<code>composite_line</code>). Asking keeps the owner's place; running its composite
+gives it up, the owner taking itself out of the line, and so does not asking for GRAFFITI_COMPOSITE_LINE_GRACE, as an
+owner no longer due doesn't.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/count_shown">count_shown</a></th><td>Counts placements of an art in or out of those shown.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/decoded_size">decoded_size</a></th><td>Estimates the bytes a decode holds: 8 a pixel for its indices, and for its glow unless it shares
+graffiti_unlit_glow()'s, and 40 a palette colour.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/display">display</a></th><td>Shows a placement on top of its tile's stack.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/drop_ckey">drop_ckey</a></th><td>Drops one account's placements from a map file's placements, for admin_edit_other_maps().</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/drop_decoded">drop_decoded</a></th><td>Lets the map load's decodes go: build_sheets() does once every sheet is drawn, and load_file()'s timer does should a
+runtime stop the load first.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/drop_work">drop_work</a></th><td>Ends what painters have under way on placements an admin deleted, keeping none of it: a freehand session or paint job
+painting them stops without an Unfinished piece, and an Unfinished piece left to resume on them is discarded, an
+offline owner's too, whose library is loaded for it and unloaded again. Yields between offline owners' libraries.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/index_placement">index_placement</a></th><td>Indexes a placement the registry has just taken: its info, and its place among its account's placements and art.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/keep_decoded">keep_decoded</a></th><td>Keeps a decode of an art or stack composite for the rest of the map's load, while the decodes kept stay within
+GRAFFITI_DECODE_BUDGET. Past it, that art is decoded again wherever it is needed, as it is outside the load.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/keep_only_decoded">keep_only_decoded</a></th><td>Lets the load's decodes go but those it still needs, counting what stays.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/load_file">load_file</a></th><td>Loads a map file in place of whatever the registry held, keeping only what is valid and within the caps.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/load_in_background">load_in_background</a></th><td>Loads the map's graffiti onto its tiles a share of each tick at a time (load_yield()), then starts noting who
+connects. Decals show their art once their chunk's sheet is drawn.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/load_yield">load_yield</a></th><td>Lets the background load go on in this tick until it has taken <code>load_share</code> percent of it, or the tick is full,
+then waits for the next, so the load spreads evenly over the ticks and the server never feels it. Each wait comes
+between two pieces of the load, the largest a tile's stack merged or one icon drawn.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/lowest_unconnected">lowest_unconnected</a></th><td>Returns the lowest-ranked placement whose owner isn't connected, as rank() orders them: the owner seen longest ago,
+then that owner's oldest placement, then the one earlier in <code>placements</code>. It reads each owner's index instead of
+ranking every placement.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/make_room">make_room</a></th><td>Makes room on the map for a placement of an art, a new one or a placement's new art: past the map's caps, counting the
+account's own placements that its caps take, the lowest-ranked placement of an owner who isn't connected goes, until
+the art fits or nothing else can go. A placement never goes to make room for its own new art.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/map_fits">map_fits</a></th><td>Whether the map's caps, its art_byte_budget included, leave room for a new placement of an art once the placements
+the account's own caps take are gone.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/on_client_connect">on_client_connect</a></th><td>Notes when a player connected, and shows those of their dormant placements whose anchors resolve now, within the
+display budget.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/on_pregame">on_pregame</a></th><td>Starts the background load as the game reaches the lobby.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/own_evictions">own_evictions</a></th><td>Returns the account's own placements that its caps take for a new placement of an art: its oldest, while it keeps
+GRAFFITI_CKEY_PLACEMENT_CAP placements, or GRAFFITI_CKEY_UNIQUE_CAP arts and the art is new to it. Nothing is
+removed.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/pids_by_ckey">pids_by_ckey</a></th><td>Returns the placement ids each account owns among some placements, read while the index still holds them.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/place_all">place_all</a></th><td>Shows each placement whose anchor resolves, best-ranked first while the display budget lasts, stacked on its tile in
+file order. The rest stay dormant: one that doesn't resolve counts a miss unless it is only waiting, and is dropped
+once it has missed GRAFFITI_MISS_LIMIT rounds in a row. The decals get their icons from build_sheets().</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/placement_turf">placement_turf</a></th><td>Returns the turf a placement's anchor names this round, for admin jumps and anchor checks. A shown placement's decal
+is in <code>shown</code>, which follows it even when its anchor no longer resolves to it.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/queue_save">queue_save</a></th><td>Writes the map file after GRAFFITI_SAVE_DEBOUNCE, with every change made meanwhile.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/rank">rank</a></th><td>Orders placements from the one to keep showing most to the first to evict: an owner who is connected first, then
+owners seen most recently, then the newest placement, then the one later in <code>candidates</code>.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/reindex_placement">reindex_placement</a></th><td>Moves a placement's index to its new packing, keeping its place among its account's placements.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/release">release</a></th><td>Takes the placements of one space's anchors off their tiles and keeps them dormant, for graffiti_registry_release().</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/release_art">release_art</a></th><td>Drops one placement's hold on an art, and the art once nothing uses it, its icon and glow mask leaving the caches.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/remove_placement">remove_placement</a></th><td>Removes a placement from the registry, and from its tile when it shows.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/remove_placements">remove_placements</a></th><td>Removes placements from the registry at once, as an admin deletes them, ends the painting under way on them
+(drop_work()), then merges each tile they showed on again once, yielding between tiles: removing them one by one
+would merge a tile's whole stack for each. What else a tile stacks stays, in its order.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/save_now">save_now</a></th><td>Writes the map file: the art and placements that last past this round, and when their owners were last seen. A map
+that has never had lasting graffiti gets no file. Nothing is written before the map's graffiti has loaded (<code>loaded</code>),
+while the registry may hold only part of the file, nor after the round-end save.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/sheet_for">sheet_for</a></th><td>Returns the sheet a stack shows from.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/spend_composite">spend_composite</a></th><td>Takes a composite's time out of composite_share, a session's last one and a paint job's finish included, which run
+whether or not there is room.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/stack_keys">stack_keys</a></th><td>Returns what the map file caches of the stacks it keeps, so the next round's load shows them without merging them:
+each shown stack of several pieces, every piece of it kept, under its signature with its key and glow kind, beside
+the fingerprint of the merges that made them (graffiti_merge_fingerprint()).</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/tile_gone">tile_gone</a></th><td>Removes for good every placement a decal showed: its surface was cleaned, or is gone.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/unindex_placement">unindex_placement</a></th><td>Takes a placement the registry no longer holds out of the index.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/unpack">unpack</a></th><td>Reads a packed placement.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/update_placement_art">update_placement_art</a></th><td>Gives a placement new art, as a freehand session or a paint job reveals more of its piece, and shows it. The art meets
+the caps a new placement's does (make_room()), its old art going from the placement, and when nothing can make room
+the placement keeps its old art.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/vv_edit_var">vv_edit_var</a></th><td>Refuses admin edits of the library directory, which library files are written under.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/wipe_for_test">wipe_for_test</a></th><td>Empties the registry for a test without writing anything: deletes every custom decal, clears the lists and the
+pending write, and unfreezes it. The store and the test settings stay.</td></tr><tr><th><a href="datum/controller/subsystem/graffiti.html#proc/write_sheet">write_sheet</a></th><td>Points a pack of stacks at their sheet file, writing it first unless an earlier round wrote the same one.</td></tr></table><h2 id="var">Var Details</h2><h3 id="var/admin_areas"><aside class="declaration">var </aside>admin_areas <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L146"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 146"></a></h3><p>Packed placement -&gt; the area admin_rows() shows and sorts it under, until the placements change.</p><h3 id="var/admin_orders"><aside class="declaration">var </aside>admin_orders <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L144"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 144"></a></h3><p>Sort -&gt; every packed placement in that order, for admin_rows(), until the placements change.</p><h3 id="var/anchor_resolvers"><aside class="declaration">var </aside>anchor_resolvers <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L208"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 208"></a></h3><p>Anchor kind -&gt; the /datum/callback a system registered to turn an anchor of that kind into a turf, or null.</p><h3 id="var/art"><aside class="declaration">var </aside>art <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L117"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 117"></a></h3><p>Art hash -&gt; the flat art, for every art a placement uses.</p><h3 id="var/art_byte_budget"><aside class="declaration">var </aside>art_byte_budget <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L123"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 123"></a></h3><p>Most bytes of art the map keeps. Tests lower it.</p><h3 id="var/art_bytes"><aside class="declaration">var </aside>art_bytes <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L121"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 121"></a></h3><p>The bytes of every art in <code>art</code>, as art_size() counts them.</p><h3 id="var/art_icons"><aside class="declaration">var </aside>art_icons <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L201"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 201"></a></h3><p>graffiti_art_hash() -&gt; the icon graffiti_art_icon() drew of that art, up to GRAFFITI_ICON_CACHE of them.</p><h3 id="var/art_refs"><aside class="declaration">var </aside>art_refs <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L119"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 119"></a></h3><p>Art hash -&gt; how many placements use it.</p><h3 id="var/ckey_arts"><aside class="declaration">var </aside>ckey_arts <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L142"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 142"></a></h3><p>Ckey -&gt; art hash -&gt; how many of its placements use it.</p><h3 id="var/ckey_placements"><aside class="declaration">var </aside>ckey_placements <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L140"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 140"></a></h3><p>Ckey -&gt; its packed placements, in the order its own caps evict them: by &quot;at&quot;, then as <code>placements</code> orders them.</p><h3 id="var/composite_line"><aside class="declaration">var </aside>composite_line <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L186"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 186"></a></h3><p>The editors and paint jobs waiting for composite_share, in the order they first asked, -&gt; when each last asked.</p><h3 id="var/composite_share"><aside class="declaration">var </aside>composite_share <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L174"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 174"></a></h3><p>How many ms of composites may still run now, every painter's together. Below zero, they went over, and that is
+paid back first.</p><h3 id="var/composite_share_at"><aside class="declaration">var </aside>composite_share_at <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L176"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 176"></a></h3><p>When composite_share was last topped up.</p><h3 id="var/decoded"><aside class="declaration">var </aside>decoded <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L149"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 149"></a></h3><p>Art hash -&gt; graffiti_art_decode() of the arts and stack composites decoded while the map loads, for the load's
+merges and sheets, within GRAFFITI_DECODE_BUDGET. Null once build_sheets() has drawn them.</p><h3 id="var/displayed_unique"><aside class="declaration">var </aside>displayed_unique <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L135"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 135"></a></h3><p>Art hash -&gt; how many shown placements use it, so its length counts the unique arts shown.</p><h3 id="var/dormant"><aside class="declaration">var </aside>dormant <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L127"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 127"></a></h3><p>The packed placements not shown this round.</p><h3 id="var/editors"><aside class="declaration">var </aside>editors <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L188"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 188"></a></h3><p>Ckey -&gt; that player's graffiti editor. A player has one at a time, opened through graffiti_editor_for().</p><h3 id="var/frozen"><aside class="declaration">var </aside>frozen <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L163"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 163"></a></h3><p>Whether the round-end save has run, after which nothing is written.</p><h3 id="var/glow_icons"><aside class="declaration">var </aside>glow_icons <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L203"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 203"></a></h3><p>graffiti_art_hash() -&gt; the glow mask graffiti_glow_icon() drew of that art, up to GRAFFITI_ICON_CACHE of them.</p><h3 id="var/libraries"><aside class="declaration">var </aside>libraries <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L194"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 194"></a></h3><p>Account ckey -&gt; its loaded graffiti library.</p><h3 id="var/library_revision"><aside class="declaration">var </aside>library_revision <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L199"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 199"></a></h3><p>The last revision any graffiti library took. A library loaded again after a purge never repeats one an open window
+saw.</p><h3 id="var/library_root"><aside class="declaration">var </aside>library_root <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L196"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 196"></a></h3><p>The directory library files go under. Tests point it at a scratch directory; admins can't edit it (vv_edit_var()).</p><h3 id="var/load_resumed_at"><aside class="declaration">var </aside>load_resumed_at <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L181"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 181"></a></h3><p>TICK_USAGE when the background load last went on in a tick, which its share of the tick counts from.</p><h3 id="var/load_share"><aside class="declaration">var </aside>load_share <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L184"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 184"></a></h3><p>Percent of each tick the load takes at most: GRAFFITI_LOAD_SHARE, or the whole tick in unit tests and benchmarks,
+which time the load's work rather than spread it.</p><h3 id="var/loaded"><aside class="declaration">var </aside>loaded <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L179"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 179"></a></h3><p>Whether the map's graffiti has loaded, which it does in the background once the game reaches the lobby
+(load_in_background()): until then nothing is placed, saved or deleted by an admin.</p><h3 id="var/loaded_templates"><aside class="declaration">var </aside>loaded_templates <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L206"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 206"></a></h3><p>Map templates loaded this round on station levels, oldest first: list(&quot;id&quot; = the template's map file, &quot;x&quot;, &quot;y&quot;,
+&quot;z&quot; = its low corner, &quot;w&quot;, &quot;h&quot;). Recorded from SSmapping's init on, before this subsystem initializes.</p><h3 id="var/map_path"><aside class="declaration">var </aside>map_path <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L159"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 159"></a></h3><p>Where the map's graffiti file is. Tests point it at a scratch file through load_file().</p><h3 id="var/paint_jobs"><aside class="declaration">var </aside>paint_jobs <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L190"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 190"></a></h3><p>Ckey -&gt; that player's running paint job. A player runs one at a time.</p><h3 id="var/placement_cap"><aside class="declaration">var </aside>placement_cap <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L165"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 165"></a></h3><p>Most placements the map keeps. Tests lower it.</p><h3 id="var/placement_info"><aside class="declaration">var </aside>placement_info <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L138"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 138"></a></h3><p>Packed placement -&gt; list(ckey, art hash, &quot;at&quot;, pid, &quot;who&quot;, whether it lasts this round only), read through the
+GRAFFITI_INFO_* indices: what placement operations read of a placement without unpacking it.</p><h3 id="var/placements"><aside class="declaration">var </aside>placements <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L125"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 125"></a></h3><p>Every placement, packed, in the order they were placed, which each tile's stack follows.</p><h3 id="var/save_failure_told"><aside class="declaration">var </aside>save_failure_told <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L171"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 171"></a></h3><p>Whether the admins were told this round that the map file couldn't be written.</p><h3 id="var/save_pending"><aside class="declaration">var </aside>save_pending <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L161"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 161"></a></h3><p>The timer that will write the map file, while one is pending.</p><h3 id="var/seen"><aside class="declaration">var </aside>seen <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L131"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 131"></a></h3><p>Ckey -&gt; when its owner last connected, as ten-digit unix seconds in text.</p><h3 id="var/sheet_root"><aside class="declaration">var </aside>sheet_root <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L167"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 167"></a></h3><p>The directory every map's sheet files go under. Tests move it.</p><h3 id="var/sheets"><aside class="declaration">var </aside>sheets <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L133"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 133"></a></h3><p>Stack key -&gt; list(the sheet file's resource, whether it holds the stack's glow mask).</p><h3 id="var/sheets_built"><aside class="declaration">var </aside>sheets_built <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L169"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 169"></a></h3><p>How many sheet files the last build_sheets() wrote rather than reused.</p><h3 id="var/shown"><aside class="declaration">var </aside>shown <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L129"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 129"></a></h3><p>Packed placement -&gt; the decal showing it, for every placement shown this round.</p><h3 id="var/stack_cache"><aside class="declaration">var </aside>stack_cache <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L155"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 155"></a></h3><p>Stack signature (stack_signature()) -&gt; list(its key, its graffiti_art_glow_kind()), from the map file, while the
+load places its stacks: a stack it lists takes them without merging, as long as merges still give what they gave
+when the file was written (graffiti_merge_fingerprint()). Null otherwise.</p><h3 id="var/start_cooldowns"><aside class="declaration">var </aside>start_cooldowns <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L192"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 192"></a></h3><p>Ckey -&gt; the world.time from which that player may start another freehand session or paint job.</p><h3 id="var/store"><aside class="declaration">var </aside>store <aside>– /<a href="datum.html">datum</a>/<a href="datum/json_savefile.html">json_savefile</a>/<a href="datum/json_savefile/custom_sprites.html">custom_sprites</a>/<a href="datum/json_savefile/custom_sprites/graffiti.html">graffiti</a>/<a href="datum/json_savefile/custom_sprites/graffiti/map.html">map</a></aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L157"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 157"></a></h3><p>The map's graffiti file.</p><h3 id="var/total_size"><aside class="declaration">var </aside>total_size <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L151"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 151"></a></h3><p>The estimated bytes <code>decoded</code> holds.</p><h2 id="proc">Proc Details</h2><h3 id="proc/Initialize"><aside class="parent"><a title="/datum/controller/subsystem" href="datum/controller/subsystem.html#proc/Initialize">↑</a></aside>Initialize<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L218"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 218"></a></aside></h3><p>Leaves the map's graffiti for the lobby, so loading it takes none of the server's startup: once every subsystem has
+initialized and the game reaches the lobby, it loads in the background (load_in_background()). Unit tests load it at
+once, as they read the registry straight away.</p>
+<p>Returns:</p>
+<ul>
+<li>SS_INIT_SUCCESS</li>
+</ul><h3 id="proc/Recover">Recover<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L275"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 275"></a></aside></h3><p>Takes over everything the subsystem being replaced kept, as the Master Controller restarts: the map's graffiti, the
+libraries and the painting under way.</p><h3 id="proc/Shutdown">Shutdown<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L298"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 298"></a></aside></h3><p>Makes the final save when the world stops, for a reboot that skips the round-end save, and writes the library
+changes the write pacing still holds back. After the round-end save the map file isn't written again.</p><h3 id="proc/add_placement"><aside class="declaration">proc </aside>add_placement<aside>(/<a href="turf.html">turf</a>/tile, /list/art, ckey, who, pid, half, /list/evicted)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1031"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1031"></a></aside></h3><p>Places a piece's art on a turf, on top of its stack, and queues the map file's write.</p>
+<p>The map's caps are met first, counting the account's own placements that its caps take: past them the lowest-ranked
+placement of an owner who isn't connected goes, and when nothing else can go the new paint is refused with the
+account's own placements left alone. Only a placement that lands takes the account's own lowest-ranked ones, as many
+as its caps need. Off the station levels, in shuttles and in the holodeck, the placement lasts this round only.</p>
+<p>Arguments:</p>
+<ul>
+<li>tile: The wall, floor or window tile.</li>
+<li>art: The art, GRAFFITI_WIDTH wide. The registry keeps a copy.</li>
+<li>ckey: The painter's ckey.</li>
+<li>who: The painter's character name.</li>
+<li>pid: The placement's id. The two halves of a wide piece share one; null makes a new one.</li>
+<li>half: 1 or 2 for the left or right half of a wide piece, else 0.</li>
+<li>evicted: When given, filled with the ids of the account's own placements its caps took, for the painter to be told
+how many went.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>text: The packed placement, which is in <code>placements</code>.</li>
+<li>text: Why it wasn't placed, safe to show the player. It is never in <code>placements</code>.</li>
+</ul><h3 id="proc/admin_area"><aside class="declaration">proc </aside>admin_area<aside>(packed)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1601"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1601"></a></aside></h3><p>Returns the area admin_rows() lists a placement under: its tile's, or its anchor's when it has none this round.</p>
+<p>Arguments:</p>
+<ul>
+<li>packed: The placement.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>text: The area's type, or &quot;&quot; when neither has one.</li>
+</ul><h3 id="proc/admin_changed"><aside class="declaration">proc </aside>admin_changed<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1632"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1632"></a></aside></h3><p>Forgets admin_rows()' orders and areas, as the placements or where they show changed.</p><h3 id="proc/admin_clear_all_maps"><aside class="declaration">proc </aside>admin_clear_all_maps<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1791"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1791"></a></aside></h3><p>Deletes every placement on every map.</p>
+<p>Returns:</p>
+<ul>
+<li>number: How many placements were deleted, on every map.</li>
+</ul><h3 id="proc/admin_clear_map"><aside class="declaration">proc </aside>admin_clear_map<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1676"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1676"></a></aside></h3><p>Deletes every placement on this map, and the painting under way on them (drop_work()), which may sleep.</p>
+<p>Returns:</p>
+<ul>
+<li>number: How many placements were deleted.</li>
+</ul><h3 id="proc/admin_delete"><aside class="declaration">proc </aside>admin_delete<aside>(/list/pids)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1647"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1647"></a></aside></h3><p>Deletes placements by id, both halves of a wide piece alike, through remove_placements(), which may sleep.</p>
+<p>Arguments:</p>
+<ul>
+<li>pids: The ids.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>number: How many placements were deleted.</li>
+</ul><h3 id="proc/admin_delete_ckey"><aside class="declaration">proc </aside>admin_delete_ckey<aside>(ckey)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1666"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1666"></a></aside></h3><p>Deletes one account's placements on this map through remove_placements(), which may sleep.</p>
+<p>Arguments:</p>
+<ul>
+<li>ckey: The account's ckey.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>number: How many placements were deleted.</li>
+</ul><h3 id="proc/admin_delete_ckey_everywhere"><aside class="declaration">proc </aside>admin_delete_ckey_everywhere<aside>(ckey)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1781"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1781"></a></aside></h3><p>Deletes one account's graffiti from every map and its graffiti library.</p>
+<p>Arguments:</p>
+<ul>
+<li>ckey: The account's ckey.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>number: How many placements were deleted, on every map.</li>
+</ul><h3 id="proc/admin_edit_other_maps"><aside class="declaration">proc </aside>admin_edit_other_maps<aside>(/<a href="datum.html">datum</a>/<a href="datum/callback.html">callback</a>/edit)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1713"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1713"></a></aside></h3><p>Edits the graffiti file of every other map, beside this map's own in the same directory, and drops the art its
+placements no longer use, yielding between files. A file that can't be read, or has a version
+GRAFFITI_MAP_READ_VERSIONS doesn't list, is skipped with a log line. An older version's file keeps its version, as the
+edit only takes placements and art out.</p>
+<p>Arguments:</p>
+<ul>
+<li>edit: Called with each file's placements and art, both lists it may change.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>number: How many placements the edit took out of the files it wrote.</li>
+</ul><h3 id="proc/admin_order"><aside class="declaration">proc </aside>admin_order<aside>(sort)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1574"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1574"></a></aside></h3><p>Returns every placement in one of admin_rows()' orders, sorting them again only after the placements changed.</p>
+<p>Arguments:</p>
+<ul>
+<li>sort: &quot;date&quot; for the newest first, &quot;ckey&quot; or &quot;area&quot;.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>list: The packed placements, which admin_orders keeps. Never change it.</li>
+</ul><h3 id="proc/admin_row"><aside class="declaration">proc </aside>admin_row<aside>(packed)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1621"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1621"></a></aside></h3><p>Returns admin_rows()' row for one placement.</p>
+<p>Arguments:</p>
+<ul>
+<li>packed: The placement.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>list: The row, as admin_rows() describes it.</li>
+</ul><h3 id="proc/admin_rows"><aside class="declaration">proc </aside>admin_rows<aside>(search, sort, page)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1547"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1547"></a></aside></h3><p>Returns one page of the map's placements, shown and dormant alike, for the admin panel.</p>
+<p>Arguments:</p>
+<ul>
+<li>search: Text to find in a placement's ckey or its painter's character name, ignoring case, or null for every
+placement.</li>
+<li>sort: &quot;date&quot; for the newest first, &quot;ckey&quot; or &quot;area&quot;.</li>
+<li>page: The page, from 1, of GRAFFITI_ADMIN_PAGE rows.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>list: &quot;rows&quot;, each list(&quot;pid&quot;, &quot;ckey&quot;, &quot;who&quot;, &quot;area&quot;, &quot;x&quot;, &quot;y&quot;, &quot;z&quot;, &quot;at&quot;, &quot;state&quot;, &quot;art&quot;) with &quot;state&quot; &quot;shown&quot;,
+&quot;dormant&quot; or &quot;round_only&quot; and &quot;art&quot; the flat art for its thumbnail; and &quot;total&quot;, the number of rows that match
+<code>search</code> on every page.</li>
+</ul><h3 id="proc/art_of"><aside class="declaration">proc </aside>art_of<aside>(packed)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L685"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 685"></a></aside></h3><p>Returns a placement's art hash without unpacking it.</p>
+<p>Arguments:</p>
+<ul>
+<li>packed: A placement the registry holds.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>text: The hash.</li>
+</ul><h3 id="proc/art_size"><aside class="declaration">proc </aside>art_size<aside>(/list/art)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L905"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 905"></a></aside></h3><p>Returns the bytes an art counts against the map's art_byte_budget: its palette and grids.</p>
+<p>Arguments:</p>
+<ul>
+<li>art: The art.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>number: The bytes.</li>
+</ul><h3 id="proc/build_sheets"><aside class="declaration">proc </aside>build_sheets<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1446"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1446"></a></aside></h3><p>Packs every shown stack into sprite sheet files, chunk by chunk, and shows each decal from its sheet.</p>
+<p>Decals are sorted by z level, 16-tile chunk and position, and each chunk's stacks are cut into sheets of up to
+GRAFFITI_SHEET_STATES, each stack in one sheet only. A sheet file is named by the hash of the stacks it holds and the
+alpha ceiling they are drawn at, so an unchanged chunk reuses the file of an earlier round, which clients have cached.
+Files no sheet uses are deleted, unless the map's graffiti isn't kept.</p><h3 id="proc/check_anchor"><aside class="declaration">proc </aside>check_anchor<aside>(/list/anchor)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L518"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 518"></a></aside></h3><p>Returns an anchor read from a file with only the fields its kind uses, as graffiti_anchor_for() writes them. One
+saved before windows took graffiti records <code>wall</code>, whether its surface is a wall, which is read as a wall or a floor.</p>
+<p>Arguments:</p>
+<ul>
+<li>anchor: The anchor as the file has it.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>list: The anchor. One of a kind this module doesn't place is copied whole, with its <code>surface</code>, for its resolver to
+check.</li>
+<li>null: A field is missing or has the wrong type.</li>
+</ul><h3 id="proc/check_placement"><aside class="declaration">proc </aside>check_placement<aside>(/list/entry, /list/known)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L492"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 492"></a></aside></h3><p>Returns a placement read from a map file in the form the registry keeps, with its painter's name cleaned again. Fields
+the registry doesn't keep, such as the names and descriptions placements once carried, are left out.</p>
+<p>Arguments:</p>
+<ul>
+<li>entry: The placement as the file has it.</li>
+<li>known: Art hash -&gt; art, for the file's valid art.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>list: The placement.</li>
+<li>null: Its art isn't in <code>known</code>, or a field is missing or has the wrong type.</li>
+</ul><h3 id="proc/clear_file"><aside class="declaration">proc </aside>clear_file<aside>(/list/entries, /list/arts)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1768"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1768"></a></aside></h3><p>Empties a map file's placements and art, for admin_edit_other_maps().</p>
+<p>Arguments:</p>
+<ul>
+<li>entries: The file's placements.</li>
+<li>arts: The file's art.</li>
+</ul><h3 id="proc/composite_turn"><aside class="declaration">proc </aside>composite_turn<aside>(/<a href="datum.html">datum</a>/<a href="datum/custom_sprite_work_owner.html">custom_sprite_work_owner</a>/owner)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L315"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 315"></a></aside></h3><p>Whether it is a painter's turn to composite. Every painter's composites together take at most
+GRAFFITI_COMPOSITE_SHARE ms a second of game time, so under a dilating server they get less, and those waiting for
+room take it in the order they first asked (<code>composite_line</code>). Asking keeps the owner's place; running its composite
+gives it up, the owner taking itself out of the line, and so does not asking for GRAFFITI_COMPOSITE_LINE_GRACE, as an
+owner no longer due doesn't.</p>
+<p>Arguments:</p>
+<ul>
+<li>owner: The editor or paint job that would composite.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE/FALSE</li>
+</ul><h3 id="proc/count_shown"><aside class="declaration">proc </aside>count_shown<aside>(hash, change)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L876"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 876"></a></aside></h3><p>Counts placements of an art in or out of those shown.</p>
+<p>Arguments:</p>
+<ul>
+<li>hash: The art's hash.</li>
+<li>change: How many more are shown, below 0 for fewer.</li>
+</ul><h3 id="proc/decoded_size"><aside class="declaration">proc </aside>decoded_size<aside>(/list/record)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L737"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 737"></a></aside></h3><p>Estimates the bytes a decode holds: 8 a pixel for its indices, and for its glow unless it shares
+graffiti_unlit_glow()'s, and 40 a palette colour.</p>
+<p>Arguments:</p>
+<ul>
+<li>record: A graffiti_art_decode().</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>number: The bytes.</li>
+</ul><h3 id="proc/display"><aside class="declaration">proc </aside>display<aside>(packed, /<a href="turf.html">turf</a>/tile)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L859"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 859"></a></aside></h3><p>Shows a placement on top of its tile's stack.</p>
+<p>Arguments:</p>
+<ul>
+<li>packed: The placement.</li>
+<li>tile: Its turf.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE/FALSE: Whether it shows. It doesn't when no decal can be made there.</li>
+</ul><h3 id="proc/drop_ckey"><aside class="declaration">proc </aside>drop_ckey<aside>(ckey, /list/entries, /list/arts)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1755"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1755"></a></aside></h3><p>Drops one account's placements from a map file's placements, for admin_edit_other_maps().</p>
+<p>Arguments:</p>
+<ul>
+<li>ckey: The account's ckey.</li>
+<li>entries: The file's placements.</li>
+<li>arts: The file's art.</li>
+</ul><h3 id="proc/drop_decoded"><aside class="declaration">proc </aside>drop_decoded<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L747"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 747"></a></aside></h3><p>Lets the map load's decodes go: build_sheets() does once every sheet is drawn, and load_file()'s timer does should a
+runtime stop the load first.</p><h3 id="proc/drop_work"><aside class="declaration">proc </aside>drop_work<aside>(/list/owners)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1228"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1228"></a></aside></h3><p>Ends what painters have under way on placements an admin deleted, keeping none of it: a freehand session or paint job
+painting them stops without an Unfinished piece, and an Unfinished piece left to resume on them is discarded, an
+offline owner's too, whose library is loaded for it and unloaded again. Yields between offline owners' libraries.</p>
+<p>Arguments:</p>
+<ul>
+<li>owners: pids_by_ckey() of the deleted placements.</li>
+</ul><h3 id="proc/index_placement"><aside class="declaration">proc </aside>index_placement<aside>(packed, /list/placement)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L599"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 599"></a></aside></h3><p>Indexes a placement the registry has just taken: its info, and its place among its account's placements and art.</p>
+<p>Arguments:</p>
+<ul>
+<li>packed: The placement.</li>
+<li>placement: It unpacked.</li>
+</ul><h3 id="proc/keep_decoded"><aside class="declaration">proc </aside>keep_decoded<aside>(hash, /list/record, /list/art)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L697"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 697"></a></aside></h3><p>Keeps a decode of an art or stack composite for the rest of the map's load, while the decodes kept stay within
+GRAFFITI_DECODE_BUDGET. Past it, that art is decoded again wherever it is needed, as it is outside the load.</p>
+<p>Arguments:</p>
+<ul>
+<li>hash: The art's hash.</li>
+<li>record: Its graffiti_art_decode().</li>
+<li>art: The art.</li>
+</ul><h3 id="proc/keep_only_decoded"><aside class="declaration">proc </aside>keep_only_decoded<aside>(/list/keep)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L716"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 716"></a></aside></h3><p>Lets the load's decodes go but those it still needs, counting what stays.</p>
+<p>Arguments:</p>
+<ul>
+<li>keep: Art hash -&gt; TRUE for the decodes to keep.</li>
+</ul><h3 id="proc/load_file"><aside class="declaration">proc </aside>load_file<aside>(path)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L362"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 362"></a></aside></h3><p>Loads a map file in place of whatever the registry held, keeping only what is valid and within the caps.</p>
+<p>Art that isn't valid one-tile art under its own hash, placements whose art is missing or whose fields have the wrong
+types, and the lowest-ranked placements and arts past the map caps are dropped and counted in one log line. A file
+that can't be read, or has a version GRAFFITI_MAP_READ_VERSIONS doesn't list, leaves the registry empty and unsaved,
+so the file stays for an admin. An older version's file is read as this version's, which its next save writes.</p>
+<p>The current map's own file is named by graffiti_file_key() of its name. An admin-loaded custom map, whose name is
+whatever the admin typed, has no file: its store has no path, so nothing is read or written.</p>
+<p>Arguments:</p>
+<ul>
+<li>path: The file, or null for the current map's own.</li>
+</ul><h3 id="proc/load_in_background"><aside class="declaration">proc </aside>load_in_background<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L242"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 242"></a></aside></h3><p>Loads the map's graffiti onto its tiles a share of each tick at a time (load_yield()), then starts noting who
+connects. Decals show their art once their chunk's sheet is drawn.</p><h3 id="proc/load_yield"><aside class="declaration">proc </aside>load_yield<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L265"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 265"></a></aside></h3><p>Lets the background load go on in this tick until it has taken <code>load_share</code> percent of it, or the tick is full,
+then waits for the next, so the load spreads evenly over the ticks and the server never feels it. Each wait comes
+between two pieces of the load, the largest a tile's stack merged or one icon drawn.</p><h3 id="proc/lowest_unconnected"><aside class="declaration">proc </aside>lowest_unconnected<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L570"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 570"></a></aside></h3><p>Returns the lowest-ranked placement whose owner isn't connected, as rank() orders them: the owner seen longest ago,
+then that owner's oldest placement, then the one earlier in <code>placements</code>. It reads each owner's index instead of
+ranking every placement.</p>
+<p>Returns:</p>
+<ul>
+<li>text: The packed placement.</li>
+<li>null: Every owner is connected.</li>
+</ul><h3 id="proc/make_room"><aside class="declaration">proc </aside>make_room<aside>(ckey, hash, size, replaced)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L993"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 993"></a></aside></h3><p>Makes room on the map for a placement of an art, a new one or a placement's new art: past the map's caps, counting the
+account's own placements that its caps take, the lowest-ranked placement of an owner who isn't connected goes, until
+the art fits or nothing else can go. A placement never goes to make room for its own new art.</p>
+<p>Arguments:</p>
+<ul>
+<li>ckey: The painter's ckey, which owns <code>replaced</code>.</li>
+<li>hash: The art's hash.</li>
+<li>size: The art's art_size().</li>
+<li>replaced: The placement taking the art as its new art, or null for a new placement.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>list: The account's own placements its caps take (own_evictions()), for the caller to remove once the paint lands.</li>
+<li>null: Nothing else can go, so the paint is refused.</li>
+</ul><h3 id="proc/map_fits"><aside class="declaration">proc </aside>map_fits<aside>(hash, size, /list/doomed)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L960"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 960"></a></aside></h3><p>Whether the map's caps, its art_byte_budget included, leave room for a new placement of an art once the placements
+the account's own caps take are gone.</p>
+<p>Arguments:</p>
+<ul>
+<li>hash: The art's hash.</li>
+<li>size: The art's art_size().</li>
+<li>doomed: The placements own_evictions() takes.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE/FALSE</li>
+</ul><h3 id="proc/on_client_connect"><aside class="declaration">proc </aside>on_client_connect<aside>(/<a href="datum.html">datum</a>/source, /<a href="client.html">client</a>/player)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1400"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1400"></a></aside></h3><p>Notes when a player connected, and shows those of their dormant placements whose anchors resolve now, within the
+display budget.</p>
+<p>Arguments:</p>
+<ul>
+<li>source: SSdcs.</li>
+<li>player: The client.</li>
+</ul><h3 id="proc/on_pregame"><aside class="declaration">proc </aside>on_pregame<aside>(/<a href="datum.html">datum</a>/source)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L233"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 233"></a></aside></h3><p>Starts the background load as the game reaches the lobby.</p>
+<p>Arguments:</p>
+<ul>
+<li>source: SSticker.</li>
+</ul><h3 id="proc/own_evictions"><aside class="declaration">proc </aside>own_evictions<aside>(ckey, hash, replaced)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L922"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 922"></a></aside></h3><p>Returns the account's own placements that its caps take for a new placement of an art: its oldest, while it keeps
+GRAFFITI_CKEY_PLACEMENT_CAP placements, or GRAFFITI_CKEY_UNIQUE_CAP arts and the art is new to it. Nothing is
+removed.</p>
+<p>Arguments:</p>
+<ul>
+<li>ckey: The account's ckey.</li>
+<li>hash: The art's hash.</li>
+<li>replaced: The account's placement taking the art as its new art, or null for a new placement. It is never taken,
+and its old art counts as gone from it.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>list: The packed placements, oldest first, which is how the account's index orders them.</li>
+</ul><h3 id="proc/pids_by_ckey"><aside class="declaration">proc </aside>pids_by_ckey<aside>(/list/packed_list)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1208"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1208"></a></aside></h3><p>Returns the placement ids each account owns among some placements, read while the index still holds them.</p>
+<p>Arguments:</p>
+<ul>
+<li>packed_list: The packed placements.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>list: Ckey -&gt; pid -&gt; TRUE.</li>
+</ul><h3 id="proc/place_all"><aside class="declaration">proc </aside>place_all<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L757"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 757"></a></aside></h3><p>Shows each placement whose anchor resolves, best-ranked first while the display budget lasts, stacked on its tile in
+file order. The rest stay dormant: one that doesn't resolve counts a miss unless it is only waiting, and is dropped
+once it has missed GRAFFITI_MISS_LIMIT rounds in a row. The decals get their icons from build_sheets().</p><h3 id="proc/placement_turf"><aside class="declaration">proc </aside>placement_turf<aside>(/list/placement)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1299"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1299"></a></aside></h3><p>Returns the turf a placement's anchor names this round, for admin jumps and anchor checks. A shown placement's decal
+is in <code>shown</code>, which follows it even when its anchor no longer resolves to it.</p>
+<p>Arguments:</p>
+<ul>
+<li>placement: The unpacked placement.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>turf: The turf.</li>
+<li>null: Its anchor doesn't resolve.</li>
+</ul><h3 id="proc/queue_save"><aside class="declaration">proc </aside>queue_save<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1307"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1307"></a></aside></h3><p>Writes the map file after GRAFFITI_SAVE_DEBOUNCE, with every change made meanwhile.</p><h3 id="proc/rank"><aside class="declaration">proc </aside>rank<aside>(/list/candidates)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L551"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 551"></a></aside></h3><p>Orders placements from the one to keep showing most to the first to evict: an owner who is connected first, then
+owners seen most recently, then the newest placement, then the one later in <code>candidates</code>.</p>
+<p>Arguments:</p>
+<ul>
+<li>candidates: Packed placements the registry has indexed.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>list: The packed placements in that order, each associated with its sort key.</li>
+</ul><h3 id="proc/reindex_placement"><aside class="declaration">proc </aside>reindex_placement<aside>(packed, replacement, /list/placement)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L630"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 630"></a></aside></h3><p>Moves a placement's index to its new packing, keeping its place among its account's placements.</p>
+<p>Arguments:</p>
+<ul>
+<li>packed: Its old packing.</li>
+<li>replacement: Its new packing.</li>
+<li>placement: It unpacked, with its art now.</li>
+</ul><h3 id="proc/release"><aside class="declaration">proc </aside>release<aside>(kind, key)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1275"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1275"></a></aside></h3><p>Takes the placements of one space's anchors off their tiles and keeps them dormant, for graffiti_registry_release().</p>
+<p>Arguments:</p>
+<ul>
+<li>kind: The anchor kind.</li>
+<li>key: The anchors' <code>owner</code>.</li>
+</ul><h3 id="proc/release_art"><aside class="declaration">proc </aside>release_art<aside>(hash)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L887"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 887"></a></aside></h3><p>Drops one placement's hold on an art, and the art once nothing uses it, its icon and glow mask leaving the caches.</p>
+<p>Arguments:</p>
+<ul>
+<li>hash: The art's hash.</li>
+</ul><h3 id="proc/remove_placement"><aside class="declaration">proc </aside>remove_placement<aside>(packed, save, deferred)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1150"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1150"></a></aside></h3><p>Removes a placement from the registry, and from its tile when it shows.</p>
+<p>Arguments:</p>
+<ul>
+<li>packed: The placement.</li>
+<li>save: Whether to queue the map file's write.</li>
+<li>deferred: Whether to leave its tile's merge for the caller, which refreshes the tile once it has removed everything.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE/FALSE: Whether the registry held it.</li>
+</ul><h3 id="proc/remove_placements"><aside class="declaration">proc </aside>remove_placements<aside>(/list/doomed)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1178"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1178"></a></aside></h3><p>Removes placements from the registry at once, as an admin deletes them, ends the painting under way on them
+(drop_work()), then merges each tile they showed on again once, yielding between tiles: removing them one by one
+would merge a tile's whole stack for each. What else a tile stacks stays, in its order.</p>
+<p>Arguments:</p>
+<ul>
+<li>doomed: The packed placements.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>number: How many of them the registry held.</li>
+</ul><h3 id="proc/save_now"><aside class="declaration">proc </aside>save_now<aside>(final)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1323"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1323"></a></aside></h3><p>Writes the map file: the art and placements that last past this round, and when their owners were last seen. A map
+that has never had lasting graffiti gets no file. Nothing is written before the map's graffiti has loaded (<code>loaded</code>),
+while the registry may hold only part of the file, nor after the round-end save.</p>
+<p>The file is joined from text, as json_encode() would write the same tree: each placement is kept packed already, and
+each art record is encoded as it is joined, so the registry holds no second copy of its art between saves.</p>
+<p>Arguments:</p>
+<ul>
+<li>final: Whether this is the round-end save.</li>
+</ul><h3 id="proc/sheet_for"><aside class="declaration">proc </aside>sheet_for<aside>(stack_key)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1435"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1435"></a></aside></h3><p>Returns the sheet a stack shows from.</p>
+<p>Arguments:</p>
+<ul>
+<li>stack_key: The stack's key.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>list: list(the sheet file's resource, whether it holds the stack's glow mask as &quot;[stack_key]_g&quot;).</li>
+<li>null: No sheet holds the stack, such as one changed this round.</li>
+</ul><h3 id="proc/spend_composite"><aside class="declaration">proc </aside>spend_composite<aside>(started)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L333"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 333"></a></aside></h3><p>Takes a composite's time out of composite_share, a session's last one and a paint job's finish included, which run
+whether or not there is room.</p>
+<p>Arguments:</p>
+<ul>
+<li>started: TICK_USAGE_REAL as the composite started.</li>
+</ul><h3 id="proc/stack_keys"><aside class="declaration">proc </aside>stack_keys<aside>(/list/kept)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1372"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1372"></a></aside></h3><p>Returns what the map file caches of the stacks it keeps, so the next round's load shows them without merging them:
+each shown stack of several pieces, every piece of it kept, under its signature with its key and glow kind, beside
+the fingerprint of the merges that made them (graffiti_merge_fingerprint()).</p>
+<p>Arguments:</p>
+<ul>
+<li>kept: The packed placements the file keeps.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>list: list(&quot;print&quot; = the fingerprint, &quot;keys&quot; = stack signature -&gt; list(stack key, glow kind)).</li>
+</ul><h3 id="proc/tile_gone"><aside class="declaration">proc </aside>tile_gone<aside>(/<a href="obj.html">obj</a>/<a href="obj/effect/decal.html">effect/decal</a>/<a href="obj/effect/decal/cleanable.html">cleanable</a>/<a href="obj/effect/decal/cleanable/crayon.html">crayon</a>/<a href="obj/effect/decal/cleanable/crayon/custom.html">custom</a>/decal)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1261"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1261"></a></aside></h3><p>Removes for good every placement a decal showed: its surface was cleaned, or is gone.</p>
+<p>Arguments:</p>
+<ul>
+<li>decal: The decal, being deleted.</li>
+</ul><h3 id="proc/unindex_placement"><aside class="declaration">proc </aside>unindex_placement<aside>(packed)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L659"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 659"></a></aside></h3><p>Takes a placement the registry no longer holds out of the index.</p>
+<p>Arguments:</p>
+<ul>
+<li>packed: The placement.</li>
+</ul><h3 id="proc/unpack"><aside class="declaration">proc </aside>unpack<aside>(packed)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L345"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 345"></a></aside></h3><p>Reads a packed placement.</p>
+<p>Arguments:</p>
+<ul>
+<li>packed: The placement, as <code>placements</code> keeps it.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>list: The placement. Changing it changes nothing in the registry.</li>
+</ul><h3 id="proc/update_placement_art"><aside class="declaration">proc </aside>update_placement_art<aside>(packed, /list/art, /list/decoded, /list/evicted)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1094"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1094"></a></aside></h3><p>Gives a placement new art, as a freehand session or a paint job reveals more of its piece, and shows it. The art meets
+the caps a new placement's does (make_room()), its old art going from the placement, and when nothing can make room
+the placement keeps its old art.</p>
+<p>Arguments:</p>
+<ul>
+<li>packed: The placement.</li>
+<li>art: Its new art, GRAFFITI_WIDTH wide. The registry keeps a copy.</li>
+<li>decoded: The art's graffiti_art_decode(), when the caller has it, so its tile doesn't decode it again.</li>
+<li>evicted: When given, filled with the ids of the account's own placements its caps took, for the painter to be told
+how many went.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>text: The placement packed again, which takes the old packing's place everywhere, or as it was when its art is
+unchanged. Keep it for the next update.</li>
+<li>text: Why it kept its old art, safe to show the player. It is never in <code>placements</code>.</li>
+<li>null: The placement is gone.</li>
+</ul><h3 id="proc/vv_edit_var"><aside class="parent"><a title="/datum" href="datum.html#proc/vv_edit_var">↑</a></aside>vv_edit_var<aside>(var_name, var_value)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L289"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 289"></a></aside></h3><p>Refuses admin edits of the library directory, which library files are written under.</p>
+<p>Arguments:</p>
+<ul>
+<li>var_name: The var.</li>
+<li>var_value: Its new value.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE/FALSE: Whether the var was edited.</li>
+</ul><h3 id="proc/wipe_for_test"><aside class="declaration">proc </aside>wipe_for_test<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1798"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1798"></a></aside></h3><p>Empties the registry for a test without writing anything: deletes every custom decal, clears the lists and the
+pending write, and unfreezes it. The store and the test settings stay.</p><h3 id="proc/write_sheet"><aside class="declaration">proc </aside>write_sheet<aside>(/list/pack, map_name, /list/used)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/graffiti/code/registry.dm#L1495"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/graffiti/code/registry.dm 1495"></a></aside></h3><p>Points a pack of stacks at their sheet file, writing it first unless an earlier round wrote the same one.</p>
+<p>Arguments:</p>
+<ul>
+<li>pack: Stack key -&gt; the first decal showing it, in sheet order.</li>
+<li>map_name: The map's name, which its sheet directory is named for.</li>
+<li>used: Sheet file name -&gt; TRUE for the files kept, which this adds to.</li>
+</ul></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/6045a9effef19a65a8c400fa9f86916f0a85485d">6045a9e</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

@@ -1,0 +1,257 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_aphelion/modules/bulky_augments/module.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>modular_aphelion/modules/bulky_augments/module.md <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/6045a9effef19a65a8c400fa9f86916f0a85485d/modular_aphelion/modules/bulky_augments/module.md"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/bulky_augments/module.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><h2 id="recolourable-bulky-augments">Recolourable bulky augments</h2>
+<p>Module ID: BULKY_AUGMENTS</p>
+<h3 id="description">Description:</h3>
+<p>Bulky augment finishes for cybernetic arms, with their hands, and legs, drawn on the fitness module's Muscular outline in
+colours the player picks for each augment slot in character setup. The finishes whose design has lights glow.</p>
+<p><strong>Not offered yet.</strong> While <code>BULKY_FINISHES_OFFERED</code> is FALSE, the finish pickers leave the finishes out, the server
+refuses one picked anyway, and the paint sheet isn't sent with the preferences window. A character saved wearing a
+finish still wears it.</p>
+<p><strong>Finishes.</strong> Each finish is a <code>/datum/robotic_style/recolorable</code> subtype (<code>code/finishes.dm</code>), so it joins
+<code>GLOB.robotic_styles_list</code>, the augments' finish picker and every path that takes a robotic style, with no special case
+there.</p>
+<table><thead><tr><th>Finish</th><th>Id</th><th>Channels the editor shows</th><th>Lit zones</th></tr></thead><tbody>
+<tr><td>Bounty Hunter</td><td><code>bounty_hunter</code></td><td>Plating (paint), Joints (frame)</td><td>none</td></tr>
+<tr><td>Chrome Rebel</td><td><code>chrome_rebel</code></td><td>Chrome, Panel, Frame, Lights</td><td>arms</td></tr>
+<tr><td>Phantom</td><td><code>phantom</code></td><td>Plating (frame), Lights</td><td>arms, legs</td></tr>
+<tr><td>Street Wired</td><td><code>street_wired</code></td><td>Hose, Wrap, Frame, Lights</td><td>legs</td></tr>
+<tr><td>Brawler</td><td><code>brawler</code></td><td>Plating, Knuckles, Frame</td><td>none</td></tr>
+<tr><td>Iron Brute</td><td><code>iron_brute</code></td><td>Iron, Brass, Frame, Lights</td><td>arms, legs</td></tr>
+<tr><td>Synthflesh</td><td><code>synthflesh</code></td><td>Chassis, Seams, LED</td><td>arms, legs</td></tr>
+<tr><td>Merc</td><td><code>merc</code></td><td>Gauntlets, Knuckles, Seams</td><td>none</td></tr>
+<tr><td>Mechanist</td><td><code>mechanist</code></td><td>Plates, Brass, Joints</td><td>none</td></tr>
+<tr><td>Bounty Hunter Boots</td><td><code>bounty_hunter_boots</code></td><td>Plating, Joints</td><td>none</td></tr>
+<tr><td>Synthskin</td><td><code>synthskin</code></td><td>Seams (frame); no metal</td><td>none</td></tr>
+</tbody></table>
+<p>A finish is data only: its states in the sheets and a subtype. A finish's <code>name</code> is its save key, so renaming one drops it
+from every save that wears it.</p>
+<p>A finish's robotic style vars are fixed by the abstract type: <code>icon</code> (the human skin sheet), <code>supported_slots</code>
+(<code>ARMS|LEGS</code>), <code>has_digi</code> and <code>bodyshape_override = BODYSHAPE_HUMANOID</code>. Each subtype sets <code>limb_id_override</code>, its id, the
+prefix of its states, so Nova's <code>set_icon_greyscale()</code> screams at once over a missing <code>&lt;id&gt;_&lt;zone&gt;</code> instead of drawing a
+blank limb. Its own data is <code>channels</code> (the channels its art uses, each with the label the editor shows), <code>default_colors</code>
+and <code>presets</code> (name to colour string). Only a finish whose design has lights has a <code>&quot;lights&quot;</code> channel.</p>
+<p><strong>Colours.</strong> A finish draws from up to four player colours, kept as one colour string: <code>&quot;#rrggbb&quot;</code> four times run together,
+lowercase, in the order paint, accent, frame, lights (<code>sanitize_augment_colors()</code> checks one). A finish without lights keeps
+the fourth colour unused.</p>
+<ul>
+<li>Paint is the main plating, accent the trim, frame the joints and inner structure, and lights the strips and clusters.</li>
+<li>Two small untinted shines are fixed: <code>AUGMENT_SHINE_W</code> (<code>#fafbff</code>) and <code>AUGMENT_SHINE_X</code> (<code>#c4c7d0</code>).</li>
+<li>The skin, synthflesh and the thigh above a leg's join, is the body's own skin or mutant colour.</li>
+</ul>
+<p>Each slot keeps its own colours (<code>/datum/preferences/var/augment_limb_colors</code>, slot to colour string), and a slot without
+any draws its finish's <code>default_colors</code>.</p>
+<p><strong>Sheets.</strong> Three sheets are generated from each finish's art sources; regenerate them whenever an art source changes
+rather than editing them by hand. Every state is 32x32 in four directions, and <code>zone</code> is one of <code>BULKY_AUGMENT_ZONES</code>:
+<code>r_arm</code>, <code>l_arm</code>, <code>r_hand</code>, <code>l_hand</code>, <code>r_leg</code> or <code>l_leg</code>.</p>
+<table><thead><tr><th>Sheet</th><th>States</th><th>What they hold</th></tr></thead><tbody>
+<tr><td><code>icons/bulky_augments.dmi</code></td><td><code>&lt;id&gt;_&lt;zone&gt;</code>, <code>&lt;id&gt;_&lt;zone&gt;_e</code></td><td>the skin base in the human skin ramp (the Muscular limb's own pixels, with the finish's skin reshades), and the lights mask, only for a zone whose art has lights and, empty where it has none, for the hand of a lit arm</td></tr>
+<tr><td><code>icons/bulky_augments_humanoid.dmi</code></td><td>the same</td><td>the skin base through the humanoid ramp, and the same masks</td></tr>
+<tr><td><code>icons/bulky_augments_paint.dmi</code></td><td><code>&lt;id&gt;_&lt;zone&gt;_paint</code>, <code>&lt;id&gt;_&lt;zone&gt;_glow</code></td><td>the machine pixels packed: in <code>_paint</code> red is the paint shade, green accent and blue frame; in <code>_glow</code> red is the light shade (a light's core adds a little green, the art's white lift), green the <code>w</code> shine and blue the <code>x</code> shine. Each is left out where a zone has none of its pixels</td></tr>
+</tbody></table>
+<p>The skin base covers the whole outline, so the limb's own emissive blocker covers the whole limb, and its texture and alpha
+behave as an organic limb's.</p>
+<p><strong>Applying a finish.</strong> <code>apply_style_to_limb()</code> hands a recolourable finish to its <code>apply_to()</code>, whatever augment item it is
+on. The limb then:</p>
+<ul>
+<li>carries <code>/datum/element/augment_paint</code>, which draws its paint and keys its icons (below);</li>
+<li>draws greyscale, its skin base as its own image;</li>
+<li>takes the slot's colours, or the finish's default;</li>
+<li>glows only when the finish has lights and the limb's own zone has a lights mask, and only while the character's
+<code>allow_emissives</code> preference is on, as all player-set glow does (a limb made without preferences, like an admin spawn,
+glows). The zone is checked once, here, never as the limb is drawn;</li>
+<li>is <code>MUSCLE_SIZE_MUSCULAR</code>, so clothes and underclothes fit it as a Muscular limb. It's set at runtime, never as a type var,
+since <code>init_fitness_limb_families()</code> would take a typed robot limb for a fitness family.</li>
+</ul>
+<p>A finish's skin parts take the body's skin tone or mutant colour, which a limb learns only as it is set up for its owner
+(<code>update_limb()</code>'s <code>is_creating</code>). The body's own limbs in the preview have it already. A limb spawned for a finish (the
+spawn branch of <code>/datum/augment_item/limb/apply()</code>) is set up so once it is on the body, and a protean's regrown limb is too.</p>
+<p><code>clear_augment_finish()</code> takes a finish off: the element and the colours go, and the glow and muscle size go back to the
+limb type's own. The element goes on only while a limb wears no finish yet, so it is never added twice.</p>
+<p>The character setup preview changes the body's own limbs in place, so it also takes a finish off again:</p>
+<ul>
+<li>Where a slot keeps an augment, <code>apply()</code> clears the limb first and gives it the muscle size its spawned augment will have,
+the item type's (Normal). A brand finish's preview so fits clothes as the spawned limb will.</li>
+<li>Where a slot has no augment, the reset loop in <code>limbs_and_markings.dm</code> clears the limb. The body's shape and garment fit
+are then taken again from its limbs, which the loop changed after they were first taken.</li>
+</ul>
+<p>A protean's regrown limb wears the finish its lost limb wore: the protean's limb snapshot keeps the colours, glow and body
+shape, and <code>restore_finish()</code> hands the regrown limb to the finish's <code>apply_to()</code>, then gives it the lost limb's glow back.</p>
+<p><strong>Drawing.</strong> <code>/datum/element/augment_paint</code> (<code>code/limbs.dm</code>) is on finished limbs only, so every other limb redraws as it
+always has. It listens to two signals tg's limb drawing already sends:</p>
+<ul>
+<li><code>COMSIG_BODYPART_GET_LIMB_ICON</code>, at the end of <code>get_limb_icon()</code>, after the leg split, height and textures: it adds the
+paint (<code>draw_augment_paint()</code>). After the limb's images go a copy of its own image drawing its zone's <code>_paint</code> state and
+one drawing its <code>_glow</code>, and the same for an arm's hand. Each is coloured by a numeric 4x4 colour matrix
+(<code>augment_paint_matrix()</code>), rows paint, accent and frame (or lights and the two shines), then the limb's alpha. The copies
+keep the limb's layer, height, textures and facing. A leg's are split into its two halves through the masked leg cache, as
+<code>draw_muscle_definition()</code> splits definition. A zone without a packed state draws no copy for it.</li>
+<li><code>COMSIG_BODYPART_GENERATE_ICON_KEY</code>: it points the limb at the skin sheet in its owner's ramp, the humanoid one under a
+mutant colour (<code>update_augment_skin_sheet()</code>), and keys the limb by its colours, its glow, its alpha and that sheet. The
+limb icon cache is shared by every body, so without them one body's arm would be served to another. A body keys a limb
+after <code>update_limb()</code> has learnt its owner's <code>species_color</code> and before drawing it; a dropped limb keeps the sheet it had
+when it was last keyed or set up.</li>
+</ul>
+<p>The lights glow through tg's own limb emissives: a limb that <code>is_emissive</code> draws <code>&lt;state&gt;_e</code> from its skin sheet before the
+leg split, so the mask is split, offset and flagged as the limb is. tg lights an arm's hand along with the arm, so the
+generator gives the hand of every lit arm a mask too, empty where the hand has no lights: no finish lights a hand today.</p>
+<p>Anything else the limb lights, like a glowing marking, would light the plates over it in the dark. So then each <code>_paint</code>
+copy also gets an emissive blocker, a copy of the limb's own. A limb with nothing else lit gets none. Only an emissive counts,
+told by the constant row of its colour matrix; the emissive blockers that overlays (bodypart overlays, a bulge) bring along
+don't. The finish's own lights, the limb's and its hand's masks, are never under a <code>_paint</code> pixel, so they stay lit.</p>
+<p>The matrices are numeric 16-number lists, never rows of colour strings, which <code>map_colors_inferred()</code> would write into the
+drawn character preview's iconforge recipe. Each is built once per colours, state and alpha, and kept until 2048 are kept
+(<code>AUGMENT_PAINT_MATRIX_CACHE_SIZE</code>); then the cache starts over, so applying colours without end can't grow it. No icon is
+made for any colour: a zone draws its skin base, at most two copies and its lights mask.</p>
+<p><strong>Preferences.</strong> The colours save as <code>augment_limb_colors</code> in the character's save data. On load (<code>load_augment_colors()</code>) an
+entry is kept only when its slot wears a recolourable finish and its string is valid, then lowercased; anything else is
+dropped, never drawn. The preferences import sanitiser keeps their text values.</p>
+<p>Changing a slot to another finish, or to none, clears its colours, so a new finish starts at its own default. Changing the
+augment item with the finish kept keeps them.</p>
+<p><code>/datum/preference_middleware/augment_paint</code> (<code>code/preferences.dm</code>, key <code>augment_paint</code>) gives character setup:</p>
+<ul>
+<li>constant data, sent once in <code>preferences.json</code>: each finish by name, with its <code>id</code>, <code>channels</code> (<code>{key, label}</code>),
+<code>default</code>, <code>presets</code> (<code>{name, colors}</code>) and <code>zones</code> (zone to <code>{paint, glow}</code>, 0 or 1, read from the paint sheet), the
+editor's <code>swatches</code>, <code>metal</code> for paint, accent and frame, and <code>lights</code>, and <code>brands</code>: each brand style by name, with its
+<code>key</code> and the <code>zones</code> it has sprites for (below);</li>
+<li>window data: <code>augment_colors</code> (slot to colour string), <code>augment_paint_skin</code> (<code>{color, humanoid, feminine}</code>: the preview
+body's chest colour, whether it is a mutant colour, and whether the body is drawn feminine, its <code>limb_gender</code> &quot;f&quot;, so a
+dimorphic brand head or chest tries on as <code>head_f</code> or <code>chest_f</code>) and <code>augment_paint_emissive</code> (whether the lights glow);</li>
+<li>the <code>augment_paint</code> spritesheet, sent with the window;</li>
+<li>the actions <code>set_augment_colors {slot, colors}</code> (a colour string, or null for the finish's default) and
+<code>copy_augment_colors {slot}</code> (to every slot wearing a recolourable finish). Each needs a slot wearing a recolourable finish,
+redraws the preview body, and answers with <code>augment_colors</code> alone;</li>
+<li>the action <code>augment_brand_sprites</code> (no params), which sends the <code>augment_brands</code> spritesheet
+(<code>send_augment_brand_sprites()</code>, as the species page sends its sheets).</li>
+</ul>
+<p>The window's data is sent as each change is made, and may read the preview body before it is rebuilt. So the skin follows
+the rebuilt body too: the character preview module's answer, sent right after the rebuild, carries <code>augment_paint_skin</code>
+whenever it changed since the page last got it (<code>add_preview_answer()</code>).</p>
+<p><code>set_bodypart_aug_style</code>'s answer carries <code>augment_colors</code> too, since a new finish clears a slot's.</p>
+<p><strong>The editor's sprites.</strong> <code>/datum/asset/spritesheet_batched/augment_paint</code> (<code>code/assets.dm</code>) cuts the sheets into 32x32
+views, which the editor recolours on the client:</p>
+<ul>
+<li><code>augment_paint32x32 &lt;id&gt;-&lt;zone&gt;-&lt;layer&gt;-&lt;dir&gt;</code>, <code>layer</code> being <code>skin</code>, <code>skinh</code> (the humanoid ramp), <code>paint</code> or <code>glow</code>
+(only where the paint sheet holds the state), and <code>dir</code> <code>south</code>, <code>north</code>, <code>east</code> or <code>west</code>;</li>
+<li><code>augment_paint32x32 body-&lt;dir&gt;</code>, the Muscular body, the preview's silhouette.</li>
+</ul>
+<p><code>/datum/asset/spritesheet_batched/augment_brands</code> (<code>code/assets.dm</code>) holds the finish picker's try-on sprites,
+<code>augment_brands32x32 brand-&lt;key&gt;-&lt;zone&gt;-&lt;dir&gt;</code>: each brand style's limbs, head and chest as the game draws them. They are
+about 240 KB (932 sprites, against the finishes' 162 KB), and only the finish picker's try-on uses them. So they are not sent with the window,
+which would make every preferences open pay for them. The window asks for the sheet once, in the background, as the Augments room is about to be needed
+(<code>augment_brand_sprites</code>), and nobody who stays away from it loads it.</p>
+<p>A brand sprite is the state an augment limb in that style draws (<code>augment_brand_states()</code>), resolved as
+<code>apply_style_to_limb()</code> and <code>get_limb_icon()</code> resolve it: <code>&lt;limb id&gt;_&lt;zone&gt;</code> in the style's icon, the limb id being the
+style's <code>limb_id_override</code> or <code>robotic</code>, which every styled augment limb has. An arm's hand comes with it. A digitigrade leg
+is the zone <code>r_leg_digi</code> or <code>l_leg_digi</code>, state <code>&lt;limb id&gt;_&lt;leg&gt;_digi</code>, only for a style that keeps the digitigrade shape
+(<code>has_digi</code> and no <code>bodyshape_override</code> dropping it): the others draw their plain leg on a digitigrade body. A head and a
+chest are the zones <code>head</code> and <code>chest</code>. Where the style's <code>dimorphic_overrides</code> make one dimorphic, the game ends its state
+in the body's <code>limb_gender</code>: <code>head</code> or <code>chest</code> is then the masculine body's <code>&lt;limb id&gt;_&lt;zone&gt;_m</code>, and <code>head_f</code> or <code>chest_f</code>
+every other body's <code>&lt;limb id&gt;_&lt;zone&gt;_f</code>. The robotic head and chest a styled augment is aren't dimorphic of themselves, so
+the brands without overrides have plain <code>&lt;limb id&gt;_head</code> and <code>&lt;limb id&gt;_chest</code>. Only zones a slot can wear the style on,
+and states with four directions, are in. <code>key</code> is the last part of the style's type
+(<code>augment_brand_key()</code>). A brand sprite is drawn as is; the game tints it with the body's skin when its augment item draws
+greyscale, which character setup's augment items carry as <code>uses_greyscale</code>.</p>
+<p>A styled augment item also carries <code>default_style</code> (<code>build_augment_choices()</code>), the brand whose sprites are exactly its own
+plantigrade look with no style chosen, which the finish picker tries on for &quot;None&quot;: apply()'s look, the limb type's icon, or
+its greyscale icon, and state in its zone, an arm's hand coming with it. The Cyborg head, chest, arms and legs take
+<code>Cyborg</code> and the Prosthetic arms and legs <code>Surplus</code>, greyscale variants included. A leg tries &quot;None&quot; on only on a
+plantigrade body: on a digitigrade body it becomes a digitigrade cybernetic leg (<code>digitigrade_parts.dmi</code>), which no brand
+draws, so the room shows no leg there.</p>
+<p>Iconforge makes both sheets from the game's icons, in the background at init (<code>SSasset_loading</code>), and the batched
+spritesheets' smart cache keeps them across rounds, so each is made once per change of its icons.</p>
+<p><strong>The editor.</strong> In the Augments+ room, a part card whose finish is recolourable gets a palette button on its FINISH row, and
+the Readout shows that slot's colours as chips. The palette opens a flyout over the card's side of the stage: a scan preview
+of the part in four directions over the body's silhouette, recoloured on the GPU (SVG <code>feColorMatrix</code>) as colours change, with
+a lights-off view; the finish's presets; a row per channel with a picker and quick swatches; and Copy to all parts and Reset
+to default. Nothing reaches the server until Apply, a preset, a copy or a reset. With <code>allow_emissives</code> off, the lights row
+says the lights won't glow until it's on.</p>
+<p>In the finish picker, a part's finishes are thumbnails (<code>thumbs.tsx</code>), four to a row: &quot;None&quot; first, then the
+recolourable finishes and the brand styles under headings of their own. A head and a chest, which take no recolourable
+finish, show &quot;None&quot; and the brand styles. Each is the slot's part in that finish facing south, drawn up four times in a
+crop that holds the slot's part in every style: a recolourable finish in its default colours, or the slot's own on the
+one it wears, a brand in its sprites, tinted with the skin where the item draws greyscale, and &quot;None&quot; in the augment's
+own look, or crossed out where it has none. A check marks the installed finish and a palette a recolourable one, and
+each tile's accessible name says both. One floating tooltip names the tile under the pointer or the keyboard, below its
+tile where there's no room above and moved along to keep 8 px inside the window. The search narrows the tiles, scrolling
+stops on whole rows, and the picker opens with the installed finish's row in full view; the arrow keys go round the
+grid, Home and End to its ends, and Tab leaves it. Until the brand sheet comes, a brand tile shows the body's silhouette
+faintly, and fills in where it stands. A tile's art is drawn once from its sprites and colours and kept: the tiles in
+view draw before the picker's first frame and the rest once the window is idle, and once the stage has shown and the
+window is idle, every slot's thumbnails are drawn ahead a few at a time, which a press or a key puts off.</p>
+<p>The finish under the pointer or the keyboard is tried on the body scan at once, client side, as the markings room tries
+markings on: its sprites from the <code>augment_paint</code> sheet, or a brand finish's from <code>augment_brands</code>, drawn over the
+scan's facing and lined up with it, with the part it replaces masked out of the character through the preview's region
+map, and a far leg in profile kept behind the near one. A brand's head or chest on a body drawn feminine
+(<code>augment_paint_skin.feminine</code>) is its feminine sprite, where it has one. The visible augments' own pixels, a pair of
+cybernetic eyes or an implant's overlay, stay over what's tried on, as the game draws them over the part; the rest of
+what's drawn over a head goes with its pixels, as the preview is one picture, and a Cyborg head draws no hair. The
+finish the part wears is not tried on, and &quot;None&quot; shows the augment's own look when its item names a brand style for it
+(<code>default_style</code>), except on a digitigrade body's leg, where it shows nothing. A finish whose sprites can't be drawn
+yet, as a brand finish's before its sheet has come, changes nothing on the body until they can. The window asks for that
+sheet once the pointer or the keyboard rests 100 ms on the Augments+ tab or the room's Augments button, or once the
+stage has shown and the window is idle, and a window opened again asks again, in case an ask went unanswered. On a
+digitigrade body every slot offers only the styles with digitigrade sprites, the ones the server keeps there. Only a
+pick reaches the server. A press anywhere outside an open picker or editor closes it, except on the window's drag and
+resize handles and on the scan's rotate buttons and lights key, which sit over the stage's scrim so the character can be
+turned and lit with one open. What is tried on stays on through the trip to them and while they are used: tiles or rows
+the pointer crosses heading out for them don't take over, and it comes off once the pointer rests anywhere else. The
+scan has the other previews' lights key, and each card's trace lands on its part's pixels in the scan's current facing:
+a part hidden in that facing lands on its pair, a missing limb keeps its card's fixed port, and a taur's legs land on
+its taur body.</p>
+<p><strong>Not done yet:</strong></p>
+<ul>
+<li>Digitigrade art. Like every brand finish, these draw plantigrade legs on a digitigrade body (<code>bodyshape_override = BODYSHAPE_HUMANOID</code> with <code>has_digi</code>), and the body's clothes follow its legs. Digi art needs <code>_digi</code> states, on the
+Muscular digi outline (<code>mammal_*_leg_digi</code> in the size sheets), and each finish's <code>bodyshape_override</code> dropped.</li>
+<li>Recolourable heads and chests: the finishes are arms and legs only, while brand styles try on everywhere.</li>
+<li>Recolouring in the round: colours are set in character setup and travel with the limb.</li>
+<li>The spraycan restyle, which hands <code>image()</code> a <code>/datum/robotic_style</code> (<code>crayons.dm</code>) and so breaks every finish.</li>
+<li>Lit hands. A finish whose art lit a hand but not its arm would not glow there: the glow follows the limb's own zone.</li>
+</ul>
+<h3 id="tg-proc-file-changes">TG Proc/File Changes:</h3>
+<ul>
+<li>None</li>
+</ul>
+<h3 id="modular-overrides">Modular Overrides:</h3>
+<ul>
+<li><code>modular_aphelion/modules/bulky_augments/code/preferences.dm</code>: <code>add_preview_answer()</code> on the middleware, a proc the
+character preview module adds to <code>/datum/preference_middleware</code></li>
+</ul>
+<h3 id="defines">Defines:</h3>
+<ul>
+<li><code>code/__DEFINES/~aphelion_defines/bulky_augments.dm</code>: <code>BULKY_FINISHES_OFFERED</code>, <code>BULKY_AUGMENTS_SHEET</code>, <code>BULKY_AUGMENTS_SHEET_HUMANOID</code>,
+<code>BULKY_AUGMENTS_PAINT_SHEET</code>, <code>BULKY_AUGMENT_ZONES</code>, <code>AUGMENT_SHINE_W</code> and <code>AUGMENT_SHINE_X</code></li>
+</ul>
+<h3 id="included-files-that-are-not-contained-in-this-module">Included files that are not contained in this module:</h3>
+<ul>
+<li><code>modular_nova/modules/customization/modules/client/augment/limbs.dm</code>: <code>/datum/augment_item/limb/apply()</code> clears the
+preview's limb and keeps a finish's limb greyscale, and sets a spawned finished limb up for its owner, so it takes the
+body's skin; <code>apply_style_to_limb()</code> hands a recolourable finish to <code>apply_to()</code></li>
+<li><code>modular_nova/master_files/code/modules/client/preferences/middleware/limbs_and_markings.dm</code>: <code>apply_to_human()</code>'s reset
+loop clears a finish, and the body's shape and garment fit are taken again after it; <code>set_bodypart_aug_style()</code> clears a
+slot's colours for a new finish, <code>send_augment_styles()</code> sends the colours with the finishes, and
+<code>build_augment_choices()</code> marks the augment items that take a style and draw greyscale (<code>uses_greyscale</code>, only on those)
+and gives a styled item its <code>default_style</code> where a brand draws its own plantigrade look. While <code>BULKY_FINISHES_OFFERED</code>
+is FALSE, <code>get_constant_data()</code> leaves the finishes out of <code>robotic_styles</code> and <code>set_bodypart_aug_style()</code> refuses them</li>
+<li><code>modular_nova/master_files/code/modules/client/preferences_savefile.dm</code>: <code>load_character_nova()</code> and
+<code>save_character_nova()</code></li>
+<li><code>modular_nova/modules/preferences_import/code/_sanitise.dm</code>: <code>prefs_import_pass1()</code> keeps <code>augment_limb_colors</code></li>
+<li><code>modular_nova/modules/protean/code/organs/protean_brain.dm</code>: <code>snapshot_limb()</code> keeps a finish's colours and glow,
+<code>cached_visual_vars</code> keeps a limb's body shape, and <code>restore_finish()</code> puts the finish back on a regrown limb
+(<code>replace_limbs()</code>)</li>
+<li><code>modular_aphelion/modules/character_preview/code/drawing.dm</code>: <code>/datum/preference_middleware/proc/add_preview_answer()</code>,
+which <code>start_answer()</code> asks every middleware for</li>
+<li><code>code/modules/unit_tests/~nova/bulky_augments.dm</code>: <code>augment_paint_cache</code>, <code>augment_paint_fit</code>, <code>augment_paint_save</code> and
+<code>augment_paint_sheets</code>, included from <code>code/modules/unit_tests/_unit_tests.dm</code></li>
+<li><code>tgui/packages/tgui/interfaces/PreferencesMenu/types.ts</code></li>
+<li><code>tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/LimbsPage.tsx</code></li>
+<li><code>tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/index.tsx</code>: the Augments+ tab asks for the brand sprites
+on intent</li>
+<li><code>tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/MarkingsRoom/Room.tsx</code>: the room's Augments button does too</li>
+<li><code>tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/MarkingsRoom/regions.ts</code>: <code>regionsMask()</code> leaves out
+another map's pixels, the visible augments a try-on keeps over it</li>
+<li><code>tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/MarkingsRoom/augments/</code>: <code>index.tsx</code>, <code>parts.ts</code>,
+<code>brands.ts</code>, <code>paint.tsx</code>, <code>thumbs.tsx</code>, <code>tried.ts</code>, <code>tryOn.tsx</code>, <code>brands.test.tsx</code>, <code>paint.test.tsx</code>, <code>stage.test.tsx</code> and
+<code>tryOn.test.tsx</code></li>
+<li><code>tgui/packages/tgui/styles/meridianos/_augments-paint.scss</code>, loaded by <code>tgui/packages/tgui/styles/meridianos/_preferences.scss</code>,
+and <code>tgui/packages/tgui/styles/meridianos/_augments-stage.scss</code></li>
+<li><code>tgstation.dme</code></li>
+</ul></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/6045a9effef19a65a8c400fa9f86916f0a85485d">6045a9e</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>
