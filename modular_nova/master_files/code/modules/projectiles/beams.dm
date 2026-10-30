@@ -19,7 +19,7 @@
 /obj/projectile/beam/scatter
 	speed = 2
 
-/obj/projectile/beam/pulse
+/obj/projectile/beam/laser/pulse
 	speed = 2
 
 /obj/projectile/beam/lasertag/redtag
