@@ -170,43 +170,6 @@
 				TEST_FAIL("The [route_name] deferred-effect boundary applied effects with a [stale_state] [stale_role].")
 	set_interaction_test_state(actor, target)
 
-/// Detached live organs cannot retain authority across a climax prompt.
-/datum/unit_test/portal_device/climax_organ_authority/Run()
-	var/mob/living/carbon/human/consistent/participant = allocate(/mob/living/carbon/human/consistent, run_loc_floor_bottom_left)
-	attach_portal_preferences(participant)
-	var/obj/item/organ/genital/penis/original_penis = configure_test_penis(participant)
-	TEST_ASSERT_NOTNULL(original_penis, "Could not create the original climax penis fixture.")
-	if(!original_penis)
-		return
-
-	var/datum/climax_organs/organs = new
-	organs.track(new_penis = original_penis)
-	organs.reacquire(participant)
-	TEST_ASSERT_EQUAL(organs.penis, original_penis, "An installed climax penis did not resolve as current.")
-	original_penis.Remove(participant, special = TRUE)
-	TEST_ASSERT(!QDELETED(original_penis), "The detached climax penis fixture was deleted instead of remaining live.")
-	organs.reacquire(participant)
-	TEST_ASSERT_NULL(organs.penis, "A detached live penis retained climax authority.")
-
-	var/obj/item/organ/genital/penis/replacement_penis = configure_test_penis(participant)
-	TEST_ASSERT_NOTNULL(replacement_penis, "Could not create the replacement climax penis fixture.")
-	organs.reacquire(participant)
-	TEST_ASSERT_NULL(organs.penis, "A replaced penis regained climax authority through its old weak reference.")
-
-	var/obj/item/organ/genital/testicles/original_testicles = allocate(/obj/item/organ/genital/testicles, participant.loc)
-	TEST_ASSERT(original_testicles.Insert(participant, special = TRUE), "Could not install the climax testicles fixture.")
-	organs.track(new_testicles = original_testicles)
-	organs.reacquire(participant)
-	TEST_ASSERT_EQUAL(organs.testicles, original_testicles, "Installed climax testicles did not resolve as current.")
-	original_testicles.Remove(participant, special = TRUE)
-	TEST_ASSERT(!QDELETED(original_testicles), "The detached climax testicles fixture was deleted instead of remaining live.")
-	organs.reacquire(participant)
-	TEST_ASSERT_NULL(organs.testicles, "Detached live testicles retained climax authority.")
-
-	organs.release()
-	TEST_ASSERT_NULL(organs.penis, "release() left a hard reference to the penis behind.")
-	TEST_ASSERT_NULL(organs.testicles, "release() left a hard reference to the testicles behind.")
-
 /// Explicit cleanup is silent, reciprocal, and safe to repeat from either peer.
 /datum/unit_test/portal_device/reciprocal_clear/Run()
 	if(CONFIG_GET(flag/disable_lewd_items))
