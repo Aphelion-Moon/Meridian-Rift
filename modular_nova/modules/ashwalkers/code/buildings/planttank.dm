@@ -105,14 +105,16 @@
 
 	//if there is carbon dioxide in the air, lets turn it into oxygen
 	var/datum/gas_mixture/env = src_turf.return_air()
-	var/co2 = env.moles[/datum/gas/carbon_dioxide]
+	var/co2 = env.get_moles(/datum/gas/carbon_dioxide) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/co2 = env.moles[/datum/gas/carbon_dioxide]
 	if(!co2 || co2 <= 0)
 		return
 
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	env.assert_gases(/datum/gas/carbon_dioxide, /datum/gas/oxygen, /datum/gas/nitrogen)
 
+	*/ // APHELION EDIT REMOVAL END
 	var/gas_amt = min(co2 * seconds_per_tick, (MAX_OXYGEN_PRODUCED /2) * seconds_per_tick)
-	env.moles[/datum/gas/carbon_dioxide] -= min(co2, gas_amt)
+	env.adjust_moles(/datum/gas/carbon_dioxide, -min(co2, gas_amt)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: env.moles[/datum/gas/carbon_dioxide] -= min(co2, gas_amt)
 	src_turf.atmos_spawn_air("[GAS_O2]=[gas_amt]")
 	var/add_n = gas_amt * 0.7 // 70% of CO2 becomes nitrogen
 	src_turf.atmos_spawn_air("[GAS_N2]=[add_n]") // the nitrogen cycle-- plants (and bacteria) participate in the nitrogen cycle
