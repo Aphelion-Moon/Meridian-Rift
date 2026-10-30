@@ -15,12 +15,12 @@
 	if(!entry || payload["channel"] == OOC_CHANNEL || payload["channel"] == ME_CHANNEL || payload["channel"] == PRAY_CHANNEL || payload["channel"] == LOOC_CHANNEL) // NOVA EDIT CHANGE - ORIGINAL: if(!entry || payload["channel"] == OOC_CHANNEL || payload["channel"] == ME_CHANNEL || payload["channel"] == PRAY_CHANNEL)
 		return pick(phrases)
 	/// Random trimming for larger sentences
-	if(length(entry) > 50)
+	if(length_char(entry) > 50) // APHELION EDIT CHANGE - BUG_REPORTING - letters, not bytes, so a Cyrillic entry gets cut like an English one - ORIGINAL: if(length(entry) > 50)
 		entry = trim(entry, rand(40, 50))
 	else
 		/// Otherwise limit trim to just last letter
-		if(length(entry) > 1)
-			entry = trim(entry, length(entry))
+		if(length_char(entry) > 1) // APHELION EDIT CHANGE - BUG_REPORTING - letters, not bytes - ORIGINAL: if(length(entry) > 1)
+			entry = trim(entry, length_char(entry)) // APHELION EDIT CHANGE - BUG_REPORTING - trim() cuts by letter too - ORIGINAL: entry = trim(entry, length(entry))
 	return entry + "-" + pick(phrases)
 
 /**
@@ -136,7 +136,7 @@
 /datum/tgui_say/proc/handle_entry(type, payload)
 	if(!payload?["channel"] || isnull(payload["entry"]))
 		CRASH("[usr] entered in a null payload to the chat window.")
-	if(length(payload["entry"]) > max_length)
+	if(length_char(payload["entry"]) > max_length) // APHELION EDIT CHANGE - BUG_REPORTING - we count letters like the box does, since length() counts bytes and refused a long say in Cyrillic - ORIGINAL: if(length(payload["entry"]) > max_length)
 		CRASH("[usr] has entered more characters than allowed into a TGUI-Say")
 	if(type == "entry")
 		delegate_speech(payload["entry"], payload["channel"])

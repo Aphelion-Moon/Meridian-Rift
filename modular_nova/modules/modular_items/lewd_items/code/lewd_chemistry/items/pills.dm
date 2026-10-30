@@ -37,3 +37,11 @@
 	icon_state = "pentacamphor"
 	list_reagents = list(/datum/reagent/drug/aphrodisiac/camphor/pentacamphor = 10)
 	obj_flags_nova = ERP_ITEM
+
+/obj/item/reagent_containers/applicator/pill/dapoxetine
+	name = "dapoxetine pill (25u)"
+	desc = "This anaphrodisiac prevents climax by inhibiting the reuptake of serotonin."
+	icon = 'modular_nova/modules/modular_items/lewd_items/icons/obj/lewd_items/lewd_pills.dmi'
+	icon_state = "dapoxetine"
+	list_reagents = list(/datum/reagent/drug/aphrodisiac/dapoxetine = 25)
+	obj_flags_nova = ERP_ITEM

@@ -1,5 +1,7 @@
 // THIS IS AN APHELION UI FILE
-import type { AugmentItem } from '../../../types';
+import type { AugmentItem, PaintFinish } from '../../../types';
+import { isLeg, TAUR_ZONE } from '../constants';
+import { type FrameRegions, regionBounds } from '../regions';
 
 /**
  * A socket on the augments stage: a slot of the character setup's augments
@@ -170,6 +172,8 @@ export const ORGAN_CARD_HEIGHT = 94;
 /** The cards' left edges, either side, and their width. */
 export const CARD_LEFT = { l: 16, r: 638 } as const;
 export const CARD_WIDTH = 246;
+/** A flyout's left edge, a picker's or the colour editor's, over its card's side of the stage. */
+export const FLY_LEFT = { l: 12, r: 588 } as const;
 
 /** What a row of a card picks. */
 export type Field = 'part' | 'finish' | 'implant' | 'organ';
@@ -183,6 +187,54 @@ export const FIELD_NAMES: Record<Field, string> = {
 
 /** A row's top, from its card's top, for the picker to unfold from. */
 export const rowOffset = (top: number, row: number) => top + 2 + row * 40;
+
+/** A zone's pair on the body's other side, where a part hidden in a facing stands behind the body. */
+const pairOf = (zone: string) =>
+  zone.startsWith('r_')
+    ? `l_${zone.slice(2)}`
+    : zone.startsWith('l_')
+      ? `r_${zone.slice(2)}`
+      : zone;
+
+/** The region a zone's trace lands on: under a taur body, both legs land on the taur, as the mirror lights them. */
+const landingZone = (zone: string, taurLegs: boolean) =>
+  isLeg(zone) && taurLegs ? TAUR_ZONE : zone;
+
+/** The middle of a zone's drawn pixels on a frame, in frame pixels, as the mirror finds it; undefined when it draws none. */
+function zoneMiddle(map: FrameRegions, zone: string) {
+  const bounds = regionBounds(map, zone);
+  return bounds
+    ? ([(bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2] as const)
+    : undefined;
+}
+
+/**
+ * Where each part's trace lands on the body in one facing, in frame pixels,
+ * by slot: the middle of its zone's drawn pixels, or, for a part the body has
+ * but hides in this facing (the far arm in profile), behind the body where
+ * its pair is. A part the body doesn't have, as an amputated limb, which the
+ * region map leaves out, has none: its trace keeps its port, never its pair.
+ */
+export function landingsOf(
+  map: FrameRegions | undefined,
+  sockets: readonly Socket[],
+  taurLegs: boolean,
+) {
+  const out: Record<string, readonly [number, number] | undefined> = {};
+  if (!map) {
+    return out;
+  }
+  for (const socket of sockets) {
+    const zone = socket.zones[0];
+    const own = zone && landingZone(zone, taurLegs);
+    if (own && map.zones.includes(own)) {
+      out[socket.slot] =
+        zoneMiddle(map, own) ??
+        zoneMiddle(map, landingZone(pairOf(zone), taurLegs));
+    }
+  }
+  return out;
+}
 
 /** A point cost as a card shows it: blank when free, "+" when it gives points back. */
 export function points(cost: number) {
@@ -260,7 +312,36 @@ export type StagePart = {
   implants: AugmentItem[] | null;
   /** A taur body stands where its legs would: nothing fits. */
   unavailable: boolean;
+  /** Its finish's colours, when the finish it wears is recolourable. */
+  paint: StagePaint | null;
 };
+
+/**
+ * A recolourable finish on a part, for its palette and colour editor. Its
+ * colours aren't here: what shows them reads them for its slot, so a colour
+ * change draws nothing else again.
+ */
+export type StagePaint = {
+  finish: PaintFinish;
+  /** The finish's name, its save key. */
+  name: string;
+};
+
+/**
+ * A part's recolourable finish, or null. Only a finish its augment takes
+ * counts: one that takes none keeps the name of the last finish picked, which
+ * the server doesn't draw.
+ */
+export function stagePaint(
+  finish: string,
+  finishes: string[],
+  paintFinishes: Record<string, PaintFinish> | undefined,
+): StagePaint | null {
+  const paint = paintFinishes?.[finish];
+  return paint && finishes.includes(finish)
+    ? { finish: paint, name: finish }
+    : null;
+}
 
 /** An internal's socket: the organ or implant in it and the alternatives. */
 export type StageOrgan = {

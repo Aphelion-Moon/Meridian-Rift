@@ -156,3 +156,30 @@
 	name = "Fishnet - Sleeveless (Greyscale)"
 	icon_state = "fishnet_body_alt"
 	use_static = FALSE
+
+/datum/sprite_accessory/clothing/undershirt/nova/fishnet_sleeves/get_icon_state(physique, bodyshape, mob/living/carbon/human/wearer)
+	return chest_cut_state(physique, wearer, "_flat")
+
+/datum/sprite_accessory/clothing/undershirt/nova/fishnet_base/get_icon_state(physique, bodyshape, mob/living/carbon/human/wearer)
+	return chest_cut_state(physique, wearer, "_flat")
+
+// Crew-neck mesh tees, with no bra drawn in.
+/datum/sprite_accessory/clothing/undershirt/nova/fishnet_crew_sleeves
+	name = "Fishnet - Crew Sleeved"
+	icon_state = "fishnet_crew_sleeves"
+	use_static = TRUE
+
+/datum/sprite_accessory/clothing/undershirt/nova/fishnet_crew_base
+	name = "Fishnet - Crew Sleeveless"
+	icon_state = "fishnet_crew_body"
+	use_static = TRUE
+
+/datum/sprite_accessory/clothing/undershirt/nova/fishnet_crew_sleeves/alt
+	name = "Fishnet - Crew Sleeved (Greyscale)"
+	icon_state = "fishnet_crew_sleeves_alt"
+	use_static = FALSE
+
+/datum/sprite_accessory/clothing/undershirt/nova/fishnet_crew_base/alt
+	name = "Fishnet - Crew Sleeveless (Greyscale)"
+	icon_state = "fishnet_crew_body_alt"
+	use_static = FALSE

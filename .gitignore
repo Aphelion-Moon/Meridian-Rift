@@ -11,6 +11,10 @@
 
 # Native painting-store build output (release DLL follows native dependency packaging).
 /tools/painting_store/target/
+# Server-owned chastity flavour text; also keep the former path out of new commits.
+/config/nova/chastity.json
+/strings/aphelion/chastity.json
+
 # Interactions are not stored on the repo
 /config/nova/interactions
 # APHELION EDIT ADDITION END

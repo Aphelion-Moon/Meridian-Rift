@@ -221,6 +221,8 @@
 	session?.stop_drawing_sounds()
 	session = null
 	SStgui.close_uis(src)
+	SScustom_sprite_work.queue -= src
+	pending_work = NONE
 	QDEL_NULL(workspace)
 	drop_pending_body()
 	QDEL_NULL(preview_body)
@@ -1382,14 +1384,14 @@
 	return TRUE
 
 /// Closes the editor, saving first when asked; a failed save keeps it open.
-/datum/custom_sprite_editor/proc/finish(save_changes = TRUE)
+/datum/custom_sprite_editor/proc/finish(save_changes = TRUE, drain_pending_strokes = FALSE)
 	if(closing)
 		return
 	if(save_changes)
 		apply_pending_hairstyle()
 		if(length(stroke_queue))
-			// Preferences going away can't wait for the background: the strokes go in now, so the save has them.
-			if(preferences && QDELING(preferences))
+			// Closing preferences cannot wait for the background: include every accepted stroke in this save.
+			if(drain_pending_strokes || (preferences && QDELING(preferences)))
 				while(length(stroke_queue))
 					drain_strokes()
 			else

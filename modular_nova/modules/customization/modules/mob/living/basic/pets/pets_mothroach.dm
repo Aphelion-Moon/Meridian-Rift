@@ -9,11 +9,10 @@
 	// This is both for RP reasons (don't force people to RP permanent pet death) and to prevent griefing.
 	return
 
-/datum/ai_controller/basic_controller/mothroach/pet
-	blackboard = list(
-		BB_VISION_RANGE = AI_DOG_VISION_RANGE,
-		BB_PET_TARGETING_STRATEGY = /datum/targeting_strategy/basic/not_friends,
-	)
+/// Add the pet setting without replacing the inherited mothroach blackboard.
+/datum/ai_controller/basic_controller/mothroach/pet/New(atom/new_pawn)
+	set_blackboard_key(BB_VISION_RANGE, AI_DOG_VISION_RANGE)
+	return ..()
 
 /// == DONATOR PET: Mr. Fluff, Central's Mothroach, ckey centralsmith ==
 /mob/living/basic/mothroach/pet/mr_fluff

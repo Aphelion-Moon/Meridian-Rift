@@ -33,6 +33,12 @@ GAME_VERB_PROC_DESC(/client, import_preferences, "Import Character Preferences",
 		to_chat(src, span_warning("Guest accounts cannot import preferences."))
 		return
 
+	// The gate's cache answers repeats, so a blocked player can't spam the uncached role query below.
+	var/mob/dead/new_player/lobby = mob
+	if(istype(lobby) && lobby.symphony_blocks_play())
+		lobby.symphony_gate_notice()
+		return
+
 	var/datum/preferences/import_prefs = prefs
 	if(!prefs_import_available(import_prefs))
 		return
@@ -75,6 +81,7 @@ GAME_VERB_PROC_DESC(/client, import_preferences, "Import Character Preferences",
 		return
 
 	var/filesize = upload["filesize"]
+	var/list/cyborg_layouts = cyborg_layouts_from_import(upload["tree"]) // read before pass one strips them
 	var/list/json_tree = prefs_import_pass1(upload["tree"], import_prefs.savefile.get_entry())
 
 	if(!prefs_import_available(import_prefs))
@@ -95,6 +102,7 @@ GAME_VERB_PROC_DESC(/client, import_preferences, "Import Character Preferences",
 		log_game("Preferences import for [ckey] was not installed: [install_error]")
 		return
 
+	cyborg_customization_after_import(ckey, cyborg_layouts)
 	prefs_import_invalidate_cache(ckey)
 
 	log_admin("[key_name(src)] imported their own preferences ([filesize] bytes).")

@@ -1,4 +1,0 @@
-author: "Moonridden"
-delete-after: True
-changes:
-  - refactor: "entire repo stops referencing things outside of our services for most things"

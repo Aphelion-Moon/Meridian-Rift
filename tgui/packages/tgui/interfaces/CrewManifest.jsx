@@ -11,7 +11,7 @@ const commandJobs = [
   'Research Director',
   'Chief Medical Officer',
   'Quartermaster',
-  'Nanotrasen Consultant', // NOVA EDIT ADDITION
+  'Astraeus Federation Consultant', // APHELION EDIT CHANGE - the rep's job title was renamed. ORIGINAL: 'Nanotrasen Consultant', // NOVA EDIT ADDITION
 ];
 
 export const CrewManifest = (props) => {

@@ -27,7 +27,6 @@ const MERIDIAN_BASE_THEME_ID_SET = new Set<string>(MERIDIAN_BASE_THEME_IDS);
 const SPECIALTY_THEME_ID_SET = new Set([
   'Heretic',
   'abductor',
-  'armament',
   'cardtable',
   'clockwork',
   'hackerman',

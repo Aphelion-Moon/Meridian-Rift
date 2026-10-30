@@ -5,21 +5,24 @@
 	limb_id = SPECIES_VOX
 	eyes_icon = 'modular_nova/modules/organs/icons/vox_eyes.dmi'
 	teeth_count = 72
+	worn_offsets_species = /datum/species/vox
 
-/// Position fallback human hats and glasses on the Vox head.
-/obj/item/bodypart/head/mutant/vox/Initialize(mapload)
-	worn_head_offset = new(
-		attached_part = src,
+/// Position fallback human hats and glasses on the Vox head, and on a robotic head drawn as one in the Vox style.
+/datum/species/vox/add_worn_offsets(obj/item/bodypart/limb)
+	if(limb.body_zone != BODY_ZONE_HEAD)
+		return
+	var/obj/item/bodypart/head/head = limb
+	head.worn_head_offset = new /datum/worn_feature_offset(
+		attached_part = head,
 		feature_key = OFFSET_HEAD,
 		offset_x = list("north" = 0, "south" = 0, "east" = 3, "west" = -3),
 	)
-	worn_glasses_offset = new(
-		attached_part = src,
+	head.worn_glasses_offset = new /datum/worn_feature_offset(
+		attached_part = head,
 		feature_key = OFFSET_GLASSES,
 		offset_x = list("north" = 0, "south" = 0, "east" = 3, "west" = -3),
 		offset_y = list("north" = 0, "south" = -1, "east" = -1, "west" = -1),
 	)
-	return ..()
 
 /obj/item/bodypart/chest/mutant/vox
 	icon_greyscale = BODYPART_ICON_VOX

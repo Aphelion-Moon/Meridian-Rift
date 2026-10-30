@@ -13,7 +13,7 @@
 	inherent_traits = list(
 		TRAIT_MUTANT_COLORS,
 		TRAIT_FIXED_MUTANT_COLORS, // Has a separate pref for mutant color
-		TRAIT_AGENDER,
+		// TRAIT_AGENDER, // APHELION EDIT REMOVAL - Gender for every species, ethereals keep the gender they pick
 	)
 	changesource_flags = MIRROR_BADMIN | WABBAJACK | MIRROR_PRIDE | MIRROR_MAGIC | RACE_SWAP | ERT_SPAWN | SLIME_EXTRACT
 	species_cookie = /obj/item/food/energybar
@@ -127,7 +127,7 @@
 	inherent_traits = list(
 		TRAIT_MUTANT_COLORS,
 		TRAIT_FIXED_MUTANT_COLORS,
-		TRAIT_AGENDER,
+		// TRAIT_AGENDER, // APHELION EDIT REMOVAL - Gender for every species, ethereals keep the gender they pick
 		TRAIT_NOBREATH,
 		TRAIT_RESISTHIGHPRESSURE,
 		TRAIT_RESISTLOWPRESSURE,

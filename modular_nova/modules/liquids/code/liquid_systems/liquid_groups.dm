@@ -16,6 +16,14 @@ GLOBAL_VAR_INIT(liquid_debug_colors, FALSE)
 	var/decay_counter = 0
 	var/expected_turf_height = 0
 	var/cached_color
+	/// Volume-weighted liquid_opacity of the shared reagents, cached alongside cached_color.
+	var/cached_opacity
+	/// Blood-volume-weighted blood colour of the members, remixed alongside cached_color. Null when the group holds no blood.
+	var/cached_blood_color
+	/// LIQUID_SURFACE_* class of the shared reagents, cached alongside cached_color. Null until the next share picks it.
+	var/cached_surface_class
+	/// Detail of cached_surface_class, or null.
+	var/cached_surface_detail
 	var/list/last_cached_fraction_share
 	var/last_cached_total_volume = 0
 	var/last_cached_thermal = 0
@@ -28,6 +36,15 @@ GLOBAL_VAR_INIT(liquid_debug_colors, FALSE)
 		amount_of_active_turfs++
 	if(T.liquids)
 		T.liquids.has_cached_share = FALSE
+		invalidate_cached_mix()
+
+/// Drops the cached colours, opacity and surface once new reagents join the group, so the next share remixes them.
+/datum/liquid_group/proc/invalidate_cached_mix()
+	cached_color = null
+	cached_opacity = null
+	cached_blood_color = null
+	cached_surface_class = null
+	cached_surface_detail = null
 
 /datum/liquid_group/proc/remove_from_group(turf/T)
 	members -= T
@@ -57,6 +74,7 @@ GLOBAL_VAR_INIT(liquid_debug_colors, FALSE)
 			T.liquids.has_cached_share = FALSE
 	otherg.members = list()
 	qdel(otherg)
+	invalidate_cached_mix()
 	share()
 
 /datum/liquid_group/proc/break_group()
@@ -110,6 +128,8 @@ GLOBAL_VAR_INIT(liquid_debug_colors, FALSE)
 	var/list/cached_add = list()
 	var/cached_volume = 0
 	var/cached_thermal = 0
+	// Members' blood is weighed only when the colours get remixed.
+	var/list/blood_by_color = (use_liquids_color || isnull(cached_color)) ? list() : null
 
 	var/turf/T
 	var/obj/effect/abstract/liquid_turf/cached_liquids
@@ -118,6 +138,11 @@ GLOBAL_VAR_INIT(liquid_debug_colors, FALSE)
 		if(T.liquids)
 			any_share = TRUE
 			cached_liquids = T.liquids
+
+			if(blood_by_color)
+				var/member_blood = cached_liquids.reagent_list[/datum/reagent/blood]
+				if(member_blood)
+					blood_by_color[cached_liquids.blood_color || /datum/reagent/blood::color] += member_blood
 
 			if(cached_liquids.has_cached_share && last_cached_fraction_share)
 				cached_shares++
@@ -152,15 +177,23 @@ GLOBAL_VAR_INIT(liquid_debug_colors, FALSE)
 	last_cached_thermal = cached_thermal
 	last_cached_fraction_share = cached_add
 	last_cached_total_volume = cached_volume
-	var/mixed_color = use_liquids_color ? mix_color_from_reagent_list(cached_add) : color
+	if(blood_by_color)
+		cached_blood_color = mix_colors_by_volume(blood_by_color)
+	if(use_liquids_color || isnull(cached_surface_class))
+		var/list/surface = get_liquid_surface(cached_add)
+		cached_surface_class = surface[1]
+		cached_surface_detail = surface[2]
+	var/mixed_color
 	if(use_liquids_color)
-		mixed_color = mix_color_from_reagent_list(cached_add)
+		mixed_color = scale_liquid_color(mix_liquid_color(cached_add, cached_blood_color), cached_surface_class)
 	else if (GLOB.liquid_debug_colors)
 		mixed_color = color
 	else
 		if(!cached_color)
-			cached_color = mix_color_from_reagent_list(cached_add)
+			cached_color = scale_liquid_color(mix_liquid_color(cached_add, cached_blood_color), cached_surface_class)
 		mixed_color = cached_color
+	if(use_liquids_color || isnull(cached_opacity))
+		cached_opacity = mix_opacity_from_reagent_list(cached_add)
 
 	var/height = ceil(cached_volume/LIQUID_HEIGHT_DIVISOR)
 
@@ -179,6 +212,7 @@ GLOBAL_VAR_INIT(liquid_debug_colors, FALSE)
 			determined_new_state = LIQUID_STATE_SHOULDERS
 		if(LIQUID_FULLTILE_LEVEL_HEIGHT to INFINITY)
 			determined_new_state = LIQUID_STATE_FULLTILE
+	var/pool_alpha = SSliquids.get_pool_alpha(determined_new_state, cached_opacity)
 
 	var/new_liquids = FALSE
 	for(var/t in members)
@@ -186,7 +220,7 @@ GLOBAL_VAR_INIT(liquid_debug_colors, FALSE)
 		new_liquids = FALSE
 		if(!T.liquids)
 			new_liquids = TRUE
-			T.liquids = new(T)
+			T.liquids = new(T, TRUE)
 		cached_liquids = T.liquids
 
 		cached_liquids.reagent_list = cached_add.Copy()
@@ -197,11 +231,20 @@ GLOBAL_VAR_INIT(liquid_debug_colors, FALSE)
 		cached_liquids.has_cached_share = TRUE
 		cached_liquids.attrition = 0
 
+		cached_liquids.blood_color = cached_blood_color
 		cached_liquids.color = mixed_color
+		// Alpha after color: a colour with its own alpha, like water's, overwrites alpha too.
+		cached_liquids.alpha = pool_alpha
+		cached_liquids.reagent_opacity = cached_opacity
+		// One redraw for a new liquid or any change of surface and depth together.
+		var/redraw = cached_liquids.set_surface(cached_surface_class, cached_surface_detail, FALSE) || new_liquids
 		cached_liquids.set_height(height)
 
 		if(determined_new_state != cached_liquids.liquid_state)
-			cached_liquids.set_new_liquid_state(determined_new_state)
+			cached_liquids.set_new_liquid_state(determined_new_state, FALSE)
+			redraw = TRUE
+		if(redraw)
+			cached_liquids.update_icon(UPDATE_OVERLAYS)
 
 		//Only simulate a turf exposure when we had to create a new liquid tile
 		if(new_liquids)

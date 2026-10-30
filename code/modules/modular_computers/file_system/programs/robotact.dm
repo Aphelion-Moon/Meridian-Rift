@@ -49,6 +49,10 @@
 	var/mob/living/silicon/robot/cyborg = tablet.silicon_owner
 
 	data["borgName"] = cyborg.name
+	// APHELION EDIT ADDITION START - CYBORG_CUSTOMIZATION
+	if(cyborg_customization_owner(user))
+		data["reproductionManagement"] = cyborg.cyborg_runtime_data()
+	// APHELION EDIT ADDITION END
 	data["designation"] = cyborg.model
 	data["masterAI"] = cyborg.connected_ai
 	data["MasterAI_connected"] = !!cyborg.connected_ai //Need a bool for this on the other side
@@ -65,6 +69,7 @@
 	data["lampIntensity"] = cyborg.lamp_intensity //lamp power setting
 	data["lampConsumption"] = cyborg.lamp_power_consumption //Power consumption of the lamp per lamp intensity.
 	data["sensors"] = "[cyborg.sensors_on?"ACTIVE":"DISABLED"]"
+	data["eyeLights"] = "[cyborg.eye_lights_enabled ? "ACTIVE" : "DISABLED"]"
 	data["printerPictures"] = cyborg.connected_ai? cyborg.connected_ai.aicamera.stored.len : cyborg.aicamera.stored.len //Number of pictures taken, synced to AI if available
 	data["printerToner"] = cyborg.toner //amount of toner
 	data["printerTonerMax"] = cyborg.tonermax //It's a variable, might as well use it
@@ -130,6 +135,13 @@
 
 /datum/computer_file/program/robotact/ui_act(action, params, datum/tgui/ui, datum/ui_state/state)
 	. = ..()
+	// APHELION EDIT ADDITION START - CYBORG_CUSTOMIZATION
+	if(.)
+		return
+	if(action == "cyborg_customization")
+		var/mob/living/silicon/robot/owner = cyborg_customization_owner(ui.user)
+		return owner?.cyborg_runtime_action(params, ui.user)
+	// APHELION EDIT ADDITION END
 	//Implied type, memes
 	var/obj/item/modular_computer/pda/silicon/tablet = computer
 	var/mob/living/silicon/robot/cyborg = tablet.silicon_owner
@@ -154,6 +166,9 @@
 
 		if("toggleSensors")
 			cyborg.toggle_sensors()
+
+		if("toggleEyeLights")
+			cyborg.toggle_eye_lights()
 
 		if("viewImage")
 			if(cyborg.connected_ai)

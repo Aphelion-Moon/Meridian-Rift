@@ -398,3 +398,101 @@
 	TEST_ASSERT_EQUAL(data["selected_painting"]?["ref"], "own-painting", "Another viewer's navigation cleared the owner's detail")
 	program.add_gallery_page(data, list(), owner)
 	TEST_ASSERT_NULL(data["selected_painting"], "Deleting the selected artwork must still close its detail")
+
+/// A drawing saved from NanoPaint reaches the archive privately, under its own pixel identity.
+/datum/unit_test/gallery_nanopaint_create/Run()
+	var/datum/controller/subsystem/persistent_paintings/gallery_fixture/store = allocate(/datum/controller/subsystem/persistent_paintings/gallery_fixture)
+	var/datum/painting/painting = new
+	painting.title = "Pixel Study"
+	painting.creator_ckey = "nanopainter"
+	painting.creator_name = "Anonymous"
+	painting.width = 11
+	painting.height = 11
+	var/list/pixels = list()
+	for(var/i in 1 to 11 * 11)
+		pixels += "#ffffffff"
+	var/image_data = pixels.Join("")
+	var/list/result = store.run_store_operation("create", list("painting" = painting, "pixels" = image_data))
+	TEST_ASSERT(result["ok"], "A NanoPaint save failed: [store.store_result_message(result)]")
+	TEST_ASSERT_EQUAL(painting.md5, md5(image_data), "The saved painting took an identity other than its pixels")
+	var/list/row = store.test_commit["candidate"]["paintings"][1]
+	TEST_ASSERT_EQUAL(row["creator_ckey"], "nanopainter", "The artist did not own their saved painting")
+	TEST_ASSERT_EQUAL(length(row["tags"]), 0, "A personal save joined the station rotation")
+	TEST_ASSERT_EQUAL(row["show_in_webgallery"], 0, "A personal save was published without consent")
+	TEST_ASSERT_EQUAL(store.test_commit["images"][1]["source"], "staged", "The saved image was not staged for the commit")
+	var/datum/painting/copy = new
+	copy.title = "Pixel Study"
+	copy.creator_ckey = "nanopainter"
+	copy.width = 11
+	copy.height = 11
+	var/list/again = store.run_store_operation("create", list("painting" = copy, "pixels" = image_data))
+	TEST_ASSERT(again["ok"], "Saving the same drawing twice reported a failure")
+	TEST_ASSERT(!again["changed"], "The same drawing was archived twice")
+	TEST_ASSERT_EQUAL(store.test_commits, 1, "A duplicate save still opened a transaction")
+
+/// Avoid a real device while exercising the gallery open list and its ownership gate.
+/datum/computer_file/program/nanopaint/gallery_fixture
+
+/datum/computer_file/program/nanopaint/gallery_fixture/New()
+	return
+
+/// NanoPaint offers the artist their own archived work to open again, and no one else's.
+/datum/unit_test/gallery_nanopaint_open/Run()
+	var/datum/computer_file/program/nanopaint/gallery_fixture/program = allocate(/datum/computer_file/program/nanopaint/gallery_fixture)
+	var/datum/controller/subsystem/persistent_paintings/gallery_fixture/store = allocate(/datum/controller/subsystem/persistent_paintings/gallery_fixture)
+	var/list/row = gallery_test_row("nanopaint-open", "nanopainter")
+	row["title"] = "Pixel Study"
+	store.test_snapshot = list("version" = 3, "paintings" = list(row, gallery_test_row("nanopaint-other", "someoneelse")))
+	store.run_store_operation("sync")
+	var/list/entries = program.gallery_open_entries(null, store.get_owned_paintings("nanopainter"))
+	TEST_ASSERT_EQUAL(length(entries), 1, "The open list lost the artist's painting, or showed another artist's")
+	TEST_ASSERT_EQUAL(entries[1]["name"], "Pixel Study", "The open list named the painting wrongly")
+	TEST_ASSERT_EQUAL(entries[1]["size"], "11x11", "The open list sized the painting wrongly")
+	var/datum/painting/own_painting = store.paintings_by_id[row["md5"]]
+	var/datum/painting/other_painting = store.paintings_by_id[md5("nanopaint-other")]
+	TEST_ASSERT(program.gallery_painting(REF(own_painting), "nanopainter", store.paintings) == own_painting, "The artist could not open their own painting")
+	TEST_ASSERT_NULL(program.gallery_painting(REF(other_painting), "nanopainter", store.paintings), "Another artist's painting could be opened")
+	TEST_ASSERT_NULL(program.gallery_painting(REF(own_painting), null, store.paintings), "A user with no account opened a painting")
+
+/// A resize keeps the drawing and blanks what the canvas gains; a smaller canvas cuts what falls outside it.
+/datum/unit_test/gallery_nanopaint_resize/Run()
+	var/datum/computer_file/program/nanopaint/gallery_fixture/program = allocate(/datum/computer_file/program/nanopaint/gallery_fixture)
+	TEST_ASSERT_EQUAL(program.gallery_anchor_offset(-1, 4), 0, "The first edge did not hold the drawing")
+	TEST_ASSERT_EQUAL(program.gallery_anchor_offset(0, 4), 2, "A centred drawing was not centred")
+	TEST_ASSERT_EQUAL(program.gallery_anchor_offset(1, 4), 4, "The last edge did not hold the drawing")
+	TEST_ASSERT_EQUAL(program.gallery_anchor_offset("nonsense", 4), 2, "A malformed anchor was not centred")
+
+	var/datum/sprite_editor_workspace/workspace = new(4, 4, 1, null, SPRITE_EDITOR_COLOR_MODE_RGBA, ALL, ALL, "#00000000")
+	var/list/grid = workspace.get_first_layer_pixel_data()
+	grid[1][1] = "#ff0000ff"
+	grid[4][4] = "#00ff00ff"
+	workspace.undo_stack += list(list("name" = "a pencil stroke"))
+	workspace.undo_names += "a pencil stroke"
+
+	TEST_ASSERT(workspace.resize_canvas(6, 6, 1, 1), "A resize to another size reported no change")
+	TEST_ASSERT_EQUAL(workspace.width, 6, "The workspace kept its old width")
+	grid = workspace.get_first_layer_pixel_data()
+	TEST_ASSERT_EQUAL(length(grid), 6, "The drawing did not gain rows")
+	TEST_ASSERT_EQUAL(length(grid[1]), 6, "The drawing did not gain columns")
+	TEST_ASSERT_EQUAL(grid[2][2], "#ff0000ff", "The drawing did not move with its anchor")
+	TEST_ASSERT_EQUAL(grid[5][5], "#00ff00ff", "The far corner of the drawing was lost")
+	TEST_ASSERT_EQUAL(grid[1][1], "#00000000", "The space the canvas gained is not blank")
+	TEST_ASSERT_EQUAL(length(workspace.undo_stack), 0, "The undo history survived a resize")
+	TEST_ASSERT_EQUAL(length(workspace.undo_names), 0, "The undo history survived a resize")
+
+	TEST_ASSERT(workspace.resize_canvas(3, 3), "A resize to a smaller canvas reported no change")
+	grid = workspace.get_first_layer_pixel_data()
+	TEST_ASSERT_EQUAL(length(grid), 3, "The drawing did not lose its rows")
+	TEST_ASSERT_EQUAL(grid[2][2], "#ff0000ff", "The kept corner moved when the canvas was cut")
+	TEST_ASSERT(!workspace.resize_canvas(3, 3), "A resize to the size it already is still rebuilt the drawing")
+
+	// What the dialog actually drives: the anchor becomes an offset, and the editor's limits still hold.
+	program.current_workspace = workspace
+	program.resize_workspace(5, 5, 1, 1)
+	TEST_ASSERT_EQUAL(workspace.width, 5, "The command did not resize the drawing")
+	grid = workspace.get_first_layer_pixel_data()
+	TEST_ASSERT_EQUAL(grid[4][4], "#ff0000ff", "The anchor did not hold the drawing against the last edges")
+	TEST_ASSERT_NULL(program.dialog, "A resize left a dialog open")
+	program.resize_workspace(0, 5, 0, 0)
+	TEST_ASSERT_EQUAL(program.dialog?["type"], "error", "A size outside the editor's limits was accepted")
+	TEST_ASSERT_EQUAL(workspace.width, 5, "A refused resize still changed the drawing")

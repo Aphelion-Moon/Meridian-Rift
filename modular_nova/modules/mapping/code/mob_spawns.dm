@@ -193,7 +193,6 @@
 	if(spawned_robot.client)
 		spawned_robot.custom_name = null
 		spawned_robot.updatename(spawned_robot.client)
-		spawned_robot.transfer_silicon_prefs(spawned_robot.client)
 		spawned_robot.set_gender(spawned_robot.client)
 
 /mob/living/silicon/robot/model/ds2
@@ -241,7 +240,6 @@
 	if(spawned_robot.client)
 		spawned_robot.custom_name = null
 		spawned_robot.updatename(spawned_robot.client)
-		spawned_robot.transfer_silicon_prefs(spawned_robot.client)
 		spawned_robot.set_gender(spawned_robot.client)
 
 /mob/living/silicon/robot/model/interdyne

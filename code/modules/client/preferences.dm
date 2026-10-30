@@ -100,10 +100,15 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	var/list/cached_character_profiles
 
 /datum/preferences/Destroy(force)
-	close_custom_sprite_editors() // APHELION EDIT ADDITION
-	QDEL_NULL(custom_sprite_savefile) // APHELION EDIT ADDITION
+	// APHELION EDIT ADDITION START - CUSTOM_EDITOR_LIFETIME - Saving editors must not rebuild a departing preview.
+	preview_drawing?.window_closed()
 	QDEL_NULL(character_preview_view)
+	// APHELION EDIT ADDITION END
+	close_custom_sprite_editors(drain_pending_strokes = TRUE) // APHELION EDIT ADDITION - CUSTOM_EDITOR_LIFETIME
+	QDEL_NULL(custom_sprite_savefile) // APHELION EDIT ADDITION
+	// QDEL_NULL(character_preview_view) // APHELION EDIT REMOVAL - CUSTOM_EDITOR_LIFETIME - Released before saving editors.
 	QDEL_LIST(middleware)
+	QDEL_NULL(cyborg_layout_savefile) // APHELION EDIT ADDITION - Flush account-owned cyborg writes after draft teardown
 	value_cache = null
 	return ..()
 
@@ -161,6 +166,14 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	if(SSearly_assets.initialized != INITIALIZATION_INNEW_REGULAR)
 		return
 
+	// APHELION EDIT ADDITION START - Whitelist gate. Only a fresh open may sleep on it; ui_status covers SStgui's refreshes.
+	if(!ui && isnewplayer(user))
+		var/mob/dead/new_player/lobby = user
+		if(lobby.symphony_blocks_play())
+			lobby.symphony_gate_notice()
+			return
+
+	// APHELION EDIT ADDITION END
 	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
 		tainted_character_profiles = TRUE
@@ -176,6 +189,11 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 // Without this, a hacker would be able to edit other people's preferences if
 // they had the ref to Topic to.
 /datum/preferences/ui_status(mob/user, datum/ui_state/state)
+	// APHELION EDIT ADDITION START - Close setup on a cached whitelist denial, such as a revoke while it is open.
+	var/mob/dead/new_player/lobby = user
+	if(istype(lobby) && lobby.symphony_blocks_play_cached())
+		return UI_CLOSE
+	// APHELION EDIT ADDITION END
 	return user.client == parent ? UI_INTERACTIVE : UI_CLOSE
 
 /datum/preferences/ui_data(mob/user)
@@ -185,6 +203,19 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 		cached_character_profiles = create_character_profiles()
 		tainted_character_profiles = FALSE
 	//NOVA EDIT ADDITION BEGIN
+	// The underwear arousal previews only for a character whose preferences give the body a penis, and no aroused
+	// preview at all with ERP disabled. Sent with every update, so the list follows the preferences as they change.
+	var/datum/preference/choiced/genital/penis/preference = GLOB.preference_entries[/datum/preference/choiced/genital/penis]
+	if(CONFIG_GET(flag/disable_erp_preferences))
+		data["preview_options"] = list(PREVIEW_PREF_JOB, PREVIEW_PREF_LOADOUT, PREVIEW_PREF_UNDERWEAR, PREVIEW_PREF_NAKED)
+	else if(is_factual_sprite_accessory(ORGAN_SLOT_PENIS, read_preference(/datum/preference/choiced/genital/penis)) && preference.is_visible(preferences = src))
+		data["preview_options"] = list(PREVIEW_PREF_JOB, PREVIEW_PREF_LOADOUT, PREVIEW_PREF_UNDERWEAR, PREVIEW_PREF_UNDERWEAR_HALF, PREVIEW_PREF_UNDERWEAR_AROUSED, PREVIEW_PREF_NAKED, PREVIEW_PREF_NAKED_AROUSED)
+	else
+		data["preview_options"] = list(PREVIEW_PREF_JOB, PREVIEW_PREF_LOADOUT, PREVIEW_PREF_UNDERWEAR, PREVIEW_PREF_NAKED, PREVIEW_PREF_NAKED_AROUSED)
+	// A preview no longer offered, like an underwear arousal one once the penis is gone, goes back to plain underwear.
+	if(!(preview_pref in data["preview_options"]))
+		preview_pref = PREVIEW_PREF_UNDERWEAR
+		character_preview_view?.update_body()
 	data["preview_selection"] = preview_pref
 	data["erp_pref"] = read_preference(/datum/preference/toggle/master_erp_preferences)
 	data["erp_belly_pref"] = read_preference(/datum/preference/toggle/erp/belly_master)
@@ -207,12 +238,6 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 /datum/preferences/ui_static_data(mob/user)
 	var/list/data = list()
 
-	// NOVA EDIT ADDITION START
-	if(CONFIG_GET(flag/disable_erp_preferences))
-		data["preview_options"] = list(PREVIEW_PREF_JOB, PREVIEW_PREF_LOADOUT, PREVIEW_PREF_UNDERWEAR, PREVIEW_PREF_NAKED)
-	else
-		data["preview_options"] = list(PREVIEW_PREF_JOB, PREVIEW_PREF_LOADOUT, PREVIEW_PREF_UNDERWEAR, PREVIEW_PREF_NAKED, PREVIEW_PREF_NAKED_AROUSED)
-	// NOVA EDIT ADDITION END
 	// data["character_preview_view"] = character_preview_view.assigned_map // APHELION EDIT REMOVAL - The page draws the preview rather than showing this map
 	data["overflow_role"] = SSjob.get_job_type(SSjob.overflow_role).title
 	data["window"] = current_window
@@ -378,11 +403,15 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	return FALSE
 
 /datum/preferences/ui_close(mob/user)
-	close_custom_sprite_editors() // APHELION EDIT ADDITION - Flush before the parent preview disappears
+	// APHELION EDIT ADDITION START - CUSTOM_EDITOR_LIFETIME - End the drawing session before editor saves publish their changes.
+	preview_drawing?.window_closed()
+	QDEL_NULL(character_preview_view)
+	// APHELION EDIT ADDITION END
+	close_custom_sprite_editors(drain_pending_strokes = TRUE) // APHELION EDIT ADDITION - CUSTOM_EDITOR_LIFETIME
+	cyborg_session()?.close_editor() // APHELION EDIT ADDITION - CYBORG_CUSTOMIZATION
 	save_character()
 	save_preferences()
-	QDEL_NULL(character_preview_view)
-	preview_drawing?.window_closed() // APHELION EDIT ADDITION - The drawn preview goes with the window
+	// QDEL_NULL(character_preview_view) // APHELION EDIT REMOVAL - CUSTOM_EDITOR_LIFETIME - Released before saving editors.
 	cached_character_profiles = null
 
 /datum/preferences/Topic(href, list/href_list)
@@ -580,6 +609,10 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 		job_preferences -= job.title
 	else
 		job_preferences[job.title] = level
+
+	if(isnewplayer(parent?.mob))
+		var/mob/dead/new_player/lobbyguy = parent.mob
+		lobbyguy.update_ready_report()
 
 	return TRUE
 

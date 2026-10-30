@@ -97,7 +97,9 @@
 		slot["alt_job_titles"] = sanitize_alt_job_titles(slot["alt_job_titles"])
 		slot["augments"] = prefs_import_clean_assoc_paths(slot["augments"])
 		slot["augment_limb_styles"] = prefs_import_clean_assoc_paths(slot["augment_limb_styles"])
+		slot["augment_limb_colors"] = prefs_import_clean_assoc_paths(slot["augment_limb_colors"])
 		slot["languages"] = prefs_import_clean_assoc_paths(slot["languages"], allow_numeric = TRUE)
+		cyborg_identity_import_sanitize_slot(slot)
 	json_tree[PREFS_IMPORT_PENDING_KEY] = TRUE
 	return json_tree
 

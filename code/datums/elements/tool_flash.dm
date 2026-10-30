@@ -39,5 +39,9 @@
 
 	var/turf/weld_location = get_turf(source)
 	for(var/mob/living/victim in viewers(1, weld_location))
+		// APHELION EDIT ADDITION START - Whoever the user is working on (e.g. a synth being repaired) looks away
+		if(victim != user && LAZYACCESS(user?.do_afters, victim))
+			continue
+		// APHELION EDIT ADDITION END
 		var/flash_strength_for_victim = max(flash_strength - get_dist(victim, weld_location), 0)
 		victim.flash_act(flash_strength_for_victim)

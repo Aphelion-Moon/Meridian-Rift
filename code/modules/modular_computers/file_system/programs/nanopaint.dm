@@ -82,6 +82,9 @@ GLOBAL_LIST_INIT(nanopaint_supported_filetypes, zebra_typecacheof(list(\
 			disk_files += list(file_data)
 	data["driveFiles"] = drive_files
 	data["diskFiles"] = disk_files
+	// APHELION EDIT ADDITION START - Art Galaxy.
+	add_gallery_data(user, data)
+	// APHELION EDIT ADDITION END
 	return data
 
 /datum/computer_file/program/nanopaint/proc/check_dialog(act, modal_type)
@@ -90,6 +93,10 @@ GLOBAL_LIST_INIT(nanopaint_supported_filetypes, zebra_typecacheof(list(\
 /datum/computer_file/program/nanopaint/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
 	. = ..()
 	var/mob/user = ui.user
+	// APHELION EDIT ADDITION START - Art Galaxy.
+	if(handle_gallery_action(action, params, ui))
+		return TRUE
+	// APHELION EDIT ADDITION END
 	switch(action)
 		if("spriteEditorCommand")
 			if(!current_workspace)

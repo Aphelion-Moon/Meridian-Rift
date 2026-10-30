@@ -14,6 +14,7 @@ import { debugThemeAtom, meridianThemeAtom } from 'tgui/events/store';
 import { classes } from 'tgui-core/react';
 
 import { previewLightsOffAtom } from '../CharacterPreview/lights';
+import { BRAND_SPRITES_INTENT } from './augments/brands';
 import { rejoinCompositor } from './compositor';
 import type { MarkingsRoomData } from './data';
 import { type DecorProps, ROOM_DECOR } from './decor';
@@ -162,6 +163,7 @@ export function AugmentsRoom(props: Props) {
             ])}
             aria-pressed={!markings}
             onClick={() => onMode('augments')}
+            {...BRAND_SPRITES_INTENT}
           >
             <svg
               className="AugmentsRoom__modeIcon"

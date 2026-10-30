@@ -53,6 +53,11 @@ type ByondType = {
    */
   IS_BYOND: boolean;
 
+  // APHELION EDIT ADDITION START - BUG_REPORTING - BYOND_POST_MESSAGE
+  /** Whether calls go through WebView2's postMessage, which takes any size, so nothing needs chunking */
+  POST_MESSAGE: boolean;
+
+  // APHELION EDIT ADDITION END - BUG_REPORTING
   /**
    * Version of Blink engine of WebView2. Null if N/A.
    */
@@ -168,8 +173,10 @@ type ByondType = {
   /**
    * Subscribe to incoming messages *of some specific type*
    * that were sent from `/datum/tgui_window`.
+   *
+   * Returns a function that unsubscribes the listener.
    */
-  subscribeTo(type: string, listener: (payload: any) => void): void;
+  subscribeTo(type: string, listener: (payload: any) => void): () => void;
 
   /**
    * Loads a stylesheet into the document.

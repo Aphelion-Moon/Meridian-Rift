@@ -11,7 +11,6 @@
 		return FALSE
 
 	preferences.alt_job_titles[job_title] = new_job_title
-	if(!SSticker.HasRoundStarted())
-		SEND_SIGNAL(user, COMSIG_JOB_PREF_UPDATED)
+	SSstatpanels.update_job_estimation(user)
 
 	return TRUE

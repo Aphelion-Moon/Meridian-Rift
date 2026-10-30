@@ -3,7 +3,7 @@
 
 /datum/component/interactable
 	/// A hard reference to the parent
-	var/mob/living/carbon/human/self = null
+	var/mob/living/self = null
 	/// A list of interactions that the user can engage in.
 	var/list/datum/interaction/interactions
 	var/interact_last = 0
@@ -20,7 +20,7 @@
 		qdel(src)
 		return
 
-	if(!ishuman(parent))
+	if(!cyborg_interaction_participant(parent))
 		return COMPONENT_INCOMPATIBLE
 
 	self = parent
@@ -32,6 +32,8 @@
 	for(var/iterating_interaction_id in GLOB.interaction_instances)
 		var/datum/interaction/interaction = GLOB.interaction_instances[iterating_interaction_id]
 		if(interaction.lewd)
+			if(istype(self, /mob/living/silicon/robot))
+				continue
 			if(!self.client?.prefs?.read_preference(/datum/preference/toggle/erp))
 				continue
 			if(interaction.sexuality != "" && interaction.sexuality != self.client?.prefs?.read_preference(/datum/preference/choiced/erp_sexuality))
@@ -79,7 +81,10 @@
 
 /// Resolves a route through a portal device the viewer can reach, or this component's current body relay. Null is in person.
 /datum/component/interactable/proc/get_interaction_route(datum/interaction/interaction, mob/living/carbon/human/user)
-	var/datum/interaction_route/route = self.get_worn_portal_route(interaction, user)
+	if(!ishuman(self) || !ishuman(user))
+		return null
+	var/mob/living/carbon/human/human_self = self
+	var/datum/interaction_route/route = human_self.get_worn_portal_route(interaction, user)
 	var/atom/movable/resolved_relay = resolve_body_relay()
 	// The relay only answers for the half of the body it shows; everything else is reached in person.
 	if(!route && user != self && resolved_relay && user.Adjacent(resolved_relay))
@@ -89,20 +94,25 @@
 /datum/component/interactable/proc/open_interaction_menu(datum/source, mob/user)
 	SIGNAL_HANDLER
 
-	if(source != self || QDELETED(self) || !ishuman(user) || QDELETED(user))
+	if(source != self || QDELETED(self) || !cyborg_interaction_participant(user) || QDELETED(user))
 		return
 	INVOKE_ASYNC(src, PROC_REF(ui_interact), user)
 	return CLICK_ACTION_SUCCESS
 
-/datum/component/interactable/proc/can_interact(datum/interaction/interaction, mob/living/carbon/human/target)
+/// Whether target can use an interaction on the mob this menu is for. A cyborg on either side only gets the safe message interactions
+/datum/component/interactable/proc/can_interact(datum/interaction/interaction, mob/living/target)
 	if(QDELETED(interaction) || QDELETED(target) || QDELETED(self))
+		return FALSE
+	if(istype(self, /mob/living/silicon/robot) || istype(target, /mob/living/silicon/robot))
+		return cyborg_message_interaction_allowed(interaction, target, self)
+	if(!ishuman(target) || !ishuman(self))
 		return FALSE
 	var/datum/interaction_route/route = get_interaction_route(interaction, target)
 	return interaction.category != INTERACTION_CAT_HIDE && interaction.can_execute(target, self, route, ignore_cooldown = TRUE)
 
 /// UI Control
 /datum/component/interactable/ui_interact(mob/user, datum/tgui/ui)
-	if(!ishuman(user) || QDELETED(user) || QDELETED(self))
+	if(!cyborg_interaction_participant(user) || QDELETED(user) || QDELETED(self))
 		return
 	build_interactions_list()
 	ui = SStgui.try_update_ui(user, src, ui)
@@ -111,10 +121,14 @@
 		ui.open()
 
 /datum/component/interactable/ui_status(mob/user, datum/ui_state/state)
-	if(!ishuman(user) || QDELETED(user) || QDELETED(self))
+	if(!cyborg_interaction_participant(user) || QDELETED(user) || QDELETED(self))
 		return UI_CLOSE
 
-	return UI_INTERACTIVE // This UI is always interactive as we handle distance flags via can_interact
+	// Distance is checked per interaction, portals included. As participants_are_actionable() decides, lying down or
+	// restrained still acts; incapacitated only watches.
+	if(IS_UNCONSCIOUS_OR_CRIT(user))
+		return UI_DISABLED
+	return user.incapacitated ? UI_UPDATE : UI_INTERACTIVE
 
 /datum/component/interactable/ui_static_data(mob/user)
 	var/list/data = list()
@@ -127,11 +141,13 @@
 
 /datum/component/interactable/ui_data(mob/user)
 	var/list/data = list()
-	if(!ishuman(user) || QDELETED(user) || QDELETED(self))
+	if(!cyborg_interaction_participant(user) || QDELETED(user) || QDELETED(self))
 		return data
 	var/list/descriptions = list()
 	var/list/categories = list()
 	var/list/colors = list()
+	// Button text that differs from the interaction's name, such as "Pecjob" for a pec owner.
+	var/list/labels
 
 	has_erp_interaction = FALSE
 
@@ -153,9 +169,13 @@
 
 		descriptions[interaction.name] = interaction.description
 		colors[interaction.name] = interaction.color
+		// `user` opened the panel and acts; `self` is the one it was opened on.
+		var/label = interaction.display_name_for(user, self)
+		if(label != interaction.name)
+			LAZYSET(labels, interaction.name, label)
 
 	// Main check to see if the user is even opted into bellies on this character.
-	if(TRAIT_PREDATORY in user._status_traits)
+	if(ishuman(user) && ishuman(self) && (TRAIT_PREDATORY in user._status_traits))
 		var/mob/living/carbon/human/human_user = user
 		// Pull the belly helper from the pred's belly quirk, if present.
 		var/datum/quirk/belly/bellyquirk = locate() in human_user.quirks
@@ -182,54 +202,67 @@
 	data["interactions"] = categories
 	data["descriptions"] = descriptions
 	data["colors"] = colors
+	data["labels"] = labels
 
 	var/atom/movable/resolved_relay = resolve_body_relay()
 	data["self"] = can_see(user, self) ? self.name : (resolved_relay?.name || "Unknown")
 	data["block_interact"] = interact_next >= world.time
 	data["use_subtler"] = use_subtler
-	data["erp_interaction"] = self.client?.prefs?.read_preference(/datum/preference/toggle/erp)
+	data["erp_interaction"] = ishuman(self) && self.client?.prefs?.read_preference(/datum/preference/toggle/erp)
 	data["has_erp_interaction"] = has_erp_interaction
-
-	var/mob/living/carbon/human/human_user = user
 
 	data["isTargetSelf"] = (user == self)
 
 	// user (the one who opened the ui)
-	if(user)
+	if(ishuman(user))
+		var/mob/living/carbon/human/human_user = user
 		data["pleasure"] = human_user.pleasure
 		data["arousal"] = human_user.arousal
 		data["pain"] = human_user.pain
 
 	// self - the one who the interaction component belongs to, aka who it's opened on (confusing var name yep)
-	if(user != self)
-		data["theirPleasure"] = self.pleasure
-		data["theirArousal"] = self.arousal
-		data["theirPain"] = self.pain
+	if(user != self && ishuman(self))
+		var/mob/living/carbon/human/human_self = self
+		data["theirPleasure"] = human_self.pleasure
+		data["theirArousal"] = human_self.arousal
+		data["theirPain"] = human_self.pain
 
 	var/list/parts = list()
 
-	if(ishuman(user) && can_lewd_strip(user, self))
-		if(self.client?.prefs?.read_preference(/datum/preference/toggle/erp/sex_toy))
-			if(self.has_vagina())
-				parts += list(generate_strip_entry(ORGAN_SLOT_VAGINA, self, user, self.vagina))
-			if(self.has_penis())
-				parts += list(generate_strip_entry(ORGAN_SLOT_PENIS, self, user, self.penis))
-			if(self.has_anus())
-				parts += list(generate_strip_entry(ORGAN_SLOT_ANUS, self, user, self.anus))
-			parts += list(generate_strip_entry(ORGAN_SLOT_NIPPLES, self, user, self.nipples))
+	if(ishuman(user) && ishuman(self) && can_lewd_strip(user, self))
+		var/mob/living/carbon/human/human_user = user
+		var/mob/living/carbon/human/human_self = self
+		if(human_self.client?.prefs?.read_preference(/datum/preference/toggle/erp/sex_toy))
+			if(human_self.has_vagina())
+				parts += list(generate_strip_entry(ORGAN_SLOT_VAGINA, human_self, human_user, human_self.vagina))
+			if(human_self.has_penis())
+				parts += list(generate_strip_entry(ORGAN_SLOT_PENIS, human_self, human_user, human_self.penis))
+			if(human_self.has_anus())
+				parts += list(generate_strip_entry(ORGAN_SLOT_ANUS, human_self, human_user, human_self.anus))
+			parts += list(generate_strip_entry(ORGAN_SLOT_NIPPLES, human_self, human_user, human_self.nipples))
+			if(human_self.get_bodypart(BODY_ZONE_HEAD))
+				parts += list(generate_strip_entry(BODY_ZONE_PRECISE_MOUTH, human_self, human_user, human_self.mouth))
 
 	data["lewd_slots"] = parts
 
 	// Genital visibility/layering config - only for your own body, so it only
 	// populates (and the tab only appears) when the panel is opened on yourself.
 	var/list/genital_config = list()
-	if(user == self)
-		for(var/obj/item/organ/genital/genital as anything in self.get_configurable_genitals())
+	if(user == self && ishuman(self))
+		var/mob/living/carbon/human/human_self = self
+		for(var/obj/item/organ/genital/genital as anything in human_self.get_configurable_genitals())
 			genital_config += list(genital.get_layering_ui_entry())
 	data["genital_config"] = genital_config
 
 	// Underwear visibility, same deal.
-	data["underwear_config"] = (user == self) ? self.get_underwear_ui_entries() : list()
+	var/list/underwear_config = list()
+	if(user == self && ishuman(self))
+		var/mob/living/carbon/human/human_self = self
+		underwear_config = human_self.get_underwear_ui_entries()
+	data["underwear_config"] = underwear_config
+	if(user == self && istype(self, /mob/living/silicon/robot))
+		var/mob/living/silicon/robot/robot_self = self
+		data["cyborg_runtime"] = robot_self.cyborg_runtime_data()
 
 	return data
 
@@ -254,14 +287,35 @@
 	if(.)
 		return
 
-	if(QDELETED(ui) || ui.src_object != src || !ishuman(ui.user) || QDELETED(ui.user) || QDELETED(self))
+	if(QDELETED(ui) || ui.src_object != src || !cyborg_interaction_participant(ui.user) || QDELETED(ui.user) || QDELETED(self))
 		return
-	var/mob/living/carbon/human/actor = ui.user
-	var/mob/living/carbon/human/target = self
+
+	if(action == "cyborg_runtime")
+		if(!istype(self, /mob/living/silicon/robot) || ui.user != self)
+			return FALSE
+		var/mob/living/silicon/robot/robot_self = self
+		return robot_self.cyborg_runtime_action(params, ui.user)
 
 	if(action == "toggle_subtler")
 		use_subtler = !use_subtler
 		return TRUE
+
+	// Cyborgs use only the message whitelist, never human effects or portal routes.
+	if(istype(ui.user, /mob/living/silicon/robot) || istype(self, /mob/living/silicon/robot))
+		var/mob/living/actor = ui.user
+		var/datum/interaction/cyborg_interaction = GLOB.interaction_instances[params["interaction"]]
+		var/datum/component/interactable/actor_component = actor.GetComponent(/datum/component/interactable)
+		if(QDELETED(actor_component) || on_interaction_cooldown(actor_component) || !can_interact(cyborg_interaction, actor))
+			return FALSE
+		if(!cyborg_message_interaction_act(cyborg_interaction, actor, self))
+			return FALSE
+		start_interaction_cooldown(actor_component)
+		return TRUE
+
+	if(!ishuman(ui.user) || !ishuman(self))
+		return FALSE
+	var/mob/living/carbon/human/actor = ui.user
+	var/mob/living/carbon/human/target = self
 
 	if(action == "set_genital_visibility" || action == "set_genital_layering" || action == "set_genital_arousal")
 		if(actor != self) // You configure your own body, nobody else's.
@@ -329,7 +383,7 @@
 	if(params["item_slot"])
 		// This code should be easy enough to follow... I hope.
 		var/item_index = params["item_slot"]
-		if(!(item_index in list(ORGAN_SLOT_VAGINA, ORGAN_SLOT_PENIS, ORGAN_SLOT_ANUS, ORGAN_SLOT_NIPPLES)))
+		if(!(item_index in list(ORGAN_SLOT_VAGINA, ORGAN_SLOT_PENIS, ORGAN_SLOT_ANUS, ORGAN_SLOT_NIPPLES, BODY_ZONE_PRECISE_MOUTH)))
 			return
 		var/mob/living/carbon/human/source = actor
 
@@ -344,11 +398,14 @@
 			source.show_message(span_warning("The item you're holding is not a toy!"))
 			return
 
+		if(existing_item ? !existing_item.can_lewd_remove(source) : !new_item.can_lewd_attach(target, source, item_index))
+			return
+
 		if(can_lewd_strip(source, target, item_index) && is_toy_compatible(new_item, item_index))
 			var/removing_existing = !isnull(existing_item)
 			var/datum/weakref/existing_item_ref = existing_item ? WEAKREF(existing_item) : null
 			var/datum/weakref/new_item_ref = new_item ? WEAKREF(new_item) : null
-			var/internal = (item_index in list(ORGAN_SLOT_VAGINA, ORGAN_SLOT_ANUS))
+			var/internal = (item_index in list(ORGAN_SLOT_VAGINA, ORGAN_SLOT_ANUS, BODY_ZONE_PRECISE_MOUTH))
 			var/insert_or_attach = internal ? "insert" : "attach"
 			var/into_or_onto = internal ? "into" : "onto"
 
@@ -372,9 +429,9 @@
 				existing_item = existing_item_ref?.resolve()
 				new_item = new_item_ref?.resolve()
 				if(removing_existing)
-					if(QDELETED(existing_item) || target.get_lewd_slot_item(item_index) != existing_item)
+					if(QDELETED(existing_item) || target.get_lewd_slot_item(item_index) != existing_item || !existing_item.can_lewd_remove(source))
 						return
-				else if(QDELETED(new_item) || source.get_active_held_item() != new_item || target.get_lewd_slot_item(item_index) || !is_toy_compatible(new_item, item_index))
+				else if(QDELETED(new_item) || source.get_active_held_item() != new_item || target.get_lewd_slot_item(item_index) || !is_toy_compatible(new_item, item_index) || !new_item.can_lewd_attach(target, source, item_index))
 					return
 
 				if(existing_item)
@@ -416,12 +473,21 @@
 
 			return chest_exposed
 
-		if(ORGAN_SLOT_PENIS)
-			return target.has_penis(required_state = REQUIRE_GENITAL_EXPOSED)
-		if(ORGAN_SLOT_VAGINA)
-			return target.has_vagina(required_state = REQUIRE_GENITAL_EXPOSED)
-		if(ORGAN_SLOT_ANUS)
-			return target.has_anus(required_state = REQUIRE_GENITAL_EXPOSED)
+		if(BODY_ZONE_PRECISE_MOUTH)
+			return target.get_bodypart(BODY_ZONE_HEAD) && !target.is_mouth_covered()
+
+		if(ORGAN_SLOT_PENIS, ORGAN_SLOT_VAGINA, ORGAN_SLOT_ANUS)
+			// A genital a worn device closes off takes no other toy, though the device itself can come out.
+			var/obj/item/organ/genital/genital = target.get_organ_slot(slot_index)
+			if(genital?.blocked_by && genital.blocked_by != target.get_lewd_slot_item(slot_index))
+				return FALSE
+			switch(slot_index)
+				if(ORGAN_SLOT_PENIS)
+					return target.has_penis(required_state = REQUIRE_GENITAL_EXPOSED)
+				if(ORGAN_SLOT_VAGINA)
+					return target.has_vagina(required_state = REQUIRE_GENITAL_EXPOSED)
+				if(ORGAN_SLOT_ANUS)
+					return target.has_anus(required_state = REQUIRE_GENITAL_EXPOSED)
 
 /// Decides if a player should be able to insert or remove an item from a provided lewd slot_index.
 /datum/component/interactable/proc/is_toy_compatible(obj/item/clothing/sextoy/item, slot_index)
@@ -437,6 +503,8 @@
 			return item.lewd_slot_flags & LEWD_SLOT_ANUS
 		if(ORGAN_SLOT_NIPPLES)
 			return item.lewd_slot_flags & LEWD_SLOT_NIPPLES
+		if(BODY_ZONE_PRECISE_MOUTH)
+			return item.lewd_slot_flags & LEWD_SLOT_MOUTH
 		else
 			return FALSE
 

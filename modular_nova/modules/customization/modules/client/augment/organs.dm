@@ -50,9 +50,7 @@
 
 		var/datum/mind/holder_mind = human_holder.mind
 
-		new_brain.modular_persistence = old_brain.modular_persistence
-		old_brain.modular_persistence = null
-		new_brain.modular_persistence?.owner_brain = WEAKREF(new_brain)
+		old_brain.modular_persistence?.transfer_to_brain(new_brain)
 
 		new_brain.copy_traits_from(old_brain)
 		new_brain.Insert(human_holder, special = TRUE)

@@ -536,6 +536,8 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 	// These two are locked to one type only, and shouldn't be widely available, hence why they runtime otherwise.
 	// Can't be bothered adding more to them.
 	returnable_list += list(/obj/item/organ/neck_accessory, /obj/item/organ/head_accessory)
+	// Custom graffiti lives only on a wall, floor or window, and deletes itself anywhere else.
+	returnable_list += typesof(/obj/effect/decal/cleanable/crayon/custom)
 	//NOVA EDIT ADDITION END
 	return returnable_list
 

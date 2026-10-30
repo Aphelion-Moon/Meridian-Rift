@@ -68,6 +68,14 @@
 /datum/preference/toggle/erp/sounds
 	savefile_key = "erp_sounds_pref"
 
+/// Lewd interactions leave your scent on partners who receive scents.
+/datum/preference/toggle/erp/scent_transfer_give
+	savefile_key = "scent_transfer_give_pref"
+
+/// Partners who give their scent leave it on you during lewd interactions.
+/datum/preference/toggle/erp/scent_transfer_receive
+	savefile_key = "scent_transfer_receive_pref"
+
 /datum/preference/toggle/erp/sex_toy
 	savefile_key = "sextoy_pref"
 
@@ -99,6 +107,9 @@
 
 /datum/preference/toggle/erp/breast_shrinkage
 	savefile_key = "breast_shrinkage_pref"
+
+/datum/preference/toggle/erp/butt_enlargement
+	savefile_key = "butt_enlargement_pref"
 
 /datum/preference/toggle/erp/penis_enlargement
 	savefile_key = "penis_enlargement_pref"

@@ -11,6 +11,19 @@
 	name = "Ballet Heels (Worn, Digi)"
 	icon_file = 'modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_clothing/lewd_shoes_digi.dmi'
 
+/datum/greyscale_config/pointe_boots
+	name = "Pointe Boots"
+	icon_file = 'modular_nova/modules/modular_items/lewd_items/icons/obj/lewd_clothing/lewd_shoes.dmi'
+	json_config = 'modular_nova/modules/GAGS/nsfw/json_configs/clothing/shoes/pointe_boots.json'
+
+/datum/greyscale_config/pointe_boots/worn
+	name = "Pointe Boots (Worn)"
+	icon_file = 'modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_clothing/lewd_shoes.dmi'
+
+/datum/greyscale_config/pointe_boots/worn/digi
+	name = "Pointe Boots (Worn, Digi)"
+	icon_file = 'modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_clothing/lewd_shoes_digi.dmi'
+
 /datum/greyscale_config/latex_socks
 	name = "Latex Socks"
 	icon_file = 'modular_nova/modules/modular_items/lewd_items/icons/obj/lewd_clothing/lewd_shoes.dmi'
