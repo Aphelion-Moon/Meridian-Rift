@@ -44,22 +44,22 @@
 /obj/item/stack/sheet/mineral/wood/fifty,
 /obj/item/storage/box/matches,
 /obj/machinery/light_switch/directional/north{
-	pixel_x = -9;
-	name = "Cabin Light Switch"
+	name = "Cabin Light Switch";
+	pixel_x = -9
 	},
 /obj/machinery/button/door/directional/north{
-	name = "Cabin Door Lock";
-	pixel_y = 26;
 	id = "Dorm5";
+	name = "Cabin Door Lock";
+	normaldoorcontrol = 1;
 	pixel_x = -1;
-	specialfunctions = 4;
-	normaldoorcontrol = 1
+	pixel_y = 26;
+	specialfunctions = 4
 	},
 /obj/machinery/button/curtain{
+	dir = 1;
 	id = "dormscurtain5";
-	pixel_y = 26;
 	pixel_x = 8;
-	dir = 1
+	pixel_y = 26
 	},
 /turf/open/floor/stone,
 /area/station/commons/dorms/room5)
@@ -105,10 +105,10 @@
 /obj/machinery/door/airlock/public/glass{
 	name = "Cryopods"
 	},
-/obj/effect/landmark/navigate_destination,
 /obj/machinery/atmospherics/pipe/smart/manifold4w/supply/hidden/layer4,
 /obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
 /obj/structure/cable,
+/obj/effect/landmark/navigate_destination/cryo,
 /turf/open/floor/iron,
 /area/station/common/cryopods)
 "bX" = (
@@ -192,9 +192,9 @@
 /obj/structure/window/spawner/directional/east,
 /obj/structure/table/wood,
 /obj/structure/closet/mini_fridge{
-	pixel_y = 5;
+	name = "mini-fridge";
 	pixel_x = 3;
-	name = "mini-fridge"
+	pixel_y = 5
 	},
 /obj/item/reagent_containers/condiment/sugar,
 /obj/item/reagent_containers/condiment/soymilk,
@@ -234,8 +234,8 @@
 "ea" = (
 /obj/structure/table/wood,
 /obj/item/reagent_containers/cup/glass/mug{
-	pixel_y = 8;
-	pixel_x = 8
+	pixel_x = 8;
+	pixel_y = 8
 	},
 /obj/item/reagent_containers/cup/glass/mug/britcup,
 /turf/open/floor/carpet/red,
@@ -449,8 +449,8 @@
 	dir = 1
 	},
 /obj/machinery/door/airlock{
-	name = "Cabin 5";
-	id_tag = "Dorm5"
+	id_tag = "Dorm5";
+	name = "Cabin 5"
 	},
 /obj/structure/cable,
 /obj/machinery/atmospherics/pipe/smart/manifold4w/supply/hidden/layer4,
@@ -526,12 +526,12 @@
 	pixel_y = 7
 	},
 /obj/item/bdsm_candle{
-	pixel_y = 1;
-	pixel_x = -7
+	pixel_x = -7;
+	pixel_y = 1
 	},
 /obj/item/reagent_containers/cup/glass/mug/coco{
-	pixel_y = 1;
-	pixel_x = 8
+	pixel_x = 8;
+	pixel_y = 1
 	},
 /obj/effect/turf_decal/siding/wood/corner{
 	dir = 8
@@ -917,8 +917,8 @@
 	pixel_x = -4
 	},
 /obj/item/food/colonial_course/kolache/cream_cheese{
-	pixel_y = 10;
-	pixel_x = 2
+	pixel_x = 2;
+	pixel_y = 10
 	},
 /turf/open/floor/stone,
 /area/station/service/cafeteria)
@@ -985,22 +985,22 @@
 /obj/structure/dresser,
 /obj/machinery/light/directional/west,
 /obj/machinery/light_switch/directional/west{
-	pixel_y = -9;
-	name = "Cabin Light Switch"
+	name = "Cabin Light Switch";
+	pixel_y = -9
 	},
 /obj/machinery/button/door/directional/west{
-	pixel_x = -26;
-	name = "Cabin Door Lock";
 	id = "Dorm4";
+	name = "Cabin Door Lock";
+	normaldoorcontrol = 1;
+	pixel_x = -26;
 	pixel_y = -1;
-	specialfunctions = 4;
-	normaldoorcontrol = 1
+	specialfunctions = 4
 	},
 /obj/machinery/button/curtain{
+	dir = 1;
 	id = "dormscurtain4";
-	pixel_y = 7;
 	pixel_x = -26;
-	dir = 1
+	pixel_y = 7
 	},
 /turf/open/floor/wood/parquet,
 /area/station/commons/dorms/room4)
@@ -1045,8 +1045,8 @@
 	dir = 1
 	},
 /obj/structure/fireplace{
-	pixel_x = 0;
-	bound_width = 64
+	bound_width = 64;
+	pixel_x = 0
 	},
 /turf/open/floor/stone,
 /area/station/service/cafeteria)
@@ -1107,10 +1107,10 @@
 "vd" = (
 /obj/effect/spawner/structure/window/reinforced,
 /obj/structure/curtain/cloth/fancy/mechanical{
-	id = "dormscurtain4";
+	color = "#E3B510";
 	icon_state = "bathroom-open";
 	icon_type = "bathroom";
-	color = "#E3B510"
+	id = "dormscurtain4"
 	},
 /turf/open/floor/stone,
 /area/station/commons/dorms/room4)
@@ -1152,20 +1152,20 @@
 "vX" = (
 /obj/structure/table/wood,
 /obj/structure/bedsheetbin/basket{
-	pixel_y = 5;
-	pixel_x = -3
+	pixel_x = -3;
+	pixel_y = 5
 	},
 /obj/item/reagent_containers/cup/glass/waterbottle{
-	pixel_y = 14;
-	pixel_x = 9
+	pixel_x = 9;
+	pixel_y = 14
 	},
 /obj/item/reagent_containers/cup/glass/waterbottle{
-	pixel_y = 9;
-	pixel_x = 9
+	pixel_x = 9;
+	pixel_y = 9
 	},
 /obj/item/reagent_containers/cup/glass/waterbottle{
-	pixel_y = 4;
-	pixel_x = 9
+	pixel_x = 9;
+	pixel_y = 4
 	},
 /obj/machinery/requests_console/auto_name/directional/north,
 /turf/open/floor/wood/large,
@@ -1231,10 +1231,10 @@
 "xg" = (
 /obj/effect/spawner/structure/window/reinforced,
 /obj/structure/curtain/cloth/fancy/mechanical{
-	id = "dormscurtain3";
+	color = "#E3B510";
 	icon_state = "bathroom-open";
 	icon_type = "bathroom";
-	color = "#E3B510"
+	id = "dormscurtain3"
 	},
 /turf/open/floor/stone,
 /area/station/commons/dorms/room7)
@@ -1306,8 +1306,8 @@
 	dir = 8
 	},
 /obj/item/table_clock{
-	pixel_y = 16;
-	pixel_x = 1
+	pixel_x = 1;
+	pixel_y = 16
 	},
 /turf/open/floor/wood/parquet,
 /area/station/commons/dorms/room1)
@@ -1361,22 +1361,22 @@
 /area/station/commons/dorms)
 "yH" = (
 /obj/machinery/light_switch/directional/south{
-	pixel_x = 9;
-	name = "Cabin Light Switch"
+	name = "Cabin Light Switch";
+	pixel_x = 9
 	},
 /obj/machinery/button/door/directional/south{
-	pixel_y = -26;
 	id = "Dorm2";
 	name = "Cabin Door Lock";
+	normaldoorcontrol = 1;
 	pixel_x = 1;
-	specialfunctions = 4;
-	normaldoorcontrol = 1
+	pixel_y = -26;
+	specialfunctions = 4
 	},
 /obj/machinery/button/curtain{
+	dir = 1;
 	id = "dormscurtain2";
-	pixel_y = -26;
 	pixel_x = -8;
-	dir = 1
+	pixel_y = -26
 	},
 /turf/open/floor/carpet/polar_bear,
 /area/station/commons/dorms/room6)
@@ -1551,8 +1551,8 @@
 	pixel_y = 7
 	},
 /obj/item/bong{
-	pixel_y = 5;
-	pixel_x = -5
+	pixel_x = -5;
+	pixel_y = 5
 	},
 /turf/open/floor/wood/parquet,
 /area/station/commons/dorms/room7)
@@ -1577,9 +1577,9 @@
 "BZ" = (
 /obj/effect/spawner/structure/window/reinforced,
 /obj/structure/curtain/cloth/fancy/mechanical{
-	id = "dormscurtain2";
 	icon_state = "bathroom-open";
-	icon_type = "bathroom"
+	icon_type = "bathroom";
+	id = "dormscurtain2"
 	},
 /turf/open/floor/stone,
 /area/station/commons/dorms/room6)
@@ -1751,22 +1751,22 @@
 /obj/structure/dresser,
 /obj/machinery/light/directional/west,
 /obj/machinery/light_switch/directional/south{
-	pixel_x = 9;
-	name = "Cabin Light Switch"
+	name = "Cabin Light Switch";
+	pixel_x = 9
 	},
 /obj/machinery/button/door/directional/south{
-	pixel_y = -26;
 	id = "Dorm3";
 	name = "Cabin Door Lock";
+	normaldoorcontrol = 1;
 	pixel_x = 1;
-	specialfunctions = 4;
-	normaldoorcontrol = 1
+	pixel_y = -26;
+	specialfunctions = 4
 	},
 /obj/machinery/button/curtain{
+	dir = 1;
 	id = "dormscurtain3";
-	pixel_y = -26;
 	pixel_x = -8;
-	dir = 1
+	pixel_y = -26
 	},
 /turf/open/floor/wood/parquet,
 /area/station/commons/dorms/room7)
@@ -1882,8 +1882,8 @@
 /obj/structure/table/wood,
 /obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
 /obj/item/flashlight/lantern/on{
-	pixel_y = 14;
-	pixel_x = 6
+	pixel_x = 6;
+	pixel_y = 14
 	},
 /obj/item/uplink/old_radio{
 	pixel_y = 3
@@ -1922,8 +1922,8 @@
 "HV" = (
 /obj/effect/turf_decal/siding/wood,
 /obj/machinery/door/airlock{
-	name = "Cabin 2";
-	id_tag = "Dorm2"
+	id_tag = "Dorm2";
+	name = "Cabin 2"
 	},
 /obj/structure/cable,
 /obj/machinery/atmospherics/pipe/smart/manifold4w/supply/hidden/layer4,
@@ -2361,12 +2361,12 @@
 /area/station/commons/dorms/room1)
 "Ra" = (
 /obj/item/flashlight/lamp/green{
-	pixel_y = 15;
-	pixel_x = 5
+	pixel_x = 5;
+	pixel_y = 15
 	},
 /obj/item/lighter{
-	pixel_y = -3;
-	pixel_x = -39
+	pixel_x = -39;
+	pixel_y = -3
 	},
 /obj/item/reagent_containers/cup/glass/mug/nanotrasen{
 	pixel_x = -3;
@@ -2453,22 +2453,22 @@
 /obj/item/storage/box/matches,
 /obj/structure/cable,
 /obj/machinery/light_switch/directional/north{
-	pixel_x = 9;
-	name = "Cabin Light Switch"
+	name = "Cabin Light Switch";
+	pixel_x = 9
 	},
 /obj/machinery/button/door/directional/north{
-	pixel_x = 1;
 	id = "Dorm1";
 	name = "Cabin Door Lock";
-	pixel_y = 26;
 	normaldoorcontrol = 1;
+	pixel_x = 1;
+	pixel_y = 26;
 	specialfunctions = 4
 	},
 /obj/machinery/button/curtain{
+	dir = 1;
 	id = "dormscurtain1";
-	pixel_y = 26;
 	pixel_x = -8;
-	dir = 1
+	pixel_y = 26
 	},
 /turf/open/floor/stone,
 /area/station/commons/dorms/room1)
@@ -2555,8 +2555,8 @@
 	dir = 1
 	},
 /obj/item/stack/sheet/mineral/wood/fifty{
-	pixel_y = 16;
-	pixel_x = 2
+	pixel_x = 2;
+	pixel_y = 16
 	},
 /turf/open/floor/stone,
 /area/station/service/cafeteria)
@@ -2642,17 +2642,17 @@
 	},
 /obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
 /obj/item/reagent_containers/cup/glass/bottle/wine{
+	name = "Casa di Traseni - Rosso";
 	pixel_x = 6;
-	pixel_y = 15;
-	name = "Casa di Traseni - Rosso"
+	pixel_y = 15
 	},
 /obj/item/reagent_containers/cup/glass/drinkingglass/filled{
-	pixel_y = 15;
-	pixel_x = -8
+	pixel_x = -8;
+	pixel_y = 15
 	},
 /obj/item/reagent_containers/cup/glass/drinkingglass/filled{
-	pixel_y = 10;
-	pixel_x = -4
+	pixel_x = -4;
+	pixel_y = 10
 	},
 /obj/effect/turf_decal/siding/wood{
 	dir = 4
