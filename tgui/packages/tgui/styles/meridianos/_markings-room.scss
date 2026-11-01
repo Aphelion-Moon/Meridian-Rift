@@ -1377,7 +1377,6 @@ $neon-on: markings-neon-on;
 
 .MarkingsRoom__label {
   font: 10px/1 $display;
-  letter-spacing: 0.16em;
   color: var(--room-muted);
 }
 
@@ -1393,7 +1392,6 @@ $neon-on: markings-neon-on;
 .MarkingsRoom__selWhere {
   margin-top: 5px;
   font: 10px/1 $display;
-  letter-spacing: 0.14em;
   color: var(--room-neon);
 }
 
@@ -1509,7 +1507,7 @@ $neon-on: markings-neon-on;
   margin-top: 2px;
   border-radius: 4px 4px 1px 1px;
   background:
-    linear-gradient(90deg, rgb(255 255 255 / 30%), transparent 50%),
+    linear-gradient(90deg, rgb(255 255 255 / 35%) 3px, transparent 0),
     var(--marker);
   box-shadow: inset 0 -2px 0 rgb(0 0 0 / 30%);
 }
@@ -1518,15 +1516,17 @@ $neon-on: markings-neon-on;
   width: 16px;
   height: 29px;
   border-radius: 1px 1px 4px 4px;
+  // Shaded in flat bands, as drawn: a lit edge, the barrel, its shadow side.
+  // A stop at 0 sits on the one before it, so each band ends hard.
   background:
     linear-gradient(
       90deg,
-      rgb(255 255 255 / 18%),
-      transparent 40%,
-      rgb(0 0 0 / 35%)
+      rgb(255 255 255 / 16%) 3px,
+      transparent 0 11px,
+      rgb(0 0 0 / 35%) 0
     ),
     linear-gradient(180deg, var(--marker) 0 5px, #1e1e20 5px);
-  box-shadow: 0 3px 5px rgb(0 0 0 / 50%);
+  box-shadow: 0 2px 0 rgb(0 0 0 / 55%);
   transition: box-shadow 0.2s;
 
   .MarkingsRoom__marker--current & {
@@ -1540,7 +1540,6 @@ $neon-on: markings-neon-on;
   position: absolute;
   top: 49px;
   font: 9px/1 $display;
-  letter-spacing: 0.1em;
   color: var(--room-muted);
   white-space: nowrap;
 
@@ -1568,9 +1567,9 @@ $neon-on: markings-neon-on;
     background:
       linear-gradient(
         90deg,
-        rgb(255 255 255 / 25%),
-        transparent 40%,
-        rgb(0 0 0 / 35%)
+        rgb(255 255 255 / 22%) 4px,
+        transparent 0 16px,
+        rgb(0 0 0 / 35%) 0
       ),
       linear-gradient(
         180deg,
@@ -1658,6 +1657,101 @@ $neon-on: markings-neon-on;
       box-shadow:
         inset 0 0 0 1px faded(var(--room-neon), 0.7),
         0 0 20px faded(var(--room-neon), 0.2);
+    }
+  }
+}
+
+// MARK: Club counter
+
+// The club's own counter, in Cyberpunk, Augmentation and Aphelion (CLUB_ROOMS
+// in Room.tsx); the rules above are what every room's counter builds on. The
+// marking's name written on a strip of masking tape, the paints saying which is
+// in use by losing their cap, and keys that are neither outlined nor glowing.
+.AugmentsRoom--club {
+  .MarkingsRoom__label {
+    display: none;
+  }
+
+  .MarkingsRoom__selName {
+    width: fit-content;
+    max-width: 100%;
+    margin: 2px 0 0 -2px;
+    padding: 4px 14px 2px 12px;
+    font: 20px/1.15 $marker;
+    color: #201d22;
+    background: #e2dbc6;
+    rotate: -1.5deg;
+    // Torn at both ends.
+    clip-path: polygon(
+      2px 0,
+      calc(100% - 3px) 0,
+      100% 22%,
+      calc(100% - 2px) 45%,
+      100% 70%,
+      calc(100% - 3px) 100%,
+      3px 100%,
+      0 76%,
+      2px 50%,
+      0 24%
+    );
+  }
+
+  .MarkingsRoom__selWhere {
+    margin-top: 9px;
+  }
+
+  // Its keys, at the counter and in a marking's right-click menu: smoked
+  // glass, the room showing through.
+  .MarkingsRoom__pill,
+  .MarkingsRoom__big {
+    border-radius: 3px;
+    background: rgb(255 255 255 / 7%);
+    box-shadow: inset 0 -2px 0 rgb(0 0 0 / 35%);
+
+    &:hover:not(:disabled) {
+      background: rgb(255 255 255 / 12%);
+      box-shadow: inset 0 -2px 0 rgb(0 0 0 / 35%);
+    }
+
+    &:active {
+      box-shadow: none;
+      translate: 0 1px;
+    }
+  }
+
+  .MarkingsRoom__pill {
+    height: 30px;
+    padding: 0 12px;
+  }
+
+  .MarkingsRoom__pill--on {
+    background: faded(var(--room-uv), 0.3);
+  }
+
+  .MarkingsRoom__pill--on .MarkingsRoom__pillDot {
+    box-shadow: none;
+  }
+
+  .MarkingsRoom__markers {
+    margin-top: 22px;
+  }
+
+  // The paint in use isn't ringed: a marker stays on the shelf with its cap
+  // laid down beside it, and the can is lifted.
+  .MarkingsRoom__marker--current .MarkingsRoom__markerBody {
+    box-shadow: 0 2px 0 rgb(0 0 0 / 55%);
+  }
+
+  .MarkingsRoom__marker--current:not(.MarkingsRoom__marker--mix) {
+    transform: none;
+
+    .MarkingsRoom__markerCap {
+      translate: 16px 28px;
+      rotate: 90deg;
+    }
+
+    .MarkingsRoom__markerLabel {
+      translate: none;
     }
   }
 }
