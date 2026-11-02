@@ -3392,9 +3392,6 @@
 	pixel_y = 18
 	},
 /obj/structure/platform/cult,
-/obj/item/skeleton_key{
-	pixel_y = -9
-	},
 /turf/open/floor/cult,
 /area/lavaland/surface/outdoors)
 "bhv" = (
@@ -5188,9 +5185,6 @@
 	},
 /obj/effect/turf_decal/tile/bar/opposingcorners,
 /obj/structure/table/reinforced,
-/obj/structure/displaycase/forsale/kitchen{
-	pixel_y = 8
-	},
 /obj/effect/turf_decal/siding/wood{
 	dir = 1
 	},
@@ -6969,9 +6963,6 @@
 "cnW" = (
 /obj/structure/disposalpipe/segment{
 	dir = 9
-	},
-/obj/structure/sign/plaques/kiddie/library{
-	pixel_y = -32
 	},
 /turf/open/floor/iron/dark/brick_half{
 	dir = 1
@@ -26221,9 +26212,6 @@
 /turf/open/floor/plating,
 /area/station/maintenance/starboard/lesser)
 "iDF" = (
-/obj/structure/sign/plaques/kiddie{
-	pixel_y = 32
-	},
 /obj/machinery/camera/directional/north{
 	c_tag = "AI Upload Chamber - Fore";
 	network = list("aiupload")
@@ -45690,9 +45678,8 @@
 /turf/open/floor/iron/checker,
 /area/station/maintenance/aft/lesser)
 "pcR" = (
-/obj/structure/stone_tile/block,
-/obj/structure/sign/poster/contraband/got_wood/directional/north,
-/turf/open/floor/wood/large,
+/obj/structure/plaque/kiddie/library,
+/turf/closed/indestructible/riveted/boss,
 /area/station/service/library)
 "pcT" = (
 /obj/structure/stone_tile{
@@ -93253,8 +93240,8 @@ vhd
 kcB
 isa
 lPB
-rza
 pcR
+cVn
 gkq
 cLC
 rza
