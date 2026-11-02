@@ -913,6 +913,13 @@
 /obj/machinery/space_heater,
 /turf/open/floor/plating,
 /area/station/maintenance/starboard/lesser)
+"aqi" = (
+/obj/machinery/light/floor,
+/obj/structure/sign/painting/library{
+	pixel_x = 32
+	},
+/turf/open/floor/cult,
+/area/station/service/library)
 "aql" = (
 /obj/structure/table,
 /obj/item/surgical_drapes,
@@ -3851,15 +3858,16 @@
 /turf/open/misc/asteroid/basalt/lava_land_surface,
 /area/lavaland/surface/outdoors)
 "boY" = (
-/obj/structure/stone_tile/slab{
-	pixel_x = 2;
-	pixel_y = 1
+/obj/machinery/atmospherics/pipe/smart/manifold4w/supply/hidden/layer4,
+/obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
+/obj/machinery/atmospherics/pipe/smart/manifold4w/cyan/hidden/layer5,
+/obj/effect/turf_decal/stripes/corner{
+	dir = 8
 	},
-/obj/item/flashlight/lantern/on{
-	pixel_y = 2
+/turf/open/floor/iron/dark/brick_half{
+	dir = 1
 	},
-/turf/open/floor/cult,
-/area/station/service/chapel)
+/area/station/hallway/secondary/entry)
 "bph" = (
 /obj/structure/cable,
 /obj/machinery/power/apc/auto_name/directional/north,
@@ -33866,6 +33874,13 @@
 	},
 /turf/open/misc/asteroid/basalt/standard_air,
 /area/station/hallway/primary/central)
+"lfT" = (
+/obj/structure/cable,
+/obj/structure/sign/poster/official/do_not_question/directional/south,
+/turf/open/floor/iron/dark/brick_half{
+	dir = 1
+	},
+/area/station/hallway/secondary/command)
 "lgb" = (
 /obj/structure/stone_tile/slab,
 /obj/machinery/light/warm/dim/directional/south,
@@ -36230,11 +36245,6 @@
 	},
 /turf/open/floor/iron/dark/textured_half,
 /area/station/hallway/secondary/exit/departure_lounge)
-"lYC" = (
-/obj/structure/stone_tile/block,
-/obj/structure/sign/poster/contraband/got_wood/directional/north,
-/turf/open/floor/wood/large,
-/area/station/service/library)
 "lYQ" = (
 /obj/structure/cable,
 /obj/machinery/holopad,
@@ -42700,12 +42710,15 @@
 /turf/open/floor/iron/grimy,
 /area/station/tcommsat/computer)
 "oel" = (
-/obj/structure/cable,
-/obj/structure/sign/poster/official/do_not_question/directional/south,
-/turf/open/floor/iron/dark/brick_half{
-	dir = 1
+/obj/structure/stone_tile/slab{
+	pixel_x = 2;
+	pixel_y = 1
 	},
-/area/station/hallway/secondary/command)
+/obj/item/flashlight/lantern/on{
+	pixel_y = 2
+	},
+/turf/open/floor/cult,
+/area/station/service/chapel)
 "oeo" = (
 /obj/structure/table/optable,
 /obj/machinery/vitals_reader/directional/west,
@@ -45677,11 +45690,9 @@
 /turf/open/floor/iron/checker,
 /area/station/maintenance/aft/lesser)
 "pcR" = (
-/obj/machinery/light/floor,
-/obj/structure/sign/painting/library{
-	pixel_x = 32
-	},
-/turf/open/floor/cult,
+/obj/structure/stone_tile/block,
+/obj/structure/sign/poster/contraband/got_wood/directional/north,
+/turf/open/floor/wood/large,
 /area/station/service/library)
 "pcT" = (
 /obj/structure/stone_tile{
@@ -52484,17 +52495,6 @@
 /obj/machinery/airalarm/directional/south,
 /turf/open/floor/iron/dark/smooth_large,
 /area/station/medical/chemistry)
-"rvt" = (
-/obj/machinery/atmospherics/pipe/smart/manifold4w/supply/hidden/layer4,
-/obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
-/obj/machinery/atmospherics/pipe/smart/manifold4w/cyan/hidden/layer5,
-/obj/effect/turf_decal/stripes/corner{
-	dir = 8
-	},
-/turf/open/floor/iron/dark/brick_half{
-	dir = 1
-	},
-/area/station/hallway/secondary/entry)
 "rvz" = (
 /obj/effect/spawner/structure/window/reinforced,
 /turf/open/floor/mineral/plastitanium,
@@ -63398,6 +63398,7 @@
 	name = "Cryopods"
 	},
 /obj/machinery/door/firedoor,
+/obj/effect/landmark/navigate_destination/cryo,
 /turf/open/floor/iron/dark/smooth_half{
 	dir = 8
 	},
@@ -82702,7 +82703,7 @@ lwg
 nkT
 nkT
 qSm
-rvt
+boY
 ibM
 mEF
 wEI
@@ -86919,7 +86920,7 @@ odi
 odi
 wti
 wti
-boY
+oel
 djC
 wNX
 dUX
@@ -87947,7 +87948,7 @@ odi
 odi
 wti
 wti
-boY
+oel
 djC
 wNX
 dxc
@@ -93256,7 +93257,7 @@ kcB
 isa
 lPB
 rza
-lYC
+pcR
 gkq
 cLC
 rza
@@ -94025,7 +94026,7 @@ xuT
 som
 rza
 rmj
-pcR
+aqi
 gxW
 cVn
 gkq
@@ -103795,7 +103796,7 @@ sIf
 dLp
 plQ
 cXD
-oel
+lfT
 ktD
 joZ
 iSC
