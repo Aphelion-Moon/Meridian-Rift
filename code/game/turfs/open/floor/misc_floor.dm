@@ -249,6 +249,11 @@
 	custom_materials = list(/datum/material/sandstone=SMALL_MATERIAL_AMOUNT*5)
 	floor_tile = /obj/item/stack/tile/mineral/sandstone
 
+/turf/open/floor/sandstone/cobbled
+	name = "cobbled sandstone floor"
+	icon_state = "sandstone_cobbled"
+	floor_tile = /obj/item/stack/tile/mineral/sandstone/cobbled
+
 /turf/open/floor/eighties
 	name = "retro floor"
 	desc = "This one takes you back."
