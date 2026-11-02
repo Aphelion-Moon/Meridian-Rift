@@ -16,6 +16,7 @@
 	"traits": [
 		{
 			"Mining": "true",
+			"Linkage": null,
 			"Gravity": true,
 			"Baseturf": "/turf/open/misc/asteroid/basalt/lava_land_surface",
 			"Weather_Ashstorm": true,

@@ -913,13 +913,6 @@
 /obj/machinery/space_heater,
 /turf/open/floor/plating,
 /area/station/maintenance/starboard/lesser)
-"aqi" = (
-/obj/machinery/light/floor,
-/obj/structure/sign/painting/library{
-	pixel_x = 32
-	},
-/turf/open/floor/cult,
-/area/station/service/library)
 "aql" = (
 /obj/structure/table,
 /obj/item/surgical_drapes,
@@ -954,15 +947,15 @@
 /turf/open/misc/asteroid/basalt/standard_air,
 /area/station/service/library)
 "aqL" = (
-/obj/structure/railing/corner{
-	dir = 4;
-	resistance_flags = 3
+/obj/structure/stone_tile/slab{
+	pixel_x = 2;
+	pixel_y = 1
 	},
-/obj/effect/turf_decal/stripes/corner{
-	dir = 4
+/obj/item/flashlight/lantern/on{
+	pixel_y = 2
 	},
-/turf/open/lava/smooth/lava_land_surface,
-/area/lavaland/surface/outdoors)
+/turf/open/floor/cult,
+/area/station/service/chapel)
 "aqX" = (
 /obj/structure/cable,
 /obj/machinery/atmospherics/pipe/smart/manifold4w/supply/hidden/layer4,
@@ -5254,6 +5247,13 @@
 /mob/living/basic/clockwork_marauder,
 /turf/open/misc/asteroid/basalt/lava_land_surface,
 /area/lavaland/surface/outdoors)
+"bKu" = (
+/obj/structure/cable,
+/obj/structure/sign/poster/official/do_not_question/directional/south,
+/turf/open/floor/iron/dark/brick_half{
+	dir = 1
+	},
+/area/station/hallway/secondary/command)
 "bKx" = (
 /obj/effect/turf_decal/stripes/line{
 	dir = 4
@@ -16349,6 +16349,13 @@
 /obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
 /turf/open/floor/iron/dark,
 /area/station/science/lab)
+"fsD" = (
+/obj/machinery/light/floor,
+/obj/structure/sign/painting/library{
+	pixel_x = 32
+	},
+/turf/open/floor/cult,
+/area/station/service/library)
 "fsO" = (
 /obj/effect/turf_decal/stripes/corner{
 	dir = 1
@@ -33874,13 +33881,6 @@
 	},
 /turf/open/misc/asteroid/basalt/standard_air,
 /area/station/hallway/primary/central)
-"lfT" = (
-/obj/structure/cable,
-/obj/structure/sign/poster/official/do_not_question/directional/south,
-/turf/open/floor/iron/dark/brick_half{
-	dir = 1
-	},
-/area/station/hallway/secondary/command)
 "lgb" = (
 /obj/structure/stone_tile/slab,
 /obj/machinery/light/warm/dim/directional/south,
@@ -42710,15 +42710,15 @@
 /turf/open/floor/iron/grimy,
 /area/station/tcommsat/computer)
 "oel" = (
-/obj/structure/stone_tile/slab{
-	pixel_x = 2;
-	pixel_y = 1
+/obj/structure/railing/corner{
+	dir = 4;
+	resistance_flags = 3
 	},
-/obj/item/flashlight/lantern/on{
-	pixel_y = 2
+/obj/effect/turf_decal/stripes/corner{
+	dir = 4
 	},
-/turf/open/floor/cult,
-/area/station/service/chapel)
+/turf/open/lava/smooth/lava_land_surface,
+/area/lavaland/surface/outdoors)
 "oeo" = (
 /obj/structure/table/optable,
 /obj/machinery/vitals_reader/directional/west,
@@ -59712,9 +59712,6 @@
 	pixel_x = -10;
 	pixel_y = 10
 	},
-/obj/structure/sign/painting/large/library{
-	pixel_y = 28
-	},
 /turf/open/floor/iron/dark/small,
 /area/station/command/heads_quarters/captain/private)
 "tUc" = (
@@ -75759,7 +75756,7 @@ pAb
 pAb
 uQf
 bZf
-aqL
+oel
 goU
 goU
 goU
@@ -86920,7 +86917,7 @@ odi
 odi
 wti
 wti
-oel
+aqL
 djC
 wNX
 dUX
@@ -87948,7 +87945,7 @@ odi
 odi
 wti
 wti
-oel
+aqL
 djC
 wNX
 dxc
@@ -94026,7 +94023,7 @@ xuT
 som
 rza
 rmj
-aqi
+fsD
 gxW
 cVn
 gkq
@@ -103796,7 +103793,7 @@ sIf
 dLp
 plQ
 cXD
-lfT
+bKu
 ktD
 joZ
 iSC
