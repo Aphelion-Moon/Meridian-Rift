@@ -318,6 +318,14 @@ required_map = "tramstation.dmm"
 coordinates = [46, 109, 2]
 trait_name = "Station"
 
+# Tramstation Dorms Common Areas
+[templates.tramstation_dorms_common_areas]
+map_files = ["tramstation_dorms_common_areas.dmm"]
+directory = "_maps/nova/automapper/templates/tramstation/"
+required_map = "tramstation.dmm"
+coordinates = [59, 84, 1]
+trait_name = "Station"
+
 # Lavaland NE Ashwalker Fortress
 [templates.lavaland_ashwalker_fortress]
 map_files = ["lavaland_ashwalker_fortress.dmm"]
