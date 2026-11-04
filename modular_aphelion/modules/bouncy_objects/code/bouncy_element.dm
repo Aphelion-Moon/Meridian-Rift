@@ -100,11 +100,12 @@
  * Sends an ejected ammo casing hopping away from the gun.
  *
  * COMSIG_CASING_EJECTED is sent before the wielder tries to catch the casing, so a caught casing is in a hand
- * by the time [/datum/element/bouncy/proc/rebound] checks it, and stays there.
+ * by the time [/datum/element/bouncy/proc/rebound] checks it, and stays there. The hop lands silently, since
+ * everything that sends the signal then plays the casing's clatter itself, through bounce_away().
  */
 /datum/element/bouncy/proc/on_ejected(atom/movable/source)
 	SIGNAL_HANDLER
-	schedule_rebound(source, pick(GLOB.alldirs), eject_hop_range, source.throw_speed, max_bounces)
+	schedule_rebound(source, pick(GLOB.alldirs), eject_hop_range, source.throw_speed, max_bounces, TRUE)
 
 /**
  * Works out where the rebound from one impact goes and schedules it.
@@ -146,17 +147,18 @@
  * * distance - Tiles the bounce travels. May be fractional.
  * * speed - Throw speed, in tiles per decisecond.
  * * bounces_left - Rebounds this bounce may chain into after it lands.
+ * * silent_landing - Whether the bounce lands without an impact, so the object's landing sounds do not play.
  *
  * Returns whether the bounce was scheduled.
  */
-/datum/element/bouncy/proc/schedule_rebound(atom/movable/source, direction, distance, speed, bounces_left)
+/datum/element/bouncy/proc/schedule_rebound(atom/movable/source, direction, distance, speed, bounces_left, silent_landing = FALSE)
 	if(budget_tick != world.time)
 		budget_tick = world.time
 		bounces_this_tick = 0
 	if(bounces_this_tick >= BOUNCE_MAX_PER_TICK)
 		return FALSE
 	bounces_this_tick++
-	addtimer(CALLBACK(src, PROC_REF(rebound), WEAKREF(source), direction, min(distance, BOUNCE_MAX_DISTANCE), speed, bounces_left), BOUNCE_REBOUND_DELAY)
+	addtimer(CALLBACK(src, PROC_REF(rebound), WEAKREF(source), direction, min(distance, BOUNCE_MAX_DISTANCE), speed, bounces_left, silent_landing), BOUNCE_REBOUND_DELAY)
 	return TRUE
 
 /**
@@ -186,8 +188,9 @@
  * * distance - Tiles the rebound travels. May be fractional.
  * * speed - Throw speed, in tiles per decisecond.
  * * bounces_left - Rebounds this rebound may chain into after it lands.
+ * * silent_landing - Whether the rebound lands without an impact, so the object's landing sounds do not play.
  */
-/datum/element/bouncy/proc/rebound(datum/weakref/source_ref, direction, distance, speed, bounces_left)
+/datum/element/bouncy/proc/rebound(datum/weakref/source_ref, direction, distance, speed, bounces_left, silent_landing)
 	var/atom/movable/source = source_ref.resolve()
 	// Someone may have picked it up, grabbed it, thrown it again or anchored it since it landed, or gravity failed.
 	if(isnull(source) || !isturf(source.loc) || source.throwing || source.anchored || source.pulledby || !source.has_gravity())
@@ -204,6 +207,7 @@
 		return
 	rebound_throw.bouncer = src
 	rebound_throw.bounces_left = bounces_left
+	rebound_throw.silent_landing = silent_landing
 	hop(source, height = min(2 + tiles * 2, BOUNCE_MAX_HOP_HEIGHT), duration = max(tiles / speed, 1))
 
 /**
@@ -246,12 +250,17 @@
 	var/datum/element/bouncy/bouncer
 	/// Rebounds this throw may still chain into after it ends.
 	var/bounces_left = 0
+	/// Whether this throw lands without an impact, so the object's landing sounds do not play.
+	var/silent_landing = FALSE
 
 /datum/thrownthing/bounce/finalize(hit, target)
 	if(thrownthing)
 		bouncer?.queue_rebound(thrownthing, target || get_turf(thrownthing), src, bounces_left)
+		// Passing a silent landing off as a hit skips the floor impact. Not on lava, whose impact is what burns things.
+		if(silent_landing && !islava(get_turf(thrownthing)))
+			hit = TRUE
 	// Obstacles are never struck, so they get no hitby(), damage, pre-hit reactions or hit sounds. Floor landings still
-	// reach the turf, so landing sounds play.
+	// reach the turf and play landing sounds, unless the throw lands silently.
 	return ..(hit, null)
 
 #undef BOUNCE_REBOUND_DELAY

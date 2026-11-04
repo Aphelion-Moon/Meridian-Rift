@@ -41,7 +41,7 @@ Profiles, in `code/bouncy_objects.dm`:
 | Tennis balls (`/obj/item/toy/tennis`) | 0.7 | 4 | 0% | Basketball bounce sound |
 | Slimeperson cores (`/obj/item/organ/brain/slime`) | 0.85 | 6 | 15% | Boing sound; tossed for a 4-tile pop on death |
 | Slime extracts (`/obj/item/slime_extract`) | 0.35 | 1 | 25% | Splat sound |
-| Ammo casings and live rounds (`/obj/item/ammo_casing`) | 0.5 | 2 | 50% | 1-tile ejection hop |
+| Ammo casings and live rounds (`/obj/item/ammo_casing`) | 0.5 | 2 | 50% | 1-tile ejection hop, landing silently, as the gun already plays the clatter |
 | Iron rods (`/obj/item/stack/rods`) | 0.3 | 2 | 50% | Existing metal landing sound |
 
 Fired projectiles are not affected; they keep TG's ricochet system.
