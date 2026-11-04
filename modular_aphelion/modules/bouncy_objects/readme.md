@@ -19,6 +19,12 @@ push nothing, cannot be caught and set off no hit reactions or hit sounds. Rebou
 still reach the turf. Lava and soft or non-solid turfs (those without a `bullet_bounce_sound`) absorb floor
 hops. There are no rebounds, ejection hops or toss pops without gravity.
 
+Mass throws are kept cheap by two limits. At most `BOUNCE_MAX_PER_TICK` (8) bounces start per server tick,
+shared by every bouncy object, so an explosion scattering a pile of casings and rods, or several guns on full
+auto, cannot flood the throwing subsystem, timers, clients or sound; objects past the budget settle where
+they are. No single bounce travels further than `BOUNCE_MAX_DISTANCE` (8) tiles, which mostly trims
+throws from mass drivers, explosions and the like.
+
 Element arguments, all optional:
 
 - `restitution` - fraction (0 to 1) of the incoming distance each rebound keeps
@@ -59,8 +65,8 @@ Fired projectiles are not affected; they keep TG's ricochet system.
 
 ### Defines:
 
-- File-local `BOUNCE_REBOUND_DELAY`, `BOUNCE_MINIMUM_DISTANCE`, `BOUNCE_SLIDE_PIXEL_LIMIT` and
-  `BOUNCE_MAX_HOP_HEIGHT` in `code/bouncy_element.dm`
+- File-local `BOUNCE_REBOUND_DELAY`, `BOUNCE_MINIMUM_DISTANCE`, `BOUNCE_SLIDE_PIXEL_LIMIT`,
+  `BOUNCE_MAX_HOP_HEIGHT`, `BOUNCE_MAX_PER_TICK` and `BOUNCE_MAX_DISTANCE` in `code/bouncy_element.dm`
 
 ### Included files that are not contained in this module:
 

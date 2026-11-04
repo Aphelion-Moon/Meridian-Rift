@@ -436,7 +436,6 @@
 #include "code\__DEFINES\traits\sources.dm"
 #include "code\__DEFINES\~aphelion_defines\admin_tech.dm"
 #include "code\__DEFINES\~aphelion_defines\banning.dm"
-#include "code\__DEFINES\~aphelion_defines\bouncy_objects.dm"
 #include "code\__DEFINES\~aphelion_defines\custom_sprites.dm"
 #include "code\__DEFINES\~aphelion_defines\hud.dm"
 #include "code\__DEFINES\~aphelion_defines\keybindings.dm"

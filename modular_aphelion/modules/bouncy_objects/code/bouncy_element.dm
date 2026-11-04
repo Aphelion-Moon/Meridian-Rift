@@ -12,6 +12,15 @@
 #define BOUNCE_SLIDE_PIXEL_LIMIT 12
 /// Tallest hop arc, in pixels.
 #define BOUNCE_MAX_HOP_HEIGHT 12
+/**
+ * Most bounces (rebounds, ejection hops and tosses) that may start in one tick, shared by every bouncy object.
+ *
+ * Keeps mass throws, such as an explosion scattering a pile of casings and rods, from flooding SSthrowing, the timer
+ * subsystem, clients and the sound system. Objects past the budget settle where they are.
+ */
+#define BOUNCE_MAX_PER_TICK 8
+/// Furthest, in tiles, one bounce travels. Mostly trims mass drivers and explosions, which throw far further than hands do.
+#define BOUNCE_MAX_DISTANCE 8
 
 /**
  * # Bouncy element
@@ -47,6 +56,10 @@
 	var/bounce_sound_volume
 	/// Tiles the object travels in a random direction when ejected from a ballistic gun as a casing. Zero disables ejection hops.
 	var/eject_hop_range
+	/// world.time of the tick [/datum/element/bouncy/var/bounces_this_tick] counts. Shared by every bouncy profile.
+	var/static/budget_tick = 0
+	/// Bounces started in the current tick, across every bouncy profile. See BOUNCE_MAX_PER_TICK.
+	var/static/bounces_this_tick = 0
 
 /datum/element/bouncy/Attach(datum/target, restitution = 0.5, max_bounces = 2, deflect_chance = 0, bounce_sound = null, bounce_sound_volume = 30, eject_hop_range = 0)
 	. = ..()
@@ -81,7 +94,7 @@
 	if(throwingdatum.init_dir || throwingdatum.get_thrower())
 		queue_rebound(source, hit_atom, throwingdatum, max_bounces)
 	else
-		addtimer(CALLBACK(src, PROC_REF(rebound), WEAKREF(source), pick(GLOB.alldirs), throwingdatum.maxrange, throwingdatum.speed, max_bounces), BOUNCE_REBOUND_DELAY)
+		schedule_rebound(source, pick(GLOB.alldirs), throwingdatum.maxrange, throwingdatum.speed, max_bounces)
 
 /**
  * Sends an ejected ammo casing hopping away from the gun.
@@ -91,7 +104,7 @@
  */
 /datum/element/bouncy/proc/on_ejected(atom/movable/source)
 	SIGNAL_HANDLER
-	addtimer(CALLBACK(src, PROC_REF(rebound), WEAKREF(source), pick(GLOB.alldirs), eject_hop_range, source.throw_speed, max_bounces), BOUNCE_REBOUND_DELAY)
+	schedule_rebound(source, pick(GLOB.alldirs), eject_hop_range, source.throw_speed, max_bounces)
 
 /**
  * Works out where the rebound from one impact goes and schedules it.
@@ -121,9 +134,30 @@
 		return
 	if(prob(deflect_chance))
 		rebound_dir = turn(rebound_dir, pick(45, -45))
-	if(bounce_sound)
+	if(schedule_rebound(source, rebound_dir, rebound_distance, throwingdatum.speed, bounces_left - 1) && bounce_sound)
 		playsound(source, bounce_sound, bounce_sound_volume, TRUE, -1)
-	addtimer(CALLBACK(src, PROC_REF(rebound), WEAKREF(source), rebound_dir, rebound_distance, throwingdatum.speed, bounces_left - 1), BOUNCE_REBOUND_DELAY)
+
+/**
+ * Schedules a bounce, if the shared per-tick budget has room for it, capped at BOUNCE_MAX_DISTANCE.
+ *
+ * Arguments:
+ * * source - The bouncing movable.
+ * * direction - Direction of the bounce.
+ * * distance - Tiles the bounce travels. May be fractional.
+ * * speed - Throw speed, in tiles per decisecond.
+ * * bounces_left - Rebounds this bounce may chain into after it lands.
+ *
+ * Returns whether the bounce was scheduled.
+ */
+/datum/element/bouncy/proc/schedule_rebound(atom/movable/source, direction, distance, speed, bounces_left)
+	if(budget_tick != world.time)
+		budget_tick = world.time
+		bounces_this_tick = 0
+	if(bounces_this_tick >= BOUNCE_MAX_PER_TICK)
+		return FALSE
+	bounces_this_tick++
+	addtimer(CALLBACK(src, PROC_REF(rebound), WEAKREF(source), direction, min(distance, BOUNCE_MAX_DISTANCE), speed, bounces_left), BOUNCE_REBOUND_DELAY)
+	return TRUE
 
 /**
  * Reflects a travel direction off an obstacle.
@@ -224,3 +258,5 @@
 #undef BOUNCE_MINIMUM_DISTANCE
 #undef BOUNCE_SLIDE_PIXEL_LIMIT
 #undef BOUNCE_MAX_HOP_HEIGHT
+#undef BOUNCE_MAX_PER_TICK
+#undef BOUNCE_MAX_DISTANCE
