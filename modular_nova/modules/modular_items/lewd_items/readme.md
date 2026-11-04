@@ -20,6 +20,8 @@ and a body relay for their occupant. Both use the generic
   the same to reach their own receiver.
 - Use one linked device on another to pick from the interactions between their
   two wearers. The device in your hand is the active side.
+- Climaxing from your penis with an open device in reach offers it as a place to
+  finish. A receiver on a penis gets the load on it, any other part inside.
 - Right-click the device or receiver to toggle that item's anonymity. Alt-click
   either linked item to unlink it.
 - Use the bore on two supported walls to create its portal pair. Activate an

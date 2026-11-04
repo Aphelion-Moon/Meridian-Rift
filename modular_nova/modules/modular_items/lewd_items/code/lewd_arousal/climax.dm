@@ -6,6 +6,7 @@
 #define CLIMAX_IN_OR_ON "Climax in or on someone"
 #define CLIMAX_OPEN_CONTAINER "Fill reagent container"
 #define CLIMAX_PORTAL "Through the portal"
+#define CLIMAX_PORTAL_DEVICE "Through the portal device"
 
 /// climax_ask() answers this when the climax can't go on, a number so it never equals a real answer
 #define CLIMAX_LOST (-1)
@@ -158,6 +159,10 @@
 	if(offered_portal_output_ref)
 		buttons += CLIMAX_PORTAL
 
+	var/list/interactable_portal_devices = climax_portal_devices_in_reach()
+	if(length(interactable_portal_devices))
+		buttons += CLIMAX_PORTAL_DEVICE
+
 	var/penis_climax_choice = climax_ask(CLIMAX_PENIS, "Choose where to shoot your load.", "Load preference!", buttons)
 	if(penis_climax_choice == CLIMAX_LOST)
 		return FALSE
@@ -202,6 +207,10 @@
 		to_chat(src, span_userlove("You shoot string after string of hot cum, hitting whatever is on the other side!"))
 		portal_relay.visible_message(span_userlove("[portal_relay] shoots its sticky load onto the floor!"), pref_to_check = /datum/preference/toggle/erp)
 		add_cum_splatter_floor(get_turf(portal_relay))
+
+	else if(penis_climax_choice == CLIMAX_PORTAL_DEVICE)
+		if(!climax_through_portal_device(interactable_portal_devices))
+			return FALSE
 
 	else if(!climax_into_partner(interactable_inrange_humans))
 		return FALSE
@@ -367,6 +376,51 @@
 	return TRUE
 
 /**
+ * Lands a penis climax through a portal device in reach, asking which one when there are several.
+ *
+ * A receiver sitting on a penis gets the load on that penis. Any other part it sits on takes it inside.
+ *
+ * Arguments:
+ * - portal_devices: The devices offered, names to weakrefs from climax_portal_devices_in_reach().
+ *
+ * Returns FALSE when the climax can't go on, TRUE otherwise.
+ */
+/mob/living/carbon/human/proc/climax_through_portal_device(list/portal_devices)
+	var/device_choice = portal_devices[1]
+	if(length(portal_devices) > 1)
+		device_choice = climax_ask(CLIMAX_PENIS, "Choose a portal device to cum through.", "Choose target!", portal_devices, as_list = TRUE)
+		if(device_choice == CLIMAX_LOST)
+			return FALSE
+		if(isnull(device_choice))
+			visible_message(span_userlove("[src] shoots [p_their()] sticky load onto the floor!"), \
+				span_userlove("You shoot string after string of hot cum, hitting the floor!"), pref_to_check = /datum/preference/toggle/erp)
+			add_cum_splatter_floor(get_turf(src))
+			return TRUE
+
+	var/datum/weakref/device_ref = portal_devices[device_choice]
+	var/obj/item/clothing/sextoy/portal_fleshlight/device = device_ref.resolve()
+	var/mob/living/carbon/human/receiver_wearer = device?.climax_receiver_wearer(src)
+	if(!receiver_wearer)
+		return FALSE
+
+	// the device's anonymous mode hides us from the wearer
+	var/shooter = device.anonymous ? "someone" : "[src]"
+	var/shooter_their = device.anonymous ? "their" : p_their()
+	var/far_part = device.linked_panties.current_target
+	if(far_part == ORGAN_SLOT_PENIS)
+		visible_message(span_userlove("[src] shoots [p_their()] sticky load onto \the [device]!"), \
+			span_userlove("You shoot string after string of hot cum onto \the [device]!"), pref_to_check = /datum/preference/toggle/erp)
+		to_chat(receiver_wearer, span_userlove("[capitalize(shooter)] shoots [shooter_their] load onto your penis through the portal."))
+		// the amount climax_from_penis() drains once we return
+		var/obj/item/organ/genital/testicles/testicles = get_organ_slot(ORGAN_SLOT_TESTICLES)
+		dirt_mess_land(receiver_wearer, DIRT_ZONE_COCK, DIRT_PORTAL_PENIS, dirt_mess_amount_levels(testicles.internal_fluid_count * 0.6))
+	else
+		visible_message(span_userlove("[src] hilts [p_their()] cock into \the [device], shooting cum through the portal!"), \
+			span_userlove("You hilt your cock into \the [device], shooting cum through the portal!"), pref_to_check = /datum/preference/toggle/erp)
+		to_chat(receiver_wearer, span_userlove("Your [far_part] fills with warm cum as [shooter] shoots [shooter_their] load into it through the portal."))
+	return TRUE
+
+/**
  * Gathers the consenting partners in reach, held weakly for the prompts that follow.
  *
  * We loop over view() itself, which BYOND doesn't keep, so nothing in reach is held once this returns.
@@ -407,6 +461,33 @@
 		LAZYINITLIST(container_names)
 		LAZYSET(containers, avoid_assoc_duplicate_keys(iterating_open_container.name, container_names), WEAKREF(iterating_open_container))
 	return containers
+
+/**
+ * Gathers the open portal devices we can climax through, held weakly for the prompts that follow.
+ *
+ * That's a device in our hands, or one within a tile that lies out or sits in someone's hands.
+ * We loop over view() itself, which BYOND doesn't keep, so nothing in reach is held once this returns.
+ *
+ * Returns names to weakrefs, same names numbered apart, or null when there are none.
+ */
+/mob/living/carbon/human/proc/climax_portal_devices_in_reach()
+	var/list/candidates = list()
+	for(var/atom/movable/nearby in view(1, src))
+		if(istype(nearby, /obj/item/clothing/sextoy/portal_fleshlight))
+			candidates |= nearby
+		else if(isliving(nearby))
+			var/mob/living/holder = nearby
+			for(var/obj/item/clothing/sextoy/portal_fleshlight/held_device in holder.held_items)
+				candidates |= held_device
+
+	var/list/devices
+	var/list/device_names
+	for(var/obj/item/clothing/sextoy/portal_fleshlight/candidate as anything in candidates)
+		if(!candidate.climax_receiver_wearer(src))
+			continue
+		LAZYINITLIST(device_names)
+		LAZYSET(devices, avoid_assoc_duplicate_keys(candidate.name, device_names), WEAKREF(candidate))
+	return devices
 
 /**
  * Asks the climaxing player a question, then checks the climax can still go on.
@@ -471,6 +552,7 @@
 #undef CLIMAX_IN_OR_ON
 #undef CLIMAX_OPEN_CONTAINER
 #undef CLIMAX_PORTAL
+#undef CLIMAX_PORTAL_DEVICE
 #undef CLIMAX_LOST
 #undef CLIMAX_IN_CLOTHES
 #undef CLIMAX_FILL_FITS
