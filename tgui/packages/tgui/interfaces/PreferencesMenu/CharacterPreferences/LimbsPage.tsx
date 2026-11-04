@@ -58,6 +58,7 @@ import {
   STOCK_AUGMENT,
   type StageOrgan,
   type StagePart,
+  stagePaint,
 } from './MarkingsRoom/augments/parts';
 
 /** AugmentSlot with selected augment */
@@ -305,7 +306,12 @@ const isAugAllowed = (
   return true;
 };
 
-/** The robotic styles an augment can take on a limb: "None" for anything, the rest when it takes styles, fit the slot and suit its legs. */
+/**
+ * The robotic styles an augment can take on a limb: "None" for anything, the
+ * rest when it takes styles and fits the slot. On a body with digitigrade
+ * legs, only styles with digitigrade sprites, in every slot, arms included:
+ * the server drops the rest there (`apply_style_to_limb()`).
+ */
 const availableStyles = (
   styles: RoboticStyle[],
   aug: AugmentItem | undefined,
@@ -315,7 +321,7 @@ const availableStyles = (
   styles.filter((style) => {
     if (!aug?.allows_styles && style.name !== 'None') return false;
     if (slot_flag && !(style.supported_slots & slot_flag)) return false;
-    if (isLegSlot(slot_flag) && digi_legs && !style.has_digi) return false;
+    if (digi_legs && !style.has_digi) return false;
     return true;
   });
 
@@ -1145,6 +1151,7 @@ export const LimbsPage = ({
 }) => {
   const { data, act } = useBackend<PreferencesMenuData>();
   const server_data = useServerPrefs()?.limbs_and_markings;
+  const paintData = useServerPrefs()?.augment_paint;
   const [tab, setTab] = useState<AugmentsTab>(AugmentsTab.Markings);
   const [pendingPreset, setPendingPreset] = useState<string | null>(null);
   const hasWarnedRef = useRef(false);
@@ -1323,21 +1330,24 @@ export const LimbsPage = ({
     const parts: StagePart[] = PART_SOCKETS.flatMap((socket) => {
       const limb = limbBySlot[socket.slot];
       if (!limb) return [];
+      const finish = limb.chosen_style?.name ?? 'None';
+      const finishes = availableStyles(
+        server_data.robotic_styles ?? [],
+        limb.selectedAug,
+        limb.slot_flag,
+        data.digi_legs,
+      ).map((style) => style.name);
       return [
         {
           socket,
           augment: limb.selectedAug ?? STOCK_AUGMENT,
           options: limb.aug_options ?? [],
-          finish: limb.chosen_style?.name ?? 'None',
-          finishes: availableStyles(
-            server_data.robotic_styles ?? [],
-            limb.selectedAug,
-            limb.slot_flag,
-            data.digi_legs,
-          ).map((style) => style.name),
+          finish,
+          finishes,
           implant: limb.selectedImplant,
           implants: limb.has_implant ? (limb.implant_options ?? []) : null,
           unavailable: !!data.taur_legs && isLegSlot(limb.slot_flag),
+          paint: stagePaint(finish, finishes, paintData?.finishes),
         },
       ];
     });
@@ -1360,7 +1370,14 @@ export const LimbsPage = ({
       ];
     });
     return { parts, organs };
-  }, [roomTheme, columns, server_data, data.digi_legs, data.taur_legs]);
+  }, [
+    roomTheme,
+    columns,
+    server_data,
+    paintData,
+    data.digi_legs,
+    data.taur_legs,
+  ]);
 
   const columnForTab = (
     limbs: BodypartData[],

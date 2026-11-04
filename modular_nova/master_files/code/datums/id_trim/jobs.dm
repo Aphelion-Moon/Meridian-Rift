@@ -83,7 +83,7 @@
 	job = /datum/job/blueshield
 
 /datum/id_trim/job/nanotrasen_consultant
-	assignment = "Nanotrasen Consultant"
+	assignment = JOB_NT_REP
 	trim_state = "trim_centcom"
 	department_color = COLOR_GREEN
 	subdepartment_color = COLOR_GREEN

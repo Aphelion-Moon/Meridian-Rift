@@ -77,6 +77,9 @@
 
 /obj/structure/inflatable/take_damage(damage_amount, damage_type, damage_flag, sound_effect, attack_dir)
 	. = ..()
+	// the parent may already have popped us
+	if(QDELETED(src))
+		return
 	if((damage_flag == BULLET || damage_flag == LASER) && damage_amount >= 5)
 		atom_destruction(damage_flag)
 
@@ -90,6 +93,11 @@
 		LAZYSET(attack_modifiers, SILENCE_DEFAULT_MESSAGES, TRUE)
 		visible_message(span_danger("<b>[user] pierces [src] with [item]!</b>"))
 		deflate()
+		// a popped wall can't take the parent's damage, so we only keep its combat log
+		if(QDELETED(src))
+			if(item.force)
+				log_combat(user, src, "attacked", item)
+			return
 	return ..()
 
 /obj/structure/inflatable/click_ctrl_shift(mob/user)

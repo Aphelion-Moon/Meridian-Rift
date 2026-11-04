@@ -1,0 +1,15 @@
+// Recolourable augment finishes. See modular_aphelion/modules/bulky_augments.
+/// Whether character setup offers the finishes. While it doesn't, the pickers leave them out and the paint sheet isn't
+/// sent; a character saved wearing one still wears it.
+#define BULKY_FINISHES_OFFERED FALSE
+/// The recolourable augment finishes' skin bases in the human skin ramp, and their lights masks.
+#define BULKY_AUGMENTS_SHEET 'modular_aphelion/modules/bulky_augments/icons/bulky_augments.dmi'
+/// The same skin bases through the humanoid ramp, drawn for a limb under a mutant colour.
+#define BULKY_AUGMENTS_SHEET_HUMANOID 'modular_aphelion/modules/bulky_augments/icons/bulky_augments_humanoid.dmi'
+/// The finishes' channel-packed states, <id>_<zone>_paint and <id>_<zone>_glow.
+#define BULKY_AUGMENTS_PAINT_SHEET 'modular_aphelion/modules/bulky_augments/icons/bulky_augments_paint.dmi'
+/// Every zone a finish draws, its arms' hands included.
+#define BULKY_AUGMENT_ZONES list(BODY_ZONE_R_ARM, BODY_ZONE_L_ARM, BODY_ZONE_PRECISE_R_HAND, BODY_ZONE_PRECISE_L_HAND, BODY_ZONE_R_LEG, BODY_ZONE_L_LEG)
+/// The untinted shine colours the _glow state's green and blue channels draw.
+#define AUGMENT_SHINE_W "#fafbff"
+#define AUGMENT_SHINE_X "#c4c7d0"

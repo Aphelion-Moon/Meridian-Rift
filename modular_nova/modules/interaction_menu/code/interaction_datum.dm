@@ -1,9 +1,41 @@
 
 GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 
+/// Words for the chest tokens (%USER_BREASTS%, %TARGET_TITS%, ...) when the participant has breasts.
+GLOBAL_LIST_INIT(interaction_breast_words, list(
+	"BREASTS" = "breasts",
+	"BREAST" = "breast",
+	"TITS" = "tits",
+	"BOOBS" = "boobs",
+	"BOOB" = "boob",
+	"CHEST" = "chest",
+	"CHEST_FEEL" = "soft",
+))
+
+/// The same tokens for pecs, which replace every breast word so one template reads right for both.
+GLOBAL_LIST_INIT(interaction_pec_words, list(
+	"BREASTS" = "pecs",
+	"BREAST" = "pec",
+	"TITS" = "pecs",
+	"BOOBS" = "pecs",
+	"BOOB" = "pec",
+	"CHEST" = "pecs",
+	"CHEST_FEEL" = "firm",
+))
+
 /datum/interaction
 	/// The name to be displayed in the interaction menu for this interaction
 	var/name = "broken interaction"
+	/// The menu label instead of `name` when the chest this interaction uses is pecs, e.g. "Pecjob". Optional.
+	var/name_pecs
+	/// The menu label when that chest is pecs drawn without nipples, e.g. "Kiss pecs". Falls back to `name_pecs`. Optional.
+	var/name_nippleless
+	/// Messages used instead of `message` when that chest is pecs drawn without nipples. Optional.
+	var/list/message_nippleless
+	/// Messages used instead of `user_messages` when that chest is pecs drawn without nipples. Optional.
+	var/list/user_messages_nippleless
+	/// Messages used instead of `target_messages` when that chest is pecs drawn without nipples. Optional.
+	var/list/target_messages_nippleless
 	/// The description of the interacton.
 	var/description = "broken"
 	/// If it can be done at a distance.
@@ -68,7 +100,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	if(length(user_required_parts))
 		for(var/thing in user_required_parts)
 			var/obj/item/organ/genital/required_part = user.get_organ_slot(thing)
-			if(isnull(required_part))
+			if(isnull(required_part) || required_part.blocked_by)
 				return FALSE
 			if(check_part_exposure && !required_part.is_exposed())
 				return FALSE
@@ -76,7 +108,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	if(length(target_required_parts))
 		for(var/thing in target_required_parts)
 			var/obj/item/organ/genital/required_part = target.get_organ_slot(thing)
-			if(isnull(required_part))
+			if(isnull(required_part) || required_part.blocked_by)
 				return FALSE
 			if(check_part_exposure && !required_part.is_exposed())
 				return FALSE
@@ -88,6 +120,56 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 					return FALSE
 			if(INTERACTION_REQUIRE_TARGET_HAND)
 				if(!target.get_active_hand() && !target.has_hand_for_held_index(target.active_hand_index))
+					return FALSE
+			if(INTERACTION_REQUIRE_SELF_BULGE)
+				if(!user.has_bulge())
+					return FALSE
+			if(INTERACTION_REQUIRE_TARGET_BULGE)
+				if(!target.has_bulge())
+					return FALSE
+			if(INTERACTION_REQUIRE_SELF_POKES_OUT)
+				if(!user.bulge_pokes_out())
+					return FALSE
+			if(INTERACTION_REQUIRE_TARGET_POKES_OUT)
+				if(!target.bulge_pokes_out())
+					return FALSE
+			if(INTERACTION_REQUIRE_SELF_CAGED)
+				if(!user.get_blocking_device(ORGAN_SLOT_PENIS))
+					return FALSE
+			if(INTERACTION_REQUIRE_TARGET_CAGED)
+				if(!target.get_blocking_device(ORGAN_SLOT_PENIS))
+					return FALSE
+			if(INTERACTION_REQUIRE_SELF_BELTED)
+				if(!user.get_blocking_device(ORGAN_SLOT_VAGINA))
+					return FALSE
+			if(INTERACTION_REQUIRE_TARGET_BELTED)
+				if(!target.get_blocking_device(ORGAN_SLOT_VAGINA))
+					return FALSE
+			if(INTERACTION_REQUIRE_SELF_ARM)
+				if(!user.get_bodypart(BODY_ZONE_L_ARM) && !user.get_bodypart(BODY_ZONE_R_ARM))
+					return FALSE
+			if(INTERACTION_REQUIRE_TARGET_ARM)
+				if(!target.get_bodypart(BODY_ZONE_L_ARM) && !target.get_bodypart(BODY_ZONE_R_ARM))
+					return FALSE
+			if(INTERACTION_REQUIRE_SELF_HALF_HARD)
+				var/obj/item/organ/genital/user_penis = user.get_organ_slot(ORGAN_SLOT_PENIS)
+				if(!user_penis || user_penis.blocked_by || user_penis.aroused < AROUSAL_PARTIAL)
+					return FALSE
+			if(INTERACTION_REQUIRE_TARGET_HALF_HARD)
+				var/obj/item/organ/genital/target_penis = target.get_organ_slot(ORGAN_SLOT_PENIS)
+				if(!target_penis || target_penis.blocked_by || target_penis.aroused < AROUSAL_PARTIAL)
+					return FALSE
+			if(INTERACTION_REQUIRE_SELF_SWEATY)
+				if(!user.is_visibly_sweaty())
+					return FALSE
+			if(INTERACTION_REQUIRE_TARGET_SWEATY)
+				if(!target.is_visibly_sweaty())
+					return FALSE
+			if(INTERACTION_REQUIRE_SELF_NIPPLES)
+				if(!user.get_organ_slot(ORGAN_SLOT_BREASTS) || user.has_nippleless_pecs())
+					return FALSE
+			if(INTERACTION_REQUIRE_TARGET_NIPPLES)
+				if(!target.get_organ_slot(ORGAN_SLOT_BREASTS) || target.has_nippleless_pecs())
 					return FALSE
 
 			else
@@ -170,7 +252,11 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	if(!islist(message) && istext(message))
 		message_admins("Deprecated message handling for '[html_encode(name)]'. Correct format is a list with one entry. This message will only show once.")
 		message = list(message)
-	var/message_template = pick(message)
+	// One roll picks the same beat from every channel: a list the same length as the observer pool is
+	// read as aligned (index N tells the same moment in all three voices), anything else picks freely.
+	var/list/message_pool = texts_for(message, message_nippleless, user, target, message_pit_hair, message_sweaty, message_pokes_out)
+	var/pick_index = rand(1, length(message_pool))
+	var/message_template = message_pool[pick_index]
 	// %USER% is blanked here because the emote procs below already prepend the user's name.
 	var/msg = format_message_for(
 		message_template,
@@ -197,14 +283,21 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	else
 		user.manual_emote(msg)
 
+	// A line can carry its own automatic emote, like a muffled moan on the line that moans.
+	if(message_auto_emotes)
+		var/auto_emote = message_auto_emotes[message_template]
+		if(auto_emote)
+			INVOKE_ASYNC(user, TYPE_PROC_REF(/mob, emote), auto_emote)
+
 	// Player-facing anonymity never removes the real participants from administrative logs.
 	if(user_anonymous || target_anonymous)
 		var/admin_msg = format_message_for(message_template, user, target, omit_user = TRUE)
 		user.log_message("[admin_msg] (interaction target: [key_name(target)]; user anonymous: [user_anonymous]; target anonymous: [target_anonymous])", LOG_GAME)
 
-	if(user_messages.len)
+	var/list/user_texts = texts_for(user_messages, user_messages_nippleless, user, target, user_messages_pit_hair, user_messages_sweaty, user_messages_pokes_out)
+	if(user_texts.len)
 		var/user_msg = format_message_for(
-			pick(user_messages),
+			user_texts.len == message_pool.len ? user_texts[pick_index] : pick(user_texts),
 			user,
 			target,
 			route = route,
@@ -214,9 +307,10 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		to_chat(user, user_msg)
 
 	// Someone acting on themselves already got the user side message; the target side would address them twice.
-	if(target_messages.len && !(user == target && !user_anonymous && !target_anonymous))
+	var/list/target_texts = texts_for(target_messages, target_messages_nippleless, user, target, target_messages_pit_hair, target_messages_sweaty, target_messages_pokes_out)
+	if(target_texts.len && !(user == target && !user_anonymous && !target_anonymous))
 		var/target_msg = format_message_for(
-			pick(target_messages),
+			target_texts.len == message_pool.len ? target_texts[pick_index] : pick(target_texts),
 			user,
 			target,
 			user_anonymous = user_anonymous,
@@ -239,7 +333,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		else if (lewd)
 			playsound_if_pref(target.loc, sound_cache, 50, sound_vary, sound_range - SOUND_RANGE, pref_to_check = /datum/preference/toggle/erp/sounds)
 		else
-			playsound(target.loc, sound_cache, 50, sound_vary, sound_range - SOUND_RANGE)
+			playsound(target.loc, sound_cache, 50, sound_vary, sound_range - SOUND_RANGE, ignore_walls = FALSE)
 
 	INVOKE_ASYNC(src, PROC_REF(apply_effects), WEAKREF(user), WEAKREF(target), route)
 	return TRUE
@@ -300,7 +394,66 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		formatted_message = replacetextEx(formatted_message, "%[role]_PRONOUN_THEM%", them)
 		formatted_message = replacetextEx(formatted_message, "%[role]_PRONOUN_THEY%", they)
 		formatted_message = replacetextEx(formatted_message, "%[role]_PRONOUN_THEMSELVES%", themselves)
+		// Chest words follow the participant's own chest; pecs replace every breast word.
+		for(var/form, word in (participant.has_pecs() ? GLOB.interaction_pec_words : GLOB.interaction_breast_words))
+			formatted_message = replacetext(formatted_message, "%[role]_[form]%", word)
+		// A bulge while one shows, and what it shows through. Only looked up when a template asks.
+		if(findtext(formatted_message, "%[role]_CROTCH%"))
+			formatted_message = replacetext(formatted_message, "%[role]_CROTCH%", participant.has_bulge() ? "bulge" : "crotch")
+		if(findtext(formatted_message, "%[role]_BULGE_COVER%"))
+			formatted_message = replacetext(formatted_message, "%[role]_BULGE_COVER%", participant.bulge_cover_name())
+		// The participant's armpit and bulge, with hair and sweat as adjectives. Only looked up when a template asks.
+		if(findtext(formatted_message, "%[role]_ARMPIT%"))
+			formatted_message = replacetext(formatted_message, "%[role]_ARMPIT%", participant.described_armpit())
+		if(findtext(formatted_message, "%[role]_BULGE%"))
+			formatted_message = replacetext(formatted_message, "%[role]_BULGE%", participant.described_bulge())
+		// The device closing off the participant's penis, else their vagina, like "chastity cage".
+		if(findtext(formatted_message, "%[role]_DEVICE%"))
+			var/obj/item/device = participant.get_blocking_device(ORGAN_SLOT_PENIS) || participant.get_blocking_device(ORGAN_SLOT_VAGINA)
+			formatted_message = replacetext(formatted_message, "%[role]_DEVICE%", device?.name || "chastity device")
+	if(findtextEx(message_template, "%TARGET_SCENT%"))
+		var/scent = target_anonymous ? null : target?.dna?.features[ERP_FLAVOR_DNA_SCENT]
+		if(!istext(scent) || !length(scent))
+			// No custom scent set: fall back to a possessive that follows the target's own pronouns.
+			scent = (target == recipient && !target_anonymous) ? "your scent" : "[target_anonymous ? "their" : target.p_their()] scent"
+		formatted_message = replacetextEx(formatted_message, "%TARGET_SCENT%", scent)
 	return trim(formatted_message, INTERACTION_MAX_CHAR)
+
+/// Whose chest this interaction is about: the user's when it needs their breasts, otherwise the target's.
+/datum/interaction/proc/chest_owner(mob/living/carbon/human/user, mob/living/carbon/human/target)
+	RETURN_TYPE(/mob/living/carbon/human)
+	return (ORGAN_SLOT_BREASTS in user_required_parts) ? user : target
+
+/// The list to pick messages from: `nippleless_texts`, if given, replaces everything when that chest is pecs
+/// drawn without nipples, and `pokes_out_texts` replaces everything while the bulge's penis pokes out, since
+/// head-through-cloth lines no longer apply then. `sweaty_texts` and `pit_hair_texts` are extra options, added
+/// to the pool while the sweaty participant is visibly sweating or the target grew physical pit hair.
+/datum/interaction/proc/texts_for(list/usual, list/nippleless_texts, mob/living/carbon/human/user, mob/living/carbon/human/target, list/pit_hair_texts = null, list/sweaty_texts = null, list/pokes_out_texts = null)
+	if(nippleless_texts && chest_owner(user, target)?.has_nippleless_pecs())
+		return nippleless_texts
+	if(length(pokes_out_texts))
+		// Whose bulge the interaction is about: the user's only when it needs theirs alone.
+		var/pokes_user = (INTERACTION_REQUIRE_SELF_BULGE in interaction_requires) && !(INTERACTION_REQUIRE_TARGET_BULGE in interaction_requires)
+		var/mob/living/carbon/human/bulge_owner = pokes_user ? user : target
+		if(bulge_owner?.bulge_pokes_out())
+			return pokes_out_texts
+	var/list/pool = usual
+	if(length(sweaty_texts))
+		var/mob/living/carbon/human/sweaty_participant = sweaty_is_user ? user : target
+		if(sweaty_participant?.is_visibly_sweaty())
+			pool = pool + sweaty_texts
+	if(length(pit_hair_texts) && istype(target?.get_organ_slot(ORGAN_SLOT_EXTERNAL_PITS), /obj/item/organ/body_hair/pits))
+		pool = pool + pit_hair_texts
+	return pool
+
+/// The menu label for these participants: `name_pecs`, or `name_nippleless`, when that chest is pecs.
+/datum/interaction/proc/display_name_for(mob/living/carbon/human/user, mob/living/carbon/human/target)
+	if(!name_pecs && !name_nippleless)
+		return name
+	var/obj/item/organ/genital/breasts/chest = chest_owner(user, target)?.get_organ_slot(ORGAN_SLOT_BREASTS)
+	if(!chest?.pecs)
+		return name
+	return (chest.nippleless && name_nippleless) || name_pecs || name
 
 /// Applies side effects only while the interaction's original authority remains valid.
 /datum/interaction/proc/apply_effects(
@@ -327,6 +480,11 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		target.adjust_pleasure(target_pleasure)
 	if(target_arousal)
 		target.adjust_arousal(target_arousal)
+	// Each partner's scent rubs off on the other, where one gives and the other receives.
+	user.leave_scent_on(target)
+	target.leave_scent_on(user)
+	if(user != target)
+		SEND_SIGNAL(target, COMSIG_HUMAN_LEWD_INTERACTION_RECEIVED, user, src)
 	route?.after_effects(user, target)
 
 /datum/interaction/proc/load_from_json(path)
@@ -338,6 +496,8 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	var/file = file(fpath)
 	var/list/json = json_load(file)
 	name = sanitize_text(json["name"])
+	load_chest_text(json)
+	load_aphelion_text(json)
 	description = sanitize_text(json["description"])
 	distance_allowed = sanitize_integer(json["distance_allowed"], 0, 1, 0)
 	message = sanitize_islist(json["message"], list("json error"))
@@ -394,9 +554,32 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		"lewd" = lewd,
 		"sexuality" = sexuality,
 	)
+	save_chest_text(json)
+	save_aphelion_text(json)
 	var/file = file(fpath)
 	WRITE_FILE(file, json_encode(json))
 	return TRUE
+
+/// Reads the optional pec and nippleless text, which both JSON loaders share.
+/datum/interaction/proc/load_chest_text(list/json)
+	name_pecs = json["name_pecs"] ? sanitize_text(json["name_pecs"]) : null
+	name_nippleless = json["name_nippleless"] ? sanitize_text(json["name_nippleless"]) : null
+	message_nippleless = sanitize_islist(json["message_nippleless"], null)
+	user_messages_nippleless = sanitize_islist(json["user_messages_nippleless"], null)
+	target_messages_nippleless = sanitize_islist(json["target_messages_nippleless"], null)
+
+/// Writes back whichever optional pec and nippleless text is set.
+/datum/interaction/proc/save_chest_text(list/json)
+	if(name_pecs)
+		json["name_pecs"] = name_pecs
+	if(name_nippleless)
+		json["name_nippleless"] = name_nippleless
+	if(message_nippleless)
+		json["message_nippleless"] = message_nippleless
+	if(user_messages_nippleless)
+		json["user_messages_nippleless"] = user_messages_nippleless
+	if(target_messages_nippleless)
+		json["target_messages_nippleless"] = target_messages_nippleless
 
 /// Global loading procs
 /proc/populate_interaction_instances()
@@ -434,6 +617,10 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 
 		var/datum/interaction/interaction = new()
 
+		interaction.name = sanitize_text(ijson["name"])
+		interaction.description = sanitize_text(ijson["description"])
+		interaction.load_aphelion_text(ijson)
+		interaction.load_chest_text(ijson)
 		interaction.distance_allowed = sanitize_integer(ijson["distance_allowed"], 0, 1, 0)
 		interaction.message = sanitize_islist(ijson["message"], list("json error"))
 		interaction.category = sanitize_text(ijson["category"])

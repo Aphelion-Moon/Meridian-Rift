@@ -32,6 +32,7 @@
 	worn_x_dimension = 64
 	worn_y_dimension = 64
 	clothing_flags = LARGE_WORN_ICON
+	clothing_traits = list(TRAIT_RESTRAINED)
 	slot_flags = NONE
 	species_exception = list(/datum/species/plasmaman)
 	custom_price = 600

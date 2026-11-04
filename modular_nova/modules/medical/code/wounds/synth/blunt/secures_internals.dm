@@ -199,7 +199,8 @@
 			if (ishuman(user))
 				var/mob/living/carbon/human/human_user = user
 				stun_chance *= GET_PHYSIOLOGY(human_user, PHYS_COEFF_ELEC_CONDUCTIVITY)
-			stun_chance *= carbon_user.dna.species.siemens_coeff
+			else
+				stun_chance *= carbon_user.dna.species.siemens_coeff
 
 		if (stun_chance && prob(stun_chance))
 			electrocute_flags &= ~SHOCK_KNOCKDOWN

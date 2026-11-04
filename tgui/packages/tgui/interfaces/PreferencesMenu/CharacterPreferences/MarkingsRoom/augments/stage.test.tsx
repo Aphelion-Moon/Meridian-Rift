@@ -53,6 +53,7 @@ const parts: StagePart[] = PART_SOCKETS.map((socket) => ({
   implant: null,
   implants: null,
   unavailable: false,
+  paint: null,
 }));
 
 function openStage() {

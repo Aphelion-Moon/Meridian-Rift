@@ -98,5 +98,6 @@
 	quirk_holder.verb_exclaim = initial(quirk_holder.verb_exclaim)
 	quirk_holder.verb_whisper = initial(quirk_holder.verb_whisper)
 	quirk_holder.verb_yell = initial(quirk_holder.verb_yell)
-	tongue.say_mod = initial(tongue.say_mod)
+	if(tongue)
+		tongue.say_mod = initial(tongue.say_mod)
 	UnregisterSignal(quirk_holder, COMSIG_SET_SAY_MODIFIERS)

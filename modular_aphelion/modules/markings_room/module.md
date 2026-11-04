@@ -88,4 +88,4 @@ The augments themselves are the limbs and markings middleware's (`set_bodypart_a
 ### Credits:
 
 The fonts' sources and licences are in `assets/README.md`, their licence texts in `assets/fonts/licences/`. Sith is
-by Ender Smith and AurekFonts, CC BY 3.0 US. The textures and pixel props are original, generated for the mockups.
+by Ender Smith and AurekFonts, CC BY 3.0 US.

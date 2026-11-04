@@ -327,10 +327,14 @@
 		//new_limb_owner.update_body() // updates lips + hair + eyes
 		//new_limb_owner.update_damage_overlays()
 		*/ // APHELION EDIT REMOVAL END
-		// APHELION EDIT ADDITION START - Honor the existing species-change render batch.
+		// APHELION EDIT ADDITION START - Honor the existing species-change render batch, and refresh clothes after a leg replacement.
 		if(!(new_limb_owner.living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS))
 			new_limb_owner.update_body() // updates lips + hair + eyes
 			new_limb_owner.update_damage_overlays()
+			if(ishuman(new_limb_owner) && (body_zone == BODY_ZONE_L_LEG || body_zone == BODY_ZONE_R_LEG))
+				var/mob/living/carbon/human/human_owner = new_limb_owner
+				human_owner.update_worn_undersuit()
+				human_owner.update_worn_oversuit()
 		// APHELION EDIT ADDITION END
 		if(!special)
 			new_limb_owner.hud_used?.update_locked_slots()

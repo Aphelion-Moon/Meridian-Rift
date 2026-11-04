@@ -3,6 +3,7 @@ import type { BooleanLike } from 'tgui-core/react';
 
 import { useBackend } from '../backend';
 import { Window } from '../layouts';
+import { CrayonGraffitiTabs } from './CrayonGraffitiTab'; // APHELION EDIT ADDITION - graffiti tab
 import { ColorItem } from './RapidPipeDispenser';
 
 type Data = {
@@ -33,9 +34,24 @@ export const Crayon = (props) => {
   } = data;
   const capOrChanges = has_cap || can_change_colour;
 
+  // APHELION EDIT ADDITION START - the Custom Graffiti tab shows only itself, so the stencils aren't drawn beneath it
+  if ((data as { graffiti?: { tab: string } }).graffiti?.tab === 'graffiti') {
+    return (
+      <Window width={600} height={600}>
+        <Window.Content scrollable>
+          <CrayonGraffitiTabs />
+        </Window.Content>
+      </Window>
+    );
+  }
+
+  // APHELION EDIT ADDITION END
   return (
     <Window width={600} height={600}>
       <Window.Content scrollable>
+        {/* APHELION EDIT ADDITION START - graffiti tab */}
+        <CrayonGraffitiTabs />
+        {/* APHELION EDIT ADDITION END */}
         {!!capOrChanges && (
           <Section title="Basic">
             <LabeledList>

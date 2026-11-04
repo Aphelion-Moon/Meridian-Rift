@@ -188,6 +188,9 @@
 	material_flags = MATERIAL_EFFECTS | MATERIAL_ADD_PREFIX | MATERIAL_COLOR
 	obj_flags_nova = ANVIL_REPAIR
 
+/obj/item/clothing/neck/collar/reagent_clothing/setup_reskins()
+	return //Prevent basetype reskins
+
 /obj/item/clothing/neck/collar/reagent_clothing/Initialize(mapload)
 	. = ..()
 	AddComponent(/datum/component/reagent_clothing, ITEM_SLOT_NECK)

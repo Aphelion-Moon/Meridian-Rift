@@ -108,9 +108,6 @@
 /// From /obj/fire_act(), before damage and ignition: (exposed_temperature, exposed_volume)
 #define COMSIG_ATOM_PRE_FIRE_ACT "atom_pre_fire_act"
 
-///from base of /datum/preference_middleware/jobs/proc/set_job_title() and /datum/preference_middleware/jobs/proc/set_job_preference: ()
-#define COMSIG_JOB_PREF_UPDATED "job_pref_updated"
-
 /// When a gun's safety is toggled.
 #define COMSIG_GUN_SAFETY_TOGGLED "gun_safety_toggled"
 
@@ -121,3 +118,6 @@
 /// Gets called on the target, with (hiding, play_feedback = TRUE) as its args.
 /// Used for `/datum/element/can_hide`
 #define COMSIG_MOVABLE_TOGGLE_HIDING "movable_toggle_hiding"
+
+/// From /datum/status_effect/climax/on_apply(), on the mob that climaxed: ()
+#define COMSIG_MOB_CLIMAXED "mob_climaxed"

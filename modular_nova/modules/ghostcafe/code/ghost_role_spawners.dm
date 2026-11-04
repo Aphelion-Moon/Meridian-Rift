@@ -26,7 +26,6 @@
 	if(spawned_robot.client)
 		spawned_robot.custom_name = null
 		spawned_robot.updatename(spawned_robot.client)
-		spawned_robot.transfer_silicon_prefs(spawned_robot.client)
 		spawned_robot.gender = NEUTER
 		var/area/A = get_area(src)
 		//spawned_robot.AddElement(/datum/element/ghost_role_eligibility, free_ghosting = TRUE) SKYRAT PORT -- Needs to be completely rewritten

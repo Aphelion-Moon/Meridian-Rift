@@ -8,11 +8,9 @@
 /turf/closed/wall/r_wall,
 /area/station/engineering/supermatter/room)
 "l" = (
-/obj/machinery/power/apc/auto_name/directional/east,
-/obj/structure/cable,
 /obj/effect/turf_decal/stripes/red/box,
-/turf/open/floor/iron,
-/area/station/engineering/main)
+/turf/template_noop,
+/area/template_noop)
 "m" = (
 /obj/structure/table/reinforced,
 /obj/item/clothing/head/utility/radiation,

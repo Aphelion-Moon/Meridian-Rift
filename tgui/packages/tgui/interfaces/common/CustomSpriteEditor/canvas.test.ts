@@ -5,7 +5,13 @@ import {
   fixtureFrames,
 } from '../../../__mocks__/customSpriteEditor';
 import { Dir } from '../SpriteEditor/Types/types';
-import { decodeCanvas, fitsMiddleHalf } from './canvas';
+import {
+  type CompactSprite,
+  decodeCanvas,
+  fillSentViews,
+  fitsMiddleHalf,
+  type SentView,
+} from './canvas';
 
 it('decodes the canvas the server sends for one painted pixel', () => {
   const sprite = decodeCanvas({
@@ -66,4 +72,48 @@ it('shows a wide view at its middle half only while nothing paintable or painted
       undefined,
     ),
   ).toBe(false);
+});
+
+it('keeps the graffiti views the server sends as unchanged, and asks again for one it never had or missed', () => {
+  const sprite = (
+    bottom: string | null,
+    top: string | null,
+    serials: Record<string, number>,
+  ): CompactSprite => ({
+    width: 32,
+    height: 32,
+    dirs: 1,
+    backdrop: '',
+    canvas: {
+      palette: ['#00000000', '#123456ff'],
+      digits: 1,
+      views: { 2: bottom },
+      viewsLayer: 'l1',
+      appendages: { l2: { 2: top } },
+      viewSerials: serials,
+    },
+  });
+  const sent: Record<string, SentView> = {};
+  const first = fillSentViews(
+    sprite('0'.repeat(1024), '1'.repeat(1024), { l1: 1, l2: 2 }),
+    sent,
+  );
+  expect(first.missing).toBe(false);
+  // Only the bottom layer changed: the top one comes as null under its serial and is filled from what the window kept.
+  const next = fillSentViews(
+    sprite(`1${'0'.repeat(1023)}`, null, { l1: 3, l2: 2 }),
+    sent,
+  );
+  expect(next.missing).toBe(false);
+  expect(next.sprite.canvas.appendages?.l2[2]).toBe('1'.repeat(1024));
+  expect(decodeCanvas(next.sprite).layers[0].data[2]![0][0]).toBe('#123456ff');
+  // Two updates came before the window drew: it never saw the first, which gave the top layer new codes, so the
+  // second's null for it carries a serial the window doesn't have.
+  expect(
+    fillSentViews(sprite(null, null, { l1: 3, l2: 4 }), sent).missing,
+  ).toBe(true);
+  // A window that kept nothing, as after a reload, finds the view missing.
+  expect(fillSentViews(sprite(null, null, { l1: 3, l2: 2 }), {}).missing).toBe(
+    true,
+  );
 });

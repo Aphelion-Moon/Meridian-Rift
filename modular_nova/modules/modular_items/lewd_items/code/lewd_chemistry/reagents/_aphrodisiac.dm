@@ -111,12 +111,14 @@
 
 /datum/reagent/drug/aphrodisiac/on_mob_life(mob/living/carbon/human/exposed_mob, seconds_per_tick, metabolization_ratio)
 	. = ..()
-	if(life_pref_datum && exposed_mob.client?.prefs.read_preference(life_pref_datum) && ishuman(exposed_mob))
+	var/datum/client_interface/player = GET_CLIENT(exposed_mob)
+	if(life_pref_datum && player?.prefs?.read_preference(life_pref_datum) && ishuman(exposed_mob))
 		life_effects(exposed_mob)
 
 /datum/reagent/drug/aphrodisiac/overdose_process(mob/living/carbon/human/exposed_mob, seconds_per_tick, metabolization_ratio)
 	. = ..()
-	if(overdose_pref_datum && exposed_mob.client?.prefs.read_preference(overdose_pref_datum) && ishuman(exposed_mob))
+	var/datum/client_interface/player = GET_CLIENT(exposed_mob)
+	if(overdose_pref_datum && player?.prefs?.read_preference(overdose_pref_datum) && ishuman(exposed_mob))
 		overdose_effects(exposed_mob)
 
 /**

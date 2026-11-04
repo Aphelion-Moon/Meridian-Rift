@@ -4,11 +4,10 @@
 	icon = 'modular_nova/modules/modular_items/lewd_items/icons/obj/lewd_items/portal.dmi'
 	icon_state = "portal_panties"
 	w_class = WEIGHT_CLASS_SMALL
-	slot_flags = ITEM_SLOT_MASK
-	lewd_slot_flags = LEWD_SLOT_PENIS | LEWD_SLOT_VAGINA | LEWD_SLOT_ANUS
+	lewd_slot_flags = LEWD_SLOT_PENIS | LEWD_SLOT_VAGINA | LEWD_SLOT_ANUS | LEWD_SLOT_MOUTH
 	/// Strong peer reference; neither item owns the other.
 	var/obj/item/clothing/sextoy/portal_fleshlight/linked_fleshlight
-	/// The part this sits on while worn: the mouth, or the organ slot it was inserted into.
+	/// The lewd slot this sits in while worn: an ORGAN_SLOT_ genital or BODY_ZONE_PRECISE_MOUTH.
 	var/current_target
 	/// Whether the panties' wearer is anonymous
 	var/anonymous = FALSE
@@ -32,7 +31,7 @@
 
 /obj/item/clothing/sextoy/portal_panties/examine(mob/user)
 	. = ..()
-	. += span_notice("Equip it as a mask to connect to the mouth, or use the interaction panel to equip it in a specific genital slot.")
+	. += span_notice("Use the interaction panel to put it in a mouth or a genital slot.")
 	if(!has_reciprocal_link())
 		. += span_notice("The status light is off. The device needs to be paired with a portal fleshlight.")
 		return
@@ -52,10 +51,6 @@
 	. = ..()
 	update_target(user, slot)
 
-/obj/item/clothing/sextoy/portal_panties/equipped(mob/living/carbon/human/user, slot)
-	. = ..()
-	update_target(user, slot)
-
 /obj/item/clothing/sextoy/portal_panties/dropped(mob/living/carbon/human/user)
 	. = ..()
 	update_target(user)
@@ -65,19 +60,13 @@
  *
  * Arguments:
  * - user: The mob this was just equipped to or dropped from.
- * - slot: ITEM_SLOT_MASK for the mouth, an ORGAN_SLOT_ genital for a lewd slot, or null when dropped.
+ * - slot: The lewd slot it went into, an ORGAN_SLOT_ genital or BODY_ZONE_PRECISE_MOUTH, or null when dropped.
  */
 /obj/item/clothing/sextoy/portal_panties/proc/update_target(mob/living/carbon/human/user, slot)
 	if(!istype(user))
 		return
 
-	switch(slot)
-		if(ITEM_SLOT_MASK)
-			current_target = BODY_ZONE_PRECISE_MOUTH
-		if(ORGAN_SLOT_PENIS, ORGAN_SLOT_VAGINA, ORGAN_SLOT_ANUS)
-			current_target = slot
-		else
-			current_target = null
+	current_target = (slot in list(ORGAN_SLOT_PENIS, ORGAN_SLOT_VAGINA, ORGAN_SLOT_ANUS, BODY_ZONE_PRECISE_MOUTH)) ? slot : null
 
 	var/static/list/visual_signals = list(COMSIG_CARBON_APPLY_OVERLAY, COMSIG_HUMAN_GENITAL_UPDATED)
 	if(current_target)
@@ -132,8 +121,7 @@
 	var/mob/living/carbon/human/wearer = loc
 	if(!ishuman(wearer) || isnull(current_target))
 		return null
-	var/obj/item/worn_item = current_target == BODY_ZONE_PRECISE_MOUTH ? wearer.wear_mask : wearer.get_lewd_slot_item(current_target)
-	return worn_item == src ? wearer : null
+	return wearer.get_lewd_slot_item(current_target) == src ? wearer : null
 
 /obj/item/clothing/sextoy/portal_panties/proc/has_reciprocal_link()
 	return !QDELETED(linked_fleshlight) && linked_fleshlight.linked_panties == src

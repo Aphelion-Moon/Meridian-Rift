@@ -23,20 +23,29 @@
  * * color - if this is NOT a statically colored clothing article and NOT gags, uses this color.
  * * physique - physique of the wearer (male or female)
  * * bodyshape - bodyshape of the wearer (humanoid, digitigrade, etc)
- * * wearer - optional owner for emissive blockers. // APHELION EDIT ADDITION
+ * * wearer - optional owner for emissive blockers, whose fitness limbs the garment is fitted to. // APHELION EDIT ADDITION
  */
 /datum/sprite_accessory/clothing/proc/make_appearance(color = COLOR_WHITE, physique = MALE, bodyshape = BODYSHAPE_HUMANOID, atom/wearer) // APHELION EDIT CHANGE - Underwear emissive blockers - ORIGINAL: /datum/sprite_accessory/clothing/proc/make_appearance(color = COLOR_WHITE, physique = MALE, bodyshape = BODYSHAPE_HUMANOID)
 	var/static/list/cached_icons = list()
 	var/use_female = physique == FEMALE && female_sprite_flags
 	var/use_digi = digi_icon_state && (bodyshape & BODYSHAPE_DIGITIGRADE)
 	var/female_sprite_flags_to_use = female_sprite_flags
-	var/icon_state_to_use = get_icon_state(physique, bodyshape)
+	var/icon_state_to_use = get_icon_state(physique, bodyshape, wearer) // APHELION EDIT CHANGE - FITNESS - A state can depend on the wearer, like mesh tops without their bra on a chest without breasts - ORIGINAL: var/icon_state_to_use = get_icon_state(physique, bodyshape)
 	if((use_digi || (bodyshape & (BODYSHAPE_TAUR|BODYSHAPE_CERULEAN))) && female_sprite_flags_to_use) // APHELION EDIT CHANGE - No bottom shaping over a taur body or Cerulean tail either - ORIGINAL: if(use_digi && female_sprite_flags_to_use)
 		female_sprite_flags_to_use = FEMALE_UNIFORM_TOP_ONLY // No bottom gender shaping for the digi legs
+	// APHELION EDIT ADDITION START - FITNESS - Pecs keep the torso out of the female cut
+	female_sprite_flags_to_use = female_cut_over_pecs(wearer, use_female && female_sprite_flags_to_use)
+	use_female = !!female_sprite_flags_to_use
+	// APHELION EDIT ADDITION END
 
-	var/key = "[icon_state_to_use]-[greyscale_config || "ng"]-[use_female && female_sprite_flags_to_use]-[use_digi]-[greyscale_colors]" // APHELION EDIT CHANGE - Key by the cut - ORIGINAL: var/key = "[icon_state_to_use]-[greyscale_config || "ng"]-[use_female]-[use_digi]-[greyscale_colors]"
+	var/key = "[icon]-[icon_state_to_use]-[greyscale_config || "ng"]-[use_female && female_sprite_flags_to_use]-[use_digi]-[greyscale_colors]" // APHELION EDIT CHANGE - Key by the sheet and the cut - ORIGINAL: var/key = "[icon_state_to_use]-[greyscale_config || "ng"]-[use_female]-[use_digi]-[greyscale_colors]"
 	var/mutable_appearance/result
-	if(cached_icons[key]) // it's already cached
+	// APHELION EDIT ADDITION START - FITNESS - A garment fitted to its wearer's fitness limbs and pecs draws its fitted sprite
+	var/fitted = fitted_sprite(wearer, bodyshape, icon_state_to_use, use_female && female_sprite_flags_to_use, use_digi)
+	if(fitted)
+		result = mutable_appearance(fitted)
+	// APHELION EDIT ADDITION END
+	else if(cached_icons[key]) // it's already cached // APHELION EDIT CHANGE - FITNESS - ORIGINAL: if(cached_icons[key]) // it's already cached
 		result = mutable_appearance(icon(cached_icons[key]))
 
 	else if(greyscale_config || use_female || use_digi) // icon ops ahead

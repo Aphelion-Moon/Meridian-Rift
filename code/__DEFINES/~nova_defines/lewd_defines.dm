@@ -10,6 +10,22 @@
 
 #define GENITAL_STACK_STEP 0.01
 
+// Armpit and pubic hair: mutant bodypart keys, organ slots, and where they draw. See modular_aphelion/modules/body_hair.
+/// Mutant bodypart key for armpit hair.
+#define FEATURE_PITS "pits"
+/// Mutant bodypart key for pubic hair.
+#define FEATURE_PUBES "pubes"
+/// Organ slot for armpit hair.
+#define ORGAN_SLOT_EXTERNAL_PITS "pits"
+/// Organ slot for pubic hair.
+#define ORGAN_SLOT_EXTERNAL_PUBES "pubes"
+/// dna.features entry: body hair takes the head hair's colour instead of its own.
+#define FEATURE_BODY_HAIR_MATCHES_HAIR "body_hair_matches_hair"
+/// Over the skin, under underwear, clothing and genitals.
+#define BODY_HAIR_LAYER (BODY_LAYER + 0.5)
+/// The colour body hair starts in before anyone picks one.
+#define BODY_HAIR_DEFAULT_COLOR "#2e1f16"
+
 /// To prevent an issue with stupidly low negative values.
 #define AROUSAL_MINIMUM 0
 #define AROUSAL_MINIMUM_DETECTABLE 10
@@ -60,7 +76,30 @@
 #define PENIS_ICON_ALT 'modular_nova/master_files/icons/mob/sprite_accessory/genitals/penis_onmob_alt.dmi'
 #define PENIS_ICON_TAUR 'modular_nova/master_files/icons/mob/sprite_accessory/genitals/taur_penis_onmob.dmi'
 #define TESTICLES_ICON_ALT 'modular_nova/master_files/icons/mob/sprite_accessory/genitals/testicles_onmob_alt.dmi'
+/// Breast accessory shape flags: muscle chest, larger pecs, and drawn nipples.
+#define PECS_SHAPE (1<<0)
+#define PECS_LARGE (1<<1)
+#define PECS_NIPPLES (1<<2)
+
 #define BREASTS_ICON_ALT 'modular_nova/master_files/icons/mob/sprite_accessory/genitals/breasts_onmob_alt.dmi'
+/// Bouncing twins of every state in the breast sheets, under the same state names.
+#define BREASTS_ICON_JIGGLE 'modular_nova/master_files/icons/mob/sprite_accessory/genitals/breasts_onmob_jiggle.dmi'
+#define BREASTS_ICON_ALT_JIGGLE 'modular_nova/master_files/icons/mob/sprite_accessory/genitals/breasts_onmob_alt_jiggle.dmi'
+/// Pec flexes: every pec state, bouncing together or taking turns, under the same state names.
+#define BREASTS_ICON_PEC_BOUNCE 'modular_nova/master_files/icons/mob/sprite_accessory/genitals/breasts_onmob_pecbounce.dmi'
+#define BREASTS_ICON_PEC_BOUNCE_ALTERNATE 'modular_nova/master_files/icons/mob/sprite_accessory/genitals/breasts_onmob_pecbounce_alternate.dmi'
+/// The same flexes slowed down, each flex held longer.
+#define BREASTS_ICON_PEC_BOUNCE_SLOW 'modular_nova/master_files/icons/mob/sprite_accessory/genitals/breasts_onmob_pecbounce_slow.dmi'
+#define BREASTS_ICON_PEC_BOUNCE_ALTERNATE_SLOW 'modular_nova/master_files/icons/mob/sprite_accessory/genitals/breasts_onmob_pecbounce_alternate_slow.dmi'
+
+/// One bounce cycle: two hops, while the jiggle states loop underneath.
+#define BREAST_BOUNCE_CYCLE (0.8 SECONDS)
+/// How high each hop goes, in pixels.
+#define BREAST_BOUNCE_HOP_HEIGHT 4
+/// How long a bounce lasts when no duration is given.
+#define BREAST_BOUNCE_DEFAULT_DURATION (2.4 SECONDS)
+/// The longest a single bounce can last.
+#define BREAST_BOUNCE_MAX_DURATION (10 SECONDS)
 
 /// Whether a lewd item a human wears hides their mutant parts: an inflated sleeping bag does when hide_if_sleeping_bag is set,
 /// a latex catsuit worn without one does when hide_if_catsuit is. A macro on purpose: sprite accessories' is_hidden() asks it

@@ -1,10 +1,13 @@
 // THIS IS A NOVA SECTOR UI FILE
 import { type ReactNode, useState } from 'react';
 import { Button, Section, Stack } from 'tgui-core/components';
-import { resolveAsset } from '../../assets';
 import { useBackend } from '../../backend';
 import { Window } from '../../layouts';
 import { ByondUi } from '../../layouts/ByondUi';
+import {
+  ExamineHeadshot,
+  hasHeadshot,
+} from '../common/CyborgCustomization/ExamineHeadshot';
 import type { ExaminePanelData } from './data';
 
 function formatURLs(text: string) {
@@ -63,7 +66,7 @@ export function ExaminePanel(props) {
       <Window.Content>
         <Stack fill>
           <Stack.Item width="30%">
-            {!headshot ? (
+            {!hasHeadshot(data) ? (
               <Section fill title="Character Preview">
                 <ByondUi
                   height="100%"
@@ -88,13 +91,7 @@ export function ExaminePanel(props) {
                     }}
                   />
                 </Section>
-                <Section height="310px" title="Headshot">
-                  <img
-                    src={resolveAsset(headshot)}
-                    height="250px"
-                    width="250px"
-                  />
-                </Section>
+                <ExamineHeadshot headshot={headshot} />
               </>
             )}
           </Stack.Item>

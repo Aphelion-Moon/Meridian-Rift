@@ -39,3 +39,9 @@
 	desc = "A bottle of strong penis enlargement reagent."
 	list_reagents = list(/datum/reagent/drug/aphrodisiac/incubus_draft = 30)
 	obj_flags_nova = ERP_ITEM
+
+/obj/item/reagent_containers/cup/bottle/dapoxetine
+	name = "dapoxetine bottle"
+	desc = "A bottle of a white powdery substance."
+	list_reagents = list(/datum/reagent/drug/aphrodisiac/dapoxetine = 30)
+	obj_flags_nova = ERP_ITEM

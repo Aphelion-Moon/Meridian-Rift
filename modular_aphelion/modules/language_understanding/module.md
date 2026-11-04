@@ -63,7 +63,3 @@ Nova's modular files are edited directly.
 - `code/modules/unit_tests/~nova/language_understanding.dm`, included from `code/modules/unit_tests/_unit_tests.dm`: DM
   unit tests.
 - `tgstation.dme`
-
-### Credits:
-
-- mal

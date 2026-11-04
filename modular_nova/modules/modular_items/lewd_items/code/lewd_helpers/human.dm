@@ -11,8 +11,9 @@
 	var/obj/item/anus = null
 	var/obj/item/nipples = null
 	var/obj/item/penis = null
+	var/obj/item/mouth = null
 
-/// Gets the item held in one of our `ORGAN_SLOT_*` lewd slots.
+/// Gets the item held in one of our lewd slots: an `ORGAN_SLOT_*` genital, or BODY_ZONE_PRECISE_MOUTH.
 /mob/living/carbon/human/proc/get_lewd_slot_item(slot)
 	switch(slot)
 		if(ORGAN_SLOT_VAGINA)
@@ -23,8 +24,10 @@
 			return nipples
 		if(ORGAN_SLOT_PENIS)
 			return penis
+		if(BODY_ZONE_PRECISE_MOUTH)
+			return mouth
 
-/// Sets an item in one of our `ORGAN_SLOT_*` lewd slots. Returns FALSE when the slot isn't supported.
+/// Sets an item in one of our lewd slots, as get_lewd_slot_item() names them. Returns FALSE when the slot isn't supported.
 /mob/living/carbon/human/proc/set_lewd_slot_item(slot, obj/item/new_item)
 	switch(slot)
 		if(ORGAN_SLOT_VAGINA)
@@ -35,9 +38,21 @@
 			nipples = new_item
 		if(ORGAN_SLOT_PENIS)
 			penis = new_item
+		if(BODY_ZONE_PRECISE_MOUTH)
+			mouth = new_item
 		else
 			return FALSE
 	return TRUE
+
+/// Drops what one of our lewd slots holds at our feet, locked or not, and empties the slot. Returns the
+/// item - the caller redraws the slots.
+/mob/living/carbon/human/proc/drop_lewd_slot_item(slot)
+	var/obj/item/lewd_item = get_lewd_slot_item(slot)
+	if(lewd_item?.loc == src)
+		dropItemToGround(lewd_item, force = TRUE) // dropped() still finds it in its slot, so a device lets go first
+	if(get_lewd_slot_item(slot) == lewd_item)
+		set_lewd_slot_item(slot, null)
+	return lewd_item
 
 /**
  * Returns whether this mob can put one of their own parts against a portal device.
@@ -163,6 +178,61 @@
 			return !genital.is_shown_over_clothing() && !is_topless()
 		else
 			return TRUE
+
+/// Whether the human's chest is pecs rather than breasts.
+/mob/living/carbon/human/proc/has_pecs()
+	var/obj/item/organ/genital/breasts/chest = get_organ_slot(ORGAN_SLOT_BREASTS)
+	return chest?.pecs
+
+/// Whether the human's chest is pecs drawn without nipples.
+/mob/living/carbon/human/proc/has_nippleless_pecs()
+	var/obj/item/organ/genital/breasts/chest = get_organ_slot(ORGAN_SLOT_BREASTS)
+	return chest?.nippleless
+
+/**
+ * Whether the human's penis shows as a bulge: whether its overlay drew a bulge look in the last body update (the bulge
+ * module's bulge.dm), so a bulge interaction is on offer just when one is drawn. Not under a suit that hides it, on
+ * underwear the body does not draw, on a garment that draws none, or with the penis layered above its only cover.
+ *
+ * It stays current because whatever starts or ends a look (arousal, clothing, a device, layering, organs) ends in the
+ * body update that resolves it; asked between such a change and its body update, it answers what is still drawn.
+ */
+/mob/living/carbon/human/proc/has_bulge()
+	var/obj/item/organ/genital/penis/penis = get_organ_slot(ORGAN_SLOT_PENIS)
+	var/datum/bodypart_overlay/mutant/genital/penis/overlay = penis?.bodypart_overlay
+	return istype(overlay) && !isnull(overlay.bulge_key) && overlay.bulge_wearer == src
+
+/// The worn device closing off the genital in `slot`, like a chastity cage, or null.
+/mob/living/carbon/human/proc/get_blocking_device(slot)
+	RETURN_TYPE(/obj/item)
+	var/obj/item/organ/genital/genital = get_organ_slot(slot)
+	return genital?.blocked_by
+
+/// What a bulge shows through: the garment its look is drawn on (has_bulge()), or, with none drawn, the outermost of
+/// what `covered_by_clothing()` finds over the groin.
+/mob/living/carbon/human/proc/bulge_cover_name()
+	var/datum/cover
+	if(has_bulge())
+		var/obj/item/organ/genital/penis/penis = get_organ_slot(ORGAN_SLOT_PENIS)
+		var/datum/bodypart_overlay/mutant/genital/penis/overlay = penis.bodypart_overlay
+		cover = bulge_cover(overlay.bulge_custom_layer(overlay.bulge_layering(src, penis)))
+	else if(wear_suit && (wear_suit.body_parts_covered & GROIN || istype(wear_suit, /obj/item/clothing/suit/toggle/labcoat/nova/surgical_gown)))
+		cover = wear_suit
+	else if(w_uniform?.body_parts_covered & GROIN)
+		cover = w_uniform
+	else if(undershirt != "Nude" && !(underwear_visibility & UNDERWEAR_HIDE_SHIRT))
+		var/datum/sprite_accessory/clothing/undershirt/shirt = SSaccessories.undershirt_list[undershirt]
+		if(shirt?.hides_groin)
+			cover = shirt
+	if(isitem(cover))
+		var/obj/item/garment = cover
+		return garment.name
+	if(istype(cover, /datum/sprite_accessory/clothing/undershirt))
+		// Menu names read like "Shirt - Leotard"; keep the garment.
+		var/datum/sprite_accessory/clothing/undershirt/shirt = cover
+		var/dash = findlasttext(shirt.name, " - ")
+		return LOWER_TEXT(dash ? copytext(shirt.name, dash + 3) : shirt.name)
+	return "underwear"
 
 /// Returns true if the human has an accessible anus for the parameter. Accepts any of the `REQUIRE_GENITAL_` defines.
 /mob/living/carbon/human/proc/has_anus(required_state = REQUIRE_GENITAL_ANY)

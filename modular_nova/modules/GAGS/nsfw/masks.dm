@@ -27,3 +27,17 @@
 /datum/greyscale_config/ball_gag/choke_gag
 	name = "Choke Gag"
 	json_config = 'modular_nova/modules/GAGS/nsfw/json_configs/clothing/masks/choke_gag.json'
+
+/datum/greyscale_config/bridle
+	name = "Bridle"
+	icon_file = 'modular_nova/modules/modular_items/lewd_items/icons/obj/lewd_clothing/lewd_masks.dmi'
+	json_config = 'modular_nova/modules/GAGS/nsfw/json_configs/clothing/masks/bridle.json'
+
+/datum/greyscale_config/bridle/worn
+	name = "Bridle (Worn)"
+	icon_file = 'modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_clothing/lewd_masks.dmi'
+	json_config = 'modular_nova/modules/GAGS/nsfw/json_configs/clothing/masks/bridle_worn.json'
+
+/datum/greyscale_config/bridle/worn/muzzled
+	name = "Bridle (Worn, Muzzled)"
+	icon_file = 'modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_clothing/lewd_masks_muzzled.dmi'

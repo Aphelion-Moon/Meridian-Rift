@@ -32,11 +32,26 @@
 		if(isnull(old_limb))
 			return body_zone
 
+		// Stumps have their own attachment behavior and no sprite; copying their vars cannot turn a real limb into one.
+		var/stump_preview = new_limb_path::bodypart_flags & BODYPART_STUMP
+		if((IS_STUMP(old_limb) || stump_preview) && old_limb.type != new_limb_path)
+			var/obj/item/bodypart/replacement = new new_limb_path(augmented)
+			if(!replacement.replace_limb(augmented))
+				qdel(replacement)
+				CRASH("Character preview could not replace [body_zone] with [new_limb_path].")
+			qdel(old_limb)
+			old_limb = replacement
+		if(stump_preview)
+			return body_zone
+
 		// for the prefs menu, we're going to swap the icon and vars around to achieve our preview result, instead of allocating and deleting limbs. it's cheaper.
 		old_limb.limb_id        = new_limb_path::limb_id
 		old_limb.bodyshape      = new_limb_path::bodyshape
 		old_limb.is_dimorphic   = new_limb_path::is_dimorphic
 		old_limb.bodypart_flags = new_limb_path::bodypart_flags
+		// The preview fits clothes to the limb that will spawn: a finish of its own, or the item's type, never the body's size.
+		old_limb.clear_augment_finish()
+		old_limb.muscle_size = new_limb_path::muscle_size
 
 		if(istype(old_limb, /obj/item/bodypart/head))
 			var/obj/item/bodypart/head/old_head = old_limb
@@ -50,7 +65,7 @@
 			else
 				old_limb.set_icon_greyscale(UNLINT(new_limb_path::icon_greyscale))
 
-		old_limb.should_draw_greyscale = uses_greyscale
+		old_limb.should_draw_greyscale = uses_greyscale || !!old_limb.augment_colors
 		return body_zone
 	// actual mob spawns and prefs transfer
 	else
@@ -59,13 +74,18 @@
 
 		var/chosen_style_name = prefs?.augment_limb_styles[slot]
 		if(uses_robotic_styles && chosen_style_name)
-			apply_style_to_limb(new_limb, GLOB.robotic_styles_list[chosen_style_name], slot, digi_legs, prefs)
+			apply_style_to_limb(new_limb, GLOB.robotic_styles_list[chosen_style_name], slot, digi_legs, prefs, worn_offsets = TRUE)
 
 		new_limb.replace_limb(augmented)
 		qdel(old_limb)
+		// A recolourable finish draws its owner's skin, which a limb only learns as it is set up for its owner.
+		if(new_limb.augment_colors)
+			new_limb.update_limb(is_creating = TRUE)
 
-/// Applies a robotic style to a bodypart, setting limb_id, bodyshape, dimorphic override, and icon
-/datum/augment_item/limb/proc/apply_style_to_limb(obj/item/bodypart/limb, datum/robotic_style/chosen_style, slot, has_digi_legs, datum/preferences/prefs)
+/// Applies a robotic style to a bodypart, setting limb_id, bodyshape, dimorphic override, and icon - and with worn_offsets, for a
+/// limb made to wear the style, the worn offsets of the species the style draws it as (a preview body's own limbs keep theirs).
+/// A recolourable finish draws greyscale on any augment, and sets up the slot's colours, glow and fit (apply_to()).
+/datum/augment_item/limb/proc/apply_style_to_limb(obj/item/bodypart/limb, datum/robotic_style/chosen_style, slot, has_digi_legs, datum/preferences/prefs, worn_offsets = FALSE)
 	var/style_valid = (chosen_style.supported_slots & slot_flag) && (!has_digi_legs || chosen_style.has_digi)
 	if(!style_valid)
 		prefs?.augment_limb_styles -= slot
@@ -78,10 +98,17 @@
 		limb.limb_id = chosen_style.limb_id_override
 	if(chosen_style.bodyshape_override)
 		limb.bodyshape = chosen_style.bodyshape_override
-	if(!uses_greyscale)
+	var/datum/robotic_style/recolorable/finish = astype(chosen_style, /datum/robotic_style/recolorable)
+	if(finish)
+		limb.set_icon_greyscale(chosen_style.icon)
+		finish.apply_to(limb, prefs?.augment_limb_colors[slot], prefs)
+	else if(!uses_greyscale)
 		limb.set_icon_static(chosen_style.icon)
 	else
 		limb.set_icon_greyscale(chosen_style.icon)
+	if(worn_offsets && chosen_style.worn_offsets_species)
+		limb.worn_offsets_species = chosen_style.worn_offsets_species
+		GLOB.species_prototypes[limb.worn_offsets_species].add_worn_offsets(limb)
 	return TRUE
 
 //HEADS

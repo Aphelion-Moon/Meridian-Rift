@@ -14,7 +14,7 @@
 	var/bleed_modifier = 2
 
 /datum/status_effect/vulnerable_to_damage/on_apply()
-	to_chat(owner, span_userdanger("Your body suddenly feals weak and fragile!"))
+	to_chat(owner, span_userdanger("Your body suddenly feels weak and fragile!"))
 	var/mob/living/carbon/human/carbon_owner = owner
 	carbon_owner.damage_resistance -= damage_resistance_subtraction
 	MODIFY_PHYSIOLOGY(carbon_owner, PHYS_COEFF_BLEED, bleed_modifier)

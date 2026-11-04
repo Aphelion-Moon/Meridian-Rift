@@ -845,11 +845,7 @@
 	relevant_mutant_bodypart = FEATURE_POD_HAIR
 	default_accessory_type = /datum/sprite_accessory/pod_hair/ivy
 	should_generate_icons = TRUE
-	generate_icons = TRUE
 	flexible_mismatch = FALSE
-
-/datum/preference/choiced/mutant_choice/pod_hair/init_possible_values()
-	return assoc_to_keys_features(SSaccessories.sprite_accessories[FEATURE_POD_HAIR])
 
 /datum/preference/choiced/mutant_choice/pod_hair/icon_for(value)
 	var/static/datum/universal_icon/pod_head

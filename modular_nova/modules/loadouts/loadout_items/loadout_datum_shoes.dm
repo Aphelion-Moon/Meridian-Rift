@@ -323,6 +323,11 @@
 	item_path = /obj/item/clothing/shoes/ballet_heels/domina_heels
 	erp_item = TRUE
 
+/datum/loadout_item/shoes/pointe_boots
+	name = "Pointe Boots"
+	item_path = /obj/item/clothing/shoes/ballet_heels/pointe_boots
+	erp_item = TRUE
+
 /datum/loadout_item/shoes/latex_socks
 	name = "Latex Socks"
 	item_path = /obj/item/clothing/shoes/latex_socks

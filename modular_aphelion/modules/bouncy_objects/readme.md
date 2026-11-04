@@ -48,14 +48,10 @@ Fired projectiles are not affected; they keep TG's ricochet system.
 
 ### TG Proc/File Changes:
 
-- `code/game/objects/items.dm`: `/obj/item/throw_at()` - forwards its `throw_type_path` argument to the
-  parent as `throw_datum_typepath`. It previously dropped it, so every item throw used the base
-  `/datum/thrownthing` whatever the caller asked for. No existing item caller passes a custom type.
-  Upstream candidate.
 - `modular_nova/modules/customization/modules/mob/living/carbon/human/species/roundstartslime.dm`:
   `/obj/item/organ/brain/slime/proc/core_ejection()` - tosses the core in place (a range 4 throw at its own
   tile) when the body melts, if it has gravity, so it pops away. A modular override cannot do this:
-  `modular_aphelion` is included first, and Nova's definition does not call its parent.
+  `modular_aphelion` is included before `modular_nova`, and Nova's definition does not call its parent.
 
 ### Modular Overrides:
 

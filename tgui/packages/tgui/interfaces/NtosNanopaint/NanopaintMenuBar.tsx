@@ -8,6 +8,7 @@ type NanopaintMenuBarProps = {
   undoHistory: string[];
   redoHistory: string[];
   workspaceOpen: BooleanLike;
+  galleryBusy: BooleanLike; // APHELION EDIT ADDITION - Art Galaxy.
   zoom: number;
   maxZoom: number;
   minZoom: number;
@@ -20,6 +21,7 @@ export const NanopaintMenuBar = (props: NanopaintMenuBarProps) => {
     undoHistory,
     redoHistory,
     workspaceOpen,
+    galleryBusy, // APHELION EDIT ADDITION - Art Galaxy.
     zoom,
     minZoom,
     maxZoom,
@@ -64,6 +66,14 @@ export const NanopaintMenuBar = (props: NanopaintMenuBarProps) => {
         <MenuBar.Dropdown.MenuItem
           {...getMenuItemProps('open', 'Open', () => act('openDialog'))}
         />
+        {/* APHELION EDIT ADDITION START - Canvas Size. */}
+        <MenuBar.Dropdown.MenuItem
+          {...getMenuItemProps('resize', 'Canvas Size', () =>
+            act('resizeDialog'),
+          )}
+          disabled={!workspaceOpen}
+        />
+        {/* APHELION EDIT ADDITION END */}
         <MenuBar.Dropdown.MenuItem
           {...getMenuItemProps('save', 'Save', () => act('save'))}
           disabled={!workspaceOpen}
@@ -72,6 +82,19 @@ export const NanopaintMenuBar = (props: NanopaintMenuBarProps) => {
           {...getMenuItemProps('saveAs', 'Save As', () => act('saveAsDialog'))}
           disabled={!workspaceOpen}
         />
+        {/* APHELION EDIT ADDITION START - Art Galaxy. */}
+        <MenuBar.Dropdown.MenuItem
+          {...getMenuItemProps('galleryOpen', 'Open from Art Galaxy', () =>
+            act('galleryOpenDialog'),
+          )}
+        />
+        <MenuBar.Dropdown.MenuItem
+          {...getMenuItemProps('gallery', 'Save to Art Galaxy', () =>
+            act('galleryDialog'),
+          )}
+          disabled={!workspaceOpen || !!galleryBusy}
+        />
+        {/* APHELION EDIT ADDITION END */}
       </MenuBar.Dropdown>
       <MenuBar.Dropdown
         entry="edit"

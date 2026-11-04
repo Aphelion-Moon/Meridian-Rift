@@ -214,7 +214,7 @@ export const OpposingForceTab = (props) => {
               </a>
             </Stack.Item>
             <Stack.Item>
-              <a href="https://wiki.novasector13.com/index.php/Antagonist_Policy#Opfor_Related_Stuff:">
+              <a href="https://meridian-wiki.a13.info/wiki/Antagonist_Policy">
                 <Button
                   icon="wrench"
                   color="red"
@@ -224,7 +224,7 @@ export const OpposingForceTab = (props) => {
               </a>
             </Stack.Item>
             <Stack.Item>
-              <a href="https://wiki.novasector13.com/index.php/Server_Rules#Rule_10:_No_Self-Antagging">
+              <a href="https://meridian-wiki.a13.info/wiki/Server_Policies">
                 <Button
                   icon="question"
                   color="yellow"

@@ -25,7 +25,11 @@
 /// Takes this sheet's half of the renders before it is first generated.
 /datum/asset/spritesheet_batched/species_full/realize_spritesheets(yield)
 	if (!length(entries))
-		entries = get_species_page_renders()[uniform ? "uniform" : "body"]
+		// Keep a failed render transaction from returning into the sheet lookup.
+		try
+			entries = get_species_page_renders()[uniform ? "uniform" : "body"]
+		catch(var/exception/error)
+			throw error
 	return ..()
 
 /**
@@ -45,13 +49,14 @@
 	rendering = TRUE
 	var/list/body = list()
 	var/list/uniform = list()
+	var/mob/living/carbon/human/dummy/consistent/dummy
 	try
 		for (var/species_id in get_species_page_ids())
 			var/datum/species/species_type = GLOB.species_list[species_id]
 			var/icon_key = sanitize_css_class_name(initial(species_type.name))
 
 			// One dummy per species. Its renders match two fresh dummies exactly.
-			var/mob/living/carbon/human/dummy/consistent/dummy = new
+			dummy = new
 			dummy.set_species(species_type)
 			dummy.dna.species.prepare_human_for_preview(dummy)
 			render_species_facings(body, dummy, icon_key)
@@ -59,9 +64,12 @@
 			dummy.dna.species.prepare_human_for_preview(dummy)
 			render_species_facings(uniform, dummy, icon_key)
 			SSatoms.prepare_deletion(dummy)
+			dummy = null
 			CHECK_TICK
 	catch(var/exception/error)
 		rendering = FALSE
+		if(dummy)
+			SSatoms.prepare_deletion(dummy)
 		throw error
 
 	renders = list("body" = body, "uniform" = uniform)

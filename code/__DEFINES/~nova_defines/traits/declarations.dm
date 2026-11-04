@@ -127,9 +127,6 @@
 #define TRAIT_REVIVES_BY_HEALING "trait_revives_by_healing"
 #define TRAIT_ROBOTIC_DNA_ORGANS "trait_robotic_dna_organs"
 
-// Isolation trait for synths
-#define TRAIT_SYNTHETIC "trait_synthetic"
-
 /// Trait that changes the ending effects of twitch leaving your system
 #define TRAIT_TWITCH_ADAPTED "twitch_adapted"
 
@@ -155,6 +152,8 @@
 #define TRAIT_SADISM "sadism"
 #define TRAIT_NEVERBONER "neverboner"
 #define TRAIT_BIMBO "bimbo"
+/// Can't climax, as under dapoxetine.
+#define TRAIT_NO_CLIMAX "no_climax"
 #define TRAIT_RIGGER "rigger"
 #define TRAIT_ROPEBUNNY "rope bunny"
 ///traits gained by brain traumas, can be removed if the brain trauma is gone

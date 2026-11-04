@@ -102,10 +102,10 @@
 
 // MARK: The chamber's labels
 
-// The species name keeps clear of the scan label across from it: INTERNAL
-// SCAN, the longer, ends about 153px in, so a long name wraps onto balanced
-// lines of its own, still against the right corner (mal: "long species names
-// overlap"). The taller line box keeps a one-line name where it was.
+// The species name keeps clear of the scan label across from it: INTERNAL SCAN,
+// the longer, ends about 153px in, so a long name wraps onto balanced lines of
+// its own, still against the right corner. The taller line box keeps a one-line
+// name where it was.
 .AugStage .ch-l.r {
   max-width: 148px;
   margin-top: -0.15em;

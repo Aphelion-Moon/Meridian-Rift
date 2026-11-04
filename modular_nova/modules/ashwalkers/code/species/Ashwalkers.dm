@@ -13,6 +13,7 @@
 	. = ..()
 	ADD_TRAIT(carbon_target, TRAIT_ASHSTORM_IMMUNE, SPECIES_TRAIT)
 	RegisterSignal(carbon_target, COMSIG_MOB_ITEM_ATTACK, PROC_REF(mob_attack))
+	RegisterSignal(carbon_target, COMSIG_MOB_APPLY_DAMAGE_MODIFIERS, PROC_REF(apply_evolution_armor))
 	carbon_target.AddComponent(/datum/component/ash_age)
 	carbon_target.apply_status_effect(/datum/status_effect/ash_age)
 	carbon_target.add_faction(FACTION_ASHWALKER)
@@ -20,8 +21,15 @@
 /datum/species/lizard/ashwalker/on_species_loss(mob/living/carbon/carbon_target)
 	. = ..()
 	REMOVE_TRAIT(carbon_target, TRAIT_ASHSTORM_IMMUNE, SPECIES_TRAIT)
-	UnregisterSignal(carbon_target, COMSIG_MOB_ITEM_ATTACK)
+	UnregisterSignal(carbon_target, list(COMSIG_MOB_ITEM_ATTACK, COMSIG_MOB_APPLY_DAMAGE_MODIFIERS))
 	carbon_target.remove_faction(FACTION_ASHWALKER)
+
+/// Applies the first evolution's armor while the owner is an Ashwalker.
+/datum/species/lizard/ashwalker/proc/apply_evolution_armor(mob/living/carbon/source, list/damage_mods, ...)
+	SIGNAL_HANDLER
+	var/datum/component/ash_age/evolution = source.GetComponent(/datum/component/ash_age)
+	if(evolution?.current_stage >= 1)
+		damage_mods += 0.9
 
 /datum/species/lizard/ashwalker/proc/mob_attack(datum/source, mob/mob_target, mob/user)
 	SIGNAL_HANDLER
@@ -72,10 +80,8 @@
 	// since it was time, go up a stage and now we check what to add
 	current_stage++
 	human_target.apply_status_effect(/datum/status_effect/ash_age)
-	var/datum/species/species_target = human_target.dna.species
 	switch(current_stage)
 		if(1)
-			species_target.damage_modifier += 10
 			to_chat(human_target, span_notice("Your body seems to be sturdier..."))
 
 		if(2)

@@ -42,7 +42,7 @@
   // Keep border dimensions while letting the luminous face reach the edge.
   background-clip: border-box;
   border-color: transparent;
-  border-radius: 3px;
+  border-radius: var(--glowstick-control-radius, 3px);
   text-shadow: none;
   box-shadow: inset 0 0 7px color-mix(in srgb, #{$color} 48%, transparent),
     0 0 4px color-mix(in srgb, #{$color} 76%, transparent),

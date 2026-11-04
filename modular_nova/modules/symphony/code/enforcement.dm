@@ -13,7 +13,7 @@
 		var/mob/dead/new_player/lobby = found.mob
 		to_chat(found, span_userdanger("Your Discord whitelist role was removed."))
 		// Drop their pending admission immediately, as well as updating the visible gate.
-		lobby.ready = PLAYER_NOT_READY
+		lobby.unready()
 		// Seed the visible state before rebuilding the lobby menu.
 		found.lobby_menu?.set_whitelist_gate(TRUE)
 		lobby.show_title_screen()

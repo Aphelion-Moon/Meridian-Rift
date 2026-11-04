@@ -18,7 +18,14 @@ GLOBAL_LIST_INIT(modular_persistence_ignored_vars, list(
 	"owner_brain",
 	"vars",
 	"stored_character_slot_index",
+	"stored_ckey", // Identity comes from admission, never saved JSON.
 ))
+
+/// Normalizes an admitted or cryo account key, including aghost's prefix. An absent key has no save identity.
+/proc/modular_persistence_account_key(account_key)
+	if(!istext(account_key) || !length(account_key))
+		return null
+	return ckey(replacetext(account_key, "@", ""))
 
 /obj/item/organ/brain
 	/// The modular persistence data for a character.
@@ -44,11 +51,19 @@ GLOBAL_LIST_INIT(modular_persistence_ignored_vars, list(
 		return FALSE
 
 	var/mob/living/carbon/human/player = brain.owner
+	var/account_key = modular_persistence_account_key(player.mind?.key)
+	var/character_slot = player.mind?.original_character_slot_index
+	if(!account_key || !isnum(character_slot) || character_slot < 1 || character_slot != round(character_slot))
+		return FALSE
+	// Loading the same admission twice must not discard its live data, or bind it to a different character.
+	if(!QDELETED(brain.modular_persistence))
+		return brain.modular_persistence.stored_ckey == account_key && brain.modular_persistence.stored_character_slot_index == character_slot
 
-	var/json_file = file("data/player_saves/[player.ckey[1]]/[player.ckey]/modular_persistence.json")
+	var/json_file = file("data/player_saves/[account_key[1]]/[account_key]/modular_persistence.json")
 	var/list/json = fexists(json_file) ? json_decode(file2text(json_file)) : null
 
-	brain.modular_persistence = new(brain, islist(json) ? json["[player.mind.original_character_slot_index]"] : null)
+	brain.modular_persistence = new(brain, islist(json) ? json["[character_slot]"] : null, account_key, character_slot)
+	return TRUE
 
 /// The master persistence datum. Add vars onto this in your own code. Just be aware that you'll need to use simple data types, such as strings, ints, and lists.
 /datum/modular_persistence
@@ -56,8 +71,10 @@ GLOBAL_LIST_INIT(modular_persistence_ignored_vars, list(
 	var/datum/weakref/owner_brain
 	/// The owner's character slot index.
 	var/stored_character_slot_index
+	/// Account admitted with this character slot; brain/body changes must not change the save destination.
+	var/stored_ckey
 
-/datum/modular_persistence/New(obj/item/organ/brain/brain, list/persistence_data)
+/datum/modular_persistence/New(obj/item/organ/brain/brain, list/persistence_data, account_key, character_slot)
 	owner_brain = WEAKREF(brain)
 	. = ..()
 
@@ -66,7 +83,10 @@ GLOBAL_LIST_INIT(modular_persistence_ignored_vars, list(
 		owner_brain = null
 		return
 
-	stored_character_slot_index = our_brain.owner.mind?.original_character_slot_index
+	stored_ckey = modular_persistence_account_key(account_key || our_brain.owner?.mind?.key)
+	stored_character_slot_index = character_slot || our_brain.owner?.mind?.original_character_slot_index
+	if(!stored_ckey || !isnum(stored_character_slot_index) || stored_character_slot_index < 1 || stored_character_slot_index != round(stored_character_slot_index))
+		CRASH("Tried to create modular persistence without an admitted account and character slot!")
 
 	if(!persistence_data)
 		return
@@ -101,8 +121,11 @@ GLOBAL_LIST_INIT(modular_persistence_ignored_vars, list(
 		owner_brain = null
 		return
 
-	var/mob/living/carbon/human/human = our_brain.owner
-	human.save_nif_data(src)
+	// A removed brain has no body to sample. A different character's implants cannot overwrite this record.
+	if(ishuman(our_brain.owner))
+		var/mob/living/carbon/human/human = our_brain.owner
+		if(modular_persistence_account_key(human.mind?.key) == stored_ckey && human.mind.original_character_slot_index == stored_character_slot_index)
+			human.save_nif_data(src)
 
 	for(var/var_name in vars)
 		if(var_name in GLOB.modular_persistence_ignored_vars)
@@ -122,9 +145,10 @@ GLOBAL_LIST_INIT(modular_persistence_ignored_vars, list(
 		owner_brain = null
 		return
 
-	ckey = replacetext(ckey || our_brain.owner?.ckey || our_brain.brainmob?.ckey, "@", "")
-	if(!our_brain.owner && !our_brain.brainmob)
-		CRASH("Modular persistence save called on a brain with no owning mob or brainmob! How did this happen?! (\ref[our_brain], [our_brain])")
+	// Cryo can supply the admitted key (including aghost's @ prefix), but cannot redirect another character's record.
+	if(ckey && modular_persistence_account_key(ckey) != stored_ckey)
+		return FALSE
+	ckey = stored_ckey
 	if(!ckey)
 		CRASH("Modular persistence save called on a brain with no ckey! How did this happen?! (\ref[our_brain], [our_brain])")
 
@@ -137,6 +161,23 @@ GLOBAL_LIST_INIT(modular_persistence_ignored_vars, list(
 
 	json["[stored_character_slot_index]"] = serialize_contents_to_list()
 	WRITE_FILE(json_file, json_encode(json))
+	return TRUE
+
+/**
+ * Moves this character's existing record to a replacement brain, retaining the admitted account and slot.
+ * The destination must be unused and either detached or in the same body; unrelated records cannot be overwritten.
+ */
+/datum/modular_persistence/proc/transfer_to_brain(obj/item/organ/brain/new_brain)
+	var/obj/item/organ/brain/old_brain = owner_brain?.resolve()
+	if(!old_brain || old_brain.modular_persistence != src)
+		CRASH("Modular persistence transfer called without its owning brain!")
+	if(new_brain == old_brain)
+		return TRUE
+	if(QDELETED(new_brain) || new_brain.modular_persistence || (new_brain.owner && new_brain.owner != old_brain.owner))
+		return FALSE
+	old_brain.modular_persistence = null
+	new_brain.modular_persistence = src
+	owner_brain = WEAKREF(new_brain)
 	return TRUE
 
 /// Saves the persistence data for the owner.

@@ -9,6 +9,7 @@
 @include meta.load-css('./markings-room/index');
 @include meta.load-css('./augments-stage.scss');
 @include meta.load-css('./augments-overlay.scss');
+@include meta.load-css('./augments-paint.scss');
 
 .PreferencesMenu {
   &__LoadoutCategoryTabs > .Tab {

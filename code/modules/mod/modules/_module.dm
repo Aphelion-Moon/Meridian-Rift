@@ -5,8 +5,8 @@
 	icon_state = "module"
 	abstract_type = /obj/item/mod/module
 	sound_vary = TRUE
-	pickup_sound = SFX_GENERIC_DEVICE_PICKUP
-	drop_sound = SFX_GENERIC_DEVICE_DROP
+	pickup_sound = /datum/sound_effect/generic_device_pickup
+	drop_sound = /datum/sound_effect/generic_device_drop
 	/// If it can be removed
 	var/removable = TRUE
 	/// If it's passive, togglable, usable or active
@@ -356,7 +356,7 @@
 	return list("display_name" = display_name, "type" = type, "value" = value, "values" = values)
 
 /// Receives configure edits from the TGUI and edits the vars
-/obj/item/mod/module/proc/configure_edit(key, value)
+/obj/item/mod/module/proc/configure_edit(key, value, datum/tgui/ui) // APHELION EDIT CHANGE - ADULT_ITEMS - ORIGINAL: /obj/item/mod/module/proc/configure_edit(key, value)
 	return
 
 /// Called when the device moves to a different place on active modules

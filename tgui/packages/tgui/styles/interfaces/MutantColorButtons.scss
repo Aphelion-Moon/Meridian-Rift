@@ -1,0 +1,11 @@
+// THIS IS AN APHELION UI FILE
+// The swatch on the colour picker's mutant colour and skin tone buttons.
+
+.MutantColorButtons__swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 0.25rem;
+  vertical-align: middle;
+  border: 1px solid rgba(0, 0, 0, 0.5);
+}

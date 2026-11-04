@@ -196,6 +196,11 @@
 		to_chat(user, span_warning("[target_human] doesn't have a head!"))
 		return
 
+	// Armpit and pubic hair groom like a beard; see the body_hair module.
+	if(!user.combat_mode && (location == BODY_ZONE_CHEST || location == BODY_ZONE_PRECISE_GROIN))
+		groom_body_hair(user, target_human, location)
+		return
+
 	if(!(location in head_zones) && !user.combat_mode)
 		to_chat(user, span_warning("You stop, look down at what you're currently holding and ponder to yourself, \"This is probably to be used on their hair or their facial hair.\""))
 		return

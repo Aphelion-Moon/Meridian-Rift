@@ -331,6 +331,16 @@
  * Callback for handling incoming tgui messages.
  */
 /datum/tgui_window/proc/on_message(type, payload, href_list)
+	// APHELION EDIT ADDITION START - BUG_REPORTING - bug report captures of this window
+	switch(type)
+		// Snapshot bytes never reach ui_act logging or the generic payload assembler
+		if("bug-report/capture-ready", "bug-report/capture-chunk", "bug-report/capture-cancel")
+			client?.bug_report_draft?.receive_ui_capture(src, type, payload)
+			return
+		if("close", "suspend")
+			if(client?.bug_report_draft?.capture_window == src)
+				client.bug_report_draft.cancel_ui_capture("closed")
+	// APHELION EDIT ADDITION END - BUG_REPORTING
 	// Status can be READY if user has refreshed the window.
 	if(type == "ready" && status == TGUI_WINDOW_READY)
 		// Resend the assets
@@ -406,12 +416,26 @@
 	if(!payload)
 		return
 	var/list/chunks = payload["chunks"]
+	// APHELION EDIT ADDITION START - BUG_REPORTING - BYOND_POST_MESSAGE
+	// Only a client that can't post sends chunks, so its act gets the bound a posted one does before we hold or decode it.
+	// A chunk that isn't text is never honest, and a list's length counts its items, not what it carries
+	payload["length"] += length(chunk)
+	if(!istext(chunk) || payload["length"] > TGUI_MAX_PAYLOAD_BYTES)
+		deltimer(payload["timeout"])
+		remove_oversized_payload(payload_id)
+		return
+	// APHELION EDIT ADDITION END - BUG_REPORTING
 	chunks += chunk
 	if(length(chunks) >= payload["count"])
 		deltimer(payload["timeout"])
 		var/message_type = payload["type"]
 		var/final_payload = chunks.Join()
 		remove_oversized_payload(payload_id)
+		// APHELION EDIT ADDITION START - BUG_REPORTING - BYOND_POST_MESSAGE
+		// tgui only ever chunks acts, so any other type or broken JSON came from a hand-made client
+		if(!istext(message_type) || copytext(message_type, 1, 5) != "act/" || !rustg_json_is_valid(final_payload))
+			return
+		// APHELION EDIT ADDITION END - BUG_REPORTING
 		on_message(message_type, json_decode(final_payload), list("type" = message_type, "payload" = final_payload, "tgui" = TRUE, "window_id" = id))
 	else
 		payload["timeout"] = addtimer(CALLBACK(src, PROC_REF(remove_oversized_payload), payload_id), 1 SECONDS, TIMER_UNIQUE|TIMER_OVERRIDE|TIMER_STOPPABLE)

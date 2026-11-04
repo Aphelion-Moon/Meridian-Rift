@@ -21,10 +21,12 @@
 		card.assignment = chosen_title
 		card.update_label()
 
-	// Look for PDA in belt or L pocket
+	// Look for PDA in belt, L pocket or backpack (a loadout belt moves it there)
 	var/obj/item/modular_computer/pda/pda = equipping.belt
 	if(!istype(pda))
 		pda = equipping.l_store
+	if(!istype(pda) && equipping.back)
+		pda = locate() in equipping.back
 	if(istype(pda))
 		pda.saved_job = chosen_title
 		pda.UpdateDisplay()

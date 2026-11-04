@@ -146,7 +146,7 @@
 		vision_distance = 5,
 		visible_message_flags = ALWAYS_SHOW_SELF_MESSAGE,
 	)
-	playsound(src, istype(tool, /obj/item/stack/medical/suture) ? SFX_SUTURE_BEGIN : 'sound/items/handling/surgery/cautery1.ogg', 50, TRUE)
+	playsound(src, istype(tool, /obj/item/stack/medical/suture) ? /datum/sound_effect/suture_begin : 'sound/items/handling/surgery/cautery1.ogg', 50, TRUE)
 	if(!do_after(
 		user = src,
 		delay = /datum/surgery_operation/limb/close_skin::time * 2 * tool.toolspeed,
@@ -162,7 +162,7 @@
 		vision_distance = 5,
 		visible_message_flags = ALWAYS_SHOW_SELF_MESSAGE,
 	)
-	playsound(src, istype(tool, /obj/item/stack/medical/suture) ? SFX_SUTURE_END : 'sound/items/handling/surgery/cautery2.ogg', 50, TRUE)
+	playsound(src, istype(tool, /obj/item/stack/medical/suture) ? /datum/sound_effect/suture_end : 'sound/items/handling/surgery/cautery2.ogg', 50, TRUE)
 	limb.remove_surgical_state(ALL_SURGERY_STATES_UNSET_ON_CLOSE)
 	if(istype(tool, /obj/item/stack/medical/suture))
 		var/obj/item/stack/medical/suture/suture_tool = tool
@@ -849,7 +849,7 @@ GLOBAL_DATUM_INIT(operations, /datum/operation_holder, new)
 		return ITEM_INTERACT_BLOCKING
 
 	// NOVA EDIT ADDITION START - Makes it so you cannot operate on people in turned on Stasis Beds
-	if(patient.buckled)
+	if(patient && patient.buckled)
 		var/obj/machinery/stasis/stasis_bed = patient.buckled
 		if(istype(stasis_bed) && stasis_bed.stasis_enabled)
 			to_chat(surgeon, span_warning("[patient] cannot be operated in the [patient.buckled] while it is turned on!"))

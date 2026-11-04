@@ -1,4 +1,6 @@
 /// A layer without art for some colour slots must skip them while the others keep their slot's colour and emissive pref.
+/// A dye (set_dye_color(), as the dye spray applies it) draws every colour layer in the dye, and the render key follows
+/// it; undyed, the part is drawn and keyed in its own colours again.
 /datum/unit_test/matrixed_accessory_sparse_layers/Run()
 	var/obj/item/bodypart/head/lizard/head = allocate(__IMPLIED_TYPE__)
 	var/obj/item/organ/horns/horns = allocate(__IMPLIED_TYPE__)
@@ -22,3 +24,17 @@
 	TEST_ASSERT_EQUAL(colors_by_state["m_horns_angler_FRONT_secondary"], "#00ff00", "The lamp is not the secondary colour.")
 	TEST_ASSERT(("m_horns_angler_FRONT_secondary" in lit_states), "The lamp on the emissive FRONT layer does not glow.")
 	TEST_ASSERT(!("m_horns_angler_ADJ_primary" in lit_states), "The stalk glows from the secondary colour's emissive pref.")
+
+	var/key = jointext(overlay.icon_render_key(head), "|")
+	overlay.set_dye_color("#123456", horns)
+	TEST_ASSERT(jointext(overlay.icon_render_key(head), "|") != key, "The render key ignores the dye.")
+	for(var/mutable_appearance/drawn as anything in overlay.get_all_overlays(head))
+		if(drawn.plane != EMISSIVE_PLANE)
+			TEST_ASSERT_EQUAL(drawn.color, "#123456", "[drawn.icon_state] is not drawn in the dye.")
+	overlay.set_dye_color(null, horns)
+	TEST_ASSERT_EQUAL(jointext(overlay.icon_render_key(head), "|"), key, "Undyed, the render key did not come back.")
+	colors_by_state.Cut()
+	for(var/mutable_appearance/drawn as anything in overlay.get_all_overlays(head))
+		if(drawn.plane != EMISSIVE_PLANE)
+			colors_by_state[drawn.icon_state] = drawn.color
+	TEST_ASSERT_EQUAL(colors_by_state["m_horns_angler_ADJ_primary"], "#ff0000", "Undyed, the stalk is not its own colour again.")

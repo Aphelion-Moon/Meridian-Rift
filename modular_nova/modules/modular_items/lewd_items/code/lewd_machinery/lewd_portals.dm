@@ -128,6 +128,9 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 	if(buckled_mob != current_mob || !relayed_body)
 		return
 
+	// drawn again without a bulge (portal_hides_bulge()) before the relay copies the body; end_session() draws it back
+	if(portal_mode == WALLSTUCK)
+		current_mob.update_body()
 	position_relay()
 	if(!apply_current_mob_visuals())
 		return
@@ -174,12 +177,32 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 	for(var/part in (as_user ? interaction.user_required_parts : interaction.target_required_parts))
 		if(part in relayed_parts[portal_mode])
 			return TRUE
+	// A chastity device sits where the penis or vagina does, so it goes wherever they do; so does a bulge through a
+	// gloryhole, which takes only one the penis pokes out of (can_relay()). A wall-stuck body draws none
+	// (portal_hides_bulge()).
+	var/static/list/relayed_requirements = list(
+		GLORYHOLE = list(INTERACTION_REQUIRE_TARGET_BULGE, INTERACTION_REQUIRE_TARGET_POKES_OUT, INTERACTION_REQUIRE_TARGET_CAGED),
+		WALLSTUCK = list(INTERACTION_REQUIRE_TARGET_CAGED, INTERACTION_REQUIRE_TARGET_BELTED),
+	)
+	var/static/list/relayed_user_requirements = list(
+		GLORYHOLE = list(INTERACTION_REQUIRE_SELF_BULGE, INTERACTION_REQUIRE_SELF_POKES_OUT, INTERACTION_REQUIRE_SELF_CAGED),
+		WALLSTUCK = list(INTERACTION_REQUIRE_SELF_CAGED, INTERACTION_REQUIRE_SELF_BELTED),
+	)
+	for(var/requirement in interaction.interaction_requires)
+		if(requirement in (as_user ? relayed_user_requirements : relayed_requirements)[portal_mode])
+			return TRUE
 	return portal_mode == WALLSTUCK && (interaction.name in (as_user ? lower_body_users : lower_body_targets))
 
 /// Whether interaction touches a part of this mob that a portal is showing somewhere else right now.
 /mob/living/carbon/human/proc/portal_relays_interaction(datum/interaction/interaction, as_user = FALSE)
 	var/obj/structure/lewd_portal/portal = buckled
 	return istype(portal) && portal.current_mob == src && !QDELETED(portal.relayed_body) && portal.relays_interaction(interaction, as_user)
+
+/// Whether this human draws no bulge look (bulge_resolve()): while wall-stuck, as a wall relay shows the hips and butt
+/// alone. A gloryhole draws one the penis pokes out of (can_relay()).
+/mob/living/carbon/human/proc/portal_hides_bulge()
+	var/obj/structure/lewd_portal/portal = buckled
+	return istype(portal) && portal.current_mob == src && portal.portal_mode == WALLSTUCK
 
 /// Whether candidate has everything we need to draw the current portal mode.
 /obj/structure/lewd_portal/proc/can_relay(mob/living/carbon/human/candidate)
@@ -188,7 +211,9 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 	if(portal_mode == GLORYHOLE)
 		var/obj/item/organ/genital/penis/penis = candidate.get_organ_slot(ORGAN_SLOT_PENIS)
 		var/datum/bodypart_overlay/mutant/genital/penis/penis_overlay = penis?.bodypart_overlay
-		return candidate.has_penis(REQUIRE_GENITAL_EXPOSED) && penis.bodypart_owner && penis_overlay?.sprite_datum
+		// in the open, or poking out of a big bulge
+		var/shown = candidate.has_penis(REQUIRE_GENITAL_EXPOSED) || (candidate.bulge_pokes_out() & BULGE_POKES_PAST_CLOTH)
+		return shown && penis.bodypart_owner && penis_overlay?.sprite_datum
 	return istype(candidate.get_bodypart(BODY_ZONE_HEAD), /obj/item/bodypart/head)
 
 /// Captures all mob state that this portal changes.
@@ -563,6 +588,9 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 	var/portal_mode = GLORYHOLE
 	/// Prevents overlay signals caused by an active render from recursing.
 	var/refreshing_visuals = FALSE
+	/// The render target the body draws to (body_render_target()). An appearance doesn't keep its render_target text
+	/// alive, so the relay does, or the text could be freed and its slot reused while the relay still draws it.
+	var/body_target_name
 
 /obj/effect/lewd_portal_relay/Initialize(mapload, mob/living/carbon/human/owner_ref, obj/structure/lewd_portal/receiving_portal)
 	. = ..()
@@ -678,26 +706,60 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 	add_overlay(copied_overlays)
 	return length(copied_overlays) > 0
 
+/**
+ * Draws the occupant's hips and butt: the chest's images, and what's worn over them clipped to the body they draw.
+ *
+ * A wall relay shows the hips and butt only, so it draws no legs and no shoes. A hidden copy of the chest's own sprites
+ * renders to body_render_target(), and the uniform, the underclothes and the chest's images with no sprite of their own
+ * (mess containers) are clipped to it, so nothing drawn over the body reaches past it. A skirt or dress isn't drawn
+ * (wall_relay_skips_uniform()): the body shows under it. A wall-stuck body draws no bulge (portal_hides_bulge()).
+ */
 /obj/effect/lewd_portal_relay/proc/lower_body_only()
 	var/list/generated_overlays = list()
-	for(var/limb_zone in list(BODY_ZONE_R_LEG, BODY_ZONE_L_LEG, BODY_ZONE_CHEST))
-		var/obj/item/bodypart/limb = owner.get_bodypart(limb_zone)
-		if(!istype(limb))
-			continue
-		var/list/limb_icons = limb.get_limb_icon()
-		if(limb_zone == BODY_ZONE_CHEST)
-			limb_icons = torso_only(limb_icons)
-		append_appearance_copies(generated_overlays, limb_icons)
+	var/obj/item/bodypart/chest = owner.get_bodypart(BODY_ZONE_CHEST)
+	if(istype(chest))
+		var/list/torso_copies = list()
+		append_appearance_copies(torso_copies, torso_only(chest.get_limb_icon()))
+		// hidden: the body still draws through its own images, each at its own layer among what's worn
+		var/mutable_appearance/body_holder = mutable_appearance(appearance_flags = KEEP_TOGETHER)
+		body_holder.render_target = body_render_target()
+		for(var/mutable_appearance/torso_copy as anything in torso_copies)
+			if(isnull(torso_copy.icon))
+				clip_to_body(torso_copy)
+			// an image on a plane of its own (an emissive) isn't drawn with the holder
+			else if(torso_copy.plane == FLOAT_PLANE)
+				body_holder.overlays += torso_copy
+				body_holder.layer = min(body_holder.layer, torso_copy.layer)
+			generated_overlays += torso_copy
+		// a flattener (getFlatIcon(), a camera) ignores render_target and draws it: first, under all it copies
+		generated_overlays.Insert(1, body_holder)
 
-	if(owner.shoes)
-		append_appearance_copies(generated_overlays, owner.overlays_standing[SHOES_LAYER])
-	if(owner.w_uniform)
-		append_appearance_copies(generated_overlays, owner.overlays_standing[UNIFORM_LAYER], apply_mask = TRUE)
-	append_appearance_copies(generated_overlays, owner.overlays_standing[BODY_LAYER], apply_mask = TRUE)
+	var/list/worn_copies = list()
+	if(owner.w_uniform && !owner.wall_relay_skips_uniform())
+		append_appearance_copies(worn_copies, owner.overlays_standing[UNIFORM_LAYER], apply_mask = TRUE)
+	append_appearance_copies(worn_copies, owner.overlays_standing[BODY_LAYER], apply_mask = TRUE)
+	for(var/mutable_appearance/worn_copy as anything in worn_copies)
+		clip_to_body(worn_copy)
+	generated_overlays += worn_copies
 	if(!length(generated_overlays))
 		return FALSE
 	add_overlay(generated_overlays)
 	return TRUE
+
+/// Whether a wall relay leaves out this person's uniform: a skirt or dress (a skirt bulge family). Pants stay drawn.
+/mob/living/carbon/human/proc/wall_relay_skips_uniform()
+	var/obj/item/clothing/uniform = w_uniform
+	return istype(uniform) && ispath(uniform.bulge_family, /datum/bulge_family/skirt)
+
+/// Returns the render target this relay's body draws to, its own: two relays in view never clip to each other's.
+/obj/effect/lewd_portal_relay/proc/body_render_target()
+	body_target_name ||= "*lewd_relay_body_[REF(src)]"
+	return body_target_name
+
+/// Clips an appearance to the body this relay draws, keeping any filters it has (a height's). The mask lies in the
+/// appearance's own space, which its pixel offsets then move (a part's mess, offset for the height): it's moved back.
+/obj/effect/lewd_portal_relay/proc/clip_to_body(mutable_appearance/appearance)
+	appearance.filters += filter(type = "alpha", render_source = body_render_target(), x = -(appearance.pixel_x + appearance.pixel_w), y = -(appearance.pixel_y + appearance.pixel_z))
 
 /// Clones torso appearances before filtering so cached limb appearances are never mutated.
 /obj/effect/lewd_portal_relay/proc/torso_only(list/limb_icon_list)
@@ -722,7 +784,8 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 		"icon" = upper_body_mask,
 	))
 
-/// Clones source appearances before filtering, skipping nonexistent icon states.
+/// Clones source appearances before filtering, skipping nonexistent icon states. An image with no sprite of its own (a
+/// holder of others) is always kept.
 /obj/effect/lewd_portal_relay/proc/append_appearance_copies(list/output, appearance_source, apply_mask = FALSE)
 	if(isnull(appearance_source))
 		return
@@ -740,6 +803,9 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 	output += copied_appearance
 
 /obj/effect/lewd_portal_relay/proc/compare_organ_icon(organ_slot, icon_to_compare)
+	// An image with no sprite of its own (a holder of others) is no organ's, whether or not the organ is there.
+	if(isnull(icon_to_compare))
+		return FALSE
 	var/obj/item/organ/organ = owner?.get_organ_slot(organ_slot)
 	var/datum/bodypart_overlay/mutant/organ_overlay = organ?.bodypart_overlay
 	var/datum/sprite_accessory/accessory = organ_overlay?.sprite_datum

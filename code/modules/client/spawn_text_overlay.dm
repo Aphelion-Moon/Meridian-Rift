@@ -15,7 +15,7 @@
 		[area_name]
 		[time_date]
 	"}
-	text = uppertext(text)
+	text = uppertext(replacetext(text, "\t", "")) // APHELION EDIT CHANGE - Fixedsys draws the block's indent tabs as boxes - ORIGINAL: text = uppertext(text)
 
 	var/atom/movable/screen/spawn_text = new()
 	spawn_text.maptext_height = 64

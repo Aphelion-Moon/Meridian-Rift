@@ -1,3 +1,4 @@
+import { withMuscles } from '../../../CharacterPreferences/Muscles'; // APHELION EDIT ADDITION - Muscle size and definition
 import { Gender } from '../../gender';
 import type { FeatureChoiced } from '../base';
 import {
@@ -8,7 +9,7 @@ import {
 
 export const body_type: FeatureChoiced = {
   name: 'Body type',
-  component: FeatureBodyTypeDropdownInput,
+  component: withMuscles(FeatureBodyTypeDropdownInput), // APHELION EDIT CHANGE - Muscle size and definition - ORIGINAL: component: FeatureBodyTypeDropdownInput,
 };
 
 function FeatureBodyTypeDropdownInput(props: DropdownInputProps) {

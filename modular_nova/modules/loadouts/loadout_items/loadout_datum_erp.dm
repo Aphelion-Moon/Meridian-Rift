@@ -160,6 +160,10 @@
 	name = "Ring Gag"
 	item_path = /obj/item/clothing/mask/muzzle/ring
 
+/datum/loadout_item/erp/bridle
+	name = "Bridle"
+	item_path = /obj/item/clothing/mask/bridle
+
 /datum/loadout_item/erp/deprivation_helmet
 	name = "Deprivation Helmet"
 	item_path = /obj/item/clothing/head/deprivation_helmet
@@ -188,6 +192,14 @@
 /datum/loadout_item/erp/ball_mittens
 	name = "Ball Mittens"
 	item_path = /obj/item/clothing/gloves/ball_mittens
+
+/datum/loadout_item/erp/paw_mittens
+	name = "Paw Mittens"
+	item_path = /obj/item/clothing/gloves/ball_mittens/paw_mittens
+
+/datum/loadout_item/erp/cat_paws
+	name = "Cat Paws"
+	item_path = /obj/item/clothing/gloves/ball_mittens/paw_mittens/cat_paws
 
 /datum/loadout_item/erp/collar_shock
 	name = "Shock Collar"
@@ -229,6 +241,10 @@
 	name = "Condom Pack"
 	item_path = /obj/item/condom_pack
 
+/datum/loadout_item/erp/condom_box
+	name = "Condom Box"
+	item_path = /obj/item/storage/box/condoms
+
 /datum/loadout_item/erp/serviette_pack
 	name = "Serviette Pack"
 	item_path = /obj/item/serviette_pack
@@ -257,6 +273,10 @@
 	name = "Crocin Pill"
 	item_path = /obj/item/reagent_containers/applicator/pill/crocin
 
+/datum/loadout_item/erp/crocin/medipen
+	name = "Crocin Medipen"
+	item_path = /obj/item/reagent_containers/hypospray/medipen/lewd/crocin
+
 /datum/loadout_item/erp/camphor/pill
 	name = "Camphor Pill"
 	item_path = /obj/item/reagent_containers/applicator/pill/camphor
@@ -265,17 +285,45 @@
 	name = "Hexacrocin Pill"
 	item_path = /obj/item/reagent_containers/applicator/pill/hexacrocin
 
+/datum/loadout_item/erp/hexacrocin/medipen
+	name = "Hexacrocin Medipen"
+	item_path = /obj/item/reagent_containers/hypospray/medipen/lewd/crocin/hexacrocin
+
 /datum/loadout_item/erp/pentacamphor/pill
 	name = "Pentacamphor Pill"
 	item_path = /obj/item/reagent_containers/applicator/pill/pentacamphor
+
+/datum/loadout_item/erp/rutt
+	name = "R.U.T.T. Bottle"
+	item_path = /obj/item/reagent_containers/cup/bottle/rutt
+
+/datum/loadout_item/erp/rutt/pill
+	name = "R.U.T.T. Pill"
+	item_path = /obj/item/reagent_containers/applicator/pill/rutt
 
 /datum/loadout_item/erp/succubus_milk
 	name = "Succubus Milk Bottle"
 	item_path = /obj/item/reagent_containers/cup/bottle/succubus_milk
 
+/datum/loadout_item/erp/succubus_milk/medipen
+	name = "Succubus Milk Medipen"
+	item_path = /obj/item/reagent_containers/hypospray/medipen/lewd/succubus_milk
+
 /datum/loadout_item/erp/incubus_draft
 	name = "Incubus Draft Bottle"
 	item_path = /obj/item/reagent_containers/cup/bottle/incubus_draft
+
+/datum/loadout_item/erp/incubus_draft/medipen
+	name = "Incubus Draft Medipen"
+	item_path = /obj/item/reagent_containers/hypospray/medipen/lewd/incubus_draft
+
+/datum/loadout_item/erp/butt_enlarger
+	name = "Denbu Tincture Bottle"
+	item_path = /obj/item/reagent_containers/cup/bottle/butt_enlarger
+
+/datum/loadout_item/erp/coom_bomb
+	name = "La Coom Bomb Medipen"
+	item_path = /obj/item/reagent_containers/hypospray/medipen/lewd/coom_bomb
 
 /datum/loadout_item/erp/crocin_neuroware
 	name = "EroStim Neuroware Chip"
@@ -308,6 +356,10 @@
 /datum/loadout_item/erp/pentacamphor_neuroware_box
 	name = "Neuroware Chips Box (Nobido Xtreme)"
 	item_path = /obj/item/storage/box/flat/neuroware/pentacamphor
+
+/datum/loadout_item/erp/lewd_medipen_box
+	name = "Lewd Medipen Box"
+	item_path = /obj/item/storage/box/medipens/lewd
 
 /*
 *	STRUCTURES

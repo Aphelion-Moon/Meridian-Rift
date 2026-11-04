@@ -8,12 +8,19 @@
 	holder = holder_mob
 
 /datum/examine_panel/Destroy(force)
+	SStgui.close_uis(src) // Close callbacks still need the screen.
 	holder = null
 	QDEL_NULL(examine_panel_screen)
 	return ..()
 
 /datum/examine_panel/ui_state(mob/user)
 	return GLOB.always_state
+
+/// A terminal owner must never reopen, even through the observer override in the base UI status.
+/datum/examine_panel/ui_status(mob/user, datum/ui_state/state)
+	if(QDELETED(src) || QDELETED(holder))
+		return UI_CLOSE
+	return ..()
 
 /datum/examine_panel/ui_close(mob/user)
 	examine_panel_screen.hide_from(user)
@@ -22,6 +29,8 @@
 	name = "examine panel screen"
 
 /datum/examine_panel/ui_interact(mob/user, datum/tgui/ui)
+	if(QDELETED(src) || QDELETED(holder))
+		return
 	if(!examine_panel_screen)
 		examine_panel_screen = new
 		examine_panel_screen.name = "screen"

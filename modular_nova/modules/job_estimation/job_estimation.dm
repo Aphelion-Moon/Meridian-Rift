@@ -96,8 +96,6 @@
 	else
 		player_ready_data[player_ref] = list(job_estimation_text, player.ckey)
 
-	RegisterSignal(player, COMSIG_JOB_PREF_UPDATED, PROC_REF(on_client_changes_job), override = TRUE)
-
 /// Removes a player from the job estimation.
 /datum/controller/subsystem/statpanels/proc/remove_job_estimation(mob/dead/new_player/player)
 	if(isnull(player))
@@ -112,28 +110,16 @@
 	if(length(assistant_player_ready_data))
 		assistant_player_ready_data -= player_ref
 
-	UnregisterSignal(player, list(COMSIG_JOB_PREF_UPDATED))
-
-/// Takes a mob or ckey an tries to update the job estimation. 'player' and 'ckey' are optional args.
+/// Refreshes a player's job estimation by mob or ckey - taken off, then put back while they're readied before the round starts. 'player' and 'ckey' are optional args.
 /datum/controller/subsystem/statpanels/proc/update_job_estimation(mob/dead/new_player/player, ckey)
-	if(SSticker.HasRoundStarted())
+	player ||= get_mob_by_ckey(ckey)
+	if(!istype(player))
 		return
-
-	if(player)
-		remove_job_estimation(player)
+	remove_job_estimation(player)
+	if(player.ready == PLAYER_READY_TO_PLAY && !SSticker.HasRoundStarted())
 		add_job_estimation(player)
 
-	else if(ckey) // if the player is ready, update their job estimation
-		var/mob/dead/new_player/new_player = get_mob_by_ckey(ckey)
-		if(istype(new_player) && (new_player.ready == PLAYER_READY_TO_PLAY))
-			remove_job_estimation(new_player)
-			add_job_estimation(new_player)
-
-/// Updates the mob's job if they change it through the occupations tab while readied.
-/datum/controller/subsystem/statpanels/proc/on_client_changes_job(mob/dead/new_player/source)
-	SIGNAL_HANDLER
-	update_job_estimation(source)
-
-// This gets called both when the client disconnects and when the client is shoved into their spawn mob.
-/mob/dead/new_player/become_uncliented()
-	SSstatpanels.remove_job_estimation(src)
+/// Keeps the job estimation in step with tg's ready report, which runs on every ready toggle, job pref change, character load and logout
+/mob/dead/new_player/update_ready_report()
+	. = ..()
+	SSstatpanels.update_job_estimation(src)

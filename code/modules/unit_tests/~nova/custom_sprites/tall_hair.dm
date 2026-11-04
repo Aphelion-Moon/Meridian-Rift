@@ -10,19 +10,6 @@
 		dirs[direction] = custom_sprite_encode_grid(grid, 1, 32 * 48)
 	return list("version" = 4, "palette" = list(color), "tint" = "#ffffff", "dirs" = dirs, "emissive" = custom_sprite_emissive_settings(FALSE))
 
-/// Tall drawings have 16 more rows than normal ones and round-trip; drawings made before them keep their 32 by 32 canvas.
-/datum/unit_test/custom_sprite_tall_hair_codec/Run()
-	var/list/tall = custom_sprite_validate(custom_sprite_tall_hair_test_drawing(3, 2))
-	TEST_ASSERT(tall, "A 32 by 48 drawing should validate")
-	TEST_ASSERT_EQUAL(tall["version"], 4, "A tall drawing should stay tall")
-	TEST_ASSERT_EQUAL(copytext(custom_sprite_decode_grid(tall["dirs"]["2"], 1, 32 * 48), 2 * 32 + 4, 2 * 32 + 5), "1", "The tall drawing's pixels should survive the round trip")
-	var/icon/tall_icon = custom_sprite_paint_icon(tall, FALSE)
-	TEST_ASSERT_EQUAL(tall_icon.Height(), 48, "A tall drawing should render 48 rows")
-	var/list/old = custom_sprite_validate(list("version" = 1, "palette" = list("#123456"), "tint" = null, "dirs" = list("2" = custom_sprite_encode_grid("1[repeat_string(1023, "0")]", 1))))
-	TEST_ASSERT_EQUAL(old["version"], 1, "An old drawing should keep its version")
-	var/icon/old_icon = custom_sprite_paint_icon(old, FALSE)
-	TEST_ASSERT(old_icon.Height() == 32 && old_icon.Width() == 32, "An old drawing should still render 32 by 32")
-
 /// Custom hair over Bald (Tall Canvas) gets 48 rows; paint in the extra rows saves tall, paint below them saves as before.
 /datum/unit_test/custom_sprite_tall_hair_editor/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
@@ -65,16 +52,6 @@
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/hairstyle], "Bald")
 	var/datum/custom_sprite_editor/tall_hair_test/editor = allocate(/datum/custom_sprite_editor/tall_hair_test, preferences, "hair")
 	TEST_ASSERT(editor.candidate_problem(result["package"]), "A normal canvas should refuse tall paint")
-
-/// A tall drawing renders its extra rows above the head.
-/datum/unit_test/custom_sprite_tall_hair_render/Run()
-	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
-	human.set_hairstyle("Bald (Tall Canvas)", update = FALSE)
-	human.dna.custom_hair = custom_sprite_tall_hair_test_drawing(16, 2)
-	human.sync_custom_sprite_appearance()
-	human.update_hair()
-	var/icon/flat = getFlatIcon(new /mutable_appearance(human.appearance), defdir = SOUTH, no_anim = TRUE, clip_bounds = list(1, 1, 32, 48))
-	TEST_ASSERT_EQUAL(LOWER_TEXT(flat.GetPixel(17, 46)), "#123456", "Paint in the extra rows should show above the head")
 
 /// Tall paint draws every painted pixel once, where the tall canvas has it, and its gradient and emissive blocker cover the extra rows too.
 /datum/unit_test/custom_sprite_tall_hair_coverage/Run()

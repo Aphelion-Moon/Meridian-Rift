@@ -1,5 +1,12 @@
 import { loadStyleSheet } from 'common/assets';
 import { EventBus } from 'tgui-core/eventbus';
+// APHELION EDIT ADDITION START - BUG_REPORTING - bug report captures of this window
+import {
+  abortUiSnapshot,
+  acknowledgeUiSnapshot,
+  requestUiSnapshot,
+} from '../capture/controller';
+// APHELION EDIT ADDITION END - BUG_REPORTING
 import { handleLoadAssets } from './handlers/assets';
 import {
   acknowledgePayloadChunk,
@@ -24,6 +31,11 @@ const listeners = {
   // Chunking
   oversizePayloadResponse,
   acknowledgePayloadChunk,
+  // APHELION EDIT ADDITION START - BUG_REPORTING - bug report captures of this window
+  'bug-report/capture': requestUiSnapshot,
+  'bug-report/capture-ack': acknowledgeUiSnapshot,
+  'bug-report/capture-abort': abortUiSnapshot,
+  // APHELION EDIT ADDITION END - BUG_REPORTING
 } as const;
 
 export const bus = new EventBus(listeners);

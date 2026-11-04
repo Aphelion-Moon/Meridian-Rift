@@ -322,22 +322,24 @@
 					. += "<span class='notice'>[t_He] [t_has] exposed genitals... <a href='byond://?src=[REF(src)];lookup_info=genitals'>\[Look closer...\]</a></span>"
 					break
 
-	var/flavor_text_link
-	/// The first 1-FLAVOR_PREVIEW_LIMIT characters in the mob's "flavor_text" DNA feature. FLAVOR_PREVIEW_LIMIT is defined in flavor_defines.dm.
-	var/preview_text = copytext_char((dna.features["flavor_text"]), 1, FLAVOR_PREVIEW_LIMIT)
-	// What examine_tgui.dm uses to determine if flavor text appears as "Obscured".
-	var/obj/item/clothing/mask/wear_mask = get_item_by_slot(ITEM_SLOT_MASK)
-	var/obj/item/clothing/head/head = get_item_by_slot(ITEM_SLOT_HEAD)
-	var/face_obscured = (wear_mask && (wear_mask.flags_inv & HIDEFACE)) || (head && (head.flags_inv & HIDEFACE))
+	// Permanent character flavor belongs to DNA; DNA-less carbons still show temporary flavor below.
+	if(has_dna())
+		var/flavor_text_link
+		/// The first 1-FLAVOR_PREVIEW_LIMIT characters in the mob's "flavor_text" DNA feature. FLAVOR_PREVIEW_LIMIT is defined in flavor_defines.dm.
+		var/preview_text = copytext_char((dna.features["flavor_text"]), 1, FLAVOR_PREVIEW_LIMIT)
+		// What examine_tgui.dm uses to determine if flavor text appears as "Obscured".
+		var/obj/item/clothing/mask/wear_mask = get_item_by_slot(ITEM_SLOT_MASK)
+		var/obj/item/clothing/head/head = get_item_by_slot(ITEM_SLOT_HEAD)
+		var/face_obscured = (wear_mask && (wear_mask.flags_inv & HIDEFACE)) || (head && (head.flags_inv & HIDEFACE))
 
-	if (!(face_obscured))
-		flavor_text_link = span_notice("[preview_text]... <a href='byond://?src=[REF(src)];lookup_info=open_examine_panel'>\[Look closer?\]</a>")
-	else
-		flavor_text_link = span_notice("<a href='byond://?src=[REF(src)];lookup_info=open_examine_panel'>\[Examine closely...\]</a>")
-	if (flavor_text_link)
-		. += flavor_text_link
-	if (!face_obscured && !HAS_TRAIT(src, TRAIT_UNKNOWN_APPEARANCE) && client?.prefs.read_preference(/datum/preference/text/character_ad))
-		. += span_notice("[t_He] [t_has] an ad in the character directory... <a href='byond://?src=[REF(src)];lookup_info=open_character_ad'>\[Open directory?\]</a>")
+		if (!(face_obscured))
+			flavor_text_link = span_notice("[preview_text]... <a href='byond://?src=[REF(src)];lookup_info=open_examine_panel'>\[Look closer?\]</a>")
+		else
+			flavor_text_link = span_notice("<a href='byond://?src=[REF(src)];lookup_info=open_examine_panel'>\[Examine closely...\]</a>")
+		if (flavor_text_link)
+			. += flavor_text_link
+		if (!face_obscured && !HAS_TRAIT(src, TRAIT_UNKNOWN_APPEARANCE) && client?.prefs.read_preference(/datum/preference/text/character_ad))
+			. += span_notice("[t_He] [t_has] an ad in the character directory... <a href='byond://?src=[REF(src)];lookup_info=open_character_ad'>\[Open directory?\]</a>")
 
 	//Temporary flavor text addition:
 	if(temporary_flavor_text)

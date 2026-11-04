@@ -93,12 +93,14 @@
 	if(hardlight_theme)
 		. += "MOD_[hardlight_theme]"
 
-	if(islist(draw_color))
-		for(var/sub_color in draw_color)
+	// A dye (set_dye_color()) colours the whole part over its own colours, as color_images() draws it.
+	var/colour = dye_color || draw_color
+	if(islist(colour))
+		for(var/sub_color in colour)
 			. += "[sub_color]"
 
 	else
-		. += "[draw_color]"
+		. += "[colour]"
 
 	if(alpha != ALPHA_OPAQUE)
 		. += "[alpha]"
@@ -220,6 +222,8 @@
 			draw_color = "#AAA" //The gray husk color
 
 	alpha = limb?.alpha || ALPHA_OPAQUE
+	// A dye (set_dye_color()) colours every colour layer of the part, over its own colours; a husk keeps its grey.
+	var/colour = (dye_color && !limb?.is_husked) ? dye_color : draw_color
 
 	for(var/index_to_color in overlay_indexes_to_color)
 		if(index_to_color > length(overlays))
@@ -230,13 +234,13 @@
 
 		switch(sprite_datum.color_src)
 			if(USE_ONE_COLOR)
-				overlay.color = islist(draw_color) ? draw_color[color_slot] : draw_color
+				overlay.color = islist(colour) ? colour[color_slot] : colour
 
 			if(USE_MATRIXED_COLORS)
-				if (color_slot > length(draw_color))
-					overlay.color = islist(draw_color) ? draw_color[length(draw_color)] : draw_color
+				if (color_slot > length(colour))
+					overlay.color = islist(colour) ? colour[length(colour)] : colour
 				else
-					overlay.color = islist(draw_color) ? draw_color[color_slot] : draw_color
+					overlay.color = islist(colour) ? colour[color_slot] : colour
 
 			else
 				overlay.color = limb?.color

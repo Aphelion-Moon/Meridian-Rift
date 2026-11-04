@@ -16,6 +16,7 @@ import {
 
 import type { Name } from '../types';
 import { useServerPrefs } from '../useServerPrefs';
+import { CyborgEditorNameButton } from '../../common/CyborgCustomization/NameButton'; // APHELION EDIT ADDITION - CYBORG_CUSTOMIZATION
 
 type NameWithKey = {
   key: string;
@@ -168,6 +169,7 @@ export function MultiNameInput(props: MultiNameProps) {
                               />
                             </Stack.Item>
                           )}
+                          <CyborgEditorNameButton nameKey={key} />{/* APHELION EDIT ADDITION - CYBORG_CUSTOMIZATION opens its editor window */}
                         </Stack>
                       </LabeledList.Item>
                     );

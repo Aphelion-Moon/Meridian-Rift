@@ -249,18 +249,28 @@
 					row = archived_painting.to_json()
 					row["md5"] = id
 					row["tags"] = tag ? list(tag) : list()
-					var/stage = md5("[world.realtime]-[REF(canvas)]-[rand(1, 1e9)]")
-					var/png = "data/paintings/staging/[stage]/[id].png"
-					// rust-g creates PNGs in an existing directory.
-					var/marker = "data/paintings/staging/[stage]/.owner"
-					payload["stage_files"] = list(png, marker)
-					if(rustg_file_write(stage, marker))
-						return painting_store_failure("Unable to create painting staging directory.")
-					var/error = rustg_dmi_create_png(png, "[canvas.width]", "[canvas.height]", pixels)
-					if(error)
-						return painting_store_failure("Unable to stage painting image: [error]")
-					images += list(list("id" = id, "source" = "staged", "stage" = stage))
+					var/list/save_error = stage_painting_image(id, canvas.width, canvas.height, pixels, payload, images)
+					if(save_error)
+						return save_error
 					rows += list(row)
+			if("create")
+				// Artwork that never had a canvas: NanoPaint hands over finished pixels and fresh metadata.
+				archived_painting = payload["painting"]
+				var/pixels = payload["pixels"]
+				if(!istype(archived_painting) || !length(pixels))
+					return painting_store_failure("The painting could not be prepared.")
+				var/id = md5(LOWER_TEXT(pixels))
+				if(id in deleted_paintings_md5s)
+					return painting_store_failure("That painting was deleted this round.")
+				if(by_id[id] || fexists("data/paintings/images/[id].png"))
+					return list("ok" = TRUE, "changed" = FALSE)
+				var/list/row = archived_painting.to_json()
+				row["md5"] = id
+				row["tags"] = list()
+				var/list/save_error = stage_painting_image(id, archived_painting.width, archived_painting.height, pixels, payload, images)
+				if(save_error)
+					return save_error
+				rows += list(row)
 			if("import")
 				var/list/source = payload["snapshot"]
 				var/list/source_rows = source["paintings"]
@@ -302,6 +312,21 @@
 	apply_store_snapshot(result["snapshot"] || candidate)
 	result["imported"] = kind == "import" ? length(images) : 0
 	return result
+
+/// Write one new painting's PNG into its own staging directory, for the commit to promote or the queue to clean up.
+/datum/controller/subsystem/persistent_paintings/proc/stage_painting_image(id, width, height, pixels, list/payload, list/images)
+	var/stage = md5("[world.realtime]-[id]-[rand(1, 1e9)]")
+	var/png = "data/paintings/staging/[stage]/[id].png"
+	// rust-g creates PNGs in an existing directory.
+	var/marker = "data/paintings/staging/[stage]/.owner"
+	payload["stage_files"] = list(png, marker)
+	if(rustg_file_write(stage, marker))
+		return painting_store_failure("Unable to create painting staging directory.")
+	var/error = rustg_dmi_create_png(png, "[width]", "[height]", pixels)
+	if(error)
+		return painting_store_failure("Unable to stage painting image: [error]")
+	images += list(list("id" = id, "source" = "staged", "stage" = stage))
+	return null
 
 /// Collect unsaved local pixel identities so imports cannot claim artwork still being created.
 /datum/controller/subsystem/persistent_paintings/proc/pending_canvas_ids()

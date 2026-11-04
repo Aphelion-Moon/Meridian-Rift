@@ -337,6 +337,221 @@
 	description = span_purple("Others' suffering makes me happier.\n")
 
 /*
+*	AMOROUS
+*/
+
+/// Gives its holder the amorous trauma.
+/datum/quirk/amorous
+	name = "Amorous"
+	desc = "You have a more active libido than most people."
+	value = 0
+	gain_text = span_userlove("Your libido is going haywire!")
+	lose_text = span_notice("Your libido settles down to a normal level.")
+	medical_record_text = "Subject has permanent hormonal disruption."
+	icon = FA_ICON_HEART
+	erp_quirk = TRUE
+
+/datum/quirk/amorous/add(client/client_source)
+	var/mob/living/carbon/human/human_holder = quirk_holder
+	human_holder.gain_trauma(/datum/brain_trauma/very_special/amorous, TRAUMA_RESILIENCE_ABSOLUTE)
+
+/datum/quirk/amorous/remove()
+	var/mob/living/carbon/human/human_holder = quirk_holder
+	human_holder.cure_trauma_type(/datum/brain_trauma/very_special/amorous, TRAUMA_RESILIENCE_ABSOLUTE)
+
+/**
+ * The Amorous quirk's trauma. Arousal keeps rising while satisfaction drains a point a tick. Climaxing restores
+ * satisfaction and quiets the libido for a while; with none left, stress builds and brings growing side effects.
+ */
+/datum/brain_trauma/very_special/amorous
+	name = "Hormonal disruption"
+	desc = "The patient has completely lost the ability to regulate their hormones, and seems extremely aroused."
+	scan_desc = "hormonal disruption"
+	gain_text = span_purple("Your thoughts get cloudy, but it turns you on a lot.")
+	lose_text = span_warning("A pleasant coolness spreads throughout your body. You are thinking clearly again.")
+	random_gain = FALSE
+	display_scanner = FALSE
+	/// How satisfied they are.
+	var/satisfaction = 1000
+	/// The most satisfaction they can have.
+	var/satisfaction_max = 1000
+	/// Satisfaction gained by climaxing.
+	var/satisfaction_gain = 300
+	/// How stressed they are, building while they're unsatisfied.
+	var/stress = 0
+	/// The most stress they can have.
+	var/stress_max = 300
+	/// How often an unsatisfied mob alone feels it.
+	var/desire_cooldown_number = 30 SECONDS
+	/// How long a climax quiets their libido.
+	var/refractory_cooldown_time = 5 MINUTES
+	COOLDOWN_DECLARE(desire_cooldown)
+	COOLDOWN_DECLARE(refractory_cooldown)
+
+/datum/brain_trauma/very_special/amorous/on_gain()
+	. = ..()
+	owner.add_mood_event("amorous", /datum/mood_event/amorous)
+	RegisterSignal(owner, COMSIG_MOB_CLIMAXED, PROC_REF(on_climax))
+
+/datum/brain_trauma/very_special/amorous/on_lose(silent)
+	. = ..()
+	owner.clear_mood_event("amorous")
+	UnregisterSignal(owner, COMSIG_MOB_CLIMAXED)
+
+/datum/brain_trauma/very_special/amorous/on_life(seconds_per_tick)
+	if(!COOLDOWN_FINISHED(src, refractory_cooldown))
+		return
+	var/mob/living/carbon/human/human_owner = owner
+	human_owner.adjust_arousal(10)
+	if(human_owner.pleasure < 45)
+		human_owner.adjust_pleasure(5)
+	if(satisfaction)
+		feel_desire()
+		satisfaction--
+		stress = max(stress - 1, 0)
+		return
+	if(stress < stress_max)
+		stress++
+		feel_unsatisfied()
+	if(!COOLDOWN_FINISHED(src, desire_cooldown))
+		return
+	COOLDOWN_START(src, desire_cooldown, desire_cooldown_number)
+	if(!in_company())
+		to_chat(human_owner, span_purple("You feel so alone without someone..."))
+
+/// Tells them how much they want someone as satisfaction drains to each mark, if anyone's around.
+/datum/brain_trauma/very_special/amorous/proc/feel_desire()
+	var/message
+	switch(satisfaction)
+		if(300)
+			message = "Jeez, it's hot in here..."
+		if(250)
+			message = "Desire fogs your decisions."
+		if(200)
+			message = "Your clothes are feeling tight."
+		if(150)
+			message = "You'd hit that. Yeah. That's at least a six."
+		if(100)
+			message = "You can't STAND it, you need a partner NOW!"
+	if(message && in_company())
+		to_chat(owner, span_purple(message))
+
+/// The side effects of stress, each felt once as stress builds past its mark.
+/datum/brain_trauma/very_special/amorous/proc/feel_unsatisfied()
+	var/mob/living/carbon/human/human_owner = owner
+	var/message
+	switch(stress)
+		if(60)
+			human_owner.set_jitter_if_lower(40 SECONDS)
+			message = "You feel a static sensation all across your skin..."
+		if(120)
+			human_owner.set_eye_blur_if_lower(20 SECONDS)
+			message = "Your vision begins to blur, the heat beginning to rise..."
+		if(180)
+			message = "You begin to fantasize about what you could do with someone..."
+		if(240)
+			human_owner.adjust_stamina_loss(30)
+			message = "Your body feels so very hot, almost unwilling to cooperate..."
+		if(300)
+			message = "You can't think about anything else..."
+	if(message)
+		to_chat(human_owner, span_purple(message))
+
+/// Whether any other human is nearby.
+/datum/brain_trauma/very_special/amorous/proc/in_company()
+	return !!(locate(/mob/living/carbon/human) in oview(owner, 4))
+
+/// A climax clears their stress, satisfies them and quiets their libido for a while.
+/datum/brain_trauma/very_special/amorous/proc/on_climax(datum/source)
+	SIGNAL_HANDLER
+	stress = 0
+	satisfaction = min(satisfaction + satisfaction_gain, satisfaction_max)
+	COOLDOWN_START(src, refractory_cooldown, refractory_cooldown_time)
+
+/// Lasts as long as the amorous trauma.
+/datum/mood_event/amorous
+	description = span_purple("So... Turned on... I love it!")
+
+/*
+*	HEADPAT LOVER
+*/
+
+/// Headpats lift its holder's mood, and arouse them when the petter has ERP mechanics on.
+/datum/quirk/headpat_lover
+	name = "Headpat Lover"
+	desc = "Your head seems to be an erogenous zone! You enjoy headpats a little too much..."
+	value = 0
+	gain_text = span_userlove("Your scalp feels extremely sensitive!")
+	lose_text = span_notice("Your sensitivity to headpats fades away!")
+	medical_record_text = ""
+	icon = FA_ICON_PERSON_HARASSING
+	erp_quirk = TRUE
+
+/datum/quirk/headpat_lover/add(client/client_source)
+	RegisterSignal(quirk_holder, COMSIG_CARBON_HELP_ACT, PROC_REF(on_help_act))
+
+/datum/quirk/headpat_lover/remove()
+	UnregisterSignal(quirk_holder, COMSIG_CARBON_HELP_ACT)
+	quirk_holder.clear_mood_event("headpat_lover")
+	quirk_holder.clear_mood_event("better_headpat_lover")
+
+/// A help act on a standing holder's head is a headpat, as help_shake_act() decides. Boops never send the signal.
+/datum/quirk/headpat_lover/proc/on_help_act(mob/living/carbon/human/source, mob/living/carbon/petter)
+	SIGNAL_HANDLER
+	if(source.body_position == LYING_DOWN || check_zone(petter.zone_selected) != BODY_ZONE_HEAD || !source.get_bodypart(BODY_ZONE_HEAD))
+		return
+	enjoy_headpat(source, petter)
+
+/**
+ * Gives the headpat's mood, a better one from a Friendly petter in a great mood. A petter with ERP mechanics on, and
+ * without quick reflexes, also gives a little arousal and pleasure.
+ *
+ * Arguments:
+ * - source: The quirk holder.
+ * - petter: Whoever patted them.
+ */
+/datum/quirk/headpat_lover/proc/enjoy_headpat(mob/living/carbon/human/source, mob/living/carbon/petter)
+	if(HAS_TRAIT(petter, TRAIT_FRIENDLY) && petter.mob_mood?.sanity >= SANITY_GREAT)
+		source.add_mood_event("better_headpat_lover", /datum/mood_event/better_headpat_lover, petter)
+	else
+		source.add_mood_event("headpat_lover", /datum/mood_event/headpat_lover)
+	if(HAS_TRAIT(petter, TRAIT_QUICKREFLEXES) || !petter.client?.prefs?.read_preference(/datum/preference/toggle/erp))
+		return
+	var/mechanics = petter.client.prefs.read_preference(/datum/preference/choiced/erp_status_mechanics)
+	if(mechanics != "Mechanical only" && mechanics != "Mechanical and Roleplay")
+		return
+	new /obj/effect/temp_visual/heart/red(source.loc)
+	source.adjust_arousal(2)
+	source.adjust_pleasure(2)
+
+/// A headpat.
+/datum/mood_event/headpat_lover
+	description = "I love headpats!"
+	mood_change = 1
+	timeout = 1 MINUTES
+
+/// A headpat from a Friendly petter in a great mood, judged by the holder's personality.
+/datum/mood_event/better_headpat_lover
+	description = "I LOVE HEADPATS! YES!"
+	mood_change = 3
+	timeout = 2 MINUTES
+	special_screen_obj = "mood_happiness_good"
+
+/datum/mood_event/better_headpat_lover/add_effects(mob/living/petter)
+	if(HAS_PERSONALITY(owner, /datum/personality/aloof))
+		mood_change = 2
+		description = "[petter.name] gives great headpats, but I wish they'd stop touching me."
+		return
+	if(HAS_PERSONALITY(owner, /datum/personality/callous))
+		mood_change = 0
+		return
+	description = "[petter.name] gives great headpats, [petter.p_they()] make[petter.p_s()] me feel so happy!"
+
+/// The heart a lewd headpat floats up.
+/obj/effect/temp_visual/heart/red
+	color = COLOR_RED
+
+/*
 *	EMPATH BONUS
 */
 

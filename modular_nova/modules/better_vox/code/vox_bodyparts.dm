@@ -8,6 +8,7 @@
 	is_dimorphic = FALSE
 	should_draw_greyscale = FALSE
 	limb_id = SPECIES_VOX_PRIMALIS
+	prefix = "vox primalis"
 	eyes_icon = 'modular_nova/modules/better_vox/icons/bodyparts/vox_eyes.dmi'
 	teeth_count = 72
 
@@ -41,6 +42,7 @@
 	is_dimorphic = FALSE
 	should_draw_greyscale = FALSE
 	limb_id = SPECIES_VOX_PRIMALIS
+	prefix = "vox primalis"
 
 /// Position fallback human back items on the Primalis torso.
 /obj/item/bodypart/chest/mutant/vox_primalis/Initialize(mapload)
@@ -60,6 +62,7 @@
 	bodyshape = parent_type::bodyshape | BODYSHAPE_CUSTOM
 	should_draw_greyscale = FALSE
 	limb_id = SPECIES_VOX_PRIMALIS
+	prefix = "vox primalis"
 
 /obj/item/bodypart/arm/right/mutant/vox_primalis
 	icon_static = 'modular_nova/modules/better_vox/icons/bodyparts/vox_bodyparts.dmi'
@@ -69,6 +72,7 @@
 	bodyshape = parent_type::bodyshape | BODYSHAPE_CUSTOM
 	should_draw_greyscale = FALSE
 	limb_id = SPECIES_VOX_PRIMALIS
+	prefix = "vox primalis"
 
 /obj/item/bodypart/leg/left/mutant/vox_primalis
 	icon_static = 'modular_nova/modules/better_vox/icons/bodyparts/vox_bodyparts.dmi'
@@ -78,6 +82,7 @@
 	bodyshape = parent_type::bodyshape | BODYSHAPE_CUSTOM
 	should_draw_greyscale = FALSE
 	limb_id = SPECIES_VOX_PRIMALIS
+	prefix = "vox primalis"
 
 /obj/item/bodypart/leg/right/mutant/vox_primalis
 	icon_static = 'modular_nova/modules/better_vox/icons/bodyparts/vox_bodyparts.dmi'
@@ -87,4 +92,5 @@
 	bodyshape = parent_type::bodyshape | BODYSHAPE_CUSTOM
 	should_draw_greyscale = FALSE
 	limb_id = SPECIES_VOX_PRIMALIS
+	prefix = "vox primalis"
 

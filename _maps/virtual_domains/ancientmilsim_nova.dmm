@@ -1369,7 +1369,7 @@
 /area/virtual_domain/ancient_milsim/snpc_garage)
 "Hn" = (
 /obj/machinery/camera/directional/north{
-	status = 0
+	camera_enabled = 0
 	},
 /turf/open/misc/grass/planet/ancient_milsim,
 /area/virtual_domain/ancient_milsim/snpc_ground)

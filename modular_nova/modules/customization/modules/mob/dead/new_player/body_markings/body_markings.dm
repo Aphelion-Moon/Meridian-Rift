@@ -943,6 +943,11 @@
 	default_color = "#112222" //slightly faded ink.
 	gendered = FALSE
 
+/// Preserve this family's explicitly unrestricted selection after inherited list initialization.
+/datum/body_marking/tattoo/New()
+	recommended_species = null
+	return ..()
+
 /datum/body_marking/tattoo/heart
 	name = "Tattoo - Heart"
 	icon_state = "tat_heart"

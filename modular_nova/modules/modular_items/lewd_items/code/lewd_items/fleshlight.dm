@@ -80,3 +80,27 @@
 								'modular_nova/modules/modular_items/lewd_items/sounds/bang4.ogg',
 								'modular_nova/modules/modular_items/lewd_items/sounds/bang5.ogg',
 								'modular_nova/modules/modular_items/lewd_items/sounds/bang6.ogg'), 70, 1, -1)
+
+/// Catches an immovable rod, which flings the user along its path to a soft landing.
+/obj/item/clothing/sextoy/fleshlight/bluespace
+	name = "bluespace fleshlight"
+	desc = "Internal design based on the captain's mother."
+	icon_state = "fleshlight_teal"
+	current_color = "teal"
+	color_changed = TRUE
+	custom_premium_price = PAYCHECK_COMMAND * 10
+
+/obj/item/clothing/sextoy/fleshlight/bluespace/Initialize(mapload)
+	. = ..()
+	AddComponent(/datum/component/effect_remover, \
+		tip_text = "Capture rod", \
+		on_clear_callback = CALLBACK(src, PROC_REF(catch_rod)), \
+		effects_we_clear = list(/obj/effect/immovablerod), \
+	)
+
+/// Called just before the rod is deleted. A wizard in rod form is set down unharmed first.
+/obj/item/clothing/sextoy/fleshlight/bluespace/proc/catch_rod(obj/effect/immovablerod/rod, mob/living/user)
+	astype(rod, /obj/effect/immovablerod/wizard)?.eject_wizard()
+	user.throw_at(get_edge_target_turf(user, rod.dir), 12, 4, gentle = TRUE)
+	playsound(rod, 'sound/effects/cartoon_sfx/cartoon_pop.ogg', 75, TRUE)
+	rod.audible_message(span_danger("You hear a POP!"))

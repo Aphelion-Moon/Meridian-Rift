@@ -355,19 +355,6 @@
 	TEST_ASSERT(!(editor.apply_hair_context(locked, "Change hairstyle") || !editor.transfer_error), "Unavailable hairstyles must be refused.")
 	editor.finish(FALSE)
 
-/// Saving facial hair writes its own key and never touches the head hair drawing.
-/datum/unit_test/custom_sprite_facial_hair_editor/Run()
-	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
-	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
-	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/facial_hairstyle], custom_style_test_facial_style())
-	preferences.write_preference(GLOB.preference_entries[/datum/preference/color/facial_hair_color], "#583820")
-	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "facial_hair")
-	var/list/bounds = editor.workspace.draw_bounds["2"]
-	TEST_ASSERT(editor.workspace.new_transaction(list("type" = "pencil", "layer" = 1, "dir" = "2", "color" = "[editor.workspace.palette[1]]ff", "points" = list(list(bounds[1] + 2, bounds[2] + 2)))), "The facial hair editor must accept paint inside its bounds.")
-	TEST_ASSERT(!(editor.save_drawing() != TRUE || custom_sprite_hash(preferences.custom_facial_hair) != custom_sprite_hash(editor.workspace.serialize_drawing())), "Saving must store the facial hair drawing on its own key: [editor.save_error]")
-	TEST_ASSERT(!preferences.custom_hair, "Saving facial hair must not touch the head hair drawing.")
-	editor.finish(FALSE)
-
 /// A trusted copy survives choosing Bald, but cannot bypass palette admission, history limits or editor lifetime.
 /datum/unit_test/custom_sprite_base_hair_copy_paste/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)

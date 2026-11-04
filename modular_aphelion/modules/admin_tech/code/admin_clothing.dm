@@ -209,9 +209,9 @@
 		TRAIT_BOT_PATH_HUD,
 		TRAIT_NEARSIGHTED_CORRECTED,
 	)
-	pickup_sound = SFX_GOGGLES_PICKUP
-	drop_sound = SFX_GOGGLES_DROP
-	equip_sound = SFX_GOGGLES_EQUIP
+	pickup_sound = /datum/sound_effect/goggles_pickup
+	drop_sound = /datum/sound_effect/goggles_drop
+	equip_sound = /datum/sound_effect/goggles_equip
 	// Sets up our ctrl shift click bonus feature
 	/// 0 = normal sight, 1 = perfect sight (see/hear through walls, see ghosts), 2 = omniscience (also sees abstract things like landmarks).
 	// You cannot set this to anything other than 1, because the switch updates are buried in the clickmod proc below. These wont process at initialize atm otherwise.

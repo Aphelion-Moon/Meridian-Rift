@@ -12,7 +12,10 @@ import {
 } from '../common/SpriteEditor/Types/types';
 import { NanopaintConfirmDialog } from './dialogs/NanopaintConfirmDialog';
 import { NanopaintErrorDialog } from './dialogs/NanopaintErrorDialog';
+import { NanopaintGalleryDialog } from './dialogs/NanopaintGalleryDialog'; // APHELION EDIT ADDITION - Art Galaxy.
+import { NanopaintGalleryOpenDialog } from './dialogs/NanopaintGalleryOpenDialog'; // APHELION EDIT ADDITION - Art Galaxy.
 import { NanopaintNewDialog } from './dialogs/NanopaintNewDialog';
+import { NanopaintResizeDialog } from './dialogs/NanopaintResizeDialog'; // APHELION EDIT ADDITION - Canvas Size.
 import { NanopaintSelectDialog } from './dialogs/NanopaintSelectDialog';
 import { NanopaintMenuBar } from './NanopaintMenuBar';
 import type { NanopaintData } from './types';
@@ -35,6 +38,8 @@ export const NtosNanopaint = (props) => {
     maxSize,
     dialog,
     diskInserted,
+    galleryBusy, // APHELION EDIT ADDITION - Art Galaxy.
+    galleryFiles, // APHELION EDIT ADDITION - Art Galaxy.
   } = data;
 
   const hasEditorData = isWorkspaceOpen(workspaceOpen, editorData);
@@ -95,6 +100,31 @@ export const NtosNanopaint = (props) => {
       dialogNode = <NanopaintErrorDialog message={message} />;
       break;
     }
+    // APHELION EDIT ADDITION START - Art Galaxy.
+    case 'gallery': {
+      const { type, ...galleryProps } = dialog;
+      dialogNode = <NanopaintGalleryDialog {...galleryProps} />;
+      break;
+    }
+    case 'galleryOpen': {
+      dialogNode = <NanopaintGalleryOpenDialog galleryFiles={galleryFiles} />;
+      break;
+    }
+    case 'resize': {
+      dialogNode = (
+        <NanopaintResizeDialog
+          {...{
+            width: dialog.width,
+            height: dialog.height,
+            minSize,
+            maxSize,
+            templateSizes,
+          }}
+        />
+      );
+      break;
+    }
+    // APHELION EDIT ADDITION END
   }
 
   SpriteEditor.syncBackend(onSelectServerColor, serverSelectedColor);
@@ -109,6 +139,7 @@ export const NtosNanopaint = (props) => {
               undoHistory={undoStack}
               redoHistory={redoStack}
               workspaceOpen={workspaceOpen}
+              galleryBusy={galleryBusy} // APHELION EDIT ADDITION - Art Galaxy.
               zoom={zoom}
               maxZoom={20}
               minZoom={1}

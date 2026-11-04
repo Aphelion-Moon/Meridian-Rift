@@ -126,6 +126,12 @@
     box-shadow: var(--console-control-depth);
   }
 
+  // A skin's selected-control glow paints a corner with it (_glowstick.scss).
+  // A round control takes the glow and keeps its shape.
+  .Button--circular {
+    --glowstick-control-radius: var(--border-radius-circular);
+  }
+
   // Subtract the 1px frame from padding to preserve label width.
   // Icon buttons retain their asymmetric padding.
   .Button:not(.Button--hasIcon):not(.Button--compact) {

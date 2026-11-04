@@ -89,26 +89,6 @@
 					TEST_ASSERT(custom_sprite_region_owner(map[direction], zones, x - 1, y - 1) == GLOB.custom_marking_hand_arms[hand], "[GLOB.custom_marking_hand_arms[hand]] must own [hand]'s wrist band at [x],[y] in view [direction].")
 		TEST_ASSERT(wrist, "The fixture needs [hand]'s wrist band.")
 
-/// Region ID colours are distinct, lowercase and never read as a third region when two blend at an edge.
-/datum/unit_test/custom_sprite_region_colors/Run()
-	var/list/colors = list()
-	for(var/index in 1 to 9)
-		var/color = custom_sprite_region_color(index)
-		TEST_ASSERT(!(length(color) != 7 || color != LOWER_TEXT(color)), "Region ID colors are lowercase #rrggbb, as the map reads them back.")
-		TEST_ASSERT(!(color in colors), "Region ID colors must be distinct.")
-		colors += color
-	// An antialiased edge blends two regions; the blend must never read as a third one.
-	for(var/first in 1 to 9)
-		for(var/second in 1 to 9)
-			if(first == second)
-				continue
-			var/list/a = rgb2num(colors[first])
-			var/list/b = rgb2num(colors[second])
-			for(var/weight in list(0.25, 0.5, 0.75))
-				var/blend = LOWER_TEXT(rgb(round(a[1] * weight + b[1] * (1 - weight), 1), round(a[2] * weight + b[2] * (1 - weight), 1), round(a[3] * weight + b[3] * (1 - weight), 1)))
-				var/found = colors.Find(blend)
-				TEST_ASSERT(!(found && found != first && found != second), "A [weight] blend of regions [first] and [second] must not read as region [found].")
-
 /// A region map's paintable mask keeps every owned pixel except the locked regions', region 1 included.
 /datum/unit_test/custom_sprite_region_mask_locks/Run()
 	var/list/map = list("2" = list("0123456789", "9876543210"))

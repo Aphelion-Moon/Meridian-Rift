@@ -326,8 +326,13 @@
       letter-spacing: 0.04em;
     }
 
-    // The job matrix's cells are painted by their caller, square (_preferences.scss).
-    .Button:not(.PreferencesMenu__Jobs__departments__priority) {
+    // The job matrix's cells are painted by their caller, square
+    // (_preferences.scss). A round control keeps its own radius too: this
+    // corner outranked the single .Button--circular class, and :where() carries
+    // no specificity, so the rule still ranks where it did.
+    .Button:not(.PreferencesMenu__Jobs__departments__priority):not(
+        :where(.Button--circular)
+      ) {
       border-radius: 4px 9px 5px 10px;
     }
 

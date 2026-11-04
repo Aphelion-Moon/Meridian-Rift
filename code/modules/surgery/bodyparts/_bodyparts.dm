@@ -273,6 +273,11 @@
 		texture_bodypart_overlay = new texture_bodypart_overlay()
 		add_bodypart_overlay(texture_bodypart_overlay, update = FALSE)
 
+	// APHELION EDIT ADDITION START - A limb drawn in a species' shape carries that species' worn offsets, whoever made it
+	if(worn_offsets_species)
+		GLOB.species_prototypes[worn_offsets_species].add_worn_offsets(src)
+
+	// APHELION EDIT ADDITION END
 	if(IS_ORGANIC_LIMB(src))
 		blood_dna_info = list("Unknown DNA" = get_blood_type(/datum/blood_type/human/o_plus))
 
@@ -288,7 +293,10 @@
 	if(innate_state)
 		add_surgical_state(innate_state)
 
-	name = "[limb_id] [parse_zone(body_zone)]"
+	// APHELION EDIT CHANGE START - Our limbs keep the names their types give them, and tg's name for the rest reads a limb_id as words - ORIGINAL: name = "[limb_id] [parse_zone(body_zone)]"
+	if(!keeps_type_name)
+		name = "[prefix || limb_id] [plaintext_zone]"
+	// APHELION EDIT CHANGE END
 	update_limb(TRUE)
 	// APHELION EDIT CHANGE START - A limb made in nullspace is drawn when it first leaves it - ORIGINAL: update_icon_dropped()
 	if(loc)

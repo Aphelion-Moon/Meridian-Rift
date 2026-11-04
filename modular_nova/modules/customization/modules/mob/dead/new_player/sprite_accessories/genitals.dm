@@ -43,6 +43,11 @@
 
 	return TAUR_DIMENSION_X
 
+/**
+ * Hides the genital as its visibility preference says. The overlay drawing it asks with itself as `bodypart_overlay`, and
+ * examine without one: a genital that shapes the body draws under the underclothes examine reads as covering it
+ * (/obj/item/organ/genital/proc/hidden_by_clothing()).
+ */
 /datum/sprite_accessory/genital/is_hidden(mob/living/carbon/human/target_mob, datum/bodypart_overlay/mutant/bodypart_overlay)
 	// get_organ_slot(), read from the slot list itself: this runs for every genital on every body update.
 	var/obj/item/organ/genital/badonkers = target_mob?.organs_slot?[associated_organ_slot]
@@ -52,14 +57,14 @@
 	switch(badonkers.visibility_preference)
 		if(GENITAL_HIDDEN_BY_CLOTHES)
 			// Single source of coverage truth, shared with is_exposed() - render
-			return badonkers.covered_by_clothing(target_mob)
+			return badonkers.hidden_by_clothing(target_mob, !isnull(bodypart_overlay))
 		if(GENITAL_CUSTOM)
 			// get_effective_layer_mode(), inline: any custom layer but the normal one draws over clothing.
 			var/datum/bodypart_overlay/mutant/genital/overlay = badonkers.bodypart_overlay
 			var/layer_mode = overlay?.layer_mode
 			if(layer_mode && layer_mode != GENITAL_LAYER_NORMAL)
 				return FALSE
-			return badonkers.covered_by_clothing(target_mob)
+			return badonkers.hidden_by_clothing(target_mob, !isnull(bodypart_overlay))
 	//If not hidden-by-clothes or custom, it defaults to always hidden
 	return TRUE
 
@@ -418,6 +423,13 @@
 	has_skintone_shading = TRUE
 	genital_location = CHEST
 	max_sprite_size_affix = 5
+	/// PECS_* flags: muscle shape, big/heavy examine text, and drawn nipples.
+	var/pecs_flags = PECS_NIPPLES
+	/// Sheet with a bouncing twin of every state in `icon`, drawn instead while the breasts bounce. Null if they can't.
+	var/jiggle_icon = BREASTS_ICON_JIGGLE
+
+/datum/sprite_accessory/genital/breasts/get_special_icon(mob/living/carbon/human/target_mob, datum/bodypart_overlay/mutant/genital/breasts/bodypart_overlay)
+	return bodypart_overlay?.animation_icon || ..()
 
 /datum/sprite_accessory/genital/breasts/none
 	icon_state = "none"
@@ -425,6 +437,7 @@
 	factual = FALSE
 	natural_spawn = FALSE
 	color_src = null
+	jiggle_icon = null
 
 /datum/sprite_accessory/genital/breasts/pair
 	icon_state = "pair"
@@ -435,6 +448,7 @@
 	name = parent_type::name + " (Alt)"
 	display_name = parent_type::name
 	icon = BREASTS_ICON_ALT
+	jiggle_icon = BREASTS_ICON_ALT_JIGGLE
 	icon_state = parent_type::icon_state + "_alt"
 	color_src = USE_MATRIXED_COLORS
 
@@ -446,6 +460,7 @@
 	name = parent_type::name + " (Alt)"
 	display_name = parent_type::name
 	icon = BREASTS_ICON_ALT
+	jiggle_icon = BREASTS_ICON_ALT_JIGGLE
 	icon_state = parent_type::icon_state + "_alt"
 	color_src = USE_MATRIXED_COLORS
 	max_sprite_size_affix = 19
@@ -460,10 +475,43 @@
 	name = parent_type::name + " (Alt)"
 	display_name = parent_type::name
 	icon = BREASTS_ICON_ALT
+	jiggle_icon = BREASTS_ICON_ALT_JIGGLE
 	icon_state = parent_type::icon_state + "_alt"
 	color_src = USE_MATRIXED_COLORS
 	max_sprite_size_affix = 19
 	skintone_max_sprite_size_affix = null
+
+/datum/sprite_accessory/genital/breasts/pecs
+	icon_state = "pecs"
+	name = "Pecs"
+	max_sprite_size_affix = 0
+	natural_spawn = FALSE
+	pecs_flags = parent_type::pecs_flags | PECS_SHAPE
+
+/datum/sprite_accessory/genital/breasts/pecs/nippleless
+	icon_state = "pecs_nippleless"
+	name = "Pecs (Nippleless)"
+	pecs_flags = parent_type::pecs_flags & ~PECS_NIPPLES
+
+/datum/sprite_accessory/genital/breasts/pecs/big
+	icon_state = "pecs_big"
+	name = "Bigger pecs"
+	pecs_flags = parent_type::pecs_flags | PECS_LARGE
+
+/datum/sprite_accessory/genital/breasts/pecs/big/nippleless
+	icon_state = "pecs_big_nippleless"
+	name = "Bigger pecs (Nippleless)"
+	pecs_flags = parent_type::pecs_flags & ~PECS_NIPPLES
+
+/datum/sprite_accessory/genital/breasts/pecs/biggest
+	icon_state = "pecs_biggest"
+	name = "Biggest pecs"
+	pecs_flags = parent_type::pecs_flags | PECS_LARGE
+
+/datum/sprite_accessory/genital/breasts/pecs/biggest/nippleless
+	icon_state = "pecs_biggest_nippleless"
+	name = "Biggest pecs (Nippleless)"
+	pecs_flags = parent_type::pecs_flags & ~PECS_NIPPLES
 
 // BUTT
 

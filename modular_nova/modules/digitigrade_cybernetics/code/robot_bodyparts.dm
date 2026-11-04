@@ -7,6 +7,7 @@
 
 /obj/item/bodypart/leg/right/robot/digi
 	name = "cyborg digitigrade right leg"
+	keeps_type_name = TRUE
 	icon_static = 'modular_nova/modules/digitigrade_cybernetics/icons/digitigrade_parts.dmi'
 	icon = 'modular_nova/modules/digitigrade_cybernetics/icons/digitigrade_parts.dmi'
 	bodyshape = parent_type::bodyshape | BODYSHAPE_DIGITIGRADE
@@ -17,6 +18,7 @@
 
 /obj/item/bodypart/leg/left/robot/digi
 	name = "cyborg digitigrade left leg"
+	keeps_type_name = TRUE
 	icon_static = 'modular_nova/modules/digitigrade_cybernetics/icons/digitigrade_parts.dmi'
 	icon = 'modular_nova/modules/digitigrade_cybernetics/icons/digitigrade_parts.dmi'
 	bodyshape = parent_type::bodyshape | BODYSHAPE_DIGITIGRADE
@@ -24,6 +26,7 @@
 
 /obj/item/bodypart/leg/right/robot/surplus/digi
 	name = "prosthetic digitigrade right leg"
+	keeps_type_name = TRUE
 	icon_static = 'modular_nova/modules/digitigrade_cybernetics/icons/digitigrade_parts.dmi'
 	icon = 'modular_nova/modules/digitigrade_cybernetics/icons/digitigrade_parts.dmi'
 	bodyshape = parent_type::bodyshape | BODYSHAPE_DIGITIGRADE
@@ -31,6 +34,7 @@
 
 /obj/item/bodypart/leg/left/robot/surplus/digi
 	name = "prosthetic digitigrade left leg"
+	keeps_type_name = TRUE
 	icon_static = 'modular_nova/modules/digitigrade_cybernetics/icons/digitigrade_parts.dmi'
 	icon = 'modular_nova/modules/digitigrade_cybernetics/icons/digitigrade_parts.dmi'
 	bodyshape = parent_type::bodyshape | BODYSHAPE_DIGITIGRADE
@@ -41,6 +45,7 @@
 
 /obj/item/bodypart/leg/right/robot/advanced/digi
 	name = "advanced digitigrade right leg"
+	keeps_type_name = TRUE
 	icon_static = 'modular_nova/modules/digitigrade_cybernetics/icons/digitigrade_parts.dmi'
 	icon = 'modular_nova/modules/digitigrade_cybernetics/icons/digitigrade_parts.dmi'
 	bodyshape = parent_type::bodyshape | BODYSHAPE_DIGITIGRADE
@@ -50,7 +55,8 @@
 	digitigrade_type = /obj/item/bodypart/leg/left/robot/advanced/digi
 
 /obj/item/bodypart/leg/left/robot/advanced/digi
-	name = "advanced digitigrade right leg"
+	name = "advanced digitigrade left leg"
+	keeps_type_name = TRUE
 	icon_static = 'modular_nova/modules/digitigrade_cybernetics/icons/digitigrade_parts.dmi'
 	icon = 'modular_nova/modules/digitigrade_cybernetics/icons/digitigrade_parts.dmi'
 	bodyshape = parent_type::bodyshape | BODYSHAPE_DIGITIGRADE

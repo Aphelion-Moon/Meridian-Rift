@@ -55,7 +55,11 @@ export function useSpriteEditorHistory() {
   );
 }
 
-export function useSpriteEditorHotkeys(disabled = false, onSave?: () => void) {
+export function useSpriteEditorHotkeys(
+  disabled = false,
+  onSave?: () => void,
+  noHistory = false,
+) {
   const history = useSpriteEditorHistory();
   useClaimedKeys(
     (event, key) => {
@@ -75,11 +79,11 @@ export function useSpriteEditorHotkeys(disabled = false, onSave?: () => void) {
         onSave();
         return true;
       }
-      if (key !== 'z' && key !== 'y') return false;
+      if (noHistory || (key !== 'z' && key !== 'y')) return false;
       history(key === 'y' || event.shiftKey ? 'redo' : 'undo');
       return true;
     },
-    [history, disabled, onSave],
+    [history, disabled, onSave, noHistory],
   );
 }
 

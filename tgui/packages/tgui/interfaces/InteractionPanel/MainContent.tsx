@@ -10,12 +10,17 @@ import {
 } from 'tgui-core/components';
 import type { BooleanLike } from 'tgui-core/react';
 import { useBackend } from '../../backend';
+import {
+  RuntimeTab,
+  RuntimeTabButton,
+} from '../common/CyborgCustomization/RuntimeTabs';
 
 enum InteractionTab {
   Interactions = 0,
   GenitalOptions = 1,
   LewdItems = 2,
   Underwear = 3,
+  CyborgCustomization = 4,
 }
 type Interaction = {
   erp_interaction: BooleanLike;
@@ -76,39 +81,48 @@ export const MainContent = () => {
                 Lewd Items
               </Tabs.Tab>
             )}
+            <RuntimeTabButton
+              dataKey="cyborg_runtime"
+              selected={tabIndex === InteractionTab.CyborgCustomization}
+              onClick={() => setTabIndex(InteractionTab.CyborgCustomization)}
+            />
           </Tabs>
         </Stack.Item>
-        <Stack.Item>
-          <Stack align="baseline" fill>
-            <Stack.Item>
-              <Icon name="search" />
-            </Stack.Item>
-            <Stack.Item grow>
-              <Input
-                fluid
-                width="200px"
-                value={searchText}
-                placeholder={placeholder}
-                onChange={(value) => setSearchText(value)}
-              />
-            </Stack.Item>
-            {tabIndex === InteractionTab.Interactions && (
+        {tabIndex !== InteractionTab.CyborgCustomization && (
+          <Stack.Item>
+            <Stack align="baseline" fill>
               <Stack.Item>
-                <Button
-                  icon={showCategories ? 'folder' : 'list'}
-                  color="green"
-                  tooltip={
-                    showCategories ? 'Hide Categories' : 'Show Categories'
-                  }
-                  onClick={() => setShowCategories(!showCategories)}
+                <Icon name="search" />
+              </Stack.Item>
+              <Stack.Item grow>
+                <Input
+                  fluid
+                  width="200px"
+                  value={searchText}
+                  placeholder={placeholder}
+                  onChange={(value) => setSearchText(value)}
                 />
               </Stack.Item>
-            )}
-          </Stack>
-        </Stack.Item>
+              {tabIndex === InteractionTab.Interactions && (
+                <Stack.Item>
+                  <Button
+                    icon={showCategories ? 'folder' : 'list'}
+                    color="green"
+                    tooltip={
+                      showCategories ? 'Hide Categories' : 'Show Categories'
+                    }
+                    onClick={() => setShowCategories(!showCategories)}
+                  />
+                </Stack.Item>
+              )}
+            </Stack>
+          </Stack.Item>
+        )}
         <Stack.Item grow mb={-1.6}>
           <Section fill>
-            {tabIndex === InteractionTab.LewdItems ? (
+            {tabIndex === InteractionTab.CyborgCustomization ? (
+              <RuntimeTab dataKey="cyborg_runtime" action="cyborg_runtime" />
+            ) : tabIndex === InteractionTab.LewdItems ? (
               <GenitalLayeringTab />
             ) : tabIndex === InteractionTab.Underwear ? (
               <UnderwearTab />

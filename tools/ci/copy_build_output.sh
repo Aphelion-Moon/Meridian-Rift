@@ -17,4 +17,5 @@ cp -r tgui/public/* $1/tgui/public/
 find modular_nova/ -name '*.dmi' -exec cp --parents -t "$1" {} +
 find modular_nova/modules/GAGS/json_configs modular_nova/modules/GAGS/nsfw/json_configs -name '*.json' -exec cp --parents -t "$1" {} +
 find modular_aphelion/ -name '*.dmi' -exec cp --parents -t "$1" {} +
+find modular_aphelion/ -name '*.json' -exec cp --parents -t "$1" {} +
 # APHELION EDIT ADDITION END

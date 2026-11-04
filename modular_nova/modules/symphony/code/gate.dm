@@ -50,7 +50,7 @@
 	if(QDELETED(src) || !client)
 		return FALSE
 	if(blocked)
-		ready = PLAYER_NOT_READY
+		unready()
 		show_title_screen()
 		return FALSE
 	// They may have unreadied while the whitelist lookup slept.

@@ -13,6 +13,7 @@ import { AugmentsTab, LimbsPage } from './LimbsPage';
 // NOVA EDIT ADDITION END
 import { LoadoutPage } from './loadout';
 import { MainPage } from './MainPage';
+import { BRAND_SPRITES_INTENT } from './MarkingsRoom/augments/brands'; // APHELION EDIT ADDITION - Recolourable augments
 import { QuirkPersonalityPage } from './QuirksPage';
 import { SpeciesPage } from './SpeciesRegistry'; // APHELION EDIT CHANGE - ORIGINAL: import { SpeciesPage } from './SpeciesPage';
 
@@ -239,7 +240,7 @@ export function CharacterPreferenceWindow(props: {
             </PageButton>
           </Stack.Item>
           {/* NOVA EDIT ADDITION START */}
-          <Stack.Item grow>
+          <Stack.Item grow {...BRAND_SPRITES_INTENT}>
             <PageButton
               currentPage={currentPage}
               page={Page.Limbs}

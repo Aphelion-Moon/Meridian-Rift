@@ -12,11 +12,11 @@ import {
   Stack,
   Tabs,
 } from 'tgui-core/components';
-import { formatEnergy } from 'tgui-core/format';
-import { formatPower } from 'tgui-core/format';
+import { formatEnergy, formatPower } from 'tgui-core/format';
 
 import { useBackend } from '../backend';
 import { NtosWindow } from '../layouts';
+import { RuntimeTab, RuntimeTabButton } from './common/CyborgCustomization/RuntimeTabs'; // APHELION EDIT ADDITION - CYBORG_CUSTOMIZATION
 
 export const NtosRobotact = (props) => {
   return (
@@ -45,6 +45,7 @@ export const NtosRobotactContent = (props) => {
     wireAI,
     wireLaw,
     sensors,
+    eyeLights,
     printerPictures,
     printerToner,
     printerTonerMax,
@@ -66,6 +67,7 @@ export const NtosRobotactContent = (props) => {
     <Flex direction={'column'}>
       <Flex.Item position="relative" mb={1}>
         <Tabs>
+          <RuntimeTabButton dataKey="reproductionManagement" selected={tab_main === 4} onClick={() => setTab_main(4)} />{/* APHELION EDIT ADDITION - CYBORG_CUSTOMIZATION */}
           <Tabs.Tab
             icon="list"
             lineHeight="23px"
@@ -92,6 +94,7 @@ export const NtosRobotactContent = (props) => {
           </Tabs.Tab>
         </Tabs>
       </Flex.Item>
+      {tab_main === 4 && <RuntimeTab dataKey="reproductionManagement" action="cyborg_customization" />}{/* APHELION EDIT ADDITION - CYBORG_CUSTOMIZATION */}
       {tab_main === 1 && (
         <>
           <Flex direction={'row'}>
@@ -210,6 +213,14 @@ export const NtosRobotactContent = (props) => {
                       />
                     </LabeledList.Item>
                     {/* NOVA EDIT ADDITION END */}
+
+                    <LabeledList.Item label="Eye Lights">
+                      <Button
+                        content={eyeLights}
+                        onClick={() => act('toggleEyeLights')}
+                      />
+                    </LabeledList.Item>
+
                     <LabeledList.Item
                       label={`Stored Photos (${printerPictures})`}
                     >

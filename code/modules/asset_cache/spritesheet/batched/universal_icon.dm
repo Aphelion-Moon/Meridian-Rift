@@ -483,7 +483,12 @@
 		if(isnull(file_path) || !fexists(file_path))
 			// Named by a hash of the resource itself, so the same icon is the same file between runs, as the
 			// smart cache needs, and a new one is written with one file operation rather than four.
-			file_path = "tmp/uni_icon-[md5(fcopy_rsc(curicon))].dmi"
+			var/file_hash = md5(fcopy_rsc(curicon))
+			// The resource cache can hold no data for an icon (a dyn.rsc that never opened) - its empty hash would
+			// give every such icon the one shared file the first of them wrote.
+			if(!file_hash)
+				CRASH("A runtime icon has no data in the resource cache.")
+			file_path = "tmp/uni_icon-[file_hash].dmi"
 			if(!fexists(file_path))
 				fcopy(curicon, file_path)
 			if(runtime_icon_ref)

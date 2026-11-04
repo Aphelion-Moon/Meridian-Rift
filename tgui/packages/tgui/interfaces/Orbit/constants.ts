@@ -38,7 +38,7 @@ export const DEPARTMENT2COLOR: Record<string, Department> = {
     trims: [
       'Captain',
       'Head of Personnel',
-      'Nanotrasen Consultant',
+      'Astraeus Federation Consultant',
       'Blueshield',
     ], // NOVA EDIT CHANGE END
   },

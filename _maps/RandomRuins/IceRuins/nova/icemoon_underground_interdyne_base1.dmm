@@ -9,6 +9,12 @@
 /obj/structure/flora/rock/pile/icy/style_random,
 /turf/open/misc/asteroid/snow/icemoon,
 /area/icemoon/underground/explored)
+"ad" = (
+/obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
+/obj/machinery/atmospherics/pipe/smart/manifold4w/supply/hidden/layer4,
+/obj/machinery/vending/imported/luvvits,
+/turf/open/floor/catwalk_floor/iron_dark,
+/area/ruin/interdyne_planetary_base/main/dorms)
 "ae" = (
 /obj/machinery/porta_turret/syndicate{
 	dir = 9;
@@ -8628,7 +8634,7 @@ lv
 Va
 ly
 mj
-lz
+ad
 lz
 ns
 nO

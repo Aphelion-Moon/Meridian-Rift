@@ -186,15 +186,33 @@ export function regionMask(map: FrameRegions, zone: string) {
   return regionsMask(map, [zone]);
 }
 
+// A number for each map a mask leaves out, for the mask's key.
+const exceptions = new WeakMap<FrameRegions, number>();
+let exceptionsNumbered = 0;
+
 /**
  * Several regions' pixels as one frame-sized mask image, as an arm augment's
- * lights its hand too; undefined when none of them has any.
+ * lights its hand too; undefined when none of them has any. With `except`, a
+ * map laid on the same frame, its pixels are left out.
  */
-export function regionsMask(map: FrameRegions, zones: readonly string[]) {
-  return drawMask(map, zones.join(' '), zones, (wanted, words) => {
+export function regionsMask(
+  map: FrameRegions,
+  zones: readonly string[],
+  except?: FrameRegions,
+) {
+  let key = zones.join(' ');
+  if (except) {
+    let id = exceptions.get(except);
+    if (id === undefined) {
+      id = ++exceptionsNumbered;
+      exceptions.set(except, id);
+    }
+    key += ` except ${id}`;
+  }
+  return drawMask(map, key, zones, (wanted, words) => {
     let any = false;
     for (let at = 0; at < map.index.length; at++) {
-      if (wanted.has(map.index[at])) {
+      if (wanted.has(map.index[at]) && !except?.index[at]) {
         words[at] = 0xffffffff;
         any = true;
       }

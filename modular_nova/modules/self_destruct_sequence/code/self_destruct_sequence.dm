@@ -192,7 +192,7 @@ GLOBAL_DATUM(self_destruct_sequence, /datum/self_destruct_sequence)
 			// Not every blast reaches the far side of the station. By the end they land twice a
 			// second, and one guaranteed sound per player per blast crowds out the announcement.
 			echo_factor = prob(SELF_DESTRUCT_BLAST_ECHO_PROB),
-			near_sound = quiet_blast(SFX_EXPLOSION),
+			near_sound = quiet_blast(/datum/sound_effect/explosion),
 			far_sound = quiet_blast('sound/effects/explosion/explosionfar.ogg'),
 			echo_sound = quiet_blast('sound/effects/explosion/explosion_distant.ogg'),
 		)

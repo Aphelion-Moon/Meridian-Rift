@@ -687,9 +687,12 @@ export function MainPage(props: MainPageProps) {
                   turn(value); // APHELION EDIT CHANGE - Drawn character preview - ORIGINAL: act('rotate', { backwards: value }); // NOVA EDIT CHANGE - Original: act('rotate');
                 }}
                 setGender={createSetPreference(act, 'gender')}
+                /* // APHELION EDIT REMOVAL START - Gender for every species, the game applies it whatever the species' sexes
                 showGender={
                   currentSpeciesData ? !!currentSpeciesData.sexes : true
                 }
+                */ // APHELION EDIT REMOVAL END
+                showGender // APHELION EDIT ADDITION
                 // NOVA EDIT ADDITION START
                 handleFood={() => {
                   act('open_food');

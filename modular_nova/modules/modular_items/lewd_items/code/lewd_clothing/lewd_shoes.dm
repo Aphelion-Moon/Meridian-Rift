@@ -15,7 +15,7 @@
 
 /obj/item/clothing/shoes/ballet_heels/Initialize(mapload)
 	. = ..()
-	AddComponent(/datum/component/squeak, list('modular_nova/master_files/sound/effects/footstep/highheel1.ogg' = 1, 'modular_nova/master_files/sound/effects/footstep/highheel2.ogg' = 1), 70)
+	AddComponent(/datum/component/squeak, list('modular_nova/master_files/sound/effects/footstep/highheel1.ogg' = 1, 'modular_nova/master_files/sound/effects/footstep/highheel2.ogg' = 1, 'modular_nova/master_files/sound/effects/footstep/highheel3.ogg' = 1, 'modular_nova/master_files/sound/effects/footstep/highheel4.ogg' = 1), 70)
 
 /obj/item/clothing/shoes/ballet_heels/domina_heels
 	name = "dominant heels"
@@ -28,6 +28,16 @@
 	greyscale_config_worn = null
 	greyscale_config_worn_digi = null
 	post_init_icon_state = null
+
+/// Ballet heels with the feet held en pointe. Only the sprite differs.
+/obj/item/clothing/shoes/ballet_heels/pointe_boots
+	name = "pointe boots"
+	desc = "Knee-high boots that hold the feet en pointe, like a ballerina's. Somehow even harder to walk in than heels."
+	icon_state = "/obj/item/clothing/shoes/ballet_heels/pointe_boots"
+	post_init_icon_state = "pointeboots"
+	greyscale_config = /datum/greyscale_config/pointe_boots
+	greyscale_config_worn = /datum/greyscale_config/pointe_boots/worn
+	greyscale_config_worn_digi = /datum/greyscale_config/pointe_boots/worn/digi
 
 /*
 *	LATEX SOCKS

@@ -11,6 +11,7 @@ import { useBackend } from '../../backend';
 import { Window } from '../../layouts';
 import { Loader } from '../common/Loader';
 import { ColorSelector } from './ColorSetter';
+import { MutantColorButtons } from './MutantColorButtons'; // APHELION EDIT ADDITION - mutant colour shortcuts
 
 interface ColorPickerData {
   autofocus: boolean;
@@ -21,6 +22,8 @@ interface ColorPickerData {
   timeout: number;
   title: string;
   default_color: string;
+  mutant_colors?: string[] | null; // APHELION EDIT ADDITION - mutant colour shortcuts
+  skin_tone?: string | null; // APHELION EDIT ADDITION - skin tone shortcut
 }
 
 type ColorPickerModalProps = any;
@@ -44,7 +47,7 @@ export const ColorPickerModal: React.FC<ColorPickerModalProps> = () => {
 
   return (
     <Window
-      height={message ? 465 : 430}
+      height={(message ? 465 : 430) + (data.mutant_colors?.length ? 30 : 0)} // APHELION EDIT CHANGE - ORIGINAL: height={message ? 465 : 430}
       title={title}
       width={700}
       theme="generic"
@@ -53,6 +56,17 @@ export const ColorPickerModal: React.FC<ColorPickerModalProps> = () => {
       <Window.Content>
         <Stack fill vertical>
           {!!autofocus && <Autofocus />}
+          {/* APHELION EDIT ADDITION START - mutant colour shortcuts */}
+          {!!data.mutant_colors?.length && (
+            <Stack.Item>
+              <MutantColorButtons
+                colors={data.mutant_colors}
+                skinTone={data.skin_tone}
+                setColor={setSelectedColor}
+              />
+            </Stack.Item>
+          )}
+          {/* APHELION EDIT ADDITION END */}
           {message && (
             <Stack.Item>
               <Section fill>

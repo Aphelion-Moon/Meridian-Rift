@@ -339,3 +339,90 @@
 	workspace.load_frames(frames)
 	TEST_ASSERT(!(!workspace.edited_directions["2"] || !("#ffffff" in workspace.palette)), "Loading frames must mark edited views and admit their colors.")
 	qdel(workspace)
+
+/**
+ * Returns where the window's canvas, as an update encodes it, differs from the drawing: the first pixel of a view it
+ * carries that doesn't decode to the pixel there, or null when every one does, as a whole encode would.
+ *
+ * Arguments:
+ * - workspace: The workspace.
+ */
+/proc/custom_sprite_test_canvas_mismatch(datum/sprite_editor_workspace/custom_sprite/workspace)
+	var/list/canvas = workspace.canvas_ui_data()
+	var/list/palette = canvas["palette"]
+	var/digits = canvas["digits"]
+	var/list/values = custom_sprite_index_values()
+	for(var/layer in 1 to length(workspace.layers))
+		var/list/entry = workspace.layers[layer]
+		for(var/direction in workspace.canvas_directions(layer))
+			var/codes = workspace.canvas_views[entry["id"]]?[direction]
+			if(length(codes) != workspace.width * workspace.height * digits)
+				return "[entry["id"]] view [direction] has [length(codes)] characters of codes"
+			var/position = 0
+			for(var/list/row as anything in entry["data"][direction])
+				for(var/pixel in row)
+					var/value = 0
+					for(var/digit in 1 to digits)
+						var/at = position * digits + digit
+						value = value * 64 + values[copytext(codes, at, at + 1)]
+					if(palette[value + 1] != pixel)
+						return "[entry["id"]] view [direction] pixel [position] decodes to [palette[value + 1]], not [pixel]"
+					position++
+	return null
+
+/// The window's canvas, encoded again only where steps changed it, decodes to the drawing as a whole encode would:
+/// on four views, an appendage switching views, a hidden view painted past the patch cap, codes widening past 64 values,
+/// and a move and its undo.
+/datum/unit_test/custom_sprite_canvas_patches/Run()
+	var/list/first = list()
+	var/list/second = list()
+	for(var/i in 1 to 40)
+		first += LOWER_TEXT(rgb(i * 6, 0, 0))
+		second += LOWER_TEXT(rgb(0, i * 6, 0))
+	var/datum/sprite_editor_workspace/custom_sprite/workspace = allocate(/datum/sprite_editor_workspace/custom_sprite, null, first, null)
+	// Every view a stroke, encoded whole, then another over part of it, encoded from its points.
+	for(var/direction in workspace.layers[1]["data"])
+		workspace.new_transaction(list("type" = "pencil", "layer" = 1, "dir" = direction, "color" = "[first[1]]ff", "points" = list(list(1, 1), list(2, 1), list(3, 1))))
+	workspace.canvas_ui_data()
+	for(var/direction in workspace.layers[1]["data"])
+		workspace.new_transaction(list("type" = "pencil", "layer" = 1, "dir" = direction, "color" = "[first[2]]ff", "points" = list(list(2, 1), list(2, 2))))
+	TEST_ASSERT_NULL(custom_sprite_test_canvas_mismatch(workspace), "Strokes on all four views must encode to their pixels")
+	// An appendage carries only the view the window shows: turning encodes the next, and paint on the hidden one waits.
+	var/id = workspace.add_appendage()
+	var/layer = workspace.layer_index(id)
+	workspace.new_transaction(list("type" = "pencil", "layer" = layer, "layerId" = id, "dir" = "2", "color" = "[first[3]]ff", "points" = list(list(5, 5))))
+	workspace.canvas_ui_data()
+	workspace.visible_view = "4"
+	workspace.new_transaction(list("type" = "pencil", "layer" = layer, "layerId" = id, "dir" = "4", "color" = "[first[4]]ff", "points" = list(list(6, 6))))
+	workspace.new_transaction(list("type" = "pencil", "layer" = layer, "layerId" = id, "dir" = "2", "color" = "[first[4]]ff", "points" = list(list(5, 6))))
+	TEST_ASSERT_NULL(custom_sprite_test_canvas_mismatch(workspace), "An appendage's view must encode to its pixels once the window turns to it")
+	workspace.visible_view = "2"
+	TEST_ASSERT_NULL(custom_sprite_test_canvas_mismatch(workspace), "Paint on an appendage's hidden view must reach its codes once the window turns back")
+	// Painted past the cap, a hidden view waits to be encoded whole rather than keeping every step.
+	for(var/i in 1 to CUSTOM_SPRITE_MAX_PATCH_STEPS + 1)
+		workspace.new_transaction(list("type" = "pencil", "layer" = layer, "layerId" = id, "dir" = "4", "color" = "[first[3]]ff", "points" = list(list(i, 7))))
+	TEST_ASSERT(workspace.is_painted(CUSTOM_SPRITE_MAX_PATCH_STEPS + 1, 7, "4", layer) && length(workspace.canvas_patches?[id]?["4"]) < CUSTOM_SPRITE_MAX_PATCH_STEPS, "Strokes on a hidden view must land and keep fewer than [CUSTOM_SPRITE_MAX_PATCH_STEPS] steps waiting, not [length(workspace.canvas_patches?[id]?["4"])]")
+	workspace.visible_view = "4"
+	TEST_ASSERT_NULL(custom_sprite_test_canvas_mismatch(workspace), "A hidden view painted past the patch cap must encode to its pixels once the window turns to it")
+	workspace.visible_view = "2"
+	// Forty colours painted, erased and forgotten, then forty new ones: past 64 values, every view's codes widen.
+	var/list/spots = list()
+	for(var/i in 1 to 40)
+		var/list/spot = list((i - 1) % 32, 10 + round((i - 1) / 32))
+		spots += list(spot)
+		workspace.new_transaction(list("type" = "pencil", "layer" = 1, "dir" = "2", "color" = "[first[i]]ff", "points" = list(spot.Copy())))
+	workspace.canvas_ui_data()
+	workspace.new_transaction(list("type" = "eraser", "layer" = 1, "dir" = "2", "points" = spots))
+	// As a trimmed history forgets the steps that used them, their colours make room.
+	workspace.undo_stack.Cut()
+	workspace.undo_names.Cut()
+	TEST_ASSERT(workspace.update_palette(second), "Forgotten colours must make room for new ones")
+	for(var/i in 1 to 40)
+		workspace.new_transaction(list("type" = "pencil", "layer" = 1, "dir" = "2", "color" = "[second[i]]ff", "points" = list(list((i - 1) % 32, 20 + round((i - 1) / 32)))))
+	TEST_ASSERT_NULL(custom_sprite_test_canvas_mismatch(workspace), "Codes widened past 64 values must encode every view")
+	TEST_ASSERT_EQUAL(workspace.canvas_digits, 2, "Past 64 values the canvas must take two characters a pixel")
+	// A selection moved over other paint, then moved back by undo.
+	TEST_ASSERT(workspace.new_transaction(list("type" = "move", "layer" = 1, "dir" = "2", "rect" = list(0, 20, 7, 20), "offset" = list(1, 1))), "The selection must move")
+	TEST_ASSERT_NULL(custom_sprite_test_canvas_mismatch(workspace), "A move must encode to its pixels")
+	workspace.undo()
+	TEST_ASSERT_NULL(custom_sprite_test_canvas_mismatch(workspace), "The undo of a move must encode to its pixels")

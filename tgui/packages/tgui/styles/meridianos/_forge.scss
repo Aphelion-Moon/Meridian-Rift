@@ -57,7 +57,10 @@
 
     .TitleBar__title,
     .Section > .Section__title > .Section__titleText {
-      font-family: Bahnschrift, 'Arial Narrow', 'Segoe UI', sans-serif;
+      // APHELION EDIT CHANGE START - BUG_REPORTING
+      // ORIGINAL: font-family: Bahnschrift, 'Arial Narrow', 'Segoe UI', sans-serif;
+      font-family: var(--forge-display);
+      // APHELION EDIT CHANGE END - BUG_REPORTING
       font-weight: 600;
       font-stretch: condensed;
       text-shadow: 0 1px 1px rgb(0 0 0 / 75%);

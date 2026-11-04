@@ -49,8 +49,9 @@
 	category = PREFERENCE_CATEGORY_CLOTHING
 	should_generate_icons = TRUE
 
+/// Lists Nude first in the picker.
 /datum/preference/choiced/bra/init_possible_values()
-	return assoc_to_keys_features(SSaccessories.bra_list)
+	return list(/datum/sprite_accessory/clothing/bra/nude::name) | assoc_to_keys_features(SSaccessories.bra_list)
 
 /datum/preference/choiced/bra/icon_for(value)
 	var/static/datum/universal_icon/body

@@ -34,6 +34,20 @@ const DECORATION_SOURCE = readFileSync(
 );
 const THEME_SOURCE = readFileSync(join(styleRoot, '_themes.scss'), 'utf8');
 const TOKEN_SOURCE = readFileSync(join(styleRoot, '_tokens.scss'), 'utf8');
+/**
+ * tgui-core keeps the circular radius in its base sheet, which this fixture
+ * does not load (it resets html and body). Read the token from that source
+ * and substitute it below, so the assertion follows upstream's value.
+ */
+const CIRCULAR_RADIUS = readFileSync(
+  join(styleRoot, '../../../../node_modules/tgui-core/styles/base.scss'),
+  'utf8',
+).match(/--border-radius-circular:\s*([^;]+);/)![1];
+/** The corner radius a skin gives an ordinary button; the rest keep the token. */
+const SKIN_BUTTON_RADIUS: Record<string, string> = {
+  meridian_aphelion: '2px',
+  meridian_foundry: '4px 9px 5px 10px',
+};
 const CHECKED_ARIA = {
   'aria-checked': true,
   role: 'checkbox',
@@ -54,6 +68,9 @@ beforeAll(async () => {
     themeCss,
     componentCss,
     decorationCss,
+    foundryCss,
+    aphelionCss,
+    finishesCss,
     preferencesCss,
   ] = await Promise.all(
     [
@@ -70,6 +87,11 @@ beforeAll(async () => {
       '_themes.scss',
       '_components.scss',
       '_decoration.scss',
+      // Skins that restyle control corners, in the order ./index.scss loads
+      // them: a skin's corner rule outranks tgui-core's shape variants.
+      '_foundry.scss',
+      '_aphelion.scss',
+      '_finishes.scss',
       '_preferences.scss',
     ].map(async (file) => (await compileAsync(join(styleRoot, file))).css),
   );
@@ -84,6 +106,9 @@ beforeAll(async () => {
     themeCss +
     componentCss +
     decorationCss +
+    foundryCss +
+    aphelionCss +
+    finishesCss +
     preferencesCss +
     controlsCss
   )
@@ -92,6 +117,9 @@ beforeAll(async () => {
       /:is\(([^()]*)\)/g,
       (_match, selectors: string) => `:is(${selectors.replace(/\s+/g, ' ')})`,
     )
+    // happy-dom leaves a custom property whose value is another var() alone,
+    // which is how a skin's glow hands a round control its radius.
+    .replaceAll('var(--border-radius-circular)', CIRCULAR_RADIUS)
     .replaceAll('var(--console-interaction-pressed)', 'rgb(1, 2, 3)')
     .replaceAll('var(--console-text-primary)', 'rgb(255, 255, 255)');
   document.head.appendChild(productionStyle);
@@ -432,6 +460,59 @@ describe('MeridianOS shared control geometry', () => {
       cleanup();
     }
   }, 20_000);
+
+  // A caller asks for a round control with `circular`, and tgui-core paints it
+  // through the lone class .Button--circular. A skin that styles .Button's
+  // corners under its own theme class outranks that and squares every round
+  // control it reaches; TramControl's stop markers are the live consumer.
+  it('keeps circular buttons round under every MeridianOS skin', () => {
+    for (const theme of MERIDIAN_THEME_IDS) {
+      const view = render(
+        <div className={`theme-console theme-${theme}`}>
+          <Button aria-label="Round marker" circular />
+          <Button aria-label="Round marker, selected" circular selected />
+          <Button aria-label="Cornered action">Send Tram</Button>
+        </div>,
+      );
+
+      for (const label of ['Round marker', 'Round marker, selected']) {
+        expect(
+          getComputedStyle(view.getByLabelText(label)).borderRadius,
+          `${theme}: ${label.toLowerCase()} radius`,
+        ).toBe(CIRCULAR_RADIUS);
+      }
+      // The exclusion is for the shape variant alone: the skin still owns
+      // every other button's corners.
+      expect(
+        getComputedStyle(view.getByLabelText('Cornered action')).borderRadius,
+        `${theme}: ordinary button radius`,
+      ).toBe(SKIN_BUTTON_RADIUS[theme] ?? '0px');
+      cleanup();
+    }
+
+    // And the same contract over the compiled sheet, for a skin whose state
+    // this fixture renders none of: a themed corner on .Button either leaves
+    // the circular variant out of its selector, or takes its radius from a
+    // property, which .Button--circular sets to its own (_components.scss).
+    const cornerRules = [
+      ...productionStyle.textContent!.matchAll(
+        /([^{}]*)\{[^{}]*?(border-radius:[^;}]*)/g,
+      ),
+    ].filter(
+      ([, selector, radius]) =>
+        selector.includes('.theme-') &&
+        selector.includes('.Button') &&
+        !radius.includes('var('),
+    );
+
+    expect(cornerRules.length).toBeGreaterThan(0);
+    for (const [, selector] of cornerRules) {
+      expect(
+        selector.replace(/\s+/g, ' ').trim(),
+        'skin corner rule over circular buttons',
+      ).toContain('.Button--circular');
+    }
+  });
 
   it('keeps compact sizing out of individual skin decoration', () => {
     for (const source of [DECORATION_SOURCE, THEME_SOURCE]) {

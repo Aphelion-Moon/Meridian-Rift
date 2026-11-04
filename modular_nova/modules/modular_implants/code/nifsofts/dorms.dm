@@ -41,11 +41,12 @@
 					/obj/item/clothing/ears/dorms_headphones,
 					/obj/item/clothing/mask/gas/bdsm_mask,
 					/obj/item/clothing/glasses/hypno,
-					/obj/item/clothing/neck/collar/holocollar,
+					/obj/item/clothing/neck/collar/tagged,
 
 
 					//Torso / Belt Items
 					/obj/item/clothing/under/misc/latex_catsuit,
+					/obj/item/clothing/under/misc/latex_halfcatsuit,
 					/obj/item/clothing/suit/corset,
 					/obj/item/clothing/suit/straight_jacket/latex_straight_jacket,
 					/obj/item/clothing/suit/straight_jacket/shackles,
@@ -60,6 +61,7 @@
 					//Feet items
 					/obj/item/clothing/shoes/latex_socks,
 					/obj/item/clothing/shoes/ballet_heels,
+					/obj/item/clothing/shoes/ballet_heels/pointe_boots,
 	)
 	purchase_price = 150
 

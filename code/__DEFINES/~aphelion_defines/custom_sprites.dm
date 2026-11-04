@@ -22,3 +22,6 @@
 #define CUSTOM_SPRITE_MAX_APPENDAGE_NAME 20
 /// Size limit of an imported whole-body style file, which carries up to one drawing per region.
 #define CUSTOM_STYLE_MAX_BODY_BYTES 163840
+/// Most steps whose points one view of the window's canvas keeps for its next encode: past them, or past as many points
+/// as the view has pixels, the view is encoded whole instead, so a view the window doesn't show holds no more.
+#define CUSTOM_SPRITE_MAX_PATCH_STEPS 16

@@ -482,6 +482,6 @@ GAME_VERB_PROC(/mob/living/carbon/human, toggle_laying, "(Taur) Toggle Laying Do
 		ADD_TRAIT(owner, TRAIT_UNDENSE, TRAIT_TAUR_LOAF)
 		to_chat(owner, span_notice("You lay down."))
 		if(owner.has_gravity())
-			playsound(owner, "bodyfall", 50, TRUE)
+			playsound(owner, /datum/sound_effect/bodyfall, 50, TRUE)
 
 #undef LAYDOWN_COOLDOWN
