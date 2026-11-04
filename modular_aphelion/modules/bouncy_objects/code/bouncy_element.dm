@@ -6,7 +6,7 @@
  * would be cancelled by that cleanup.
  */
 #define BOUNCE_REBOUND_DELAY (0.1 SECONDS)
-/// Rebounds shorter than this many tiles are dropped rather than animated as an imperceptible twitch.
+/// Bounces shorter than this many tiles are dropped rather than animated as an imperceptible twitch.
 #define BOUNCE_MINIMUM_DISTANCE 0.15
 /// Furthest, in pixels, a sub-tile slide may move an object from its base offset, so it stays over its own tile.
 #define BOUNCE_SLIDE_PIXEL_LIMIT 12
@@ -19,7 +19,7 @@
  * subsystem, clients and the sound system. Objects past the budget settle where they are.
  */
 #define BOUNCE_MAX_PER_TICK 8
-/// Furthest, in tiles, one bounce travels. Mostly trims mass drivers and explosions, which throw far further than hands do.
+/// Furthest, in tiles, one bounce travels while it has gravity. Mostly trims mass drivers and explosions, which throw far further than hands do.
 #define BOUNCE_MAX_DISTANCE 8
 
 /**
@@ -29,7 +29,9 @@
  *
  * - Striking a wall, structure or mob reflects the object off the obstacle's side.
  * - Landing on a hard floor can hop it onward in the same direction. Lava and soft or non-solid turfs
- *   (those without a `bullet_bounce_sound`, such as grass, carpet, water and space) absorb it.
+ *   (those without a `bullet_bounce_sound`, such as grass, carpet, water and space) absorb it, as does
+ *   landing on a surface things are thrown onto, such as a table, rack or hydroponics tray.
+ * - Nothing bounces where it is about to fall, through open space or into a chasm.
  * - Objects can also hop away in a random direction when ejected: ammo casings from a ballistic gun, or
  *   anything thrown at its own tile with no thrower, such as a slimeperson's core when its body melts.
  *
@@ -38,8 +40,9 @@
  *
  * The throw a player makes behaves exactly as before, including damage and catching. Only the
  * rebounds are new, and a rebound never strikes the obstacles it runs into: it does no damage, pushes
- * nothing, cannot be caught and sets off no hit reactions. Rebounds are skipped without gravity, where
- * thrown objects already drift.
+ * nothing, cannot be caught and sets off no hitby() reactions. Bump reactions, such as a door opening or
+ * a portal teleporting it, still happen. Rebounds are skipped without gravity, where thrown objects
+ * already drift.
  */
 /datum/element/bouncy
 	element_flags = ELEMENT_BESPOKE
@@ -80,10 +83,11 @@
 	return ..()
 
 /**
- * Queues the first rebound after an ordinary throw, unless the thing hit caught the object.
+ * Queues the first rebound after an ordinary throw, unless the thing hit caught or blocked the object.
  *
  * A throw with no thrower aimed at the object's own tile, such as a slimeperson's core tossed loose by its
  * melting body, lands at once. The object then pops away in a random direction as far as the throw's range.
+ * Small explosions can toss things the same way, too weakly to do more than nudge them.
  */
 /datum/element/bouncy/proc/on_impact(atom/movable/source, atom/hit_atom, datum/thrownthing/throwingdatum, caught)
 	SIGNAL_HANDLER
@@ -101,7 +105,7 @@
  *
  * COMSIG_CASING_EJECTED is sent before the wielder tries to catch the casing, so a caught casing is in a hand
  * by the time [/datum/element/bouncy/proc/rebound] checks it, and stays there. The hop lands silently, since
- * everything that sends the signal then plays the casing's clatter itself, through bounce_away().
+ * everything that sends the signal also plays the casing's clatter itself, through bounce_away().
  */
 /datum/element/bouncy/proc/on_ejected(atom/movable/source)
 	SIGNAL_HANDLER
@@ -120,26 +124,39 @@
 	var/turf/current_turf = source.loc
 	if(bounces_left <= 0 || !throwingdatum.init_dir || !isturf(current_turf) || !source.has_gravity())
 		return
+	// finalize() is about to drop it through open space or into a chasm.
+	if(current_turf.zPassOut(DOWN) || (ischasm(current_turf) && !HAS_TRAIT(current_turf, TRAIT_CHASM_STOPPED)))
+		return
 	// Nearest of the eight directions. init_dir is diagonal whenever the target is off-axis at all.
 	var/rebound_dir = angle2dir(get_angle(throwingdatum.starting_turf, throwingdatum.target_turf))
 	var/incoming_distance = throwingdatum.dist_travelled
 	if(hit_atom != current_turf)
+		// The thing hit took the object onto its own turf, as a basketball hoop does when someone scores.
+		if(hit_atom.density && !(hit_atom.flags_1 & ON_BORDER_1) && get_turf(hit_atom) == current_turf)
+			return
 		rebound_dir = reflect_direction(rebound_dir, get_dir(source, hit_atom))
 		// A throw cut short by an obstacle rebounds with the distance it was meant to cover: the way to its
 		// target (dist_x is the longer axis), but no further than its range.
 		incoming_distance = min(throwingdatum.dist_x, throwingdatum.maxrange)
-	else if(!current_turf.bullet_bounce_sound || islava(current_turf)) // Soft, non-solid or molten floors absorb the landing.
-		return
-	var/rebound_distance = incoming_distance * restitution
-	if(rebound_distance < BOUNCE_MINIMUM_DISTANCE)
-		return
+	else
+		// Soft, non-solid or molten floors absorb the landing.
+		if(!current_turf.bullet_bounce_sound || islava(current_turf))
+			return
+		// A throw stopped short of both its target and its range, by being picked up or batted, never landed.
+		if(current_turf != throwingdatum.target_turf && throwingdatum.dist_travelled < throwingdatum.maxrange)
+			return
+		// Something thrown onto a table, or anything else a throw passes over, stays where it was put.
+		for(var/obj/surface in current_turf)
+			if(surface != source && surface.density && (surface.pass_flags_self & LETPASSTHROW))
+				return
 	if(prob(deflect_chance))
 		rebound_dir = turn(rebound_dir, pick(45, -45))
-	if(schedule_rebound(source, rebound_dir, rebound_distance, throwingdatum.speed, bounces_left - 1) && bounce_sound)
+	if(schedule_rebound(source, rebound_dir, incoming_distance * restitution, throwingdatum.speed, bounces_left - 1) && bounce_sound)
 		playsound(source, bounce_sound, bounce_sound_volume, TRUE, -1)
 
 /**
- * Schedules a bounce, if the shared per-tick budget has room for it, capped at BOUNCE_MAX_DISTANCE.
+ * Schedules a bounce, if it is at least BOUNCE_MINIMUM_DISTANCE and the shared per-tick budget has room for it.
+ * The bounce is capped at BOUNCE_MAX_DISTANCE.
  *
  * Arguments:
  * * source - The bouncing movable.
@@ -147,11 +164,14 @@
  * * distance - Tiles the bounce travels. May be fractional.
  * * speed - Throw speed, in tiles per decisecond.
  * * bounces_left - Rebounds this bounce may chain into after it lands.
- * * silent_landing - Whether the bounce lands without an impact, so the object's landing sounds do not play.
+ * * silent_landing - Whether the bounce lands without an impact, so the object's landing sounds do not play. Not on
+ *   lava, whose impact is what burns things.
  *
  * Returns whether the bounce was scheduled.
  */
 /datum/element/bouncy/proc/schedule_rebound(atom/movable/source, direction, distance, speed, bounces_left, silent_landing = FALSE)
+	if(distance < BOUNCE_MINIMUM_DISTANCE)
+		return FALSE
 	if(budget_tick != world.time)
 		budget_tick = world.time
 		bounces_this_tick = 0
@@ -188,7 +208,8 @@
  * * distance - Tiles the rebound travels. May be fractional.
  * * speed - Throw speed, in tiles per decisecond.
  * * bounces_left - Rebounds this rebound may chain into after it lands.
- * * silent_landing - Whether the rebound lands without an impact, so the object's landing sounds do not play.
+ * * silent_landing - Whether the rebound lands without an impact, so the object's landing sounds do not play. Not on
+ *   lava, whose impact is what burns things.
  */
 /datum/element/bouncy/proc/rebound(datum/weakref/source_ref, direction, distance, speed, bounces_left, silent_landing)
 	var/atom/movable/source = source_ref.resolve()
@@ -250,14 +271,16 @@
 	var/datum/element/bouncy/bouncer
 	/// Rebounds this throw may still chain into after it ends.
 	var/bounces_left = 0
-	/// Whether this throw lands without an impact, so the object's landing sounds do not play.
+	/// Whether this throw lands without an impact, so the object's landing sounds do not play. Not on lava, whose
+	/// impact is what burns things.
 	var/silent_landing = FALSE
 
 /datum/thrownthing/bounce/finalize(hit, target)
+	var/turf/landing_turf = get_turf(thrownthing)
 	if(thrownthing)
-		bouncer?.queue_rebound(thrownthing, target || get_turf(thrownthing), src, bounces_left)
-		// Passing a silent landing off as a hit skips the floor impact. Not on lava, whose impact is what burns things.
-		if(silent_landing && !islava(get_turf(thrownthing)))
+		bouncer?.queue_rebound(thrownthing, target || landing_turf, src, bounces_left)
+		// Passing a silent landing off as a hit skips the floor impact.
+		if(silent_landing && !islava(landing_turf))
 			hit = TRUE
 	// Obstacles are never struck, so they get no hitby(), damage, pre-hit reactions or hit sounds. Floor landings still
 	// reach the turf and play landing sounds, unless the throw lands silently.

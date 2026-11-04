@@ -11,19 +11,28 @@ a tile or more are thrown with a small hop arc; shorter ones become a decelerati
 object's own tile, so a bounce never stops dead or twitches in place. Casings ejected from a ballistic
 gun's chamber also hop a tile away (bulk unloads, such as dumping a revolver, do not). A throw with no
 thrower aimed at the object's own tile is a toss: it lands at once and the object pops away in a random
-direction as far as the throw's range. A slimeperson's core is tossed this way when their body melts on death.
+direction as far as the throw's range. A slimeperson's core is tossed this way when their body melts on death;
+small explosions can toss things too weakly to do more than nudge them.
 
 The player's own throw is unchanged, including its damage and catching. Rebounds never strike the
 obstacles they run into (`/datum/thrownthing/bounce/finalize()` skips the impact), so they deal no damage,
-push nothing, cannot be caught and set off no hit reactions or hit sounds. Rebound landings on the floor
-still reach the turf. Lava and soft or non-solid turfs (those without a `bullet_bounce_sound`) absorb floor
-hops. There are no rebounds, ejection hops or toss pops without gravity.
+push nothing, cannot be caught and set off no hitby() reactions or hit sounds. Bump reactions, such as a
+door opening or a portal teleporting the object, still happen. Rebound landings on the floor still reach the
+turf, except casing ejection hops, which land silently because the gun already plays the clatter (on lava
+they do reach it, since that is what burns them).
+
+Floor hops are absorbed by lava, by soft or non-solid turfs (those without a `bullet_bounce_sound`), and by
+surfaces things are thrown onto: any dense object a throw passes over, such as a table, rack or hydroponics
+tray. A throw stopped short of its target and range, by being picked up or batted, does not hop either.
+Nothing bounces where it is about to fall, through open space or into a chasm, and an object a structure
+takes onto its own tile, such as a basketball scored in a hoop, stays there. There are no rebounds, ejection
+hops or toss pops without gravity.
 
 Mass throws are kept cheap by two limits. At most `BOUNCE_MAX_PER_TICK` (8) bounces start per server tick,
 shared by every bouncy object, so an explosion scattering a pile of casings and rods, or several guns on full
 auto, cannot flood the throwing subsystem, timers, clients or sound; objects past the budget settle where
-they are. No single bounce travels further than `BOUNCE_MAX_DISTANCE` (8) tiles, which mostly trims
-throws from mass drivers, explosions and the like.
+they are. While it has gravity, no single bounce travels further than `BOUNCE_MAX_DISTANCE` (8) tiles,
+which mostly trims throws from mass drivers, explosions and the like.
 
 Element arguments, all optional:
 

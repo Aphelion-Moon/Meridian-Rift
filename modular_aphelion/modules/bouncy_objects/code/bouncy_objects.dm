@@ -12,7 +12,7 @@
 
 /**
  * Bouncier than a tennis ball: keeps most of its travel through a long, wobbly chain of boings.
- * It also pops away when its slimeperson's body melts; see the marked edit in core_ejection().
+ * It also pops away when its slimeperson's body melts; see core_ejection().
  */
 /obj/item/organ/brain/slime/Initialize(mapload, mob/living/carbon/organ_owner, list/examine_list)
 	. = ..()
