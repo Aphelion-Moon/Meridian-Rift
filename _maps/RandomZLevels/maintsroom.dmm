@@ -5927,7 +5927,7 @@
 /obj/structure/closet/crate/trashcart/filled,
 /obj/effect/decal/cleanable/insectguts,
 /obj/item/pinata,
-/obj/item/food/cornchips/green,
+/obj/item/food/chips/corn/green,
 /obj/effect/spawner/random/food_or_drink/condiment,
 /mob/living/basic/mouse,
 /turf/open/floor/plating/rust,
