@@ -97,6 +97,13 @@
 /obj/item/clothing/sextoy/portal_fleshlight/proc/is_portal_open()
 	return is_link_valid() && !!linked_panties.get_equipped_wearer()
 
+/// The linked receiver's wearer, while climaxer can reach us and both of them allow portal use. Null otherwise.
+/obj/item/clothing/sextoy/portal_fleshlight/proc/climax_receiver_wearer(mob/living/carbon/human/climaxer)
+	if(QDELETED(src) || !is_portal_open() || !can_reach_device(climaxer) || !climaxer.allows_portal_use())
+		return null
+	var/mob/living/carbon/human/receiver_wearer = linked_panties.get_equipped_wearer()
+	return receiver_wearer.allows_portal_use() ? receiver_wearer : null
+
 /**
  * Returns whether user can put their body against this device right now.
  *
