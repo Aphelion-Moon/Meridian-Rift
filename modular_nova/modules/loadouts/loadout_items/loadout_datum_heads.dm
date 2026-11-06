@@ -37,31 +37,37 @@
 	name = "Beanie (Black)"
 	item_path = /obj/item/clothing/head/beanie/black
 	loadout_flags = parent_type::loadout_flags | LOADOUT_FLAG_BLOCK_GREYSCALING
+	group = "Uncategorized"
 
 /datum/loadout_item/head/dark_blue_beanie
 	name = "Beanie (Dark Blue)"
 	item_path = /obj/item/clothing/head/beanie/darkblue
 	loadout_flags = parent_type::loadout_flags | LOADOUT_FLAG_BLOCK_GREYSCALING
+	group = "Uncategorized"
 
 /datum/loadout_item/head/orange_beanie
 	name = "Beanie (Orange)"
 	item_path = /obj/item/clothing/head/beanie/orange
 	loadout_flags = parent_type::loadout_flags | LOADOUT_FLAG_BLOCK_GREYSCALING
+	group = "Uncategorized"
 
 /datum/loadout_item/head/red_beanie
 	name = "Beanie (Red)"
 	item_path = /obj/item/clothing/head/beanie/red
 	loadout_flags = parent_type::loadout_flags | LOADOUT_FLAG_BLOCK_GREYSCALING
+	group = "Uncategorized"
 
 /datum/loadout_item/head/yellow_beanie
 	name = "Beanie (Yellow)"
 	item_path = /obj/item/clothing/head/beanie/yellow
 	loadout_flags = parent_type::loadout_flags | LOADOUT_FLAG_BLOCK_GREYSCALING
+	group = "Uncategorized"
 
 /datum/loadout_item/head/christmas_beanie
 	name = "Beanie - Christmas"
 	item_path = /obj/item/clothing/head/beanie/christmas
 	loadout_flags = parent_type::loadout_flags | LOADOUT_FLAG_BLOCK_GREYSCALING
+	group = "Uncategorized"
 
 /*
 *	BERETS
@@ -186,6 +192,7 @@
 /datum/loadout_item/head/brown_fedora
 	name = "Fedora (Brown)"
 	item_path = /obj/item/clothing/head/fedora/brown
+	group = "Uncategorized"
 
 /*
 *	HARDHATS
@@ -198,18 +205,22 @@
 /datum/loadout_item/head/orange_hardhat
 	name = "Hardhat (Orange)"
 	item_path = /obj/item/clothing/head/utility/hardhat/orange
+	group = "Uncategorized"
 
 /datum/loadout_item/head/red_hardhat
 	name = "Hardhat (Red)"
 	item_path = /obj/item/clothing/head/utility/hardhat/red
+	group = "Uncategorized"
 
 /datum/loadout_item/head/white_hardhat
 	name = "Hardhat (White)"
 	item_path = /obj/item/clothing/head/utility/hardhat/white
+	group = "Uncategorized"
 
 /datum/loadout_item/head/yellow_hardhat
 	name = "Hardhat (Yellow)"
 	item_path = /obj/item/clothing/head/utility/hardhat
+	group = "Uncategorized"
 
 /*
 *	MISCELLANEOUS
@@ -626,11 +637,13 @@
 	name = "Officer's Cap (White)"
 	item_path = /obj/item/clothing/head/hats/caphat/parade/fedcap
 	group = "Jobs"
+	group = "Uncategorized"
 
 /datum/loadout_item/head/trekcapcap
 	name = "Officer's Cap (Black)"
 	item_path = /obj/item/clothing/head/hats/caphat/parade/fedcap/black
 	group = "Jobs"
+	group = "Uncategorized"
 
 /datum/loadout_item/head/trekcapmedisci
 	name = "Officer's Cap - MedSci (Blue)"
