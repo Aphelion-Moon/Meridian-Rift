@@ -282,14 +282,6 @@
 	turf_type = /turf/open/floor/sandstone
 	merge_type = /obj/item/stack/tile/mineral/sandstone
 
-/obj/item/stack/tile/mineral/sandstone/cobbled
-	name = "cobbled sandstone tile"
-	singular_name = "sandstone cobbled floor tile"
-	icon_state = "sandstone_cobbled"
-	inhand_icon_state = "tile-sandstone"
-	turf_type = /turf/open/floor/sandstone/cobbled
-	merge_type = /obj/item/stack/tile/mineral/sandstone/cobbled
-
 /obj/item/stack/tile/mineral/stone
 	name = "stone brick tile"
 	desc = "A tile made out of stone."
