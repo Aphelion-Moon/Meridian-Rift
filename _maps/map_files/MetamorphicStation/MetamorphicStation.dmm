@@ -58883,6 +58883,9 @@
 "tFk" = (
 /obj/effect/turf_decal/sand/plating/volcanic,
 /obj/effect/spawner/random/structure/crate,
+/obj/machinery/button/door/directional/north{
+	id = "warehouse"
+	},
 /turf/open/floor/plating,
 /area/station/cargo/warehouse)
 "tFn" = (
