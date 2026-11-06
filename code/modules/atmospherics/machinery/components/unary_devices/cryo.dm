@@ -445,7 +445,7 @@
 	var/datum/gas_mixture/air1 = internal_connector.gas_connector.airs[1]
 
 	//check for workable conditions
-	if(!internal_connector.gas_connector.nodes[1] || !air1 || !air1.moles.len || air1.total_moles() < CRYO_MIN_GAS_MOLES) // Turn off if the machine won't work.
+	if(!internal_connector.gas_connector.nodes[1] || !air1 || air1.total_moles() < CRYO_MIN_GAS_MOLES) // Turn off if the machine won't work. // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(!internal_connector.gas_connector.nodes[1] || !air1 || !air1.moles.len || air1.total_moles() < CRYO_MIN_GAS_MOLES) // Turn off if the machine won't work.
 		set_on(FALSE)
 		aas_config_announce(/datum/aas_config_entry/medical_cryo_announcements, list("EJECTING" = autoeject), src, list(broadcast_channel), "Insufficient Gas")
 		if(autoeject) // Eject if configured.
@@ -453,25 +453,31 @@
 		return PROCESS_KILL
 
 	//take damage from high temperatures
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	if(air1.temperature > 2000)
 		take_damage(clamp((air1.temperature) / 200, 10, 20), BURN)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	if(air1.return_temperature() > 2000)
+		take_damage(clamp((air1.return_temperature()) / 200, 10, 20), BURN)
+	// APHELION EDIT ADDITION END
 
 	//adjust temperature of mob
 	if(!QDELETED(occupant))
 		var/mob/living/mob_occupant = occupant
 		var/cold_protection = 0
-		var/temperature_delta = air1.temperature - mob_occupant.bodytemperature // The only semi-realistic thing here: share temperature between the cell and the occupant.
+		var/temperature_delta = air1.return_temperature() - mob_occupant.bodytemperature // The only semi-realistic thing here: share temperature between the cell and the occupant. // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/temperature_delta = air1.temperature - mob_occupant.bodytemperature // The only semi-realistic thing here: share temperature between the cell and the occupant.
 
 		if(ishuman(mob_occupant))
 			var/mob/living/carbon/human/H = mob_occupant
-			cold_protection = H.get_cold_protection(air1.temperature)
+			cold_protection = H.get_cold_protection(air1.return_temperature()) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: cold_protection = H.get_cold_protection(air1.temperature)
 
 		if(abs(temperature_delta) > 1)
 			var/air_heat_capacity = air1.heat_capacity()
 			var/heat = ((1 - cold_protection) * 0.1 + conduction_coefficient) * CALCULATE_CONDUCTION_ENERGY(temperature_delta, heat_capacity, air_heat_capacity)
 
 			mob_occupant.adjust_bodytemperature(heat / heat_capacity, TCMB)
-			air1.temperature = clamp(air1.temperature - heat / air_heat_capacity, TCMB, MAX_TEMPERATURE)
+			air1.set_temperature(clamp(air1.return_temperature() - heat / air_heat_capacity, TCMB, MAX_TEMPERATURE)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: air1.temperature = clamp(air1.temperature - heat / air_heat_capacity, TCMB, MAX_TEMPERATURE)
 
 			//lets have the core temp match the body temp in humans
 			if(ishuman(mob_occupant))
@@ -487,7 +493,7 @@
 
 	//return breathable air
 	var/datum/gas_mixture/air1 = internal_connector.gas_connector.airs[1]
-	var/breath_percentage = breath_request / air1.volume
+	var/breath_percentage = breath_request / air1.return_volume() // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/breath_percentage = breath_request / air1.volume
 	. = air1.remove(air1.total_moles() * breath_percentage)
 
 	//update molar changes throughout the pipenet
@@ -499,7 +505,7 @@
 /obj/machinery/cryo_cell/return_temperature()
 	var/datum/gas_mixture/internal_air = internal_connector.gas_connector.airs[1]
 
-	return internal_air.total_moles() > CRYO_MIN_GAS_MOLES ? internal_air.temperature : ..()
+	return internal_air.total_moles() > CRYO_MIN_GAS_MOLES ? internal_air.return_temperature() : ..() // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: return internal_air.total_moles() > CRYO_MIN_GAS_MOLES ? internal_air.temperature : ..()
 
 /obj/machinery/cryo_cell/open_machine(drop = TRUE, density_to_set = FALSE)
 	if(!state_open && !panel_open)
@@ -570,7 +576,7 @@
 	.["occupant"] = occupant_data
 
 	var/datum/gas_mixture/air1 = internal_connector.gas_connector.airs[1]
-	.["cellTemperature"] = air1.temperature
+	.["cellTemperature"] = air1.return_temperature() // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: .["cellTemperature"] = air1.temperature
 
 	var/list/beaker_data = null
 	if(!QDELETED(beaker))

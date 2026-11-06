@@ -158,8 +158,14 @@
 			return
 
 	var/datum/gas_mixture/mix_to_spawn = new()
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	mix_to_spawn.add_gas(active_gas)
 	mix_to_spawn.moles[active_gas] = possible_gases[active_gas] * seconds_per_tick
 	mix_to_spawn.temperature = T20C
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	mix_to_spawn.set_moles(active_gas, possible_gases[active_gas] * seconds_per_tick)
+	mix_to_spawn.set_temperature(T20C)
+	// APHELION EDIT ADDITION END
 	var/turf/open/our_turf = get_turf(owner)
 	our_turf.assume_air(mix_to_spawn)

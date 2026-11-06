@@ -296,13 +296,26 @@
 
 	QDEL_NULL(hotspot)
 	var/datum/gas_mixture/air = location.air
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	if (air.moles[/datum/gas/plasma])
 		var/scrub_amt = min(30, air.moles[/datum/gas/plasma]) //Absorb some plasma
 		air.adjust_gas(/datum/gas/plasma, -scrub_amt)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	if (air.get_moles(/datum/gas/plasma))
+		var/scrub_amt = min(30, air.get_moles(/datum/gas/plasma)) //Absorb some plasma
+		air.adjust_moles(/datum/gas/plasma, -scrub_amt)
+	// APHELION EDIT ADDITION END
 		absorbed_plasma += scrub_amt
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	if (air.temperature > T20C)
 		air.temperature = max(air.temperature / 2, T20C)
 	air.garbage_collect()
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	if (air.return_temperature() > T20C)
+		air.set_temperature(max(air.return_temperature() / 2, T20C))
+	// APHELION EDIT ADDITION END
 	location.air_update_turf(FALSE, FALSE)
 
 /obj/effect/particle_effect/fluid/foam/firefighting/make_result()
@@ -445,18 +458,18 @@
 		return
 
 	location.ClearWet()
-	location.temperature = T20C
+	location.set_temperature(T20C) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: location.temperature = T20C
 	if(location.air)
 		var/datum/gas_mixture/air = location.air
-		air.temperature = T20C
+		air.set_temperature(T20C) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: air.temperature = T20C
 		for(var/obj/effect/hotspot/fire in location)
 			qdel(fire)
 
-		var/list/cached_moles = air.moles
-		for(var/gas_id in cached_moles)
+		// var/list/cached_moles = air.moles // APHELION EDIT REMOVAL - DOGMOS
+		for(var/gas_id in air.get_gases()) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: for(var/gas_id in cached_moles)
 			if(!(ignored_gases[gas_id]))
-				cached_moles[gas_id] = 0
-		air.garbage_collect()
+				air.set_moles(gas_id, 0) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: cached_moles[gas_id] = 0
+		// air.garbage_collect() // APHELION EDIT REMOVAL - DOGMOS
 
 	for(var/obj/machinery/atmospherics/components/unary/comp in location)
 		if(!comp.welded)

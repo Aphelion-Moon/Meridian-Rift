@@ -68,7 +68,7 @@
 
 	var/danger_points = 0
 
-	for(var/gas_id, amount in breath.moles)
+	for(var/gas_id, amount in breath.get_moles_list()) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: for(var/gas_id, amount in breath.moles)
 		if(gas_id in high_filtering_gases)
 			if(amount > HIGH_FILTERING_MOLES)
 				breath.set_gas(gas_id, max(amount - filter_strength_high * filter_efficiency * HIGH_FILTERING_RATIO, 0))

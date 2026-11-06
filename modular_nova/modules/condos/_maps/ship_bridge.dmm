@@ -1,7 +1,7 @@
 //MAP CONVERTED BY dmm2tgm.py THIS HEADER COMMENT PREVENTS RECONVERSION, DO NOT REMOVE
 "a" = (
 /obj/structure/lattice/catwalk,
-/turf/open/space/basic,
+/turf/open/space/bluespace,
 /area/misc/condo)
 "b" = (
 /obj/structure/table/reinforced/rglass,
@@ -201,7 +201,7 @@
 /turf/open/floor/circuit,
 /area/misc/condo)
 "E" = (
-/turf/open/space/basic,
+/turf/open/space/bluespace,
 /area/misc/condo)
 "F" = (
 /obj/effect/turf_decal/tile/dark_blue{

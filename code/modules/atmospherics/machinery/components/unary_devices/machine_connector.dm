@@ -13,7 +13,13 @@
 	connected_machine = linked_machine
 	gas_connector = new(connected_machine.loc)
 	gas_connector.dir = connected_machine.dir
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	gas_connector.airs[1].volume = gas_volume
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	var/datum/gas_mixture/connector_air = gas_connector.airs[1]
+	connector_air.set_volume(gas_volume)
+	// APHELION EDIT ADDITION END
 
 	SSair.start_processing_machine(connected_machine)
 	register_with_machine()
