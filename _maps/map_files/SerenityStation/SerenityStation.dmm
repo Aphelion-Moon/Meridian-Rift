@@ -71933,6 +71933,7 @@
 /area/station/engineering/atmos)
 "uQN" = (
 /obj/structure/table,
+/obj/item/reagent_containers/spray/dinitrogen_plasmide,
 /obj/structure/window/reinforced/spawner/directional/south,
 /obj/item/clothing/gloves/latex,
 /obj/item/clothing/suit/apron/surgical,

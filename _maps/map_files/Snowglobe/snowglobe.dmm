@@ -46584,6 +46584,7 @@
 /area/station/command/heads_quarters/hos)
 "muN" = (
 /obj/structure/table,
+/obj/item/reagent_containers/spray/dinitrogen_plasmide,
 /obj/item/storage/backpack/duffelbag/science/robo/surgery{
 	pixel_y = 7
 	},

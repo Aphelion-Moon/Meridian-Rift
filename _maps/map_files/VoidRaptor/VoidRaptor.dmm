@@ -23353,6 +23353,7 @@
 /area/station/hallway/primary/aft)
 "gKY" = (
 /obj/structure/table,
+/obj/item/reagent_containers/spray/dinitrogen_plasmide,
 /obj/effect/turf_decal/tile/neutral,
 /obj/item/clothing/gloves/latex,
 /obj/item/clothing/suit/apron/surgical,
