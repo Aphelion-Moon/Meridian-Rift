@@ -6,7 +6,7 @@
 	lose_text = span_warning("You suddenly forget what your other voice sounds like!")
 	medical_record_text = ""
 	value = 0
-	quirk_flags = QUIRK_HUMAN_ONLY
+	quirk_flags = QUIRK_HUMAN_ONLY | QUIRK_NO_RECORD
 
 /datum/quirk_constant_data/voice_actor
 	associated_typepath = /datum/quirk/voice_actor
