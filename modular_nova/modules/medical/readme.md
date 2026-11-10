@@ -20,6 +20,7 @@ Robotic blunt and burn wounds and the dinitrogen plasmide coolant come from tg (
 - `code/__DEFINES/wounds.dm`: Added the muscle and electrical damage wound series, added them to the global list of wound series. The metal blunt/burn series are tg's
 - cat2_medicine_reagents.dm: /datum/reagent/medicine/c2/hercuri/on_mob_life, Allowed hercuri to affect synthetics, also changed hercuri process flags for this purpose
 - quirks.dm: Commented out the quadruple_amputee/frail blacklist as frail can now apply to prosthetics
+- `code/__DEFINES/bodyparts.dm`: BIO_METAL, BIO_WIRED and BIO_ROBOTIC docs match our synth wounds
 <!-- If you edited any core procs, you should list them here. You should specify the files and procs you changed.
 E.g:
 - `code/modules/mob/living.dm`: `proc/overriden_proc`, `var/overriden_var`
