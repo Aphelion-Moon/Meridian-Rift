@@ -1,0 +1,13 @@
+// THIS IS AN APHELION UI FILE
+// Tracks the small print and the big buttons' titles on every room's counter at 0.05em, in the room's own
+// lettering, capitals and all: tracked wider, the capitals read as spaced-out letters rather than words.
+// Loaded after the rooms' own sheets.
+
+.AugmentsRoom {
+  .MarkingsRoom__label,
+  .MarkingsRoom__selWhere,
+  .MarkingsRoom__markerLabel,
+  .MarkingsRoom__big b {
+    letter-spacing: 0.05em;
+  }
+}
