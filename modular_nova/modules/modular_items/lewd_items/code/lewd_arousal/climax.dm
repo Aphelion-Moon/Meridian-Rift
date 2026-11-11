@@ -46,9 +46,16 @@
 		return null
 	return partner_human
 
-/// Never makes its caller wait - adjust_pleasure() climaxes from Life(), process() and status effects, which must not
-/// sleep, and a climax can stop to ask where to finish. Its caller then gets null, and it ends when the player answers.
-/mob/living/carbon/human/proc/climax(manual = TRUE)
+/**
+ * Never makes its caller wait - adjust_pleasure() climaxes from Life(), process() and status effects, which must not
+ * sleep, and a climax can stop to ask where to finish. Its caller then gets null, and it ends when the player answers.
+ *
+ * Arguments:
+ * * manual - TRUE when the player chose to climax, and gets to pick which genitals climax
+ * * stimulated_slot - the organ slot that brought on an automatic climax, if known. ORGAN_SLOT_VAGINA climaxes from
+ *   the vagina. Anything else leaves it to the penis when there is one.
+ */
+/mob/living/carbon/human/proc/climax(manual = TRUE, stimulated_slot)
 	set waitfor = FALSE
 	if (CONFIG_GET(flag/disable_erp_preferences))
 		return
@@ -66,8 +73,10 @@
 			span_purple("You can't have an orgasm!"), pref_to_check = /datum/preference/toggle/erp)
 		return TRUE
 
-	// Reduce pop-ups and make it slightly more frictionless (lewd).
+	// An automatic climax doesn't ask: it comes from the vagina when that's what was stimulated, else the penis first.
 	var/climax_choice = has_penis() ? CLIMAX_PENIS : CLIMAX_VAGINA
+	if(stimulated_slot == ORGAN_SLOT_VAGINA && has_vagina())
+		climax_choice = CLIMAX_VAGINA
 
 	if(manual)
 		var/list/genitals = list()
