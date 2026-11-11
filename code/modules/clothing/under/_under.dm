@@ -112,8 +112,11 @@
 	if(isinhands)
 		return
 	if(damaged_clothes)
-		. += mutable_appearance('icons/effects/item_damage.dmi', "damageduniform")
-	. += get_accessory_overlays()
+		. += fit_worn_effect(mutable_appearance('icons/effects/item_damage.dmi', "damageduniform")) // APHELION EDIT CHANGE - ORIGINAL: . += mutable_appearance('icons/effects/item_damage.dmi', "damageduniform")
+	// APHELION EDIT CHANGE START - ORIGINAL: . += get_accessory_overlays()
+	for(var/accessory_overlay in get_accessory_overlays())
+		. += fit_rider_overlay(accessory_overlay)
+	// APHELION EDIT CHANGE END
 
 /obj/item/clothing/under/separate_worn_overlays(mutable_appearance/standing, mutable_appearance/draw_target, isinhands = FALSE, icon_file, bodyshape = NONE)
 	. = ..()

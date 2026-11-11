@@ -271,6 +271,10 @@ instead:
 These rows are below every pec shape (rows 9 to 17, in every frame of every flex). The legs and arms keep tg's maps, and
 monkeys keep tg's torso maps. Medium, Short and Tall bodies don't move a torso row, and draw as before.
 
+Every map is tiled three wide (`wide_height_map()`), as tg tiles texture filters over wide images. A map is centred on what
+it stretches, so a 32 px one stretched only the middle of a taur suit, wings or a big tail and left a step at each edge. A
+taur body itself doesn't stretch at all (Nova's taur_body.dm).
+
 ### TG Proc/File Changes:
 
 - `code/datums/sprite_accessories/clothing.dm`: `/datum/sprite_accessory/clothing/proc/make_appearance()` asks
@@ -279,7 +283,8 @@ monkeys keep tg's torso maps. Medium, Short and Tall bodies don't move a torso r
 - `code/modules/mob/living/carbon/human/human_update_icons.dm`: `/obj/item/proc/build_worn_icon()` calls
   `fit_worn_icon()` and `fit_worn_glows()`; `/mob/living/carbon/human/update_worn_undersuit()` cuts over pecs as
   `female_cut_over_pecs()` says; `wear_female_version()` cuts `FEMALE_UNIFORM_LOWER_ONLY` through `female_lower_cut_mask()`;
-  `/mob/living/carbon/human/proc/apply_height_filter()` stretches and shrinks a human torso with `icons/height_cuts.dmi`
+  `/mob/living/carbon/human/proc/apply_height_filter()` stretches and shrinks a human torso with `icons/height_cuts.dmi`,
+  and tiles every map three wide (`wide_height_map()`)
 - `tgui/packages/tgui/interfaces/PreferencesMenu/preferences/features/character_preferences/body_type.tsx`: the body
   type input carries the muscle inputs under it (`withMuscles()`)
 
