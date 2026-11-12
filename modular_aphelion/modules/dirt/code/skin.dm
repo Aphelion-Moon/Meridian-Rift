@@ -1,7 +1,8 @@
 /**
- * A limb's skin mess: one container image at DIRT_SKIN_LAYER holding the limb's baked image, so a limb adds one overlay
- * to its person whatever the splats. It lies under the underclothes, the genitals and everything worn. The masks are
- * its carrier's, clipped to the pixels the limb shows, fading out beside what's worn over them.
+ * A limb's skin dirt: one container image at DIRT_SKIN_LAYER holding the limb's baked image, with that image's emissive
+ * blocker beside it. So a limb adds one of each to its person whatever the splats, and an arm adds one more of each for
+ * its hand (/datum/bodypart_overlay/dirt_skin/arm). It lies under the underclothes, the genitals and everything worn.
+ * The masks are its carrier's, clipped to the pixels the limb shows, fading out beside what's worn over them.
  */
 /datum/bodypart_overlay/dirt_skin
 	layers = list("" = DIRT_SKIN_LAYER)
@@ -26,15 +27,43 @@
 	if(!. || !carrier)
 		return FALSE
 	var/datum/dirt_masks/masks = carrier.ready_skin_masks(bodypart_owner)
-	return !!masks?.baked_by_limb[bodypart_owner.body_zone]
+	return !!masks && draws_from(masks, bodypart_owner)
+
+/**
+ * Returns whether the masks hold the baked image this overlay draws on a limb, which is the limb's own.
+ *
+ * Arguments:
+ * - masks: The carrier's skin masks.
+ * - limb: The limb.
+ */
+/datum/bodypart_overlay/dirt_skin/proc/draws_from(datum/dirt_masks/masks, obj/item/bodypart/limb)
+	return !!masks.baked_by_limb[limb.body_zone]
+
+/**
+ * Returns the zone whose baked image a layer of this overlay draws, which is the limb's own zone.
+ *
+ * Arguments:
+ * - limb: The limb.
+ * - layer_index: The layer's key in `layers`.
+ */
+/datum/bodypart_overlay/dirt_skin/proc/layer_zone(obj/item/bodypart/limb, layer_index)
+	return limb.body_zone
 
 /datum/bodypart_overlay/dirt_skin/get_image(obj/item/bodypart/limb, layer_index, layer_real)
 	// together, so the height filter apply_height() puts on it reaches the baked image, not just its empty icon
 	var/mutable_appearance/container = mutable_appearance(layer = layer_real, appearance_flags = KEEP_TOGETHER)
-	var/baked = carrier?.skin?.masks?.baked_by_limb[limb.body_zone]
+	var/baked = carrier?.skin?.masks?.baked_by_limb[layer_zone(limb, layer_index)]
 	if(baked)
 		container.overlays += dirt_mess_baked_image(baked)
 	return container
+
+/// Adds the baked image's emissive blocker beside its container (dirt_emissive_blocker()). Each is one of the limb's
+/// images, so apply_height() moves the blocker as it moves the container.
+/datum/bodypart_overlay/dirt_skin/get_overlay(obj/item/bodypart/limb, layer_index, layer_real)
+	. = ..()
+	var/baked = carrier?.skin?.masks?.baked_by_limb[layer_zone(limb, layer_index)]
+	if(baked)
+		.[dirt_emissive_blocker(baked, limb, .[1])] = LIMB_OVERLAY_META
 
 /// What the limb's baked image draws (/datum/dirt_masks/var/limb_keys), after DIRT_PRIVATE_KEY: the limb's images are
 /// kept on its own mob (limb_icons_for()), and a landing elsewhere on the body leaves them as they were.
@@ -42,9 +71,64 @@
 	return list(DIRT_PRIVATE_KEY, carrier?.skin?.masks?.limb_keys[limb.body_zone])
 
 /**
+ * An arm's skin dirt. It draws the arm's baked image at DIRT_SKIN_LAYER, as every limb does, and the hand's at
+ * DIRT_HAND_SKIN_LAYER. That layer lies over the hand and under gloves, and the hand draws over the uniform. Each layer
+ * draws only while its baked image has something to draw.
+ */
+/datum/bodypart_overlay/dirt_skin/arm
+	layers = list("" = DIRT_SKIN_LAYER, DIRT_HAND_LAYER_POSTFIX = DIRT_HAND_SKIN_LAYER)
+
+/// Draws while the masks hold a baked image for the arm or its hand.
+/datum/bodypart_overlay/dirt_skin/arm/draws_from(datum/dirt_masks/masks, obj/item/bodypart/limb)
+	var/alist/baked_by_limb = masks.baked_by_limb
+	return !!(baked_by_limb[limb.body_zone] || baked_by_limb[limb.aux_zone])
+
+/// The DIRT_HAND_LAYER_POSTFIX layer draws the hand's baked image, and the other layer draws the arm's.
+/datum/bodypart_overlay/dirt_skin/arm/layer_zone(obj/item/bodypart/limb, layer_index)
+	return layer_index == DIRT_HAND_LAYER_POSTFIX ? limb.aux_zone : limb.body_zone
+
+/// Returns an overlay for each layer whose baked image has something to draw: the arm's, the hand's, or both.
+/datum/bodypart_overlay/dirt_skin/arm/get_all_overlays(obj/item/bodypart/limb)
+	. = list()
+	var/alist/baked_by_limb = carrier?.skin?.masks?.baked_by_limb
+	for(var/layer_index, layer_number in layers)
+		if(baked_by_limb?[layer_zone(limb, layer_index)])
+			. += get_overlay(limb, layer_index, -layer_number)
+
+/// The keys of the arm's and the hand's baked images, after DIRT_PRIVATE_KEY as on every limb.
+/datum/bodypart_overlay/dirt_skin/arm/icon_render_key(obj/item/bodypart/limb)
+	var/alist/limb_keys = carrier?.skin?.masks?.limb_keys
+	return list(DIRT_PRIVATE_KEY, limb_keys?[limb.body_zone], limb_keys?[limb.aux_zone])
+
+/**
+ * Adds DIRT_HAND_LAYER_POSTFIX before setup_lists() builds its sprite accessory lists, so the arm's "hand" layer
+ * (above) is in SSaccessories.all_layer_postfixes before anything reads it. That list holds every bodypart_overlay
+ * layer postfix. The matrixed colour probes in sprite_accessories.dm and taur_types.dm walk it as they build each
+ * matrixed accessory. No accessory icon has a state ending in DIRT_HAND_LAYER_POSTFIX, so those probes find nothing
+ * for it. It's added with |=, so a second call can't add it twice.
+ */
+/datum/controller/subsystem/accessories/setup_lists()
+	all_layer_postfixes |= DIRT_HAND_LAYER_POSTFIX
+	return ..()
+
+/**
+ * Returns a new skin overlay for a limb. An arm's overlay draws its hand too.
+ *
+ * Arguments:
+ * - zone: The limb's body zone.
+ * - carrier: The carrier whose skin splats it draws.
+ */
+/proc/dirt_skin_overlay(zone, datum/component/dirtiness/carrier)
+	RETURN_TYPE(/datum/bodypart_overlay/dirt_skin)
+	if(zone == BODY_ZONE_L_ARM || zone == BODY_ZONE_R_ARM)
+		return new /datum/bodypart_overlay/dirt_skin/arm(carrier)
+	return new /datum/bodypart_overlay/dirt_skin(carrier)
+
+/**
  * A person's mess on their underclothes: one container image on the chest at DIRT_UNDERCLOTHES_LAYER, over the
- * underclothes and under the uniform, holding the baked image of each piece worn and shown, already kept to the pixels
- * it shows.
+ * underclothes and under the uniform. It holds the baked image of each piece worn and shown, already kept to the pixels
+ * the piece shows. Each baked image's emissive blocker draws beside the container. A piece holding sweat also draws its
+ * multiplier there (get_all_overlays()), and no blocker for it.
  */
 /datum/bodypart_overlay/dirt_underclothes
 	layers = list("" = DIRT_UNDERCLOTHES_LAYER)
@@ -79,11 +163,17 @@
 	return container
 
 /**
- * A bulge look drawn over a piece of underclothes covers that piece's mess with its cloth, so the mess is drawn again
- * over the cloth, kept to its pixels, as the look draws a garment's own mess over it (bulge_over_cloth()).
+ * Adds each piece's baked image's emissive blocker beside the container (dirt_emissive_blocker()). A bulge look drawn
+ * over a piece of underclothes covers that piece's mess with its cloth. So the mess is drawn again over the cloth, kept
+ * to its pixels, as the look draws a garment's own mess over it (bulge_over_cloth()). The copy draws its own blocker.
  */
 /datum/bodypart_overlay/dirt_underclothes/get_overlay(obj/item/bodypart/limb, layer_index, layer_real)
 	. = ..()
+	var/mutable_appearance/pieces_container = .[1]
+	for(var/key, drawing in carrier?.underclothes_drawings)
+		var/datum/dirt_drawing/piece = drawing
+		if(piece.masks?.baked)
+			.[dirt_emissive_blocker(piece.masks.baked, limb, pieces_container)] = LIMB_OVERLAY_META
 	var/datum/bodypart_overlay/mutant/genital/penis/look = dirt_bulge_over(limb)
 	var/datum/dirt_drawing/drawn = look && carrier.underclothes_drawings?[dirt_bulge_piece(limb.owner, look)]
 	var/clipped = drawn?.masks?.baked && bulge_clipped_icon(drawn.masks.baked, "", look.bulge_template)
@@ -92,15 +182,65 @@
 	var/mutable_appearance/container = mutable_appearance(layer = -(look.bulge_layer - BULGE_ABOVE_COVER), appearance_flags = KEEP_TOGETHER)
 	container.overlays += dirt_mess_baked_image(clipped)
 	.[container] = NONE
+	.[dirt_emissive_blocker(clipped, limb, container)] = LIMB_OVERLAY_META
+
+/**
+ * Returns the container, unless every piece drawn holds sweat alone, which bakes no colour. After it comes the
+ * multiplier of each piece whose masks hold sweat (current_wet()), drawn on its own beside the container, because
+ * there it darkens the piece under it. Inside the container it would darken only what's in the container. Its pixels
+ * lie only on those the piece shows, so it draws on nothing else.
+ */
+/datum/bodypart_overlay/dirt_underclothes/get_all_overlays(obj/item/bodypart/limb)
+	. = list()
+	for(var/key, drawing in carrier?.underclothes_drawings)
+		var/datum/dirt_drawing/drawn = drawing
+		if(drawn.masks && (drawn.masks.baked || !drawn.masks.wet))
+			. = ..()
+			break
+	for(var/key, drawing in carrier?.underclothes_drawings)
+		var/datum/dirt_drawing/drawn = drawing
+		// a piece whose sweat has gone is still asked, so it lets go of the multiplier it held
+		if(!drawn.masks?.wet && !drawn.wet_key)
+			continue
+		var/icon/factors = drawn.current_wet(carrier.parent, DIRT_REDRAW_BODY, wet_garment(key, drawn))
+		if(!factors)
+			continue
+		var/mutable_appearance/multiplier = dirt_wet_image(factors)
+		multiplier.layer = -DIRT_UNDERCLOTHES_LAYER
+		.[multiplier] = NONE
+
+/**
+ * Returns the sprite a piece of underclothes draws, in the form current_wet() takes for a garment. Returns null unless
+ * its drawn masks hold sweat. Its colour is the one get_underwear_overlays() draws it in. That's the body's colour for
+ * the piece (dirt_underclothes_colour()), or none for a static accessory.
+ *
+ * Arguments:
+ * - key: The piece's underclothes key (dirt_underclothes_key()).
+ * - drawn: The piece's masks being drawn.
+ */
+/datum/bodypart_overlay/dirt_underclothes/proc/wet_garment(key, datum/dirt_drawing/drawn)
+	RETURN_TYPE(/list)
+	var/list/sprite = drawn.masks?.wet && drawn.request?.clip?[1]
+	if(!sprite)
+		return null
+	var/piece = dirt_underclothes_piece(key)
+	var/datum/sprite_accessory/clothing/accessory = dirt_underclothes_worn(carrier.parent)[piece]
+	return list(sprite[1], sprite[2], accessory?.use_static ? null : dirt_underclothes_colour(carrier.parent, piece), null, 0, 0)
 
 /// The drawn masks' keys, after DIRT_PRIVATE_KEY: the chest's images follow them, kept on its own mob
-/// (limb_icons_for()). A bulge look drawn over them adds its own key.
+/// (limb_icons_for()). A piece holding sweat adds the key of the multiplier it holds. It takes up one SSdirt has made
+/// since, or asks for one it lacks (current_wet()). So the chest is drawn again once the multiplier is made, even if
+/// SSdirt dropped it before the chest was drawn with it. A bulge look drawn over the underclothes adds its own key.
 /datum/bodypart_overlay/dirt_underclothes/icon_render_key(obj/item/bodypart/limb)
 	var/list/keys = list(DIRT_PRIVATE_KEY)
 	for(var/key, drawing in carrier?.underclothes_drawings)
 		var/datum/dirt_drawing/drawn = drawing
 		if(drawn.masks)
 			keys += "[key]:[drawn.masks.key]"
+			if(drawn.masks.wet || drawn.wet_key)
+				drawn.current_wet(carrier.parent, DIRT_REDRAW_BODY, wet_garment(key, drawn))
+				if(drawn.wet_key)
+					keys += "wet:[drawn.wet_key]"
 	var/datum/bodypart_overlay/mutant/genital/penis/look = dirt_bulge_over(limb)
 	if(look)
 		keys += look.bulge_key
@@ -108,7 +248,8 @@
 
 /**
  * Returns the penis whose bulge look draws its adaptive cloth over a piece of the owner's underclothes, or null. The
- * penis resolves its look before this overlay is drawn: it's on the chest first.
+ * penis resolves its look before this overlay is drawn, as long as it comes first on the chest. A chest swap can
+ * change which comes first.
  *
  * Arguments:
  * - limb: The chest.
@@ -138,18 +279,27 @@
 	return null
 
 /**
- * Returns the body zones of the limbs skin mess draws on: the head, the chest and the legs, where aimed mess lands. You
- * should NEVER modify it.
+ * Returns the limbs each skin zone's pixels lie on, as alist(body zone = DIRT_LIMB_BIT() of each). Its keys are the
+ * body zones of the limbs skin dirt draws on: the head, the chest, the arms with their hands and the legs. Mess draws
+ * on the head, the chest and the legs, where aimed mess lands. A zone's overlay draws while a splat lies on one of its
+ * limbs. The chest's rows from DIRT_BELT down lie on the legs, and an arm takes its hand. You should NEVER modify it.
  */
-/proc/dirt_skin_zones()
-	RETURN_TYPE(/list)
-	var/static/list/zones = list(BODY_ZONE_HEAD, BODY_ZONE_CHEST, BODY_ZONE_L_LEG, BODY_ZONE_R_LEG)
-	return zones
+/proc/dirt_skin_zone_limbs()
+	RETURN_TYPE(/alist)
+	var/static/alist/limbs = alist(
+		BODY_ZONE_HEAD = DIRT_LIMB_BIT(DIRT_LIMB_HEAD),
+		BODY_ZONE_CHEST = DIRT_LIMB_BIT(DIRT_LIMB_TORSO) | DIRT_LIMB_BIT(DIRT_LIMB_R_LEG) | DIRT_LIMB_BIT(DIRT_LIMB_L_LEG),
+		BODY_ZONE_L_ARM = DIRT_LIMB_BIT(DIRT_LIMB_L_ARM),
+		BODY_ZONE_R_ARM = DIRT_LIMB_BIT(DIRT_LIMB_R_ARM),
+		BODY_ZONE_L_LEG = DIRT_LIMB_BIT(DIRT_LIMB_L_LEG),
+		BODY_ZONE_R_LEG = DIRT_LIMB_BIT(DIRT_LIMB_R_LEG),
+	)
+	return limbs
 
 /**
- * Returns the body zones whose sprites a limb skin mess draws on checks besides its own (ready_skin_masks()): for the
- * chest the arms, which bring their hands and which no limb skin mess draws on draws (the chest checks the eyes too);
- * for the rest none. You should NEVER modify it.
+ * Returns the body zones whose sprites ready_skin_masks() checks besides a limb's own, for a limb that skin dirt draws
+ * on. For the chest those are the arms, which bring their hands, and whose own overlays draw only while general dirt
+ * lies on them. The chest checks the eyes too. For every other limb it returns none. You should NEVER modify it.
  *
  * Arguments:
  * - zone: The limb's body zone.
@@ -218,3 +368,22 @@
 /proc/dirt_mess_baked_image(icon/baked)
 	RETURN_TYPE(/mutable_appearance)
 	return mutable_appearance(baked)
+
+/**
+ * Returns an emissive blocker in a baked image's shape and at its alpha, to draw just after an image of it. The dirt
+ * then dims what glows under it as much as it covers it. It takes that image's layer, alpha, offsets and blend.
+ *
+ * Arguments:
+ * - baked: The baked icon, as /datum/dirt_masks holds it.
+ * - spokesman: What its plane offset is read from: the limb, the person or the item.
+ * - beside: The image drawing the baked icon, or the container holding it.
+ */
+/proc/dirt_emissive_blocker(icon/baked, atom/spokesman, mutable_appearance/beside)
+	RETURN_TYPE(/mutable_appearance)
+	var/mutable_appearance/blocker = emissive_blocker(baked, "", spokesman, beside.layer, beside.alpha)
+	blocker.pixel_x = beside.pixel_x
+	blocker.pixel_y = beside.pixel_y
+	blocker.pixel_w = beside.pixel_w
+	blocker.pixel_z = beside.pixel_z
+	blocker.blend_mode = beside.blend_mode
+	return blocker

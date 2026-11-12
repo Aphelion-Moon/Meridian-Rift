@@ -128,8 +128,22 @@
 	return layer_at(direction) >= surface_layer
 
 /**
+ * Returns, as text, what the source draws (part_key()) and where it draws against a surface in each direction: "u"
+ * under it and "o" over it. Sources with the same placed key take mess on the same pixels in the same directions.
+ *
+ * Arguments:
+ * - surface_layer: The surface's layer, or null for no placement.
+ */
+/datum/dirt_part_source/proc/placed_key(surface_layer)
+	var/placement = ""
+	if(!isnull(surface_layer))
+		for(var/direction in dirt_mask_directions())
+			placement += under(direction, surface_layer) ? "u" : "o"
+	return "[part_key()]@[placement]"
+
+/**
  * Returns parts' keys as one line of text, to key masks by: each with where it draws against a surface in each
- * direction, when one is given.
+ * direction, when one is given (placed_key()).
  *
  * Arguments:
  * - sources: /datum/dirt_part_source, or null.
@@ -138,11 +152,7 @@
 /proc/dirt_parts_key(list/sources, surface_layer)
 	var/list/keys = list()
 	for(var/datum/dirt_part_source/source as anything in sources)
-		var/placement = ""
-		if(!isnull(surface_layer))
-			for(var/direction in dirt_mask_directions())
-				placement += source.under(direction, surface_layer) ? "u" : "o"
-		keys += "[source.part_key()]@[placement]"
+		keys += source.placed_key(surface_layer)
 	return jointext(keys, ";")
 
 /**
@@ -330,7 +340,7 @@
  *   but hidden.
  * - zone: The splat's DIRT_ZONE_* define.
  * - level: 1 to DIRT_PART_MAX_LEVEL.
- * - variant: 0 to DIRT_MESS_VARIANTS - 1.
+ * - variant: 0 to DIRT_VARIANTS - 1.
  */
 /proc/dirt_part_rasterise(list/own, zone, level, variant)
 	RETURN_TYPE(/datum/dirt_pixels)
@@ -476,14 +486,16 @@
 	return row * ICON_SIZE_X + column + 1
 
 /**
- * Draws a role on a pixel of the mask by its index.
+ * Draws a role on a pixel of the mask by its index. If the mask keeps drawn_indexes, a blank pixel joins the list.
  *
  * Arguments:
  * - index: The pixel's index.
- * - role: A DIRT_ROLE_* define.
+ * - role: A DIRT_ROLE_* define, or null to clear it.
  * - thickness: How thick it lies, from 0 to 1.
  */
 /datum/dirt_pixels/proc/put_index(index, role, thickness)
+	if(role && drawn_indexes && !roles[index])
+		drawn_indexes += index
 	roles[index] = role
 	thicknesses[index] = thickness
 
@@ -528,7 +540,7 @@
  * - zone: The splat's DIRT_ZONE_* define.
  * - kind: A DIRT_PART_* define.
  * - level: 1 to DIRT_PART_MAX_LEVEL.
- * - variant: 0 to DIRT_MESS_VARIANTS - 1.
+ * - variant: 0 to DIRT_VARIANTS - 1.
  * - direction: The direction.
  */
 /proc/dirt_lobe_rasterise(list/own, zone, kind, level, variant, direction)
@@ -843,7 +855,8 @@
 
 /**
  * Returns the parts a body draws that take mess, lowest drawn first: the pecs guide if its chest takes one, then each
- * genital drawn (dirt_part_drawn()).
+ * genital drawn (dirt_part_drawn()). A gloryhole's occupant draws their penis only through its relay, as
+ * can_draw_on_bodypart() decides (portal_relays_penis()). So the penis doesn't shape the body's mess.
  *
  * Arguments:
  * - body: The body.
@@ -851,7 +864,10 @@
 /proc/dirt_body_parts(mob/living/carbon/human/body)
 	RETURN_TYPE(/list)
 	. = list()
+	var/relayed = body.portal_relays_penis()
 	for(var/obj/item/organ/genital/part in body.organs)
+		if(relayed && istype(part, /obj/item/organ/genital/penis))
+			continue
 		var/datum/dirt_part_source/source = dirt_part_drawn(part, body)
 		if(source)
 			. += source
@@ -903,6 +919,27 @@
 	return list(under, over)
 
 /**
+ * Returns the parts drawn over a surface in some direction, lowest drawn first, that share a limb with its general
+ * dirt (dirt_part_limbs()). Each takes it on its own pixels in those directions, as the reference generator composites
+ * the body's dirt over them (/datum/dirt_mask_job/proc/deposit_part_runs()). The pecs guide, never drawn, takes none.
+ *
+ * Arguments:
+ * - parts: The body's parts, from dirt_body_parts().
+ * - surface_layer: The surface's layer.
+ * - limbs: The limbs the surface's general dirt lies on, DIRT_LIMB_BIT() of each.
+ */
+/proc/dirt_parts_over(list/parts, surface_layer, limbs)
+	RETURN_TYPE(/list)
+	. = list()
+	for(var/datum/dirt_part_source/part as anything in parts)
+		if(part.guide || !(limbs & dirt_part_limbs(part.kind)))
+			continue
+		for(var/direction in dirt_mask_directions())
+			if(!part.under(direction, surface_layer))
+				. += part
+				break
+
+/**
  * Returns a genital's images as a part source, every layer's colour layers' states together with the layer each draws
  * at, or null when none draws a sprite. Emissives and texture holders are left out.
  *
@@ -927,17 +964,33 @@
 	return new /datum/dirt_part_source(kind, sheet, states, FALSE, state_layers)
 
 /**
- * Returns a container of a baked mess image just over a genital's or a taur body's images: at the layer and offsets of
+ * Returns the limbs a kind of part's pixels can lie on in a body's template, DIRT_LIMB_BIT() of each, as its sprites
+ * reach. Pecs lie on the torso and beside the arms. Breasts, the butt and the genitals lie on the legs too, from
+ * DIRT_BELT down (the largest breasts reach row 29, and a penis row 31).
+ *
+ * Arguments:
+ * - kind: A DIRT_PART_* define.
+ */
+/proc/dirt_part_limbs(kind)
+	var/upper = DIRT_LIMB_BIT(DIRT_LIMB_TORSO) | DIRT_LIMB_BIT(DIRT_LIMB_R_ARM) | DIRT_LIMB_BIT(DIRT_LIMB_L_ARM)
+	if(kind == DIRT_PART_PECS)
+		return upper
+	return upper | DIRT_LIMB_BIT(DIRT_LIMB_R_LEG) | DIRT_LIMB_BIT(DIRT_LIMB_L_LEG)
+
+/**
+ * Returns a container of baked dirt images just over a genital's or a taur body's images, at the layer and offsets of
  * the last sprite among them, the one drawn over the others, kept together. It isn't nested in that sprite: the sprite
  * is coloured, which its overlays would take, and a filter on it doesn't reach them.
  *
  * Arguments:
  * - images: The images, as get_overlay() returns them.
- * - baked: The baked icon, as /datum/dirt_masks holds it.
+ * - baked: The baked icon, as /datum/dirt_masks holds it, or null. It's the part's own mess, or a taur body's pools.
+ * - beneath: A baked icon drawn under it in the container, or null. It's the body's general dirt on a genital
+ *   (/datum/dirt_masks/var/baked_by_part), which the genital's own mess lies over.
  *
  * Returns null when none of the images is a sprite.
  */
-/proc/dirt_container_over(list/images, icon/baked)
+/proc/dirt_container_over(list/images, icon/baked, icon/beneath = null)
 	RETURN_TYPE(/mutable_appearance)
 	for(var/position in length(images) to 1 step -1)
 		var/mutable_appearance/front = images[position]
@@ -948,7 +1001,10 @@
 		container.pixel_y = front.pixel_y
 		container.pixel_w = front.pixel_w
 		container.pixel_z = front.pixel_z
-		container.overlays += dirt_mess_baked_image(baked)
+		if(beneath)
+			container.overlays += dirt_mess_baked_image(beneath)
+		if(baked)
+			container.overlays += dirt_mess_baked_image(baked)
 		return container
 	return null
 

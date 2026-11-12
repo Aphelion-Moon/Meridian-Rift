@@ -1,5 +1,16 @@
 // compiled in, since CI's test world is deployed without code/
-#define DIRT_MESS_CORPUS 'code/modules/unit_tests/~nova/dirt_mess_corpus.json'
+#define DIRT_CORPUS 'code/modules/unit_tests/~nova/dirt_corpus.json'
+
+/// Drops `key` and its value, so it's made afresh when next asked for. The keys left keep their order.
+/datum/bulge_bounded_cache/proc/forget(key)
+	if(isnull(LAZYACCESS(entries, key)))
+		return
+	entries -= key
+	// put the oldest at the start of the list, so the next key stored goes after the newest
+	if(cursor > 1)
+		keys = keys.Copy(cursor) + keys.Copy(1, cursor)
+		cursor = 1
+	keys -= key
 
 /**
  * The game's limbs feed the dirt template the sprites the corpus names, so the parity manifest's surfaces are the ones
@@ -9,9 +20,9 @@
 /datum/unit_test/dirt_zone_sources
 
 /datum/unit_test/dirt_zone_sources/Run()
-	var/list/corpus = json_decode(file2text(DIRT_MESS_CORPUS) || "{}")
+	var/list/corpus = json_decode(file2text(DIRT_CORPUS) || "{}")
 	var/list/templates = corpus["templates"]
-	TEST_ASSERT(length(templates), "[DIRT_MESS_CORPUS] has no templates.")
+	TEST_ASSERT(length(templates), "[DIRT_CORPUS] has no templates.")
 	var/mob/living/carbon/human/consistent/body = allocate(/mob/living/carbon/human/consistent)
 	TEST_ASSERT_EQUAL(describe_sources(dirt_zone_sources(body)), describe_sources(dirt_parity_zone_sources(templates["human_m"])), "A consistent human's sprites aren't the corpus's human_m.")
 	body.dna.features[FEATURE_MUSCLE_SIZE] = MUSCLE_SIZE_MUSCULAR
@@ -46,13 +57,13 @@
 
 /**
  * SSdirt makes mess masks in the background and caches them: the first ask queues them, finish_all() makes them, and
- * the body that asked is drawn again. They're made from the splats as they were when asked for, whatever happens to
- * them meanwhile. Skin's masks are clipped to each limb and cloth's cover the canvas, and both match the parity
- * manifest's cases, one splat or two merged, the second drawn over a first cached from an earlier ask. A request whose
- * limb names a missing state is dropped, cached as failed, and never queued again, and the queue goes on past it. Masks
+ * the body that asked is drawn again. The masks are made from the splats as they were when asked for, whatever happens
+ * to the splats meanwhile. Skin's masks are clipped to each limb, and cloth's are made too. If a request's limb names a
+ * missing state, the request is dropped, cached as failed and never queued again. The queue goes on past it. Masks
  * asked for on more body types than the template cache holds are all made, though templates drop while they wait.
  */
 /datum/unit_test/dirt_mask_queue
+	parent_type = /datum/unit_test/dirt_genital_test
 	// about 2 s: it builds templates for more body types than the template cache holds, twice over
 	priority = TEST_LONGER
 	/// SSdirt.masks.limit while the mask-queue pin runs on a smaller cache, until restore_mask_limit().
@@ -84,12 +95,13 @@
 	var/datum/dirt_masks/masks = SSdirt.masks.fetch(chest_key)
 	TEST_ASSERT(istype(masks), "finish_all() didn't make the queued masks.")
 	TEST_ASSERT(length(masks.baked_by_limb) == 1 && masks.baked_by_limb[BODY_ZONE_CHEST], "A chest splat's masks lie on other limbs than the chest.")
-	// skin-human_m-chest-1-0's grid, in the runs the chest is baked from
-	var/alist/chest_runs = baked_runs(chest, BODY_ZONE_CHEST)
+	// the chest's runs from a fresh request, with the splats as they were asked for
+	var/datum/dirt_mask_request/as_asked = new(DIRT_MASKS_BODY, dirt_zone_sources(body), DIRT_SURFACE_SKIN, list(new /datum/dirt_splat(DIRT_ZONE_CHEST, 1, 0, 0)))
+	var/alist/chest_runs = baked_runs(as_asked, BODY_ZONE_CHEST)
 	TEST_ASSERT_EQUAL(masks.limb_keys[BODY_ZONE_CHEST], dirt_runs_key(chest_runs), "The queued chest masks aren't baked from the splats as they were asked for.")
-	TEST_ASSERT_EQUAL(describe_runs(chest_runs), "haze 0 0 0 0, film 6 0 2 1, body 3 0 1 1, core 0 0 0 0, fleck 0 0 0 0, glint 1 0 1 0", "The chest's masks aren't the parity manifest's skin-human_m-chest-1-0.")
 	// a solid film pixel takes the film's tint: #F1EEE6 at 0.42, alpha 107
-	var/alist/film_runs = chest_runs[DIRT_ROLE_FILM]
+	var/alist/mess_runs = chest_runs[DIRT_MATERIAL_MESS]
+	var/alist/film_runs = mess_runs[DIRT_ROLE_FILM]
 	var/list/film_run = film_runs[SOUTH][1]
 	var/icon/chest_baked = icon(masks.baked_by_limb[BODY_ZONE_CHEST])
 	TEST_ASSERT_EQUAL(chest_baked.GetPixel(film_run[2], film_run[1], null, SOUTH), "#f1eee66b", "A solid film pixel isn't baked in the film's tint.")
@@ -99,8 +111,6 @@
 	SSdirt.finish_all()
 	masks = SSdirt.masks_for(cloth, body, DIRT_REDRAW_UNIFORM)
 	TEST_ASSERT(istype(masks) && masks.baked, "finish_all() didn't make the queued cloth masks.")
-	// cloth-human_m-chest-1-0's grid, on the whole canvas: cloth draws its rim a role lighter, film's half covered as haze
-	TEST_ASSERT_EQUAL(describe_runs(baked_runs(cloth)), "haze 0 0 2 1, film 6 0 1 1, body 3 0 0 0, core 0 0 0 0, fleck 0 0 0 0, glint 1 0 1 0", "The cloth masks aren't the parity manifest's cloth-human_m-chest-1-0.")
 
 	var/alist/missing_sources = dirt_zone_sources(body)
 	var/list/chest_source = missing_sources[BODY_ZONE_CHEST]
@@ -119,10 +129,6 @@
 	SSdirt.finish_all()
 	masks = SSdirt.masks_for(pair, body, DIRT_REDRAW_BODY)
 	TEST_ASSERT(istype(masks), "Masks asked for after a failed request weren't made.")
-	// skin-human_m-chest-1-0+chest-1-7's grid: the second splat leaves out its pieces beside the first's mess
-	var/alist/pair_runs = baked_runs(pair, BODY_ZONE_CHEST)
-	TEST_ASSERT_EQUAL(masks.limb_keys[BODY_ZONE_CHEST], dirt_runs_key(pair_runs), "Two chest splats' masks aren't baked from their runs.")
-	TEST_ASSERT_EQUAL(describe_runs(pair_runs), "haze 0 0 0 0, film 6 0 2 1, body 5 0 1 1, core 0 0 0 0, fleck 0 0 0 0, glint 1 0 1 0", "Two chest splats' masks aren't the parity manifest's skin-human_m-chest-1-0+chest-1-7.")
 
 	// more masks asked for than the mask cache holds while they wait: the first, asked for again by a draw, waits for its
 	// job rather than queueing another. On a cache of four, so the asks are few; emptied first, so the keys it holds fit
@@ -133,8 +139,8 @@
 	var/datum/dirt_mask_request/first_waiting
 	for(var/request_number in 1 to SSdirt.masks.limit + 1)
 		var/zone = zones[(request_number - 1) % length(zones) + 1]
-		var/variant = floor((request_number - 1) / length(zones)) % DIRT_MESS_VARIANTS
-		var/level = floor((request_number - 1) / (length(zones) * DIRT_MESS_VARIANTS)) % DIRT_MESS_MAX_LEVEL + 1
+		var/variant = floor((request_number - 1) / length(zones)) % DIRT_VARIANTS
+		var/level = floor((request_number - 1) / (length(zones) * DIRT_VARIANTS)) % DIRT_MESS_MAX_LEVEL + 1
 		var/datum/dirt_mask_request/waiting_request = new(DIRT_MASKS_BODY, dirt_zone_sources(body), DIRT_SURFACE_CLOTH, list(new /datum/dirt_splat(zone, level, variant, SSdirt.next_serial())))
 		SSdirt.masks.forget(waiting_request.mask_key())
 		SSdirt.masks_for(waiting_request, null, NONE)
@@ -216,62 +222,38 @@
 	return bodies
 
 /**
- * Returns the runs a request's masks are baked from (dirt_shown_runs()), made start to end by a job of its own outside
- * the queue and the mask cache: a limb's on skin (/datum/dirt_mask_job/proc/limb_runs()), the canvas's on cloth
- * (canvas_runs()). A baked pixel can't be told back into its roles, so the pins count them in these. Null when the job
- * made no masks.
+ * Returns the runs a skin request's masks bake a limb from (/datum/dirt_mask_job/proc/limb_runs()). A job of its own
+ * makes the masks from start to end (made_job()). Returns null if that job made no masks.
  *
  * Arguments:
  * - request: The request.
- * - zone: On skin, the limb's body zone.
+ * - zone: The limb's body zone.
  */
 /datum/unit_test/dirt_mask_queue/proc/baked_runs(datum/dirt_mask_request/request, zone)
 	RETURN_TYPE(/alist)
-	var/datum/dirt_mask_job/job = new(request, request.mask_key())
-	job.template_source = SSdirt.template_for(request.zone_sources)
-	// a template queued for it is built first
-	SSdirt.finish_all()
-	SSdirt.work_on(job, FALSE)
+	var/datum/dirt_mask_job/job = made_job(request)
 	if(!job.masks)
 		return null
-	if(request.surface_kind == DIRT_SURFACE_CLOTH)
-		return job.canvas_runs()
 	var/alist/by_limb = job.limb_runs()
 	return by_limb[zone]
 
 /**
- * Returns how many pixels each role's runs cover facing south, north, east and west, as one line of text. Haze is the
- * film's runs at half coverage (128), film its others.
- *
- * Arguments:
- * - runs: alist(DIRT_ROLE_* define = alist(direction = runs)), from baked_runs(), or null.
- */
-/datum/unit_test/dirt_mask_queue/proc/describe_runs(alist/runs)
-	var/list/counts = list("haze" = list(0, 0, 0, 0), "film" = list(0, 0, 0, 0), "body" = list(0, 0, 0, 0), "core" = list(0, 0, 0, 0), "fleck" = list(0, 0, 0, 0), "glint" = list(0, 0, 0, 0))
-	var/list/names = list("film" = DIRT_ROLE_FILM, "body" = DIRT_ROLE_BODY, "core" = DIRT_ROLE_CORE, "fleck" = DIRT_ROLE_FLECK, "glint" = DIRT_ROLE_GLINT)
-	var/list/facings = list(SOUTH, NORTH, EAST, WEST)
-	for(var/name, role in names)
-		var/alist/by_direction = runs?[role]
-		for(var/facing_number in 1 to length(facings))
-			for(var/list/run as anything in by_direction?[facings[facing_number]])
-				var/list/role_counts = (name == "film" && run[4] == 128) ? counts["haze"] : counts[name]
-				role_counts[facing_number] += run[3] - run[2] + 1
-	var/list/parts = list()
-	for(var/name, numbers in counts)
-		parts += "[name] [jointext(numbers, " ")]"
-	return jointext(parts, ", ")
-
-/**
- * The mess on bare skin draws through the limbs' own images: a landing gives each limb it reaches one container image
- * at DIRT_SKIN_LAYER, holding the baked image SSdirt makes, and the other limbs nothing. Washing takes it off, even
- * while its masks are still being made: they finish without bringing it back. Every zone at once adds one overlay per
- * limb that carries mess, the head, the chest and the legs, so four at most, the chest's splats in its one container. A
- * shot's amount adds levels to the zone's newest splat, and past the top one what's left starts another, of a variant
- * the zone doesn't have yet. A limb drawn from other sprites with none swapped has the masks made again for what the
- * body draws, though a steady draw only compares what each is drawn from: the chest at another physique, a restyled
- * arm, which the chest checks, and eyes drawn from another state.
+ * The mess on bare skin draws through the limbs' own images. A landing gives each limb it reaches one container image
+ * at DIRT_SKIN_LAYER, holding the baked image SSdirt makes, and gives the other limbs nothing. At a height, the
+ * container's emissive blocker is one of the limb's images beside it, stretched as the container is. Washing takes the
+ * mess off, even while its masks are still being made. They finish without bringing it back. Mess on every zone at once
+ * gives each limb that carries mess (the head, the chest and the legs) a container and its blocker. The chest's splats
+ * go in its one container. The body's images share one holder per layer, and their blockers one group
+ * (prepare_bodypart_overlays()). So skin dirt adds a holder and a group, and underclothes dirt the same, four at most.
+ * A shot's amount adds levels to the zone's newest splat. Past the top level, what's left starts another splat, of a
+ * variant the zone doesn't have yet. A steady draw only compares what each is drawn from. Even so, if a limb is drawn
+ * from other sprites with no limb swapped, the masks are made again for what the body draws. The cases are the chest at
+ * another physique, a restyled arm, which the chest checks, and eyes drawn from another state. A 64x64 hat covers the
+ * skin where it's drawn over the body (check_wide_cover()). A body hidden under a sleeping bag draws no skin dirt, but
+ * keeps it (check_body_hidden()).
  */
 /datum/unit_test/dirt_skin_mess
+	parent_type = /datum/unit_test/dirt_genital_test
 
 /datum/unit_test/dirt_skin_mess/Run()
 	// whatever earlier tests left queued is made first
@@ -286,6 +268,17 @@
 	TEST_ASSERT(length(container.overlays), "The chest's mess container holds no baked image.")
 	for(var/zone in list(BODY_ZONE_HEAD, BODY_ZONE_L_LEG, BODY_ZONE_R_LEG))
 		TEST_ASSERT(!length(skin_images(body, zone)), "A chest splat drew mess on the [zone].")
+	// at a height, the chest's blocker is one of its images, stretched as its container is
+	body.set_mob_height(HUMAN_HEIGHT_TALL)
+	SSdirt.finish_all()
+	chest_images = skin_images(body, BODY_ZONE_CHEST)
+	var/list/blockers = skin_images(body, BODY_ZONE_CHEST, DIRT_SKIN_LAYER, TRUE)
+	TEST_ASSERT(length(chest_images) == 1 && length(blockers) == 1, "A Tall body's chest splat draws [length(chest_images)] mess containers and [length(blockers)] emissive blockers among the chest's images, not one of each.")
+	container = chest_images[1]
+	var/image/blocker = blockers[1]
+	TEST_ASSERT(length(container.filters) && length(blocker.filters) == length(container.filters), "A Tall body's chest blocker takes [length(blocker.filters)] filters, not the [length(container.filters)] height filters of its mess container.")
+	body.set_mob_height(HUMAN_HEIGHT_MEDIUM)
+	SSdirt.finish_all()
 	body.wash(CLEAN_WASH)
 	body.update_body_parts()
 	TEST_ASSERT(!length(skin_images(body, BODY_ZONE_CHEST)), "Washing left mess drawn on the chest.")
@@ -334,6 +327,96 @@
 	body.update_body_parts()
 	SSdirt.finish_all()
 	TEST_ASSERT(skin_drawn_for(body, carrier), "Skin mess is drawn from masks made for the eyes' sprites before they changed.")
+	check_wide_cover()
+	check_body_hidden()
+
+/**
+ * Checks that a 64x64 hat on a body with skin mess covers the pixels of the body's tile it's drawn on. The skin's masks
+ * use that cover for their fades. The cover is the hat's sprite moved by the offsets tg draws it with, not the corner
+ * of the sprite that a 32x32 read finds.
+ */
+/datum/unit_test/dirt_skin_mess/proc/check_wide_cover()
+	SSdirt.finish_all()
+	var/mob/living/carbon/human/consistent/body = allocate(/mob/living/carbon/human/consistent)
+	// nothing else worn covers the skin
+	body.underwear = /datum/sprite_accessory/clothing/underwear/nude::name
+	body.undershirt = /datum/sprite_accessory/clothing/undershirt/nude::name
+	body.bra = /datum/sprite_accessory/clothing/bra/nude::name
+	body.socks = /datum/sprite_accessory/clothing/socks/nude::name
+	body.update_body()
+	var/obj/item/clothing/head/hats/hos/shako/hat = allocate(/obj/item/clothing/head/hats/hos/shako)
+	TEST_ASSERT(body.equip_to_slot_if_possible(hat, ITEM_SLOT_HEAD), "Couldn't put a 64x64 hat on the human.")
+	var/image/root = bulge_drawn_root(body.overlays_standing[HEAD_LAYER])
+	var/image/leaf = bulge_drawn_leaf(root)
+	var/list/size = leaf && get_icon_dimensions(leaf.icon)
+	TEST_ASSERT(size?["width"] > ICON_SIZE_X, "The hat isn't drawn wider than a tile, so a wide sprite's cover can't be checked.")
+	TEST_ASSERT(dirt_mess_land(body, DIRT_ZONE_CHEST), "A chest shot didn't land on the bare chest under a 64x64 hat.")
+	var/datum/component/dirtiness/carrier = body.GetComponent(/datum/component/dirtiness)
+	TEST_ASSERT(carrier?.skin?.request, "The chest shot asks for no skin masks.")
+	var/datum/dirt_mask_job/job = made_job(carrier.skin.request)
+	var/alist/covered = job.sprite_pixels["cover"]
+	var/shift_x = root.pixel_x + root.pixel_w + (leaf == root ? 0 : leaf.pixel_x + leaf.pixel_w)
+	var/shift_y = root.pixel_y + root.pixel_z + (leaf == root ? 0 : leaf.pixel_y + leaf.pixel_z)
+	var/icon/sprite = icon(leaf.icon, leaf.icon_state)
+	var/on_tile = 0
+	var/wrong = 0
+	for(var/direction in dirt_mask_directions())
+		var/list/cover = covered?[direction]
+		for(var/icon_y in 1 to ICON_SIZE_Y)
+			for(var/icon_x in 1 to ICON_SIZE_X)
+				var/sprite_x = icon_x - shift_x
+				var/sprite_y = icon_y - shift_y
+				var/drawn = sprite_x >= 1 && sprite_y >= 1 && sprite_x <= size["width"] && sprite_y <= size["height"] && !isnull(sprite.GetPixel(sprite_x, sprite_y, null, direction))
+				on_tile += drawn
+				wrong += drawn != !!cover?[(ICON_SIZE_Y - icon_y) * ICON_SIZE_X + icon_x]
+	TEST_ASSERT(on_tile, "The 64x64 hat draws nothing over the body's tile, so its cover can't be checked.")
+	TEST_ASSERT(!wrong, "The skin's masks read [wrong] pixels of the body's tile otherwise than as covered where the 64x64 hat is drawn over it.")
+
+/**
+ * Checks that a body with skin mess and walking mud, put in a sleeping bag, draws no skin dirt but keeps its splats.
+ * The bag is a worn sprite larger than its tile. Taken out of it, the body draws them again. Each time, the body is
+ * drawn by update_body_parts() alone, so whether it's hidden is read from the suit it wears now, not kept from before.
+ */
+/datum/unit_test/dirt_skin_mess/proc/check_body_hidden()
+	if(CONFIG_GET(flag/disable_lewd_items))
+		TEST_NOTICE(src, "The sleeping bag is a lewd item, which the config disables.")
+		return
+	SSdirt.finish_all()
+	var/mob/living/carbon/human/consistent/body = allocate(/mob/living/carbon/human/consistent)
+	body.update_body()
+	TEST_ASSERT(dirt_mess_land(body, DIRT_ZONE_CHEST), "A mess aimed at a bare chest didn't land.")
+	TEST_ASSERT(dirt_land(body, DIRT_CAUSE_WALK, DIRT_MATERIAL_MUD, 3, 0), "Walking through mud landed nowhere on a bare human.")
+	SSdirt.finish_all()
+	var/datum/component/dirtiness/carrier = body.GetComponent(/datum/component/dirtiness)
+	var/splats = length(carrier.mess_splats)
+	TEST_ASSERT(length(skin_images(body, BODY_ZONE_CHEST)), "Skin mess on a bare chest isn't drawn.")
+	var/drawn = skin_containers(body)
+	var/obj/item/clothing/suit/straight_jacket/kinky_sleepbag/bag = allocate(/obj/item/clothing/suit/straight_jacket/kinky_sleepbag)
+	// unfolded, the way it's worn, and put on without its preference check, which needs a client
+	bag.bag_fold = FALSE
+	bag.update_icon_state()
+	body.equip_to_slot(bag, ITEM_SLOT_OCLOTHING)
+	TEST_ASSERT(body.wear_suit == bag, "Couldn't put the sleeping bag on the human.")
+	var/image/sprite = bulge_drawn_leaf(bulge_drawn_root(body.overlays_standing[SUIT_LAYER]))
+	var/list/size = sprite && get_icon_dimensions(sprite.icon)
+	TEST_ASSERT(size && size["width"] != ICON_SIZE_X, "The sleeping bag isn't drawn wider than a tile, so a hidden body can't be checked.")
+	body.update_body_parts()
+	TEST_ASSERT_EQUAL(skin_containers(body), 0, "A body in a sleeping bag draws skin dirt.")
+	TEST_ASSERT_EQUAL(length(carrier.mess_splats), splats, "A body in a sleeping bag lost skin splats.")
+	TEST_ASSERT(body.temporarilyRemoveItemFromInventory(bag, force = TRUE), "Couldn't take the sleeping bag off the human.")
+	body.update_body_parts()
+	TEST_ASSERT_EQUAL(skin_containers(body), drawn, "A body out of a sleeping bag draws [skin_containers(body)] skin dirt containers, not the [drawn] it drew before.")
+
+/**
+ * Returns how many skin dirt containers a body's limbs draw (skin_images()), summed over every zone skin dirt draws on.
+ *
+ * Arguments:
+ * - body: The body.
+ */
+/datum/unit_test/dirt_skin_mess/proc/skin_containers(mob/living/carbon/human/body)
+	. = 0
+	for(var/zone in dirt_skin_zone_limbs())
+		. += length(skin_images(body, zone))
 
 /**
  * Returns whether a body's skin masks are asked for from the sprites it draws now (dirt_zone_sources_match()).
@@ -361,20 +444,6 @@
 	return jointext(levels, " ")
 
 /**
- * Returns the mess containers in a limb's cached images: the images at DIRT_SKIN_LAYER.
- *
- * Arguments:
- * - body: The body.
- * - zone: The limb's body zone.
- */
-/datum/unit_test/dirt_skin_mess/proc/skin_images(mob/living/carbon/human/body, zone)
-	var/list/found = list()
-	for(var/image/drawn as anything in body.drawn_limb_icons(zone))
-		if(drawn.layer == -DIRT_SKIN_LAYER)
-			found += drawn
-	return found
-
-/**
  * Drops any cached masks a level 1 splat on a zone could ask for on this body, so the next one is made afresh.
  *
  * Arguments:
@@ -382,18 +451,18 @@
  * - zone: A DIRT_ZONE_* define.
  */
 /datum/unit_test/dirt_skin_mess/proc/forget_masks(mob/living/carbon/human/body, zone)
-	for(var/variant in 0 to DIRT_MESS_VARIANTS - 1)
+	for(var/variant in 0 to DIRT_VARIANTS - 1)
 		var/datum/dirt_mask_request/request = new(DIRT_MASKS_BODY, dirt_zone_sources(body), DIRT_SURFACE_SKIN, list(new /datum/dirt_splat(zone, 1, variant, 0)))
 		SSdirt.masks.forget(request.mask_key())
 
 /**
- * The mess on clothes. A shot at a covered region lands on the outermost garment over it, which draws it inset in its
- * own worn wrapper, where the bulge can copy it, from its wearer's cloth masks: moved to a digitigrade lizard, from the
- * lizard's. Washing the garment takes it off. A region covered only by underclothes takes it on the piece showing the
- * most of it, drawn over that piece and kept to its pixels, and kept with it while it's hidden or swapped. Skin mess
- * lies under the underclothes, and fades out beside them.
+ * The mess on clothes. A shot at a covered region lands on the outermost garment over it. The garment draws it inset
+ * in its own worn wrapper, where the bulge can copy it. Washing the garment takes it off. If only underclothes cover a
+ * region, the shot lands on the piece that shows the most of it. It's drawn over that piece, kept to its pixels, and
+ * kept with the piece while it's hidden or swapped. Skin mess lies under the underclothes, and fades out beside them.
  */
 /datum/unit_test/dirt_worn_mess
+	parent_type = /datum/unit_test/dirt_genital_test
 
 /datum/unit_test/dirt_worn_mess/Run()
 	// whatever earlier tests left queued is made first
@@ -416,24 +485,10 @@
 	TEST_ASSERT(!coat_carrier.mess_count(), "Washing the labcoat left its mess.")
 	TEST_ASSERT(!length(inset_images(body, SUIT_LAYER)), "The washed labcoat still draws mess.")
 
-	// a stained jumpsuit moved to a digitigrade lizard draws from the lizard's masks
+	// a labcoat that leaves the groin bare leaves a groin shot to the jumpsuit under it
 	dirt_mess_land(body, DIRT_ZONE_GROIN)
 	var/datum/component/dirtiness/jumpsuit_carrier = jumpsuit.GetComponent(/datum/component/dirtiness)
 	TEST_ASSERT_EQUAL(jumpsuit_carrier?.mess_count(), 1, "A groin shot under a jumpsuit and a labcoat that leaves the groin bare didn't land on the jumpsuit.")
-	var/mob/living/carbon/human/consistent/lizard = allocate(/mob/living/carbon/human/consistent)
-	lizard.dna.features[FEATURE_LEGS] = DIGITIGRADE_LEGS
-	lizard.set_species(/datum/species/lizard)
-	var/list/leg_source = dirt_zone_sources(lizard)[BODY_ZONE_L_LEG]
-	TEST_ASSERT(findtext(leg_source?[2], "digi"), "The lizard's legs aren't digitigrade: [leg_source?[2]].")
-	TEST_ASSERT(body.temporarilyRemoveItemFromInventory(jumpsuit, force = TRUE) && lizard.equip_to_slot_if_possible(jumpsuit, ITEM_SLOT_ICLOTHING), "Couldn't move the jumpsuit to the lizard.")
-	SSdirt.finish_all()
-	var/datum/dirt_mask_request/lizard_request = new(DIRT_MASKS_BODY, dirt_zone_sources(lizard), DIRT_SURFACE_CLOTH, jumpsuit_carrier.mess_splats)
-	var/datum/dirt_masks/lizard_masks = SSdirt.masks.fetch(lizard_request.mask_key())
-	TEST_ASSERT(istype(lizard_masks) && lizard_masks.baked, "The lizard's cloth masks for the jumpsuit weren't made.")
-	drawn = inset_images(lizard, UNIFORM_LAYER)
-	TEST_ASSERT(length(drawn), "The jumpsuit draws no mess on the lizard.")
-	for(var/image/mess_image as anything in drawn)
-		TEST_ASSERT(mess_image.icon == lizard_masks.baked, "The jumpsuit draws mess on the lizard that isn't from the lizard's masks.")
 
 	// two garments asking for the same masks while they're made: both are drawn again once they are
 	var/list/twins = list()
@@ -574,21 +629,6 @@
 		TEST_ASSERT_EQUAL(covered_flat.GetPixel(icon_x, icon_y), washed_flat.GetPixel(icon_x, icon_y), "Skin mess shows through the boxers at [icon_x],[icon_y].")
 
 /**
- * Returns the images a worn slot draws inset over its garment.
- *
- * Arguments:
- * - body: The wearer.
- * - layer: The slot's overlays_standing index.
- */
-/datum/unit_test/dirt_worn_mess/proc/inset_images(mob/living/carbon/human/body, layer)
-	var/list/found = list()
-	var/image/root = bulge_drawn_root(body.overlays_standing[layer])
-	for(var/image/drawn as anything in root?.overlays)
-		if(drawn.blend_mode == BLEND_INSET_OVERLAY)
-			found += drawn
-	return found
-
-/**
  * Returns whether some of a carrier's underclothes splats are on a kind of underclothes.
  *
  * Arguments:
@@ -702,10 +742,86 @@
 					return distance
 	return 0
 
-/// The dirt tests whose bodies need genitals, built from DNA as a real character's.
+/// The dirt tests that draw dirt on bodies, with the helpers they share: genitals built from DNA as a real character's,
+/// taurs, and reads of what a body draws.
 /datum/unit_test/dirt_genital_test
 	parent_type = /datum/unit_test/portal_test
 	abstract_type = /datum/unit_test/dirt_genital_test
+
+/**
+ * Returns the images a worn slot draws inset over its garment.
+ *
+ * Arguments:
+ * - body: The wearer.
+ * - layer: The slot's overlays_standing index.
+ */
+/datum/unit_test/dirt_genital_test/proc/inset_images(mob/living/carbon/human/body, layer)
+	RETURN_TYPE(/list)
+	. = list()
+	var/image/root = bulge_drawn_root(body.overlays_standing[layer])
+	for(var/image/drawn as anything in root?.overlays)
+		if(drawn.blend_mode == BLEND_INSET_OVERLAY)
+			. += drawn
+
+/**
+ * Returns the skin dirt containers in a limb's cached images at a layer, or the emissive blockers beside them. Each
+ * container holds a baked image, since a container draws only while the masks hold one for its limb.
+ *
+ * Arguments:
+ * - body: The body.
+ * - zone: The limb's body zone.
+ * - layer: DIRT_SKIN_LAYER, or DIRT_HAND_SKIN_LAYER for an arm's hand.
+ * - blockers: Whether it returns the blockers, off the float plane, in place of the containers.
+ */
+/datum/unit_test/dirt_genital_test/proc/skin_images(mob/living/carbon/human/body, zone, layer = DIRT_SKIN_LAYER, blockers = FALSE)
+	RETURN_TYPE(/list)
+	. = list()
+	for(var/image/drawn as anything in body.drawn_limb_icons(zone))
+		if(drawn.layer == -layer && (drawn.plane != FLOAT_PLANE) == blockers)
+			. += drawn
+
+/**
+ * Returns the chest's cached images at a layer that draw no sprite of their own but hold others. They're parts' shares.
+ *
+ * Arguments:
+ * - body: The body.
+ * - layer: The layer.
+ */
+/datum/unit_test/dirt_genital_test/proc/share_images(mob/living/carbon/human/body, layer)
+	RETURN_TYPE(/list)
+	. = list()
+	for(var/image/drawn as anything in body.drawn_limb_icons(BODY_ZONE_CHEST))
+		if(drawn.layer == layer && !drawn.icon && length(drawn.overlays))
+			. += drawn
+
+/// Returns a new job that made a request's masks from start to end, outside the queue and the mask cache.
+/datum/unit_test/dirt_genital_test/proc/made_job(datum/dirt_mask_request/request)
+	RETURN_TYPE(/datum/dirt_mask_job)
+	var/datum/dirt_mask_job/job = new(request, request.mask_key())
+	job.template_source = SSdirt.template_for(request.zone_sources)
+	// a template queued for it is built first
+	SSdirt.finish_all()
+	SSdirt.work_on(job, FALSE)
+	return job
+
+/**
+ * Returns when every splat a person carries last landed (/datum/dirt_splat/var/last_serial). It reads the splats on
+ * their skin, parts, drawn parts, hair and underclothes, and on what they wear.
+ *
+ * Arguments:
+ * - body: The person.
+ */
+/datum/unit_test/dirt_genital_test/proc/held_serials(mob/living/carbon/human/body)
+	RETURN_TYPE(/list)
+	. = list()
+	for(var/datum/component/dirtiness/carrier as anything in dirt_carriers(body))
+		var/list/surfaces = list(carrier.mess_splats)
+		for(var/alist/slots as anything in list(carrier.part_mess_splats, carrier.part_splats, carrier.underclothes_splats))
+			for(var/key, splats in slots)
+				surfaces += list(splats)
+		for(var/list/splats as anything in surfaces)
+			for(var/datum/dirt_splat/splat as anything in splats)
+				. += splat.last_serial
 
 /**
  * Gives a test human bare breasts of a size, built from DNA as a real character's.
@@ -745,6 +861,37 @@
 	part.visibility_preference = GENITAL_HIDDEN_BY_CLOTHES
 	owner.update_body()
 	return part
+
+/**
+ * Returns a body's carrier of dirt, made if it has none, with its dirtier side set to the right. General deposits on
+ * the body and on what it wears then draw the same pixels on every run.
+ *
+ * Arguments:
+ * - body: The body.
+ */
+/datum/unit_test/dirt_genital_test/proc/right_sided(mob/living/carbon/human/body)
+	RETURN_TYPE(/datum/component/dirtiness)
+	var/datum/component/dirtiness/own = body.LoadComponent(/datum/component/dirtiness)
+	own.side = 1
+	return own
+
+/**
+ * Makes a test human a taur and returns its taur body.
+ *
+ * Arguments:
+ * - rider: The human. It must not have a taur body yet.
+ * - kind: The taur's sprite accessory type. By default it's the horse, the kind the parity corpus uses.
+ */
+/datum/unit_test/dirt_genital_test/proc/give_taur(mob/living/carbon/human/rider, datum/sprite_accessory/taur/kind = /datum/sprite_accessory/taur/horse)
+	RETURN_TYPE(/obj/item/organ/taur_body)
+	rider.dna.mutant_bodyparts[FEATURE_TAUR] = build_mutant_part(initial(kind.name), list("#8A6A4A", "#D8C8B0", "#3A2A20"))
+	var/body_type = initial(kind.organ_type)
+	var/obj/item/organ/taur_body/taur_body = new body_type
+	if(!taur_body.Insert(rider, special = TRUE, movement_flags = DELETE_IF_REPLACED))
+		qdel(taur_body)
+		return null
+	rider.update_body(is_creating = TRUE)
+	return taur_body
 
 /**
  * A shot on someone offers the zones mess draws on them (dirt_mess_regions()): all seven on a human, none below the
@@ -813,7 +960,8 @@
  * image draws over the skin, and in profile, where its back image draws under it, shapes the skin's mess past the
  * body's edge. Boxers put on over a butt drawn below them leave its share nothing to draw; put on under a vulva drawn
  * above them, they have its share made again for cloth. A part hidden while underclothes carry mess no longer shapes
- * the skin's.
+ * the skin's mess. While a gloryhole's relay alone draws the penis, a groin shot on its owner's side gives the penis no
+ * share, and the penis doesn't shape the skin's mess.
  */
 /datum/unit_test/dirt_part_mess
 	parent_type = /datum/unit_test/dirt_genital_test
@@ -826,6 +974,7 @@
 	SSdirt.finish_all()
 	check_over_clothing()
 	check_part_portal()
+	check_relayed_penis()
 	check_wall()
 	check_wall_skirt()
 	check_state_changes()
@@ -883,6 +1032,39 @@
 	source_portal.unbuckle_mob(occupant, force = TRUE, can_fall = FALSE)
 	qdel(source_portal)
 
+/**
+ * A gloryhole's occupant, whose penis the relay alone draws, takes a groin shot on their own side. The penis takes no
+ * share of it and doesn't shape the skin's mess. Once the session ends, a second groin shot gives the penis its share,
+ * and the penis shapes the skin's mess.
+ */
+/datum/unit_test/dirt_part_mess/proc/check_relayed_penis()
+	var/list/portal_pair = make_portal_pair("gloryhole")
+	var/obj/structure/lewd_portal/source_portal = portal_pair[1]
+	var/mob/living/carbon/human/consistent/occupant = allocate(/mob/living/carbon/human/consistent, run_loc_floor_bottom_left)
+	TEST_ASSERT(configure_test_penis(occupant), "Couldn't give the occupant an exposed penis.")
+	TEST_ASSERT(source_portal.buckle_mob(occupant, force = TRUE, check_loc = FALSE), "The one-part portal couldn't start a session.")
+	TEST_ASSERT(dirt_mess_land(occupant, DIRT_ZONE_GROIN), "A groin shot on a gloryhole's occupant didn't land.")
+	var/datum/component/dirtiness/carrier = occupant.GetComponent(/datum/component/dirtiness)
+	TEST_ASSERT(carrier?.skin?.request, "A groin shot on a gloryhole's occupant asks for no skin masks.")
+	TEST_ASSERT(!length(carrier.part_mess_splats[ORGAN_SLOT_PENIS]) && !skin_shaped_by(carrier, ORGAN_SLOT_PENIS), "A gloryhole occupant's penis, which the relay alone draws, took a share of a groin shot on their side or shapes the skin's.")
+	source_portal.unbuckle_mob(occupant, force = TRUE, can_fall = FALSE)
+	TEST_ASSERT(dirt_mess_land(occupant, DIRT_ZONE_GROIN), "A second groin shot on the occupant didn't land.")
+	TEST_ASSERT(length(carrier.part_mess_splats[ORGAN_SLOT_PENIS]) && skin_shaped_by(carrier, ORGAN_SLOT_PENIS), "Once the session ends, a groin shot gives the occupant's penis no share or leaves the skin's unshaped by it, so the session leaving it out can't be checked.")
+	qdel(source_portal)
+
+/**
+ * Returns whether the skin masks a carrier asks for are shaped by the part in an organ slot (dirt_surface_parts()).
+ *
+ * Arguments:
+ * - carrier: The person's carrier.
+ * - organ_slot: The part's ORGAN_SLOT_* define.
+ */
+/datum/unit_test/dirt_part_mess/proc/skin_shaped_by(datum/component/dirtiness/carrier, organ_slot)
+	for(var/datum/dirt_part_source/part as anything in carrier.skin?.request?.parts)
+		if(part.organ_slot == organ_slot)
+			return TRUE
+	return FALSE
+
 /// A wall-stuck relay shows the groin and butt only, and draws no leg, nor the mess on one. It draws the mess on what it
 /// shows: on the bare skin, the chest's included through the torso it shows, and on a jumpsuit, which takes the shot
 /// under a winter coat the relay doesn't draw. Two relays each clip what's worn to a body of their own.
@@ -931,6 +1113,8 @@
 	var/obj/item/clothing/suit/coat = allocate(/obj/item/clothing/suit/hooded/wintercoat)
 	TEST_ASSERT(occupant.equip_to_slot_if_possible(coat, ITEM_SLOT_OCLOTHING), "Couldn't put a winter coat over the occupant's jumpsuit.")
 	TEST_ASSERT(dirt_mess_land(occupant, DIRT_ZONE_GROIN, DIRT_PORTAL_LOWER_BODY), "A groin shot through a wall portal on a winter coat over a jumpsuit didn't land.")
+	// the wash deleted the jumpsuit's carrier, so the shot made it another
+	jumpsuit_carrier = jumpsuit.GetComponent(/datum/component/dirtiness)
 	var/datum/component/dirtiness/coat_carrier = coat.GetComponent(/datum/component/dirtiness)
 	TEST_ASSERT(!coat_carrier?.mess_count() && jumpsuit_carrier?.mess_count() == 1, "A groin shot through a wall portal landed on the winter coat its relay doesn't draw, not on the jumpsuit under it.")
 	SSdirt.finish_all()
@@ -1290,20 +1474,6 @@
 			. += index
 
 /**
- * Returns the chest's cached images at a layer that draw no sprite of their own but hold others: a part's share.
- *
- * Arguments:
- * - body: The body.
- * - layer: The layer.
- */
-/datum/unit_test/dirt_part_mess/proc/share_images(mob/living/carbon/human/body, layer)
-	RETURN_TYPE(/list)
-	. = list()
-	for(var/image/drawn as anything in body.drawn_limb_icons(BODY_ZONE_CHEST))
-		if(drawn.layer == layer && !drawn.icon && length(drawn.overlays))
-			. += drawn
-
-/**
  * Returns what the chest's render key carries for the penis's share: its masks' key, "pending", or null for none.
  *
  * Arguments:
@@ -1320,10 +1490,12 @@
 /**
  * A back shot on a taur lands on the rider's back and along the taur body's: the rider's skin and the taur body's slot
  * each take a splat of the same variant. The game reads the rider and the taur body as the parity corpus names them.
- * Once the masks are made the taur body's images carry the pools beside them. A Big Legs body, its legs under the rider
- * and no taur back, takes the shot on the rider alone. A taur suit takes the pools itself, inset over its 64x32 sprite,
- * and the rider's mess on it lands on the body's tile, not 16 px off. Removing the taur body takes its pools with it.
- * A taur's penis drawn only behind the body takes no share.
+ * Once the masks are made, the taur body's images carry the pools beside them. At another height, a taur body's dirt
+ * is its Average dirt, less what the rider covers, and carried onto what the rider uncovers. A Big Legs body has its
+ * legs under the rider and no taur back, so it takes the shot on the rider alone. A taur suit takes the pools itself,
+ * inset over its 64x32 sprite. The rider's mess on the suit lands on the body's tile, not 16 px off. At a height, the
+ * suit's mirror on the emissive plane is moved as the suit is. Its mess's blockers in the mirror lie where the mess
+ * does. Removing the taur body takes its pools with it. A taur's penis drawn only behind the body takes no share.
  */
 /datum/unit_test/dirt_taur_mess
 	parent_type = /datum/unit_test/dirt_genital_test
@@ -1331,7 +1503,7 @@
 /datum/unit_test/dirt_taur_mess/Run()
 	// whatever earlier tests left queued is made first
 	SSdirt.finish_all()
-	var/list/corpus = json_decode(file2text(DIRT_MESS_CORPUS) || "{}")
+	var/list/corpus = json_decode(file2text(DIRT_CORPUS) || "{}")
 	var/mob/living/carbon/human/consistent/rider = allocate(/mob/living/carbon/human/consistent)
 	var/obj/item/organ/taur_body/taur_body = give_taur(rider)
 	TEST_ASSERT(taur_body, "Couldn't make the human a horse taur.")
@@ -1348,6 +1520,7 @@
 	TEST_ASSERT_EQUAL(pool_splat.variant, rider_splat.variant, "The taur body's splat isn't the rider's variant.")
 	SSdirt.finish_all()
 	TEST_ASSERT(length(pool_images(rider)), "The taur body's images carry no pools once they're made.")
+	check_rider_heights()
 	check_big_legs()
 
 	// a taur suit hides the taur body and takes the shot: its own splat draws the pools too
@@ -1380,6 +1553,18 @@
 						rider_on_suit++
 	TEST_ASSERT(pools_on_suit, "The taur suit doesn't take the pools as inset images on its sprite.")
 	TEST_ASSERT(rider_on_suit, "The rider's mess on the taur suit misses its sprite.")
+	// at a height, the suit's emissive mirror moves as the suit does, and each blocker as its mess does
+	rider.set_mob_height(HUMAN_HEIGHT_TALL)
+	SSdirt.finish_all()
+	standing = bulge_drawn_root(rider.overlays_standing[SUIT_LAYER])
+	var/image/mirror
+	var/list/suit_drawn = rider.overlays_standing[SUIT_LAYER]
+	for(var/image/root as anything in (islist(suit_drawn) ? suit_drawn : list(suit_drawn)))
+		if(PLANE_TO_TRUE(root.plane) == EMISSIVE_PLANE && length(root.overlays))
+			mirror = root.overlays[1]
+	TEST_ASSERT(mirror && length(standing?.filters), "A Tall taur's suit isn't stretched, or draws nothing on the emissive plane, so its blockers can't be checked.")
+	TEST_ASSERT_EQUAL(describe_insets(standing), "wrapper -16,0; rider 16,0; pools 0,0", "A Tall taur's suit doesn't draw its mess on the body's tile and the taur canvas round it.")
+	TEST_ASSERT_EQUAL(describe_insets(mirror), describe_insets(standing), "A Tall taur suit's blockers on the emissive plane aren't drawn where its mess is.")
 
 	taur_body.Remove(rider, special = TRUE)
 	TEST_ASSERT(!length(carrier.part_mess_splats[ORGAN_SLOT_EXTERNAL_TAUR]), "Removing the taur body left its pools on the person.")
@@ -1414,22 +1599,166 @@
 	TEST_ASSERT(!length(pool_images(rider)), "A Big Legs body draws pools.")
 
 /**
- * Makes a test human a taur and returns its taur body.
+ * Fails unless a taur body's dirt at Tall, Tallest and Short height is its Average dirt moved by the rider's height
+ * alone. A horse takes a light back shot, whose pools keep off its rider's waist. A naga takes four heavy ones, whose
+ * pools reach that waist (check_rider_height()). A second naga takes them and a plunge into mud, drawn under its rider
+ * too.
+ */
+/datum/unit_test/dirt_taur_mess/proc/check_rider_heights()
+	var/mob/living/carbon/human/consistent/horse = allocate(/mob/living/carbon/human/consistent)
+	TEST_ASSERT(give_taur(horse), "Couldn't make a human a horse taur.")
+	TEST_ASSERT(dirt_mess_place(horse, DIRT_ZONE_BACK, 2, 0), "A back shot on a horse taur didn't land.")
+	var/mob/living/carbon/human/consistent/naga = allocate(/mob/living/carbon/human/consistent)
+	TEST_ASSERT(give_taur(naga, /datum/sprite_accessory/taur/naga), "Couldn't make a human a naga taur.")
+	var/mob/living/carbon/human/consistent/plunged = allocate(/mob/living/carbon/human/consistent)
+	TEST_ASSERT(give_taur(plunged, /datum/sprite_accessory/taur/naga), "Couldn't make a second human a naga taur.")
+	for(var/variant in 0 to 3)
+		TEST_ASSERT(dirt_mess_place(naga, DIRT_ZONE_BACK, 4, variant) && dirt_mess_place(plunged, DIRT_ZONE_BACK, 4, variant), "A heavy back shot on a naga taur didn't land.")
+	TEST_ASSERT(dirt_land(plunged, DIRT_CAUSE_PLUNGE, DIRT_MATERIAL_MUD, 3, 0), "A plunge into mud landed nowhere on a naga taur.")
+	SSdirt.finish_all()
+	check_rider_height(horse, "A horse taur")
+	check_rider_height(naga, "A naga taur", TRUE)
+	check_rider_height(plunged, "A naga taur plunged into mud", TRUE, TRUE)
+
+/**
+ * Fails unless a taur body's dirt at Tall, Tallest and Short height is its Average dirt moved by the rider's height
+ * alone. The rider owns the pixels its sprites are drawn on once its chest's height filters stretch them. It doesn't
+ * own those where the taur body's layers are drawn over it, or any others. Each pixel the taur body shows at both
+ * heights keeps its Average dirt. Each pixel the rider uncovers keeps the dirt a deposit drew there under the Average
+ * rider. Else it takes the dirt of the pixel just below its run of uncovered pixels, and a glint there goes on as body.
+ * It takes none if the taur body doesn't show that pixel at Average height. Each layer shows its own pixels alone, so
+ * nothing the rider covers is drawn.
  *
  * Arguments:
- * - rider: The human. It must not have a taur body yet.
- * - kind: The taur's sprite accessory type: by default the horse, the kind the parity corpus uses.
+ * - rider: The taur, at Average height, holding back shots.
+ * - kind_name: The taur's kind, as the failures name it.
+ * - reaches_waist: Whether its dirt reaches its rider's waist, so a taller rider uncovers some of it.
+ * - deposit_under: Whether it holds a deposit drawn under its Average rider, which a taller rider uncovers in places
+ *   where the dirt just below differs.
  */
-/datum/unit_test/dirt_taur_mess/proc/give_taur(mob/living/carbon/human/rider, datum/sprite_accessory/taur/kind = /datum/sprite_accessory/taur/horse)
-	RETURN_TYPE(/obj/item/organ/taur_body)
-	rider.dna.mutant_bodyparts[FEATURE_TAUR] = build_mutant_part(initial(kind.name), list("#8A6A4A", "#D8C8B0", "#3A2A20"))
-	var/body_type = initial(kind.organ_type)
-	var/obj/item/organ/taur_body/taur_body = new body_type
-	if(!taur_body.Insert(rider, special = TRUE, movement_flags = DELETE_IF_REPLACED))
-		qdel(taur_body)
-		return null
-	rider.update_body(is_creating = TRUE)
-	return taur_body
+/datum/unit_test/dirt_taur_mess/proc/check_rider_height(mob/living/carbon/human/rider, kind_name, reaches_waist = FALSE, deposit_under = FALSE)
+	var/datum/component/dirtiness/carrier = rider.GetComponent(/datum/component/dirtiness)
+	var/datum/dirt_drawing/drawing = carrier?.part_drawings?[ORGAN_SLOT_EXTERNAL_TAUR]
+	TEST_ASSERT(drawing?.request, "[kind_name]'s body asks for no masks.")
+	var/datum/dirt_mask_job/average = made_job(drawing.request)
+	TEST_ASSERT(average.masks && !average.failed, "[kind_name]'s body's masks weren't made at Average height.")
+	var/list/stack = dirt_taur_stack()
+	var/list/over_rider = stack.Copy(stack.Find(DIRT_TAUR_RIDER) + 1)
+	for(var/height in list(HUMAN_HEIGHT_TALL, HUMAN_HEIGHT_TALLEST, HUMAN_HEIGHT_SHORT))
+		rider.set_mob_height(height)
+		SSdirt.finish_all()
+		drawing = carrier.part_drawings?[ORGAN_SLOT_EXTERNAL_TAUR]
+		var/datum/dirt_mask_request/request = drawing?.request
+		TEST_ASSERT(request?.rows, "[kind_name]'s body asks for masks without its rider's rows at height [height].")
+		// the row of the rider's sprites each row shows, through its chest's height filters in the order they're drawn
+		var/list/shows = list()
+		for(var/row in 0 to ICON_SIZE_Y - 1)
+			shows += row
+		var/stretched = FALSE
+		for(var/image/chest_image as anything in rider.drawn_limb_icons(BODY_ZONE_CHEST))
+			for(var/dm_filter/height_filter as anything in chest_image.filters)
+				if(height_filter.type != "displace")
+					continue
+				stretched = TRUE
+				var/icon/map = icon(height_filter.icon)
+				var/list/moved_rows = new /list(ICON_SIZE_Y)
+				for(var/row in 0 to ICON_SIZE_Y - 1)
+					var/colour = map.GetPixel(floor(map.Width() / 2), ICON_SIZE_Y - row)
+					var/source_row = colour ? floor(row + (rgb2num(colour)[2] - 128) / 127 * height_filter.size + 0.5) : row
+					if(source_row >= 0 && source_row < ICON_SIZE_Y)
+						moved_rows[row + 1] = shows[source_row + 1]
+				shows = moved_rows
+			if(stretched)
+				break
+		TEST_ASSERT(stretched, "[kind_name]'s chest isn't stretched at height [height].")
+		var/datum/dirt_mask_job/job = made_job(request)
+		TEST_ASSERT(job.masks && !job.failed, "[kind_name]'s body's masks weren't made at height [height].")
+		var/alist/shown_by_layer = job.layers_shown()
+		var/ridden = 0
+		var/misplaced = 0
+		var/unowned = 0
+		var/compared = 0
+		var/moved = 0
+		var/misfilled = 0
+		var/uncovered_dirt = 0
+		// uncovered pixels whose own deposit isn't the dirt just below them
+		var/kept_apart = 0
+		var/unshown = 0
+		var/wrong_layer = 0
+		for(var/direction in dirt_mask_directions())
+			var/datum/dirt_surface/surface = job.template.surfaces[direction]
+			var/list/owners = dirt_taur_owners(request.shape_source, surface, direction, rows = request.rows)
+			var/list/average_owners = average.taur_owners[direction]
+			var/datum/dirt_pixels/average_map = average.merged[direction]
+			var/datum/dirt_pixels/pixel_map = job.merged[direction]
+			for(var/layer_key, entry in shown_by_layer)
+				var/alist/shown = entry
+				for(var/index in shown[direction])
+					if(owners[index] != layer_key)
+						wrong_layer++
+			var/last_index = length(owners)
+			for(var/index in 1 to last_index)
+				var/owner = owners[index]
+				var/row = floor((index - 1) / DIRT_TAUR_WIDTH)
+				var/column = index - 1 - row * DIRT_TAUR_WIDTH - DIRT_TAUR_INSET
+				var/source_row = shows[row + 1]
+				var/on_sprite = column >= 0 && column < ICON_SIZE_X && !isnull(source_row) && DIRT_PIXEL_ZONE(surface.flags_of[source_row * ICON_SIZE_X + column + 1])
+				if(owner == DIRT_TAUR_RIDER)
+					ridden++
+					if(!on_sprite)
+						misplaced++
+					continue
+				if(on_sprite && !(owner in over_rider))
+					unowned++
+				if(!owner)
+					continue
+				var/role = pixel_map.roles[index]
+				if(role)
+					var/alist/layer_shown = shown_by_layer[owner]
+					var/list/indexes = layer_shown[direction]
+					if(!(index in indexes))
+						unshown++
+				var/average_owner = average_owners[index]
+				if(average_owner != DIRT_TAUR_RIDER)
+					if(average_map.roles[index])
+						compared++
+					if(role != average_map.roles[index] || pixel_map.thicknesses[index] != average_map.thicknesses[index])
+						moved++
+					continue
+				// an uncovered pixel takes its dirt from the pixel just below the run of uncovered pixels under it
+				var/below
+				for(below = index + DIRT_TAUR_WIDTH, below <= last_index, below += DIRT_TAUR_WIDTH)
+					if(average_owners[below] != DIRT_TAUR_RIDER || !owners[below] || owners[below] == DIRT_TAUR_RIDER)
+						break
+				var/wanted_role = null
+				var/wanted_thickness = null
+				if(below <= last_index && average_owners[below] && average_owners[below] != DIRT_TAUR_RIDER)
+					wanted_role = average_map.roles[below]
+					wanted_thickness = average_map.thicknesses[below]
+				if(wanted_role == DIRT_ROLE_GLINT)
+					wanted_role = DIRT_ROLE_BODY
+				var/own_role = average_map.roles[index]
+				if(own_role)
+					if(wanted_role && (wanted_role != own_role || wanted_thickness != average_map.thicknesses[index]))
+						kept_apart++
+					wanted_role = own_role
+					wanted_thickness = average_map.thicknesses[index]
+				if(role != wanted_role || (role && pixel_map.thicknesses[index] != wanted_thickness))
+					misfilled++
+				if(role)
+					uncovered_dirt++
+		TEST_ASSERT(ridden, "[kind_name]'s body gives its rider no pixels at height [height], so the height can't be checked.")
+		TEST_ASSERT(!misplaced, "[kind_name]'s body gives its rider [misplaced] pixels at height [height] where its stretched sprites draw nothing.")
+		TEST_ASSERT(!unowned, "[kind_name]'s body keeps [unowned] pixels at height [height] that its rider's stretched sprites are drawn over.")
+		TEST_ASSERT(!wrong_layer, "[kind_name]'s body shows [wrong_layer] pixels at height [height] on a layer that doesn't show them there.")
+		TEST_ASSERT(compared, "[kind_name]'s body has no Average dirt on what it shows at height [height], so its dirt can't be compared.")
+		TEST_ASSERT(!moved, "[kind_name]'s body's dirt differs from its Average dirt on [moved] pixels it shows at both heights, at height [height].")
+		TEST_ASSERT(!misfilled, "[kind_name]'s body's dirt on [misfilled] pixels its rider uncovers at height [height] isn't their own deposit or the dirt just below them.")
+		TEST_ASSERT(!unshown, "[kind_name]'s body leaves [unshown] pixels of its dirt at height [height] off the layer that shows them.")
+		if(reaches_waist && height > HUMAN_HEIGHT_MEDIUM)
+			TEST_ASSERT(uncovered_dirt, "[kind_name]'s dirt reaching its rider's waist draws nothing on what its rider uncovers at height [height].")
+		if(deposit_under && height > HUMAN_HEIGHT_MEDIUM)
+			TEST_ASSERT(kept_apart, "[kind_name]'s deposit under its Average rider differs nowhere its rider uncovers at height [height] from the dirt just below, so keeping it can't be checked.")
 
 /**
  * Returns the chest's cached images at the taur body's layers that draw no sprite of their own but hold others: the
@@ -1498,9 +1827,9 @@
 				. += row * DIRT_TAUR_WIDTH + column + (wide ? 0 : DIRT_TAUR_INSET) + 1
 
 /**
- * A person carries DIRT_MESS_MAX_SPLATS splats at most, counted across their skin, their parts and what they wear, and
+ * A person carries DIRT_MAX_SPLATS splats at most, counted across their skin, their parts and what they wear, and
  * past it the oldest go first. A human in a jumpsuit and a labcoat, breasts drawn above all clothing, takes
- * DIRT_MESS_MAX_SPLATS + 1 huge shots: on the face's skin, on the labcoat with the breasts' share, and on the jumpsuit.
+ * DIRT_MAX_SPLATS + 1 huge shots: on the face's skin, on the labcoat with the breasts' share, and on the jumpsuit.
  * At the cap a landing takes the oldest splat off before anything is drawn, so a face landing that evicts a face splat
  * asks for one mask at most, and a heavy shot that tops the face's newest splat and starts another asks for exactly
  * one, counted with the mask cache at its limit. Drawn, it all adds four overlays at most, and nothing to tg's shared
@@ -1510,6 +1839,19 @@
  */
 /datum/unit_test/dirt_mess_cap
 	parent_type = /datum/unit_test/dirt_genital_test
+	/// The keys put in SSdirt.masks to fill it to its limit, until forget_fillers().
+	var/list/fillers = list()
+
+/// Takes the fillers out of the mask cache if the cap's checks stopped before they did.
+/datum/unit_test/dirt_mess_cap/Destroy()
+	forget_fillers()
+	return ..()
+
+/// Takes the keys that filled SSdirt.masks out of it, so it keeps real masks again.
+/datum/unit_test/dirt_mess_cap/proc/forget_fillers()
+	for(var/filler in fillers)
+		SSdirt.masks.forget(filler)
+	fillers.Cut()
 
 /datum/unit_test/dirt_mess_cap/Run()
 	if(CONFIG_GET(flag/disable_erp_preferences) || CONFIG_GET(flag/disable_lewd_items))
@@ -1529,11 +1871,11 @@
 	var/first_serial = SSdirt.serial + 1
 	var/huge = dirt_mess_amount_levels(DIRT_MESS_AMOUNT_HUGE)
 	// the face first, so at the cap the oldest splats lie on the surface a face landing changes
-	var/face_landings = ceil(DIRT_MESS_MAX_SPLATS / 2)
+	var/face_landings = ceil(DIRT_MAX_SPLATS / 2)
 	var/list/other_zones = dirt_mess_zones() - DIRT_ZONE_FACE
 	// tg's limb cache is shared by every body: a dirty limb's key almost never comes back, so it mustn't add entries
 	var/cached_limbs = length(body.limb_icon_cache)
-	for(var/landing in 1 to DIRT_MESS_MAX_SPLATS + 1)
+	for(var/landing in 1 to DIRT_MAX_SPLATS + 1)
 		var/zone = landing <= face_landings ? DIRT_ZONE_FACE : other_zones[(landing - face_landings - 1) % length(other_zones) + 1]
 		dirt_mess_land(body, zone, levels = huge)
 		SSdirt.finish_all()
@@ -1542,14 +1884,12 @@
 	var/datum/component/dirtiness/coat_carrier = coat.GetComponent(/datum/component/dirtiness)
 	var/datum/component/dirtiness/jumpsuit_carrier = jumpsuit.GetComponent(/datum/component/dirtiness)
 	TEST_ASSERT(length(own?.part_mess_splats[ORGAN_SLOT_BREASTS]) && coat_carrier?.mess_count() && jumpsuit_carrier?.mess_count(), "The landings left nothing on the breasts, the labcoat or the jumpsuit, so the cap can't be checked across them.")
-	var/list/carriers = list(own, coat_carrier, jumpsuit_carrier)
-	var/list/serials = held_serials(carriers)
-	TEST_ASSERT_EQUAL(length(serials), DIRT_MESS_MAX_SPLATS, "The skin, the breasts and the clothes hold [length(serials)] splats past the cap, not [DIRT_MESS_MAX_SPLATS].")
+	var/list/serials = held_serials(body)
+	TEST_ASSERT_EQUAL(length(serials), DIRT_MAX_SPLATS, "The skin, the breasts and the clothes hold [length(serials)] splats past the cap, not [DIRT_MAX_SPLATS].")
 	TEST_ASSERT(!(first_serial in serials), "The first splat wasn't taken off past the cap.")
-	TEST_ASSERT_EQUAL(min(serials), SSdirt.serial - DIRT_MESS_MAX_SPLATS + 1, "The splats kept past the cap aren't the newest.")
+	TEST_ASSERT_EQUAL(min(serials), SSdirt.serial - DIRT_MAX_SPLATS + 1, "The splats kept past the cap aren't the newest.")
 
 	// the mask cache at its limit, as a long round leaves it: each key asked for drops another
-	var/list/fillers = list()
 	for(var/filler in 1 to SSdirt.masks.limit)
 		fillers += "dirt_mess_cap filler [filler]"
 		SSdirt.masks.store_value(fillers[filler], FALSE)
@@ -1564,9 +1904,8 @@
 	var/datum/dirt_splat/started = skin_splats[length(skin_splats)]
 	TEST_ASSERT(topped.level == DIRT_MESS_MAX_LEVEL && started.level == 1, "A heavy shot on a level 3 face splat left levels [topped.level] and [started.level], not [DIRT_MESS_MAX_LEVEL] and 1.")
 	TEST_ASSERT_EQUAL(added_keys, 1, "A heavy shot overflowing into a new splat at the cap asked for [added_keys] new masks, not one.")
-	TEST_ASSERT_EQUAL(length(held_serials(carriers)), DIRT_MESS_MAX_SPLATS, "Shots at the cap left [length(held_serials(carriers))] splats, not [DIRT_MESS_MAX_SPLATS].")
-	for(var/filler in fillers)
-		SSdirt.masks.forget(filler)
+	TEST_ASSERT_EQUAL(length(held_serials(body)), DIRT_MAX_SPLATS, "Shots at the cap left [length(held_serials(body))] splats, not [DIRT_MAX_SPLATS].")
+	forget_fillers()
 
 	var/added_overlays = length(body.overlays) - clean_overlays
 	TEST_ASSERT(added_overlays > 0 && added_overlays <= 4, "A mess at the cap added [added_overlays] overlays to the body, not one to four.")
@@ -1670,23 +2009,4 @@
 		if(!before[key])
 			.++
 
-/**
- * Returns the serials of every splat some carriers hold, on their skin or cloth, their parts and their underclothes.
- *
- * Arguments:
- * - carriers: The carriers.
- */
-/datum/unit_test/dirt_mess_cap/proc/held_serials(list/carriers)
-	RETURN_TYPE(/list)
-	. = list()
-	for(var/datum/component/dirtiness/carrier as anything in carriers)
-		var/list/surfaces = list(carrier.mess_splats)
-		for(var/organ_slot, splats in carrier.part_mess_splats)
-			surfaces += list(splats)
-		for(var/key, splats in carrier.underclothes_splats)
-			surfaces += list(splats)
-		for(var/list/splats as anything in surfaces)
-			for(var/datum/dirt_splat/splat as anything in splats)
-				. += splat.serial
-
-#undef DIRT_MESS_CORPUS
+#undef DIRT_CORPUS

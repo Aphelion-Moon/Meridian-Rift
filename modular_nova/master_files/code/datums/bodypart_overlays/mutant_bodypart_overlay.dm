@@ -51,6 +51,7 @@
 	for(var/image in images)
 		.[image] = image_flags
 	add_emissives(., images, limb, layer_index)
+	dirt_shape_overlay(., limb, layer_index)
 
 
 /**
@@ -109,6 +110,7 @@
 		for(var/emissive_boolean in emissive_eligibility_by_color_index)
 			. += emissive_boolean
 
+	dirt_shape_render_key(., limb)
 	return .
 
 

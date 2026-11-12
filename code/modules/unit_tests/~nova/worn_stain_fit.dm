@@ -1,7 +1,6 @@
 /**
- * Blood and rips are drawn for a human body, so they must follow a worn sprite that sits elsewhere: a taur-fitted suit,
- * moved 16 px left as a whole, and a Teshari's own uniform, drawn lower. Taur blood once went 16 px off unnoticed, when
- * the worn sprite lost its taur bodyshape before its stains were drawn.
+ * Blood and rips are drawn for a human body, so they must follow a worn sprite that sits elsewhere. This checks a
+ * taur-fitted suit, moved 16 px left as a whole, and a Teshari's own uniform, drawn lower.
  */
 /datum/unit_test/worn_stain_fit
 

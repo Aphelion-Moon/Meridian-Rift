@@ -113,10 +113,7 @@
 		return
 	if(damaged_clothes)
 		. += fit_worn_effect(mutable_appearance('icons/effects/item_damage.dmi', "damageduniform")) // APHELION EDIT CHANGE - ORIGINAL: . += mutable_appearance('icons/effects/item_damage.dmi', "damageduniform")
-	// APHELION EDIT CHANGE START - ORIGINAL: . += get_accessory_overlays()
-	for(var/accessory_overlay in get_accessory_overlays())
-		. += fit_rider_overlay(accessory_overlay)
-	// APHELION EDIT CHANGE END
+	. += fit_rider_overlays(get_accessory_overlays()) // APHELION EDIT CHANGE - Accessories stay on a taur's rider - ORIGINAL: . += get_accessory_overlays()
 
 /obj/item/clothing/under/separate_worn_overlays(mutable_appearance/standing, mutable_appearance/draw_target, isinhands = FALSE, icon_file, bodyshape = NONE)
 	. = ..()

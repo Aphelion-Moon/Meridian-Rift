@@ -29,7 +29,8 @@
 
 /**
  * Called before drawing an item. Gives it the offset that its blood and rips, drawn for a human body, need to land on a
- * sprite shaped to this body's species. Clears the offset for any other sprite, which the worn offsets already place.
+ * sprite shaped to this body's species. Clears the offset for any other sprite, which the worn offsets already place,
+ * and for an item with no blood or rips to place.
  *
  * * worn_item - the item about to be drawn
  * * species_icon - the sheet the species gave for it (generate_custom_worn_icon()), or null when it's drawn from a human one
@@ -40,7 +41,8 @@
  */
 /mob/living/carbon/human/proc/fit_worn_effects(obj/item/worn_item, species_icon, loadout_slot, zone, offset_key, vertical_only = FALSE)
 	worn_item.worn_effect_offset = null
-	if(!species_icon)
+	var/obj/item/clothing/garment = worn_item
+	if(!species_icon || !isclothing(garment) || !(garment.damaged_clothes || GET_ATOM_BLOOD_DNA_LENGTH(garment)))
 		return
 	var/obj/item/bodypart/part = get_bodypart(zone)
 	var/datum/worn_feature_offset/offset = LAZYACCESS(part?.feature_offsets, offset_key)
