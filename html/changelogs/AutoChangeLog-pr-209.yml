@@ -1,0 +1,9 @@
+author: "ImogenOC"
+delete-after: True
+changes:
+  - rscadd: "Tennis balls, slime extracts, ammo casings, live rounds and iron rods now bounce and skitter when thrown, each in their own way."
+  - rscadd: "Slimeperson cores and slime extracts are extra bouncy, and pop away bouncing when their body melts (vicious form of cytolysis). Cores and extracts can bouncy weirdly. I suggest not dieing in space."
+  - rscadd: "Ballistic guns now kick ejected casings across the floor. Casings also bounce and slide."
+  - sound: "Tennis balls, slime extracts and slimeperson cores make bounce sounds."
+  - code_imp: "Added a configurable bouncy element for giving any object bounce physics."
+  - code_imp: "Item throws now respect a requested custom throw type."
