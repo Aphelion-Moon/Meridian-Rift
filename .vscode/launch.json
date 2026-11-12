@@ -115,6 +115,51 @@
 			"name": "Launch OpenDream (requires extension, 64 bit rustg, and an SS14 account)",
 			"preLaunchTask": "OpenDream: compile ${command:CurrentDME}",
 			"json_path": "${workspaceFolder}/${command:CurrentJson}"
+		},
+		// APHELION EDIT ADDITION START - auxtools 3 debugger with hot reload. "defines" must match the build task's -D flags, plus CBT.
+		{
+			"type": "auxtools",
+			"request": "launch",
+			"name": "auxtools: DreamSeeker (hot reload, no extra flags)",
+			"preLaunchTask": "Build All",
+			"dmb": "${workspaceFolder}/tgstation.dmb",
+			"server": "dreamseeker",
+			"defines": ["CBT"]
+		},
+		{
+			"type": "auxtools",
+			"request": "launch",
+			"name": "auxtools: DreamSeeker (hot reload, low memory mode)",
+			"preLaunchTask": "Build All (low memory mode)",
+			"dmb": "${workspaceFolder}/tgstation.dmb",
+			"server": "dreamseeker",
+			"defines": [
+				"CBT",
+				"SKIP_LAVALAND",
+				"SKIP_SPACE_LEVELS",
+				"FORCE_MAP=\"runtimestation\""
+			]
+		},
+		{
+			"type": "auxtools",
+			"request": "launch",
+			"name": "auxtools: DreamDaemon (hot reload, low memory mode)",
+			"preLaunchTask": "Build All (low memory mode)",
+			"dmb": "${workspaceFolder}/tgstation.dmb",
+			"server": "dreamdaemon",
+			"defines": [
+				"CBT",
+				"SKIP_LAVALAND",
+				"SKIP_SPACE_LEVELS",
+				"FORCE_MAP=\"runtimestation\""
+			]
+		},
+		{
+			"type": "auxtools",
+			"request": "attach",
+			"name": "auxtools: Attach to a running world",
+			"processId": "${command:auxtools.pickWorld}"
 		}
+		// APHELION EDIT ADDITION END
 	]
 }
