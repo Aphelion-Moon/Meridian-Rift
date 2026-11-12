@@ -670,4 +670,4 @@ BLIND     // can't see anything
 		var/mutable_appearance/emissive_overlay = emissive_appearance(blood_overlay.icon, blood_overlay.icon_state, src, alpha = emissive_alpha, effect_type = EMISSIVE_NO_BLOOM)
 		blood_overlay.overlays += emissive_overlay
 
-	return blood_overlay
+	return fit_worn_effect(blood_overlay) // APHELION EDIT CHANGE - ORIGINAL: return blood_overlay

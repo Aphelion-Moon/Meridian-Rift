@@ -136,11 +136,12 @@ way in each view, from the upper third of its own baseline pixels there. Under a
 
 **Polos.** A polo's side views leave the near forearm bare below the short sleeve, edged at the back by a 1 pixel strip. The
 hem rule above takes that strip for a sleeve's one-pixel hem and moves it out across a bigger forearm, which then looked thin.
-The polos opt in to one more rule after it (`bares_near_forearm()`, on the four tg polos and Nova's): in each side-view row
-where the polo as drawn leaves some of today's near arm bare, the fitted polo is cleared over the whole near arm of its size
-(`bare_near_forearm()`), so the forearm shows at its own width. Rows its sleeve covers are fitted as before. Other shirts, and
-the polo-styled CentCom intern jumpsuit, keep their fit: the jumpsuit leaves the forearm bare with no strip, and its one pixel
-over a Muscular forearm is its own torso, as on the plain shirts.
+The polos opt in to one more rule after it (`bares_near_forearm()`, on the four polo undershirts in tg's
+`code/datums/sprite_accessories/clothing.dm` and on `/datum/sprite_accessory/clothing/undershirt/nova/polo`): in each side-view
+row where the polo as drawn leaves some of today's near arm bare, the fitted polo is cleared over the whole near arm of its
+size (`bare_near_forearm()`), so the forearm shows at its own width. Rows its sleeve covers are fitted as before. Other shirts,
+and the polo-styled CentCom intern jumpsuit, keep their fit: the jumpsuit leaves the forearm bare with no strip, and its one
+pixel over a Muscular forearm is its own torso, as on the plain shirts.
 
 **Glutes.** The Muscular male chest's glute bump, 3 pixels behind the hand in the side views, is covered by garments that
 reach the hips' back edge there: its bands (`"chest_m"` in the templates) are fitted after the legs, as a pec's side bulge
@@ -271,6 +272,12 @@ instead:
 These rows are below every pec shape (rows 9 to 17, in every frame of every flex). The legs and arms keep tg's maps, and
 monkeys keep tg's torso maps. Medium, Short and Tall bodies don't move a torso row, and draw as before.
 
+Every map is tiled three wide (`wide_height_map()`), as tg tiles texture filters over wide images. A map is centred on what
+it stretches, so a 32 px one stretched only the middle of a taur suit, wings or a big tail and left a step at each edge. A
+taur body doesn't stretch with its rider, but a Big Legs kind does, as it stands in for the rider's own legs
+(`height_location()`, set as `/datum/bodypart_overlay/mutant/taur_body/get_overlay()` draws, in `taur_body.dm`). Custom
+taur paint takes the same rule from the taur body it paints, so it stretches only on a Big Legs body.
+
 ### TG Proc/File Changes:
 
 - `code/datums/sprite_accessories/clothing.dm`: `/datum/sprite_accessory/clothing/proc/make_appearance()` asks
@@ -279,7 +286,8 @@ monkeys keep tg's torso maps. Medium, Short and Tall bodies don't move a torso r
 - `code/modules/mob/living/carbon/human/human_update_icons.dm`: `/obj/item/proc/build_worn_icon()` calls
   `fit_worn_icon()` and `fit_worn_glows()`; `/mob/living/carbon/human/update_worn_undersuit()` cuts over pecs as
   `female_cut_over_pecs()` says; `wear_female_version()` cuts `FEMALE_UNIFORM_LOWER_ONLY` through `female_lower_cut_mask()`;
-  `/mob/living/carbon/human/proc/apply_height_filter()` stretches and shrinks a human torso with `icons/height_cuts.dmi`
+  `/mob/living/carbon/human/proc/apply_height_filter()` stretches and shrinks a human torso with `icons/height_cuts.dmi`,
+  and tiles every map three wide (`wide_height_map()`)
 - `tgui/packages/tgui/interfaces/PreferencesMenu/preferences/features/character_preferences/body_type.tsx`: the body
   type input carries the muscle inputs under it (`withMuscles()`)
 

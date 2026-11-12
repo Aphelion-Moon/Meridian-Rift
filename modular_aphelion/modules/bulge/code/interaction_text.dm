@@ -60,11 +60,9 @@
 	if(target_messages_pokes_out)
 		json["target_messages_pokes_out"] = target_messages_pokes_out
 
-/// Whether this mob visibly reads as sweaty to interaction text. The hook for the dirt and sweat
-/// overlays: report their sweat state here once they land. Until then nobody reads as sweaty, so
-/// `*_sweaty` interaction text ships dormant.
+/// Returns whether interaction text reads this mob as sweaty. It does while anything they wear holds sweat.
 /mob/living/carbon/human/proc/is_visibly_sweaty()
-	return FALSE
+	return dirt_wears_sweat(src)
 
 /// The mob's armpit as interaction text reads it: hair and sweat become adjectives, the hair's by style.
 /mob/living/carbon/human/proc/described_armpit()

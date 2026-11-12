@@ -424,6 +424,22 @@ GLOBAL_LIST_INIT(interaction_pec_words, list(
 	RETURN_TYPE(/mob/living/carbon/human)
 	return (ORGAN_SLOT_BREASTS in user_required_parts) ? user : target
 
+/**
+ * The one organ slot this interaction needs of a participant, or null when it needs none or several.
+ *
+ * Someone acting on themselves gets both sides' parts, since self interactions list theirs as the target's.
+ *
+ * Arguments:
+ * * user - who performs it
+ * * target - who receives it
+ * * as_user - TRUE for the user's part, FALSE for the target's
+ */
+/datum/interaction/proc/stimulated_slot_for(mob/living/carbon/human/user, mob/living/carbon/human/target, as_user)
+	var/list/parts = as_user ? user_required_parts : target_required_parts
+	if(user == target)
+		parts = user_required_parts | target_required_parts
+	return length(parts) == 1 ? parts[1] : null
+
 /// The list to pick messages from: `nippleless_texts`, if given, replaces everything when that chest is pecs
 /// drawn without nipples, and `pokes_out_texts` replaces everything while the bulge's penis pokes out, since
 /// head-through-cloth lines no longer apply then. `sweaty_texts` and `pit_hair_texts` are extra options, added
@@ -472,12 +488,13 @@ GLOBAL_LIST_INIT(interaction_pec_words, list(
 		target.adjust_pain(target_pain)
 	if(!lewd)
 		return
+	// The part each side had stimulated decides which genitals climax, should this tip them over.
 	if(user_pleasure)
-		user.adjust_pleasure(user_pleasure)
+		user.adjust_pleasure(user_pleasure, stimulated_slot_for(user, target, as_user = TRUE))
 	if(user_arousal)
 		user.adjust_arousal(user_arousal)
 	if(target_pleasure)
-		target.adjust_pleasure(target_pleasure)
+		target.adjust_pleasure(target_pleasure, stimulated_slot_for(user, target, as_user = FALSE))
 	if(target_arousal)
 		target.adjust_arousal(target_arousal)
 	// Each partner's scent rubs off on the other, where one gives and the other receives.

@@ -11,6 +11,58 @@ GLOBAL_LIST_EMPTY(taur_clothing_icons)
 
 	return ..()
 
+/obj/item/clothing/dropped(mob/living/user)
+	worn_effect_offset = null
+	return ..()
+
+/**
+ * Lines up blood or rips, drawn for a human body, with this item's worn sprite.
+ * A taur-fitted sprite is 64 px wide and moved 16 px left as a whole, which would take the effect with it, and a sprite
+ * shaped to its wearer's species sits where that body is, not a human's. On a taur, a uniform's or suit's effect stops
+ * at the waist if its sprite is cropped there or taur-fitted (cuts_effects_at_taur_waist()). That way it doesn't hang
+ * human legs over the body.
+ */
+/obj/item/clothing/proc/fit_worn_effect(mutable_appearance/effect)
+	effect.pixel_w -= worn_x_offset // as fit_rider_overlay(), inlined: this runs for every stain on every redraw
+	if(worn_effect_offset)
+		effect.pixel_w += worn_effect_offset["x"]
+		effect.pixel_z += worn_effect_offset["y"]
+	var/mob/living/carbon/human/wearer = loc
+	if(ishuman(wearer) && (wearer.bodyshape & BODYSHAPE_TAUR) && cuts_effects_at_taur_waist(wearer))
+		var/static/list/waist_crop = alpha_mask_filter(icon = taur_waist_crop())
+		effect.add_filter("taur_waist", 1, waist_crop)
+		dirt_note_taur_stain(wearer, effect)
+	return effect
+
+/**
+ * Returns whether this item's blood and rips stop at its taur wearer's waist. They do on a uniform or suit whose sprite
+ * is cut at the waist (generate_taur_clothing()) or taur-fitted, unless it's LARGE_WORN_ICON. A taur with Big Legs
+ * wears human legs, and a skirt or robe that isn't cropped hangs whole. So neither is cut.
+ *
+ * Arguments:
+ * - wearer: Who wears it.
+ */
+/obj/item/clothing/proc/cuts_effects_at_taur_waist(mob/living/carbon/human/wearer)
+	return (wearer.bodyshape & BODYSHAPE_TAUR) && !(wearer.bodyshape & BODYSHAPE_TAUR_BIG_LEGS_ALL) && (gets_cropped_on_taurs || worn_x_offset) && !(clothing_flags & LARGE_WORN_ICON) && (src == wearer.w_uniform || src == wearer.wear_suit)
+
+/// Returns the mask that cuts a taur's uniform or suit effects at the waist, the one generate_taur_clothing() crops with
+/proc/taur_waist_crop()
+	RETURN_TYPE(/icon)
+	return icon('modular_nova/master_files/icons/mob/clothing/taur_masking_helpers.dmi', "taur")
+
+/// Keeps an overlay drawn for a taur's rider, such as an accessory, on the rider when this item's sprite is taur-fitted
+/obj/item/clothing/proc/fit_rider_overlay(mutable_appearance/overlay)
+	overlay.pixel_w -= worn_x_offset
+	return overlay
+
+/// Keeps a list of overlays drawn for a taur's rider on the rider, as fit_rider_overlay() does for one
+/obj/item/clothing/proc/fit_rider_overlays(list/rider_overlays)
+	if(!worn_x_offset)
+		return rider_overlays
+	for(var/mutable_appearance/overlay as anything in rider_overlays)
+		overlay.pixel_w -= worn_x_offset
+	return rider_overlays
+
 /// The code which handles generating a greyscale icon for worn clothing on big leg (taur) legs, for human_update_icons.dm
 /obj/item/proc/generate_big_legs_icons(icon/base_icon, greyscale_colors, bodyshape)
 	var/greyscale_config = /datum/greyscale_config/digitigrade/big_leg
@@ -53,9 +105,7 @@ GLOBAL_LIST_EMPTY(taur_clothing_icons)
  */
 /proc/generate_taur_clothing(index, icon/icon_to_process, icon_state)
 	var/icon/taur_clothing_icon = icon("icon" = icon_to_process, "icon_state" = icon_state)
-	var/taur_icon_state = "taur" // Leaving this here in case we ever want to have different ones
-	var/icon/taur_cropping_mask = icon("icon" = 'modular_nova/master_files/icons/mob/clothing/taur_masking_helpers.dmi', "icon_state" = taur_icon_state)
-	taur_clothing_icon.Blend(taur_cropping_mask, ICON_MULTIPLY)
+	taur_clothing_icon.Blend(taur_waist_crop(), ICON_MULTIPLY)
 	taur_clothing_icon = fcopy_rsc(taur_clothing_icon)
 	GLOB.taur_clothing_icons[index] = taur_clothing_icon
 	return taur_clothing_icon

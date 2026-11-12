@@ -601,7 +601,9 @@ across the normal leg layers. They do not draw on husks or invisible taur legs.
 Taur-zone paint is an overlay attached to the chest. It draws just above each of
 the external organ's native layers, so the organ never covers it whichever of the
 two the chest took last, and uses the organ's directional silhouettes and
-visibility rules, with a 64 by 32 icon centered at offset -16. Matrixed accessory
+visibility rules, with a 64 by 32 icon centered at offset -16. Height moves it as
+the organ's own rule moves the taur body under it (`height_location()`, in
+`taur_body.dm`), so only a Big Legs body stretches its paint. Matrixed accessory
 layers contribute their original alpha to the mask. Glow and blocker masks keep
 the same width, layers and offset. Organ gain/loss signals update these snapshots.
 
@@ -613,11 +615,11 @@ by its content hash. Turning uses the icon's existing direction frames.
 | Cache | Key |
 | --- | --- |
 | Raw paint icons | Canvas width, palette and encoded direction data. |
-| Clipped limb, taur and split-leg icons | Paint content, native geometry and relevant layer. Taur keys include the organ's current render key and chest gender. |
+| Clipped limb, taur and split-leg icons | Paint content, native geometry and relevant layer. Taur keys include the organ's current render key, less dirt's entries (`custom_sprite_taur_key()`), and chest gender. |
 | Directional glow/blocker icons | Paint/mask geometry and the enabled directions. |
 | Sampled palettes | Source icon file and state. |
-| Body/zone editing masks | Canvas width, zone and contributing limb geometry; taur geometry includes the organ's current render key and chest gender. |
-| Region maps | Canvas width, the present regions, each region's editing mask and the taur organ's render key. |
+| Body/zone editing masks | Canvas width, zone and contributing limb geometry; taur geometry includes the organ's current render key, less dirt's entries, and chest gender. |
+| Region maps | Canvas width, the present regions, each region's editing mask and the taur organ's render key, less dirt's entries. |
 
 Each of these caches is shared server-wide and capped at 256 entries, with the
 oldest inserted entry evicted first. Cached icons and lists are treated as

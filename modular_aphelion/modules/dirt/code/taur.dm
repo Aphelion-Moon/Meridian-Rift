@@ -4,17 +4,70 @@
 #define DIRT_MESS_TAUR_SEED "semen:aimed_back:taur"
 
 /**
- * A taur body's sprite as mess reads it: each of its layers' states, its colour layers' together, as the taur body
- * draws them on the 64x32 taur canvas. A mess aimed at the back puts pools along the back these pixels show
- * (dirt_taur_pools()). Made once and never changed.
+ * A drawn shape's sprite as dirt reads it: the states of each of its layers, as it draws them on its canvas
+ * (dirt_canvases()). A layer's colour layers are taken together (a matrixed part's channel images). The shape is a taur
+ * body, a tail, wings, ears, horns or another drawn part. It's made once and never changed.
  */
-/datum/dirt_taur_source
+/datum/dirt_shape_source
 	/// The sheet: an icon file, or an icon made at run time.
 	var/icon
 	/// alist(EXTERNAL_* layer key = list of the states drawn at that layer).
 	var/alist/layer_states
-	/// taur_key(), once built.
+	/// Its layer keys, lowest drawn first. A taur body's include its rider (dirt_taur_stack()).
+	var/list/stack
+	/// The DIRT_CANVAS_* define it's drawn on.
+	var/canvas
+	/// The DIRT_SHAPE_* define it takes dirt as.
+	var/kind
+	/// alist(layer key = the sheet its states are drawn from) for each layer drawn from a sheet other than `icon`, as
+	/// the hair's outer pieces are. Null when there's no such layer.
+	var/alist/layer_sheets
+	/// shape_key(), once built.
 	var/cached_key
+
+/**
+ * Arguments:
+ * - icon: The sheet.
+ * - layer_states: alist(EXTERNAL_* = list of states).
+ * - stack: Its layer keys, lowest drawn first.
+ * - canvas: A DIRT_CANVAS_* define.
+ * - kind: A DIRT_SHAPE_* define.
+ */
+/datum/dirt_shape_source/New(icon, alist/layer_states, list/stack, canvas, kind)
+	. = ..()
+	src.icon = icon
+	src.layer_states = layer_states
+	src.stack = stack
+	src.canvas = canvas
+	src.kind = kind
+
+/**
+ * Returns the sheet a layer's states are drawn from: its own (layer_sheets), or `icon`.
+ *
+ * Arguments:
+ * - layer_key: The layer's key, in `stack`.
+ */
+/datum/dirt_shape_source/proc/sheet_of(layer_key)
+	return layer_sheets?[layer_key] || icon
+
+/// Returns what the source draws, as text. Shapes with the same key take dirt on the same pixels.
+/datum/dirt_shape_source/proc/shape_key()
+	if(cached_key)
+		return cached_key
+	var/list/parts = list(dirt_sprite_key(icon))
+	for(var/layer_key in stack)
+		var/list/states = layer_states[layer_key]
+		if(length(states))
+			parts += "[layer_key]=[jointext(states, ",")]"
+	cached_key = jointext(parts, "|")
+	return cached_key
+
+/**
+ * A taur body's sprite as dirt reads it, on the 64x32 taur canvas, with its layers stacked round its rider
+ * (dirt_taur_stack()). Mess aimed at the back puts pools along the back that these pixels show (dirt_taur_pools()).
+ */
+/datum/dirt_taur_source
+	parent_type = /datum/dirt_shape_source
 
 /**
  * Arguments:
@@ -22,21 +75,7 @@
  * - layer_states: alist(EXTERNAL_* = list of states).
  */
 /datum/dirt_taur_source/New(icon, alist/layer_states)
-	. = ..()
-	src.icon = icon
-	src.layer_states = layer_states
-
-/// Returns what the source draws, as text: taur bodies with the same key take pools on the same pixels.
-/datum/dirt_taur_source/proc/taur_key()
-	if(cached_key)
-		return cached_key
-	var/list/parts = list(dirt_sprite_key(icon))
-	for(var/layer_key in dirt_taur_stack())
-		var/list/states = layer_states[layer_key]
-		if(length(states))
-			parts += "[layer_key]=[jointext(states, ",")]"
-	cached_key = jointext(parts, "|")
-	return cached_key
+	..(icon, layer_states, dirt_taur_stack(), DIRT_CANVAS_TAUR, DIRT_SHAPE_TAUR)
 
 /**
  * Returns what a taur canvas shows, lowest first, as the reference stacks a taur under its rider: the taur body's
@@ -63,34 +102,84 @@
 	return istype(taur) ? taur.dirt_read_source(chest) : null
 
 /**
- * Returns what each pixel of the taur canvas shows in one direction: the EXTERNAL_* layer of the taur body drawn last
- * over it, DIRT_TAUR_RIDER where the rider (the body, 16 px in) is drawn over the taur body, or null, as
- * dirt_taur_stack() stacks them.
+ * Returns what a taur canvas shows, lowest first, as the game draws it over a taur's own pixels: the taur body's behind
+ * layer, the rider's limbs, the taur's adjacent and front-under layers, a taur-fitted garment's cloth, then the taur's
+ * front layers, which are drawn over that garment. Blood below the waist reads this stack (dirt_blood_carriers()),
+ * while mess keeps dirt_taur_stack(). You should NEVER modify it.
+ */
+/proc/dirt_taur_drawn_stack()
+	RETURN_TYPE(/list)
+	var/static/list/stack = list(EXTERNAL_BEHIND, DIRT_TAUR_RIDER, EXTERNAL_ADJACENT, EXTERNAL_FRONT_UNDER_CLOTHES, DIRT_TAUR_CLOTH, EXTERNAL_FRONT, EXTERNAL_FRONT_OVER)
+	return stack
+
+/**
+ * Returns what each pixel of a shape's canvas shows in one direction. That's the EXTERNAL_* layer of the shape drawn
+ * last over it, in its stack's order. On a taur body it's DIRT_TAUR_RIDER where the rider (the body, 16 px in) is drawn
+ * over it. It's DIRT_TAUR_CLOTH where a taur-fitted garment is, and null where nothing is.
  *
  * Arguments:
- * - source: The taur body.
- * - rider: The rider's surface in that direction, the template of the body drawn on the taur.
+ * - source: The shape.
+ * - rider: On a taur body, the rider's surface in that direction (the template of the body drawn on it). Else null.
  * - direction: The direction.
+ * - stack: The layer keys to stack, lowest first, or null for the source's own.
+ * - cloth_pixels: If `stack` holds DIRT_TAUR_CLOTH, the garment's pixels on the canvas, as dirt_sprite_pixels() reads
+ *   them.
+ * - rows: On a taur body, the row of the rider's surface that each row shows once the rider's height stretches it
+ *   (dirt_height_rows()). Null to use the surface unstretched.
  */
-/proc/dirt_taur_owners(datum/dirt_taur_source/source, datum/dirt_surface/rider, direction)
+/proc/dirt_taur_owners(datum/dirt_shape_source/source, datum/dirt_surface/rider, direction, list/stack = null, list/cloth_pixels = null, list/rows = null)
 	RETURN_TYPE(/list)
-	var/list/owners = new /list(DIRT_TAUR_WIDTH * ICON_SIZE_Y)
-	for(var/shown in dirt_taur_stack())
+	var/list/size = dirt_canvases()[source.canvas]
+	var/width = size[1]
+	var/list/owners = new /list(width * size[2])
+	for(var/shown in stack || source.stack)
+		if(shown == DIRT_TAUR_CLOTH)
+			for(var/index in cloth_pixels)
+				owners[index] = shown
+			continue
 		if(shown != DIRT_TAUR_RIDER)
+			var/sheet = source.sheet_of(shown)
 			for(var/state in source.layer_states[shown])
-				for(var/index in dirt_sprite_pixels(source.icon, state, direction, DIRT_TAUR_WIDTH))
+				for(var/index in dirt_sprite_pixels(sheet, state, direction, width, size[2]))
 					owners[index] = shown
 			continue
+		if(!rider)
+			continue
 		var/list/flags_of = rider.flags_of
+		if(rows)
+			for(var/row in 0 to ICON_SIZE_Y - 1)
+				var/source_row = rows[row + 1]
+				if(isnull(source_row))
+					continue
+				for(var/column in 0 to ICON_SIZE_X - 1)
+					if(DIRT_PIXEL_ZONE(flags_of[source_row * ICON_SIZE_X + column + 1]))
+						owners[row * width + column + DIRT_TAUR_INSET + 1] = DIRT_TAUR_RIDER
+			continue
 		for(var/index in 1 to length(flags_of))
 			if(DIRT_PIXEL_ZONE(flags_of[index]))
 				var/row = floor((index - 1) / ICON_SIZE_X)
-				owners[index + row * (DIRT_TAUR_WIDTH - ICON_SIZE_X) + DIRT_TAUR_INSET] = DIRT_TAUR_RIDER
+				owners[index + row * (width - ICON_SIZE_X) + DIRT_TAUR_INSET] = DIRT_TAUR_RIDER
 	return owners
 
 /**
- * Returns a back shot's pools on a taur body in one direction: dirt_mess_splat_rasterise() on the pixels the taur body
- * shows, keeping clear of the rider's mess there.
+ * Returns a shape's own pixels in one direction, as alist(index = TRUE) in row-major order: every pixel its layers
+ * show, leaving out the rider's.
+ *
+ * Arguments:
+ * - owners: What each pixel of its canvas shows, from dirt_taur_owners().
+ */
+/proc/dirt_shape_mask(list/owners)
+	RETURN_TYPE(/alist)
+	var/alist/mask = alist()
+	for(var/index in 1 to length(owners))
+		var/shown = owners[index]
+		if(shown && shown != DIRT_TAUR_RIDER)
+			mask[index] = TRUE
+	return mask
+
+/**
+ * Returns a back shot's pools on a taur body in one direction. dirt_splat_rasterise() draws them as mess on the pixels
+ * the taur body shows, keeping clear of the rider's mess there.
  *
  * Arguments:
  * - owners: What each pixel of the taur canvas shows, from dirt_taur_owners().
@@ -102,21 +191,88 @@
  */
 /proc/dirt_taur_pools(list/owners, list/rider_mess, level, variant, direction)
 	RETURN_TYPE(/datum/dirt_pixels)
-	var/list/mask_pixels = list()
-	for(var/index in 1 to length(owners))
-		var/shown = owners[index]
-		if(shown && shown != DIRT_TAUR_RIDER)
-			mask_pixels += index
-	var/list/avoid = list()
-	var/list/taken = new /list(length(owners))
+	var/alist/mask = dirt_shape_mask(owners)
+	var/alist/avoid = alist()
 	for(var/drawn in rider_mess)
 		for(var/index in dirt_drawn_indexes(drawn))
 			var/row = floor((index - 1) / ICON_SIZE_X)
 			var/canvas_index = index + row * (DIRT_TAUR_WIDTH - ICON_SIZE_X) + DIRT_TAUR_INSET
-			if(owners[canvas_index] == DIRT_TAUR_RIDER && !taken[canvas_index])
-				taken[canvas_index] = TRUE
-				avoid += canvas_index
-	return dirt_mess_splat_rasterise(mask_pixels, level, variant, direction, avoid)
+			if(owners[canvas_index] == DIRT_TAUR_RIDER)
+				avoid[canvas_index] = TRUE
+	return dirt_splat_rasterise(mask, "[DIRT_CAUSE_AIMED_PREFIX][DIRT_ZONE_BACK]", dirt_material(DIRT_MATERIAL_MESS), level, variant, DIRT_SHAPE_TAUR, direction, 1, avoid)
+
+/**
+ * Carries a taur body's merged dirt onto the pixels its rider's height uncovers. The dirt is made on the canvas as an
+ * Average rider shows it. Pools, slime and a douse lie on what the taur body shows then, so a rider stretched taller
+ * leaves bare pixels under its waist. A canvas field or a coat is drawn on the whole canvas, under the rider too, so a
+ * pixel the merge draws there keeps its own dirt. Each other uncovered pixel looks at the pixel just below its run of
+ * uncovered pixels in the column. If the taur body shows that pixel at Average height, the uncovered pixel takes its
+ * dirt. A glint is carried as body, so it isn't doubled. Above a clean pixel, or above no taur pixel, an uncovered
+ * pixel stays clean. A carried pixel is shown on the layer it shows at the rider's height, whichever layer the pixel
+ * below is on. The pixels a shorter rider covers keep their dirt here, and layers_shown() leaves them out.
+ *
+ * Arguments:
+ * - merged: The direction's splats merged, drawn on.
+ * - average_owners: What each pixel of the canvas shows with an Average rider (dirt_taur_owners()).
+ * - height_owners: What each pixel shows with the rider at its height.
+ */
+/proc/dirt_taur_height_fill(datum/dirt_pixels/merged, list/average_owners, list/height_owners)
+	var/list/roles = merged.roles
+	var/list/thicknesses = merged.thicknesses
+	var/list/materials = merged.materials
+	var/last_index = length(average_owners)
+	for(var/index in 1 to last_index)
+		if(roles[index] || average_owners[index] != DIRT_TAUR_RIDER || !height_owners[index] || height_owners[index] == DIRT_TAUR_RIDER)
+			continue
+		var/below
+		for(below = index + DIRT_TAUR_WIDTH, below <= last_index, below += DIRT_TAUR_WIDTH)
+			if(average_owners[below] != DIRT_TAUR_RIDER || !height_owners[below] || height_owners[below] == DIRT_TAUR_RIDER)
+				break
+		if(below > last_index || !average_owners[below] || average_owners[below] == DIRT_TAUR_RIDER)
+			continue
+		var/role = roles[below]
+		if(!role)
+			continue
+		merged.put_index(index, role == DIRT_ROLE_GLINT ? DIRT_ROLE_BODY : role, thicknesses[below])
+		if(materials)
+			materials[index] = materials[below]
+
+/**
+ * Returns a splat drawn in a shape's own pixels in one direction. It's the one entry point for slime and mess on taur
+ * bodies, wings and tails. Mess draws only as a back shot's pools on a taur body (dirt_mess_splat_rasterise()), drawn
+ * the portable way, and any other mess draws nothing. Every other material lands as slime's lumps
+ * (dirt_slime_splat_rasterise()), drawn while drafting.
+ *
+ * Arguments:
+ * - mask: alist(index = TRUE) on the shape's pixels, on its kind's canvas (dirt_shape_canvas()).
+ * - cause: A slime DIRT_CAUSE_* define, or for mess "aimed_back".
+ * - material: The /datum/dirt_material it's made of.
+ * - level: The splat's level.
+ * - variant: 0 to DIRT_VARIANTS - 1.
+ * - kind: A DIRT_SHAPE_* define.
+ * - direction: The direction.
+ * - side: The mob's dirtier side, 1 or -1.
+ * - avoid: For mess, alist(index = TRUE) on the rider's mess, which the pools keep clear of. Else null.
+ */
+/proc/dirt_splat_rasterise(alist/mask, cause, datum/dirt_material/material, level, variant, kind, direction, side = 1, alist/avoid = null)
+	RETURN_TYPE(/datum/dirt_pixels)
+	if(material.id == DIRT_MATERIAL_MESS)
+		if(kind != DIRT_SHAPE_TAUR || cause != "[DIRT_CAUSE_AIMED_PREFIX][DIRT_ZONE_BACK]")
+			var/list/size = dirt_canvases()[dirt_shape_canvas(kind)]
+			return new /datum/dirt_pixels(size[1], size[2])
+		// in row-major order, as dirt_taur_back_region() reads them
+		var/list/mask_pixels = list()
+		for(var/index in mask)
+			mask_pixels += index
+		var/list/avoid_pixels = list()
+		for(var/index in avoid)
+			avoid_pixels += index
+		return dirt_mess_splat_rasterise(mask_pixels, level, variant, direction, avoid_pixels)
+#ifdef DIRT_DRAFT_EXACT
+	if(!SSdirt.drafting)
+		return dirt_drafted(GLOBAL_PROC_REF(dirt_splat_rasterise), args.Copy())
+#endif
+	return dirt_slime_splat_rasterise(mask, cause, level, variant, kind, direction)
 
 /**
  * Returns the pixels of a taur body mess aimed at its back reaches in one direction: a band 3 px deep under the back
@@ -389,6 +545,133 @@
 		drawn.put_index(index, role, thickness)
 
 /**
+ * Returns slime landed in a shape's own pixels in one direction, from the "splat:<cause>:<kind>:<variant>" stream. It
+ * draws lumps in the region its cause reaches on that kind of shape (dirt_splat_region()), darkest underneath with a
+ * glint on top. Drips run down from them and end in a bulb, and spatter lies beside them. Nothing lands off the shape.
+ * Level 1 draws one lump, one run and one speck of spatter, level 2 three lumps, two runs and two specks, and level 3
+ * five, four and three. It's drawn inside the drafting that dirt_splat_rasterise() sets up (SSdirt.drafting), so the
+ * lumps' starts are picked from the region column by column, as the draft picked them.
+ *
+ * Arguments:
+ * - mask: alist(index = TRUE) on the shape's pixels, on its kind's canvas (dirt_shape_canvas()).
+ * - cause: A slime DIRT_CAUSE_* define.
+ * - level: The splat's level: past 3 it draws at 3.
+ * - variant: 0 to DIRT_VARIANTS - 1.
+ * - kind: A DIRT_SHAPE_* define.
+ * - direction: The direction.
+ */
+/proc/dirt_slime_splat_rasterise(alist/mask, cause, level, variant, kind, direction)
+	RETURN_TYPE(/datum/dirt_pixels)
+	var/static/list/lump_counts = list(1, 3, 5)
+	var/static/list/lump_scales = list(0.8, 1, 1.25)
+	var/static/list/run_counts = list(1, 2, 4)
+	var/static/list/run_scales = list(0.6, 0.8, 1)
+	var/static/list/spatter_counts = list(1, 2, 3)
+	var/list/size = dirt_canvases()[dirt_shape_canvas(kind)]
+	var/width = size[1]
+	var/height = size[2]
+	var/datum/dirt_pixels/drawn = new(width, height)
+	level = clamp(level, 1, DIRT_DEPOSIT_MAX_LEVEL)
+	var/alist/region = dirt_splat_region(mask, cause, kind, direction, level, width)
+	var/list/points = list()
+	if(SSdirt.drafting)
+		for(var/column in 0 to width - 1)
+			for(var/row in 0 to height - 1)
+				if(region[row * width + column + 1])
+					points += row * width + column + 1
+	else
+		for(var/index in region)
+			points += index
+	if(!length(points))
+		return drawn
+	var/datum/dirt_random/rng = dirt_general_stream("splat:[cause]:[kind]:[num2text(variant, 12)]")
+	var/list/starts = list()
+	for(var/start_number in 1 to 8)
+		starts += points[rng.draw_index(length(points)) + 1]
+	var/list/sizes = list()
+	for(var/size_number in 1 to 8)
+		sizes += rng.uniform(1.1, 1.6)
+	// random draws for a streak's angle and lengths, which lumps don't take
+	rng.uniform(25, 155)
+	for(var/length_number in 1 to 8)
+		rng.uniform(3, 6.5)
+	var/list/drips = list()
+	for(var/drip_number in 1 to 8)
+		drips += rng.uniform(2, 5)
+	var/seed = rng.randrange(65536)
+	var/list/ranks = dirt_role_ranks()
+	for(var/lump in 1 to lump_counts[level])
+		var/centre_row = floor((starts[lump] - 1) / width)
+		var/centre_column = starts[lump] - 1 - centre_row * width
+		var/radius = sizes[lump] * lump_scales[level]
+		// the reference's int() goes toward 0
+		var/first_column = centre_column - radius - 1
+		first_column = first_column < 0 ? ceil(first_column) : floor(first_column)
+		var/first_row = centre_row - radius - 1
+		first_row = first_row < 0 ? ceil(first_row) : floor(first_row)
+		for(var/column in first_column to floor(centre_column + radius + 2) - 1)
+			for(var/row in first_row to floor(centre_row + radius + 2) - 1)
+				var/wobble = (dirt_spread_noise(column, row, seed, 1.8) - 0.5) * 0.5
+				var/across = (column - centre_column) / radius
+				var/down = (row - centre_row) / (radius * 0.85)
+				var/spread = across * across + down * down
+				if(spread <= 1 + wobble)
+					var/role = (row > centre_row + 0.2 * radius && spread < 0.75) ? DIRT_ROLE_CORE : DIRT_ROLE_BODY
+					dirt_shape_put(drawn, mask, ranks, column, row, role, row > centre_row ? 0.9 : 0.6)
+		dirt_shape_put(drawn, mask, ranks, dirt_round_coordinate(centre_column - 0.4 * radius), dirt_round_coordinate(centre_row - 0.45 * radius), DIRT_ROLE_GLINT, 0.9)
+	for(var/run_number in 1 to run_counts[level])
+		var/start_row = floor((starts[run_number] - 1) / width)
+		var/column = starts[run_number] - 1 - start_row * width
+		var/row = dirt_round_coordinate(start_row + sizes[run_number] * 0.8) + 1
+		var/run_length = floor(drips[run_number] * run_scales[level])
+		for(var/run_step in 0 to run_length - 1)
+			dirt_shape_put(drawn, mask, ranks, column, row + run_step, DIRT_ROLE_BODY, 0.6)
+		// the bulb it ends in
+		dirt_shape_put(drawn, mask, ranks, column, row + run_length, DIRT_ROLE_CORE, 0.9)
+		dirt_shape_put(drawn, mask, ranks, column + 1, row + run_length - 1, DIRT_ROLE_BODY, 0.6)
+	for(var/spatter_number in 1 to spatter_counts[level])
+		var/start = starts[5 + spatter_number]
+		var/row = floor((start - 1) / width)
+		var/column = start - 1 - row * width
+		dirt_shape_put(drawn, mask, ranks, column, row, DIRT_ROLE_BODY, 0.6)
+		dirt_shape_put(drawn, mask, ranks, column + 1, row, DIRT_ROLE_BODY, 0.6)
+	return drawn
+
+/**
+ * Draws a role on a pixel of a shape unless the role drawn there outranks it. It never draws off the shape's pixels.
+ *
+ * Arguments:
+ * - drawn: The mask, drawn on.
+ * - mask: alist(index = TRUE) on the shape's pixels.
+ * - ranks: dirt_role_ranks().
+ * - column, row: The pixel, from the left and from the top, from 0. It may lie off the canvas.
+ * - role: A DIRT_ROLE_* define.
+ * - thickness: How thick it lies.
+ */
+/proc/dirt_shape_put(datum/dirt_pixels/drawn, alist/mask, list/ranks, column, row, role, thickness)
+	if(column < 0 || row < 0 || column >= drawn.width || row >= drawn.height)
+		return
+	var/index = row * drawn.width + column + 1
+	if(!mask[index])
+		return
+	var/held = drawn.roles[index]
+	if(!held || ranks[role] >= ranks[held])
+		drawn.put_index(index, role, thickness)
+
+/**
+ * Returns a coordinate rounded to a whole pixel. Halves round up, or to even while drafting, as the draft's round()
+ * took them.
+ *
+ * Arguments:
+ * - value: The coordinate.
+ */
+/proc/dirt_round_coordinate(value)
+	var/nearest = floor(value + 0.5)
+	if(SSdirt.drafting && nearest - value == 0.5 && nearest % 2)
+		nearest--
+	return nearest
+
+/**
  * Returns whether a back shot on a person also lands along their taur body's back: they have a taur body of a kind
  * with a back (dirt_read_source(): not Big Legs), it draws now, and the surface the shot lands on isn't a garment drawn
  * over the whole taur canvas (a taur suit), which takes the pools itself
@@ -409,16 +692,54 @@
 	return istype(taur) && taur.can_draw_on_bodypart(chest, target) && !!taur.dirt_read_source(chest)
 
 /**
- * Returns a 64x32 blank, for masks on the taur canvas. You should NEVER modify it.
+ * Returns whether a general cause's dirt in a material lands on a taur's lower half: its taur body, or the taur suit
+ * over it. It lands if it reaches the legs the taur body stands in place of, or if it's slime on the back, the front
+ * or the legs (dirt_splat_region()). A wet material never does, because neither a coat nor a hem band takes sweat.
+ *
+ * Arguments:
+ * - cause: A DIRT_CAUSE_* define.
+ * - material: Its /datum/dirt_material.
  */
-/proc/dirt_taur_blank()
+/proc/dirt_taur_takes(cause, datum/dirt_material/material)
+	var/static/list/slimed_causes = list(DIRT_CAUSE_SLIMED, DIRT_CAUSE_SLIMED_BACK, DIRT_CAUSE_SLIMED_CHEST, DIRT_CAUSE_SLIMED_R_LEG, DIRT_CAUSE_SLIMED_L_LEG)
+	if(material.flags & DIRT_MATERIAL_WET)
+		return FALSE
+	if(copytext(cause, 1, length(DIRT_CAUSE_SLIMED) + 1) == DIRT_CAUSE_SLIMED)
+		return cause in slimed_causes
+	return !!(dirt_cause_reach(cause, material) & (DIRT_LIMB_BIT(DIRT_LIMB_R_LEG) | DIRT_LIMB_BIT(DIRT_LIMB_L_LEG)))
+
+/**
+ * Returns the outermost taur suit a taur wears over its taur body (dirt_taur_fitted()), or null. The suit takes the
+ * general dirt the taur body would take, as its hem band.
+ *
+ * Arguments:
+ * - target: The person.
+ */
+/proc/dirt_taur_suit(mob/living/carbon/human/target)
+	RETURN_TYPE(/obj/item)
+	for(var/slot in list(ITEM_SLOT_OCLOTHING, ITEM_SLOT_ICLOTHING))
+		var/obj/item/worn = target.get_item_by_slot(slot)
+		if(worn && dirt_taur_fitted(worn, target))
+			return worn
+	return null
+
+/**
+ * Returns a blank icon the size of a canvas (dirt_canvases()), for masks on it. You should NEVER modify it.
+ *
+ * Arguments:
+ * - canvas: A DIRT_CANVAS_* define.
+ */
+/proc/dirt_canvas_blank(canvas)
 	RETURN_TYPE(/icon)
-	var/static/icon/blank
+	var/static/alist/blanks = alist()
+	var/icon/blank = blanks[canvas]
 	if(!blank)
+		var/list/size = dirt_canvases()[canvas]
 		blank = icon('icons/blanks/32x32.dmi', "nothing")
-		blank.Crop(1, 1, DIRT_TAUR_WIDTH, ICON_SIZE_Y)
+		blank.Crop(1, 1, size[1], size[2])
 		// loaded once here, or every copy loads it again
 		blank.GetPixel(1, 1)
+		blanks[canvas] = blank
 	return blank
 
 #undef DIRT_POOL_KEY

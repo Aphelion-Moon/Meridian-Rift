@@ -370,9 +370,16 @@
 	var/datum/bodypart_overlay/mutant/taur_body/taur = custom_sprite_taur_overlay(owner)
 	return ..() && taur?.can_draw_on_bodypart(bodypart_owner, owner)
 
+/// Gives taur paint the height rule of the taur body under it, whichever of the two the chest draws first.
+/datum/bodypart_overlay/custom_marking/taur/get_all_overlays(obj/item/bodypart/limb)
+	var/datum/bodypart_overlay/mutant/taur_body/taur = custom_sprite_taur_overlay(limb.owner)
+	if(taur)
+		offset_location = taur.height_location()
+	return ..()
+
 /datum/bodypart_overlay/custom_marking/taur/pixel_render_key(obj/item/bodypart/limb)
 	var/datum/bodypart_overlay/mutant/taur_body/taur = custom_sprite_taur_overlay(limb.owner)
-	return list("custom-taur-marking", drawing_pixel_hash, limb.limb_gender, taur ? json_encode(taur.icon_render_key(limb)) : "missing")
+	return list("custom-taur-marking", drawing_pixel_hash, limb.limb_gender, taur ? json_encode(custom_sprite_taur_key(taur, limb)) : "missing")
 
 /datum/bodypart_overlay/custom_marking/taur/icon_render_key(obj/item/bodypart/limb)
 	return pixel_render_key(limb) + list(drawing_hash, limb.markings_alpha)

@@ -100,7 +100,7 @@ INITIALIZE_IMMEDIATE(/mob/living/carbon/human/dummy)
 // rather than independently applying offsets and filters to each individual overlay
 // This looks good enough to pass the sniff test and saves a lot of time
 /mob/living/carbon/human/dummy/apply_height(image/appearance, body_area)
-	if(appearance == src)
+	if(stretches_each_image() ? appearance != src : appearance == src) // APHELION EDIT CHANGE - ORIGINAL: if(appearance == src)
 		return ..()
 
 /// Takes in an accessory list and returns the first entry from that list, ensuring that we dont return SPRITE_ACCESSORY_NONE in the process.
