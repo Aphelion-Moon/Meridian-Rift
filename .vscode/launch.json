@@ -116,7 +116,6 @@
 			"preLaunchTask": "OpenDream: compile ${command:CurrentDME}",
 			"json_path": "${workspaceFolder}/${command:CurrentJson}"
 		},
-		// APHELION EDIT ADDITION START - auxtools 3 debugger with hot reload. "defines" must match the build task's -D flags, plus CBT.
 		{
 			"type": "auxtools",
 			"request": "launch",
@@ -160,6 +159,5 @@
 			"name": "auxtools: Attach to a running world",
 			"processId": "${command:auxtools.pickWorld}"
 		}
-		// APHELION EDIT ADDITION END
 	]
 }
