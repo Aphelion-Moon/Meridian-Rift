@@ -210,6 +210,13 @@
 #define DIRT_CARRIER_DEPOSITS 3
 /// The skin as a carrier of general dirt (dirt_shown_carriers()), beside worn items and underclothes keys.
 #define DIRT_CARRIER_SKIN "skin"
+/// What dirt_shown_carriers() returns, keyed by worn items. It's a plain list before BYOND 516.1688, where an alist
+/// dropped with an object among its keys never lets go of the object, so the item hard deletes.
+#if DM_VERSION == 516 && DM_BUILD < 1688
+#define DIRT_CARRIERS_LIST list
+#else
+#define DIRT_CARRIERS_LIST alist
+#endif
 /// The hairstyle as a carrier of general dirt, held with the person's drawn parts
 /// (/datum/component/dirtiness/var/part_splats). No organ slot has this name.
 #define DIRT_CARRIER_HAIR "hair"

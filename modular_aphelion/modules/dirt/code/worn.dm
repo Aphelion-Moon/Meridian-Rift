@@ -587,8 +587,8 @@
 	return slots
 
 /**
- * Returns what shows on each limb of a person, as general dirt lands on it: alist(carrier = the limbs it shows on,
- * DIRT_LIMB_BIT() of each). Each carrier is a worn item (dirt_carrier_slots()), an underclothes key
+ * Returns what shows on each limb of a person, as general dirt lands on it: DIRT_CARRIERS_LIST(carrier = the limbs it
+ * shows on, DIRT_LIMB_BIT() of each). Each carrier is a worn item (dirt_carrier_slots()), an underclothes key
  * (dirt_underclothes_key()) or DIRT_CARRIER_SKIN. Each is judged as dirt_underclothes_on() judges a piece, on the plain
  * human template's body facing south and north. Every carrier that shows counts, not only the one that shows most. A
  * carrier shows on a limb where its sprite covers that limb's pixels and nothing drawn over it does.
@@ -605,8 +605,8 @@
  * - target: The person.
  */
 /proc/dirt_shown_carriers(mob/living/carbon/human/target)
-	RETURN_TYPE(/alist)
-	. = alist()
+	RETURN_TYPE(/DIRT_CARRIERS_LIST)
+	. = DIRT_CARRIERS_LIST()
 	if(!SSdirt.human_template_now())
 		return
 	// topmost first: list(carrier, icon, icon state, the layer it's drawn at, where a worn item's wrapper puts it)
