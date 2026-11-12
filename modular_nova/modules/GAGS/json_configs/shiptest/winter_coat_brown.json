@@ -1,0 +1,38 @@
+{
+  "winter_coat_brown": [
+    {
+      "type": "icon_state",
+      "icon_state": "winter_coat_brown_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "winter_coat_brown_fur",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ],
+  "winter_coat_brown_t": [
+    {
+      "type": "icon_state",
+      "icon_state": "winter_coat_brown_t_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "winter_coat_brown_t_fur",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ]
+}

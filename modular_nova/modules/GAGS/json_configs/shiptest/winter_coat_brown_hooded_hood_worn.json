@@ -1,0 +1,20 @@
+{
+  "hood_winter_coat_brown_hooded": [
+    {
+      "type": "icon_state",
+      "icon_state": "hood_winter_coat_brown_hooded_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "hood_winter_coat_brown_hooded_fur",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ]
+}

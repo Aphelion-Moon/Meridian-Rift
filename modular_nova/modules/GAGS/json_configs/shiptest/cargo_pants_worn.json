@@ -1,0 +1,20 @@
+{
+  "cargo_pants": [
+    {
+      "type": "icon_state",
+      "icon_state": "cargo_pants_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "cargo_pants_fabric_shade",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ]
+}

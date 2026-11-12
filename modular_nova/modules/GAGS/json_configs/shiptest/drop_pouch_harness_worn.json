@@ -1,0 +1,25 @@
+{
+  "drop_pouch_harness": [
+    {
+      "type": "icon_state",
+      "icon_state": "drop_pouch_harness_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "drop_pouch_harness_pouches",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "drop_pouch_harness_pouches_shade",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ]
+}

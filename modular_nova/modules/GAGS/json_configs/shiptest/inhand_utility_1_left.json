@@ -1,0 +1,12 @@
+{
+  "utility": [
+    {
+      "type": "icon_state",
+      "icon_state": "inhand_utility_left_first",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ]
+}

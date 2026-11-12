@@ -1,0 +1,22 @@
+{
+  "trenchcoat_tan": [
+    {
+      "type": "icon_state",
+      "icon_state": "trenchcoat_tan_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ],
+  "trenchcoat_tan_t": [
+    {
+      "type": "icon_state",
+      "icon_state": "trenchcoat_tan_t_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ]
+}

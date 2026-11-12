@@ -1,0 +1,54 @@
+{
+  "flight_jacket": [
+    {
+      "type": "icon_state",
+      "icon_state": "flight_jacket_leather",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "flight_jacket_fur",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "flight_jacket_fur_shade",
+      "blend_mode": "overlay",
+      "color_ids": [
+        3
+      ]
+    }
+  ],
+  "flight_jacket_t": [
+    {
+      "type": "icon_state",
+      "icon_state": "flight_jacket_t_leather",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "flight_jacket_t_fur",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "flight_jacket_t_fur_shade",
+      "blend_mode": "overlay",
+      "color_ids": [
+        3
+      ]
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "plaid_pinafore": [
+    {
+      "type": "icon_state",
+      "icon_state": "plaid_pinafore_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "plaid_pinafore_dress",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "plaid_pinafore_dress_shade",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "plaid_pinafore_plaid",
+      "blend_mode": "overlay",
+      "color_ids": [
+        3
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "plaid_pinafore_plaid_shade",
+      "blend_mode": "overlay",
+      "color_ids": [
+        4
+      ]
+    }
+  ],
+  "plaid_pinafore_d": [
+    {
+      "type": "icon_state",
+      "icon_state": "plaid_pinafore_d_dress",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "plaid_pinafore_d_dress_shade",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "plaid_pinafore_d_plaid",
+      "blend_mode": "overlay",
+      "color_ids": [
+        3
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "plaid_pinafore_d_plaid_shade",
+      "blend_mode": "overlay",
+      "color_ids": [
+        4
+      ]
+    }
+  ]
+}

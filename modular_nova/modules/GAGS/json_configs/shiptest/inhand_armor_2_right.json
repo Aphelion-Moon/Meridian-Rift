@@ -1,0 +1,20 @@
+{
+  "armor": [
+    {
+      "type": "icon_state",
+      "icon_state": "inhand_armor_right_first",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "inhand_armor_right_second",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ]
+}

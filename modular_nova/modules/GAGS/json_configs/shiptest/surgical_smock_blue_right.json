@@ -1,0 +1,28 @@
+{
+  "surgical_smock_blue": [
+    {
+      "type": "icon_state",
+      "icon_state": "surgical_smock_blue_right_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "surgical_smock_blue_right_detail",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "surgical_smock_blue_right_detail_shade",
+      "blend_mode": "overlay",
+      "color_ids": [
+        3
+      ]
+    }
+  ]
+}

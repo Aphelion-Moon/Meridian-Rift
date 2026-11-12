@@ -1,0 +1,32 @@
+{
+  "survivor_suit_olive": [
+    {
+      "type": "icon_state",
+      "icon_state": "survivor_suit_olive_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "survivor_suit_olive_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ],
+  "survivor_suit_olive_t": [
+    {
+      "type": "icon_state",
+      "icon_state": "survivor_suit_olive_t_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "survivor_suit_olive_t_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ]
+}

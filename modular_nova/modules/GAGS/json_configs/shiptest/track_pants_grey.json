@@ -1,0 +1,17 @@
+{
+  "track_pants_grey": [
+    {
+      "type": "icon_state",
+      "icon_state": "track_pants_grey_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "track_pants_grey_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ]
+}

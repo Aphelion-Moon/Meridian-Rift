@@ -1,0 +1,17 @@
+{
+  "chest_rig_blue": [
+    {
+      "type": "icon_state",
+      "icon_state": "chest_rig_blue_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "chest_rig_blue_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ]
+}

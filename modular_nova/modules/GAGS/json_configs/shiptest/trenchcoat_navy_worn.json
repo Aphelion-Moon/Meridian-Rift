@@ -1,0 +1,38 @@
+{
+  "trenchcoat_navy": [
+    {
+      "type": "icon_state",
+      "icon_state": "trenchcoat_navy_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "trenchcoat_navy_lining",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ],
+  "trenchcoat_navy_t": [
+    {
+      "type": "icon_state",
+      "icon_state": "trenchcoat_navy_t_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "trenchcoat_navy_t_lining",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ]
+}

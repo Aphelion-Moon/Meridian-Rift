@@ -1,0 +1,48 @@
+{
+  "pilot_jacket_brown": [
+    {
+      "type": "icon_state",
+      "icon_state": "pilot_jacket_brown_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "pilot_jacket_brown_leather",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "pilot_jacket_brown_fur",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ],
+  "pilot_jacket_brown_t": [
+    {
+      "type": "icon_state",
+      "icon_state": "pilot_jacket_brown_t_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "pilot_jacket_brown_t_leather",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "pilot_jacket_brown_t_fur",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ]
+}

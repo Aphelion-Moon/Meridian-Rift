@@ -1,0 +1,22 @@
+{
+  "shemagh": [
+    {
+      "type": "icon_state",
+      "icon_state": "shemagh_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ],
+  "shemagh_over": [
+    {
+      "type": "icon_state",
+      "icon_state": "shemagh_over_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ]
+}

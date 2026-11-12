@@ -1,0 +1,17 @@
+{
+  "jorts_brown": [
+    {
+      "type": "icon_state",
+      "icon_state": "jorts_brown_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "jorts_brown_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ]
+}

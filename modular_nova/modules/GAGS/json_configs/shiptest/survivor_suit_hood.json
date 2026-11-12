@@ -1,0 +1,49 @@
+{
+  "hood_survivor_suit": [
+    {
+      "type": "icon_state",
+      "icon_state": "hood_survivor_suit_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "hood_survivor_suit_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "hood_survivor_suit_detail_1",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "hood_survivor_suit_detail_1_shade",
+      "blend_mode": "overlay",
+      "color_ids": [
+        3
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "hood_survivor_suit_detail_2",
+      "blend_mode": "overlay",
+      "color_ids": [
+        4
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "hood_survivor_suit_detail_3",
+      "blend_mode": "overlay",
+      "color_ids": [
+        5
+      ]
+    }
+  ]
+}

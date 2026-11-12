@@ -1,0 +1,25 @@
+{
+  "sweatpants": [
+    {
+      "type": "icon_state",
+      "icon_state": "sweatpants_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "sweatpants_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "sweatpants_fabric_shade",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ]
+}

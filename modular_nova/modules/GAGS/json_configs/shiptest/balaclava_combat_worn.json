@@ -1,0 +1,38 @@
+{
+  "balaclava_combat": [
+    {
+      "type": "icon_state",
+      "icon_state": "balaclava_combat_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "balaclava_combat_fabric_shade",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ],
+  "balaclava_combat_up": [
+    {
+      "type": "icon_state",
+      "icon_state": "balaclava_combat_up_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "balaclava_combat_up_fabric_shade",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ]
+}

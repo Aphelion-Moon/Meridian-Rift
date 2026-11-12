@@ -1,0 +1,38 @@
+{
+  "hoodie": [
+    {
+      "type": "icon_state",
+      "icon_state": "hoodie_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "hoodie_fabric_shade",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ],
+  "hoodie_t": [
+    {
+      "type": "icon_state",
+      "icon_state": "hoodie_t_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "hoodie_t_fabric_shade",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ]
+}

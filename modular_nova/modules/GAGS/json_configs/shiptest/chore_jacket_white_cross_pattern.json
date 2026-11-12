@@ -1,0 +1,32 @@
+{
+  "chore_jacket_white_cross_pattern": [
+    {
+      "type": "icon_state",
+      "icon_state": "chore_jacket_white_cross_pattern_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "chore_jacket_white_cross_pattern_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ],
+  "chore_jacket_white_cross_pattern_t": [
+    {
+      "type": "icon_state",
+      "icon_state": "chore_jacket_white_cross_pattern_t_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "chore_jacket_white_cross_pattern_t_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ]
+}

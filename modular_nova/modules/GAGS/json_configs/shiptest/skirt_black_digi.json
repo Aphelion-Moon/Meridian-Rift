@@ -1,0 +1,43 @@
+{
+  "skirt_black": [
+    {
+      "type": "icon_state",
+      "icon_state": "skirt_black_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "skirt_black_skirt",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "skirt_black_skirt_shade",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ],
+  "skirt_black_d": [
+    {
+      "type": "icon_state",
+      "icon_state": "skirt_black_d_skirt",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "skirt_black_d_skirt_shade",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ]
+}

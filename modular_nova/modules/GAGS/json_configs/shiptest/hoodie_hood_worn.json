@@ -1,0 +1,20 @@
+{
+  "hood_hoodie": [
+    {
+      "type": "icon_state",
+      "icon_state": "hood_hoodie_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "hood_hoodie_fabric_shade",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ]
+}

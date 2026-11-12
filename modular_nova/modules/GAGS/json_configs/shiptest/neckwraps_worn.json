@@ -1,0 +1,12 @@
+{
+  "neckwraps": [
+    {
+      "type": "icon_state",
+      "icon_state": "neckwraps_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ]
+}

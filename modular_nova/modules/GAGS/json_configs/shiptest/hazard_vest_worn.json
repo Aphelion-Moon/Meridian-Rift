@@ -1,0 +1,25 @@
+{
+  "hazard_vest": [
+    {
+      "type": "icon_state",
+      "icon_state": "hazard_vest_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "hazard_vest_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "hazard_vest_fabric_shade",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ]
+}

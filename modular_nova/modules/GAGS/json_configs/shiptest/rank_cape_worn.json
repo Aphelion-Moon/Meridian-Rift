@@ -1,0 +1,20 @@
+{
+  "rank_cape": [
+    {
+      "type": "icon_state",
+      "icon_state": "rank_cape_cloth",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "rank_cape_cloth_shade",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ]
+}

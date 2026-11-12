@@ -1,0 +1,20 @@
+{
+  "medical_armor_vest_crimson": [
+    {
+      "type": "icon_state",
+      "icon_state": "medical_armor_vest_crimson_armor",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "medical_armor_vest_crimson_trim",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ]
+}

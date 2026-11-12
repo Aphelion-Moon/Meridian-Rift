@@ -1,0 +1,17 @@
+{
+  "tactical_harness_teal": [
+    {
+      "type": "icon_state",
+      "icon_state": "tactical_harness_teal_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "tactical_harness_teal_pouches",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ]
+}

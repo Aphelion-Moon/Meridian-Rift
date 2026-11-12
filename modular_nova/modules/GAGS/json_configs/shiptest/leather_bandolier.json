@@ -1,0 +1,12 @@
+{
+  "leather_bandolier": [
+    {
+      "type": "icon_state",
+      "icon_state": "leather_bandolier_straps",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ]
+}

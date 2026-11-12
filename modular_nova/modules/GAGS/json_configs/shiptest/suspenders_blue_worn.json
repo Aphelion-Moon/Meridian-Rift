@@ -1,0 +1,32 @@
+{
+  "suspenders_blue": [
+    {
+      "type": "icon_state",
+      "icon_state": "suspenders_blue_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "suspenders_blue_straps",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ],
+  "suspenders_blue_t": [
+    {
+      "type": "icon_state",
+      "icon_state": "suspenders_blue_t_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "suspenders_blue_t_straps",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ]
+}

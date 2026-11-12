@@ -1,0 +1,36 @@
+{
+  "armor": [
+    {
+      "type": "icon_state",
+      "icon_state": "inhand_armor_shade_right_first",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "inhand_armor_shade_right_second",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "inhand_armor_shade_right_third",
+      "blend_mode": "overlay",
+      "color_ids": [
+        3
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "inhand_armor_shade_right_fourth",
+      "blend_mode": "overlay",
+      "color_ids": [
+        4
+      ]
+    }
+  ]
+}

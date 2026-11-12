@@ -1,0 +1,20 @@
+{
+  "engineer_jumpsuit_red": [
+    {
+      "type": "icon_state",
+      "icon_state": "engineer_jumpsuit_red_shirt",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "engineer_jumpsuit_red_trousers",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ]
+}

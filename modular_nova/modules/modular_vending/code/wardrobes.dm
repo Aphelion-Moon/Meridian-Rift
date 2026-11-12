@@ -22,6 +22,11 @@
 		/obj/item/clothing/under/rank/medical/doctor_bunnysuit = 3,
 		/obj/item/clothing/under/rank/medical/paramedic_bunnysuit = 3,
 		/obj/item/clothing/gloves/latex/nitrile/long = 2,
+		/obj/item/clothing/suit/shiptest/surgical_smock/cream = 4,
+		/obj/item/clothing/suit/shiptest/surgical_smock/blue = 4,
+		/obj/item/storage/backpack/shiptest/medical_backpack/canvas = 4,
+		/obj/item/storage/backpack/shiptest/medical_messenger_bag/canvas = 4,
+		/obj/item/storage/backpack/shiptest/medical_satchel/canvas = 4,
 	)
 
 /obj/machinery/vending/wardrobe/coroner_wardrobe

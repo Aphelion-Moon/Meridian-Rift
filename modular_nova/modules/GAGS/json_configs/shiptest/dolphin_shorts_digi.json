@@ -1,0 +1,17 @@
+{
+  "dolphin_shorts": [
+    {
+      "type": "icon_state",
+      "icon_state": "dolphin_shorts_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "dolphin_shorts_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ]
+}

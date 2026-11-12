@@ -1,0 +1,22 @@
+{
+  "composite_respirator": [
+    {
+      "type": "icon_state",
+      "icon_state": "composite_respirator_shell",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ],
+  "composite_respirator_up": [
+    {
+      "type": "icon_state",
+      "icon_state": "composite_respirator_up_shell",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ]
+}

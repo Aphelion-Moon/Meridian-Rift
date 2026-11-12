@@ -1,0 +1,36 @@
+{
+  "combat_suit": [
+    {
+      "type": "icon_state",
+      "icon_state": "combat_suit_armor",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "combat_suit_armor_shade",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "combat_suit_trim",
+      "blend_mode": "overlay",
+      "color_ids": [
+        3
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "combat_suit_trim_shade",
+      "blend_mode": "overlay",
+      "color_ids": [
+        4
+      ]
+    }
+  ]
+}

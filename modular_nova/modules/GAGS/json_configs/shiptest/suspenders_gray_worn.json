@@ -1,0 +1,32 @@
+{
+  "suspenders_gray": [
+    {
+      "type": "icon_state",
+      "icon_state": "suspenders_gray_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "suspenders_gray_straps",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ],
+  "suspenders_gray_t": [
+    {
+      "type": "icon_state",
+      "icon_state": "suspenders_gray_t_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "suspenders_gray_t_straps",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ]
+}

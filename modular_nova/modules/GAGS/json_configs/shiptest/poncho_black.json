@@ -1,0 +1,22 @@
+{
+  "poncho_black": [
+    {
+      "type": "icon_state",
+      "icon_state": "poncho_black_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ],
+  "poncho_black_t": [
+    {
+      "type": "icon_state",
+      "icon_state": "poncho_black_t_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ]
+}

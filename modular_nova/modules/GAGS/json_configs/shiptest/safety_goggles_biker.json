@@ -1,0 +1,20 @@
+{
+  "safety_goggles_biker": [
+    {
+      "type": "icon_state",
+      "icon_state": "safety_goggles_biker_frame",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "safety_goggles_biker_lens",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ]
+}

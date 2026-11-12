@@ -1,0 +1,17 @@
+{
+  "hood_survivor_suit_olive": [
+    {
+      "type": "icon_state",
+      "icon_state": "hood_survivor_suit_olive_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "hood_survivor_suit_olive_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ]
+}

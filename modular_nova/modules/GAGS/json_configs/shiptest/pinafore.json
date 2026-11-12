@@ -1,0 +1,25 @@
+{
+  "pinafore": [
+    {
+      "type": "icon_state",
+      "icon_state": "pinafore_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "pinafore_dress",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "pinafore_dress_shade",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ]
+}

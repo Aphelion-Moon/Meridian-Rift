@@ -1,0 +1,36 @@
+{
+  "gas_alt": [
+    {
+      "type": "icon_state",
+      "icon_state": "inhand_gas_alt_shade_left_first",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "inhand_gas_alt_shade_left_second",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "inhand_gas_alt_shade_left_third",
+      "blend_mode": "overlay",
+      "color_ids": [
+        3
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "inhand_gas_alt_shade_left_fourth",
+      "blend_mode": "overlay",
+      "color_ids": [
+        4
+      ]
+    }
+  ]
+}

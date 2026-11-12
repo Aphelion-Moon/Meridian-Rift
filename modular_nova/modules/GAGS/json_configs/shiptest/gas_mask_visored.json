@@ -1,0 +1,36 @@
+{
+  "gas_mask_visored": [
+    {
+      "type": "icon_state",
+      "icon_state": "gas_mask_visored_shell",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "gas_mask_visored_shell_shade",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "gas_mask_visored_lenses",
+      "blend_mode": "overlay",
+      "color_ids": [
+        3
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "gas_mask_visored_lenses_shade",
+      "blend_mode": "overlay",
+      "color_ids": [
+        4
+      ]
+    }
+  ]
+}

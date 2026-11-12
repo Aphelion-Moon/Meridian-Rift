@@ -1,0 +1,48 @@
+{
+  "trenchcoat_deaf_mute": [
+    {
+      "type": "icon_state",
+      "icon_state": "trenchcoat_deaf_mute_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "trenchcoat_deaf_mute_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "trenchcoat_deaf_mute_lining",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ],
+  "trenchcoat_deaf_mute_t": [
+    {
+      "type": "icon_state",
+      "icon_state": "trenchcoat_deaf_mute_t_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "trenchcoat_deaf_mute_t_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "trenchcoat_deaf_mute_t_lining",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ]
+}

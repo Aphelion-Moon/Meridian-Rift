@@ -1,0 +1,48 @@
+{
+  "trenchcoat_fur_collared_black": [
+    {
+      "type": "icon_state",
+      "icon_state": "trenchcoat_fur_collared_black_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "trenchcoat_fur_collared_black_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "trenchcoat_fur_collared_black_lining",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ],
+  "trenchcoat_fur_collared_black_t": [
+    {
+      "type": "icon_state",
+      "icon_state": "trenchcoat_fur_collared_black_t_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "trenchcoat_fur_collared_black_t_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "trenchcoat_fur_collared_black_t_lining",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "m_mask": [
+    {
+      "type": "icon_state",
+      "icon_state": "inhand_m_mask_left_first",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "floral_shirt_red": [
+    {
+      "type": "icon_state",
+      "icon_state": "floral_shirt_red_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "floral_shirt_red_flowers",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ]
+}

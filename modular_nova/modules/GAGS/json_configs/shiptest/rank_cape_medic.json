@@ -1,0 +1,12 @@
+{
+  "rank_cape_medic": [
+    {
+      "type": "icon_state",
+      "icon_state": "rank_cape_medic_cloth",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "tactical_webbing_crimson": [
+    {
+      "type": "icon_state",
+      "icon_state": "tactical_webbing_crimson_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "tactical_webbing_crimson_pouches",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ]
+}

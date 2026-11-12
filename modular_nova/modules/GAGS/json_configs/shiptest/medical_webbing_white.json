@@ -1,0 +1,17 @@
+{
+  "medical_webbing_white": [
+    {
+      "type": "icon_state",
+      "icon_state": "medical_webbing_white_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "medical_webbing_white_pouches",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ]
+}

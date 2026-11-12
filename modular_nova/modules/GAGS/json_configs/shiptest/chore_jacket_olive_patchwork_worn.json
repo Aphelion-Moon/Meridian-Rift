@@ -1,0 +1,32 @@
+{
+  "chore_jacket_olive_patchwork": [
+    {
+      "type": "icon_state",
+      "icon_state": "chore_jacket_olive_patchwork_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "chore_jacket_olive_patchwork_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ],
+  "chore_jacket_olive_patchwork_t": [
+    {
+      "type": "icon_state",
+      "icon_state": "chore_jacket_olive_patchwork_t_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "chore_jacket_olive_patchwork_t_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ]
+}

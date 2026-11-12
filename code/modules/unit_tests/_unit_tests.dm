@@ -326,6 +326,10 @@
 #include "security_levels.dm"
 #include "security_officer_distribution.dm"
 #include "serving_tray.dm"
+// APHELION EDIT ADDITION START
+#include "shiptest_restyle.dm"
+#include "shiptest_vending.dm"
+// APHELION EDIT ADDITION END
 #include "simple_animal_freeze.dm"
 #include "siunit.dm"
 #include "slapcrafting.dm"

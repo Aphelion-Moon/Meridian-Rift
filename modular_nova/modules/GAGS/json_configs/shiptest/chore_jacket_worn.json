@@ -1,0 +1,86 @@
+{
+  "chore_jacket": [
+    {
+      "type": "icon_state",
+      "icon_state": "chore_jacket_highlight",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "chore_jacket_light",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "chore_jacket_mid",
+      "blend_mode": "overlay",
+      "color_ids": [
+        3
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "chore_jacket_open_front_fold",
+      "blend_mode": "overlay",
+      "color_ids": [
+        4
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "chore_jacket_shadow",
+      "blend_mode": "overlay",
+      "color_ids": [
+        5
+      ]
+    }
+  ],
+  "chore_jacket_t": [
+    {
+      "type": "icon_state",
+      "icon_state": "chore_jacket_t_highlight",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "chore_jacket_t_light",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "chore_jacket_t_mid",
+      "blend_mode": "overlay",
+      "color_ids": [
+        3
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "chore_jacket_t_open_front_fold",
+      "blend_mode": "overlay",
+      "color_ids": [
+        4
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "chore_jacket_t_shadow",
+      "blend_mode": "overlay",
+      "color_ids": [
+        5
+      ]
+    }
+  ]
+}

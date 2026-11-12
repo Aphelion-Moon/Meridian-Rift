@@ -1,0 +1,25 @@
+{
+  "athletic_shorts": [
+    {
+      "type": "icon_state",
+      "icon_state": "athletic_shorts_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "athletic_shorts_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "athletic_shorts_fabric_shade",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ]
+}

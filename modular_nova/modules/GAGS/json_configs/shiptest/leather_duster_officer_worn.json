@@ -1,0 +1,17 @@
+{
+  "leather_duster_officer": [
+    {
+      "type": "icon_state",
+      "icon_state": "leather_duster_officer_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "leather_duster_officer_leather",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ]
+}

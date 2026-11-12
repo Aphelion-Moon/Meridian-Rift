@@ -1,0 +1,20 @@
+{
+  "glasses": [
+    {
+      "type": "icon_state",
+      "icon_state": "inhand_glasses_shade_left_first",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "inhand_glasses_shade_left_second",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ]
+}

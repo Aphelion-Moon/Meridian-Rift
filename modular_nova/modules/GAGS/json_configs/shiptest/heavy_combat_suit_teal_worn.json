@@ -1,0 +1,20 @@
+{
+  "heavy_combat_suit_teal": [
+    {
+      "type": "icon_state",
+      "icon_state": "heavy_combat_suit_teal_armor",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "heavy_combat_suit_teal_trim",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ]
+}

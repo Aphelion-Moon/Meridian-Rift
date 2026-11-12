@@ -1,0 +1,25 @@
+{
+  "tinted_goggles": [
+    {
+      "type": "icon_state",
+      "icon_state": "tinted_goggles_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "tinted_goggles_lenses",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "tinted_goggles_lenses_shade",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ]
+}

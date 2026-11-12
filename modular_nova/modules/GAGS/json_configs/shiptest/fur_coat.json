@@ -1,0 +1,33 @@
+{
+  "fur_coat": [
+    {
+      "type": "icon_state",
+      "icon_state": "fur_coat_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "fur_coat_coat",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "fur_coat_coat_shade",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "fur_coat_fur",
+      "blend_mode": "overlay",
+      "color_ids": [
+        3
+      ]
+    }
+  ]
+}

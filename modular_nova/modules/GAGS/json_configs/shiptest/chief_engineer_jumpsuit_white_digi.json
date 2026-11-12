@@ -1,0 +1,25 @@
+{
+  "chief_engineer_jumpsuit_white": [
+    {
+      "type": "icon_state",
+      "icon_state": "chief_engineer_jumpsuit_white_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "chief_engineer_jumpsuit_white_shirt",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "chief_engineer_jumpsuit_white_trousers",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ]
+}

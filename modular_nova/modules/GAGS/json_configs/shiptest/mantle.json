@@ -1,0 +1,20 @@
+{
+  "mantle": [
+    {
+      "type": "icon_state",
+      "icon_state": "mantle_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "mantle_fabric_shade",
+      "blend_mode": "overlay",
+      "color_ids": [
+        2
+      ]
+    }
+  ]
+}

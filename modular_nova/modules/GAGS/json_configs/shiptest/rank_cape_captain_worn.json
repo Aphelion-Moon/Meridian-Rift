@@ -1,0 +1,17 @@
+{
+  "rank_cape_captain": [
+    {
+      "type": "icon_state",
+      "icon_state": "rank_cape_captain_details",
+      "blend_mode": "overlay"
+    },
+    {
+      "type": "icon_state",
+      "icon_state": "rank_cape_captain_cloth",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ]
+}

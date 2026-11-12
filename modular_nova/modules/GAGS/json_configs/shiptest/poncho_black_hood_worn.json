@@ -1,0 +1,12 @@
+{
+  "hood_poncho_black": [
+    {
+      "type": "icon_state",
+      "icon_state": "hood_poncho_black_fabric",
+      "blend_mode": "overlay",
+      "color_ids": [
+        1
+      ]
+    }
+  ]
+}
