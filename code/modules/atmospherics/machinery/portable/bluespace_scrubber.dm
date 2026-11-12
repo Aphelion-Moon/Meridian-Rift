@@ -43,12 +43,12 @@
 	if(receiver_air.return_pressure() >= overpressure_m * ONE_ATMOSPHERE)
 		return
 
-	var/list/cached_moles = air_contents.moles
+	var/list/cached_moles = air_contents.get_moles_list() // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/list/cached_moles = air_contents.moles
 
 	//contains all of the gas we're pulling out of our air_contents, gets merged into the receiver
 	var/datum/gas_mixture/filtered_out = new
 
-	filtered_out.temperature = air_contents.temperature
+	filtered_out.set_temperature(air_contents.return_temperature()) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: filtered_out.temperature = air_contents.temperature
 
 	//maximum percentage of our stored gas we can transfer
 	var/removal_ratio = 1

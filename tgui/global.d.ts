@@ -20,6 +20,13 @@ declare module '*.svg' {
   const content: string;
   export default content;
 }
+// APHELION EDIT ADDITION START - DOGMOS
+
+declare module '*.md' {
+  const content: string;
+  export default content;
+}
+// APHELION EDIT ADDITION END
 
 namespace JSX {
   interface IntrinsicElements {

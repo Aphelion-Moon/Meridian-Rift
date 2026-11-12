@@ -683,7 +683,7 @@
 	var/datum/gas_mixture/stank = new
 
 	stank.set_gas(/datum/gas/miasma, (seed.yield + 6) * 3.5 * MIASMA_CORPSE_MOLES * seconds_per_tick) // this process is only being called about 2/7 as much as corpses so this is 12-32 times a corpses
-	stank.temperature = T20C // without this the room would eventually freeze and miasma mining would be easier
+	stank.set_temperature(T20C) // without this the room would eventually freeze and miasma mining would be easier // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: stank.temperature = T20C // without this the room would eventually freeze and miasma mining would be easier
 	tray_turf.assume_air(stank)
 
 /// Hard caps the yield at 5 (effectively)

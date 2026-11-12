@@ -371,6 +371,7 @@ GLOBAL_VAR_INIT(last_maptick_time, 0)
 		QDEL_NULL(Tracy)
 		QDEL_NULL(Debugger)
 		TgsEndProcess()
+		SSdogmos?.shutdown_native() // APHELION EDIT ADDITION - DOGMOS
 		return ..()
 
 	log_world("World rebooted at [server_timestamp()]")
@@ -381,12 +382,17 @@ GLOBAL_VAR_INIT(last_maptick_time, 0)
 
 	TgsReboot() // TGS can decide to kill us right here, so it's important to do it last
 
+	SSdogmos?.shutdown_native() // APHELION EDIT ADDITION - DOGMOS
 	..()
 	#endif
 
 /world/Del()
 	QDEL_NULL(Tracy)
 	QDEL_NULL(Debugger)
+	// APHELION EDIT ADDITION START - DOGMOS
+	// FinishTestRun yields once after subsystem shutdown; async map work still needs native gas until here.
+	SSdogmos?.shutdown_native()
+	// APHELION EDIT ADDITION END
 	. = ..()
 
 /* NOVA EDIT REMOVAL - OVERRIDDEN
