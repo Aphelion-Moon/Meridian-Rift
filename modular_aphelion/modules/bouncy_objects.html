@@ -1,0 +1,73 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_aphelion/modules/bouncy_objects/readme.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>modular_aphelion/modules/bouncy_objects/readme.md <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/1a3e1159f4c85f4293583a1220bfb480d91bd6dc/modular_aphelion/modules/bouncy_objects/readme.md"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/bouncy_objects/readme.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><h2 id="bouncy-objects">Bouncy Objects</h2>
+<p>Module ID: BOUNCY_OBJECTS</p>
+<h3 id="description">Description:</h3>
+<p>Adds <code>/datum/element/bouncy</code>, a configurable bounce for thrown objects. After a throw hits a wall,
+structure or mob, the object rebounds off it. After it lands on a hard floor, it can hop onward. Each
+rebound keeps only part of the incoming distance, so the object settles after a few bounces. Rebounds of
+a tile or more are thrown with a small hop arc; shorter ones become a decelerating slide within the
+object's own tile, so a bounce never stops dead or twitches in place. Casings ejected from a ballistic
+gun's chamber also hop a tile away (bulk unloads, such as dumping a revolver, do not). A throw with no
+thrower aimed at the object's own tile is a toss: it lands at once and the object pops away in a random
+direction as far as the throw's range. A slimeperson's core is tossed this way when their body melts on death;
+small explosions can toss things too weakly to do more than nudge them.</p>
+<p>The player's own throw is unchanged, including its damage and catching. Rebounds never strike the
+obstacles they run into (<code>/datum/thrownthing/bounce/finalize()</code> skips the impact), so they deal no damage,
+push nothing, cannot be caught and set off no hitby() reactions or hit sounds. Bump reactions, such as a
+door opening or a portal teleporting the object, still happen. Rebound landings on the floor still reach the
+turf, except casing ejection hops, which land silently because the gun already plays the clatter (on lava
+they do reach it, since that is what burns them).</p>
+<p>Floor hops are absorbed by lava, by soft or non-solid turfs (those without a <code>bullet_bounce_sound</code>), and by
+surfaces things are thrown onto: any dense object a throw passes over, such as a table, rack or hydroponics
+tray. A throw stopped short of its target and range, by being picked up or batted, does not hop either.
+Nothing bounces where it is about to fall, through open space or into a chasm, and an object a structure
+takes onto its own tile, such as a basketball scored in a hoop, stays there. There are no rebounds, ejection
+hops or toss pops without gravity.</p>
+<p>Mass throws are kept cheap by two limits. At most <code>BOUNCE_MAX_PER_TICK</code> (8) bounces start per server tick,
+shared by every bouncy object, so an explosion scattering a pile of casings and rods, or several guns on full
+auto, cannot flood the throwing subsystem, timers, clients or sound; objects past the budget settle where
+they are. While it has gravity, no single bounce travels further than <code>BOUNCE_MAX_DISTANCE</code> (8) tiles,
+which mostly trims throws from mass drivers, explosions and the like.</p>
+<p>Element arguments, all optional:</p>
+<ul>
+<li><code>restitution</code> - fraction (0 to 1) of the incoming distance each rebound keeps</li>
+<li><code>max_bounces</code> - most rebounds one throw or ejection can chain into</li>
+<li><code>deflect_chance</code> - percent chance for a rebound to veer 45 degrees</li>
+<li><code>bounce_sound</code>, <code>bounce_sound_volume</code> - extra sound at each rebound</li>
+<li><code>eject_hop_range</code> - tiles the object travels in a random direction when ejected from a ballistic gun
+as a casing; listens to <code>COMSIG_CASING_EJECTED</code></li>
+</ul>
+<p>Profiles, in <code>code/bouncy_objects.dm</code>:</p>
+<table><thead><tr><th>Object</th><th>Restitution</th><th>Max bounces</th><th>Deflect</th><th>Notes</th></tr></thead><tbody>
+<tr><td>Tennis balls (<code>/obj/item/toy/tennis</code>)</td><td>0.7</td><td>4</td><td>0%</td><td>Basketball bounce sound</td></tr>
+<tr><td>Slimeperson cores (<code>/obj/item/organ/brain/slime</code>)</td><td>0.85</td><td>6</td><td>15%</td><td>Boing sound; tossed for a 4-tile pop on death</td></tr>
+<tr><td>Slime extracts (<code>/obj/item/slime_extract</code>)</td><td>0.35</td><td>1</td><td>25%</td><td>Splat sound</td></tr>
+<tr><td>Ammo casings and live rounds (<code>/obj/item/ammo_casing</code>)</td><td>0.5</td><td>2</td><td>50%</td><td>1-tile ejection hop, landing silently, as the gun already plays the clatter</td></tr>
+<tr><td>Iron rods (<code>/obj/item/stack/rods</code>)</td><td>0.3</td><td>2</td><td>50%</td><td>Existing metal landing sound</td></tr>
+</tbody></table>
+<p>Fired projectiles are not affected; they keep TG's ricochet system.</p>
+<h3 id="tg-proc-file-changes">TG Proc/File Changes:</h3>
+<ul>
+<li><code>modular_nova/modules/customization/modules/mob/living/carbon/human/species/roundstartslime.dm</code>:
+<code>/obj/item/organ/brain/slime/proc/core_ejection()</code> - tosses the core in place (a range 4 throw at its own
+tile) when the body melts, if it has gravity, so it pops away. A modular override cannot do this:
+<code>modular_aphelion</code> is included before <code>modular_nova</code>, and Nova's definition does not call its parent.</li>
+</ul>
+<h3 id="modular-overrides">Modular Overrides:</h3>
+<ul>
+<li><code>code/bouncy_objects.dm</code>: <code>Initialize()</code> of <code>/obj/item/toy/tennis</code> (Nova-owned),
+<code>/obj/item/organ/brain/slime</code> (Nova-owned), <code>/obj/item/slime_extract</code>, <code>/obj/item/ammo_casing</code> and
+<code>/obj/item/stack/rods</code> - call the parent and attach <code>/datum/element/bouncy</code></li>
+</ul>
+<h3 id="defines">Defines:</h3>
+<ul>
+<li>File-local <code>BOUNCE_REBOUND_DELAY</code>, <code>BOUNCE_MINIMUM_DISTANCE</code>, <code>BOUNCE_SLIDE_PIXEL_LIMIT</code>,
+<code>BOUNCE_MAX_HOP_HEIGHT</code>, <code>BOUNCE_MAX_PER_TICK</code> and <code>BOUNCE_MAX_DISTANCE</code> in <code>code/bouncy_element.dm</code></li>
+</ul>
+<h3 id="included-files-that-are-not-contained-in-this-module">Included files that are not contained in this module:</h3>
+<ul>
+<li>N/A</li>
+</ul>
+<h3 id="credits">Credits:</h3>
+<ul>
+<li>Moonridden</li>
+</ul></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/1a3e1159f4c85f4293583a1220bfb480d91bd6dc">1a3e115</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>
