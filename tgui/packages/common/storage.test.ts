@@ -5,8 +5,8 @@ import { IFrameIndexedDbBackend, StorageProxy } from './storage';
 type Reply = { value?: unknown; error?: string } | null;
 
 /**
- * A storage iframe's window that answers each `get` as `answer` says: a value,
- * an error, or nothing at all (null) for one that never replies.
+ * A storage iframe window that answers each `get` with what `answer` gives: a
+ * value, an error, or nothing (null) for an iframe that never answers.
  */
 function fakeIframe(answer: (key: string) => Reply) {
   const frame = {
@@ -69,10 +69,10 @@ describe('importing settings from byondstorage', () => {
     Object.assign(window, { hubStorage: undefined });
   });
 
-  /** A proxy over an iframe store that answers reads as `read` does. */
+  /** A proxy over an iframe store whose reads answer like `read`. */
   async function proxyOver(read: (key: string) => Promise<unknown>) {
     byond.storageCdn = 'https://cdn.invalid/iframe.html';
-    // Another server's settings, from when every server shared byondstorage.
+    // Another server's settings, from when all servers shared byondstorage.
     Object.assign(window, {
       hubStorage: {
         getItem: (key: string) =>
@@ -100,7 +100,7 @@ describe('importing settings from byondstorage', () => {
     const proxy = new StorageProxy(
       () => iframe as unknown as IFrameIndexedDbBackend,
     );
-    // Any call waits for the backend to be chosen, the import included.
+    // Any call waits until the backend is picked, which includes the import.
     await proxy.get('anything');
     return { proxy, writes };
   }

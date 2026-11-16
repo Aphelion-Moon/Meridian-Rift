@@ -15,9 +15,9 @@ export const chatPagesRecordAtom = atom({
 export const chatLoadedAtom = atom(false);
 // APHELION EDIT ADDITION START - CHAT_SETTINGS
 /**
- * Set once the stored chat has been read. Chat isn't saved before that, or for
- * the rest of a session whose read failed, so its tabs and history are never
- * saved over with defaults.
+ * Set once the saved chat is read. Until then chat isn't saved. If the read
+ * fails, chat isn't saved for the rest of the session, so the defaults never
+ * replace the player's saved tabs and history.
  */
 export const chatReadAtom = atom(false);
 // APHELION EDIT ADDITION END

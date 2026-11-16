@@ -1,13 +1,16 @@
 import { storage } from 'common/storage';
 import { useAtom, useAtomValue } from 'jotai';
 import { useEffect } from 'react';
-import { store } from '../events/store'; // APHELION EDIT ADDITION - CHAT_SETTINGS
+// import { highlightsAtom, settingsAtom, settingsLoadedAtom } from './atoms'; // APHELION EDIT REMOVAL - CHAT_SETTINGS
+// APHELION EDIT ADDITION START - CHAT_SETTINGS
+import { store } from '../events/store';
 import {
   highlightsAtom,
   settingsAtom,
   settingsLoadedAtom,
-  settingsReadAtom, // APHELION EDIT ADDITION - CHAT_SETTINGS
+  settingsReadAtom,
 } from './atoms';
+// APHELION EDIT ADDITION END
 import { generalSettingsHandler } from './helpers';
 import { startSettingsMigration } from './migration';
 import { setDisplayScaling } from './scaling';
@@ -32,8 +35,8 @@ export function useSettings() {
         startSettingsMigration(storedSettings);
       } catch (error) {
         // APHELION EDIT ADDITION START - CHAT_SETTINGS
-        // The defaults show for this session and nothing is saved, so the
-        // stored settings are still there for the next one.
+        // Show the defaults this session and save nothing, so the player's
+        // settings are still there next session.
         // APHELION EDIT ADDITION END
         console.error('Failed to load panel settings:', error);
       }
@@ -48,11 +51,12 @@ export function useSettings() {
   function storeSettings(update: SettingsState): void {
     setSettings(update);
     console.log('Updated panel settings:', update);
-    // APHELION EDIT CHANGE START - CHAT_SETTINGS - ORIGINAL: storage.set('panel-settings', { ...update, ...highlights });
+    // storage.set('panel-settings', { ...update, ...highlights }); // APHELION EDIT REMOVAL - CHAT_SETTINGS
+    // APHELION EDIT ADDITION START - CHAT_SETTINGS
     if (store.get(settingsReadAtom)) {
       storage.set('panel-settings', { ...update, ...highlights });
     }
-    // APHELION EDIT CHANGE END
+    // APHELION EDIT ADDITION END
   }
 
   /** Updates any set of keys. Offers type safety based on the selection */

@@ -22,10 +22,10 @@ function Probe() {
   return null;
 }
 
-/** The chat keys written during a test. */
+/** The chat keys written in a test. */
 let chatWrites: string[];
 
-/** Stubs storage: `read` answers each chat key, or rejects when it can't. */
+/** Stubs storage. `read` answers each chat key, or rejects if the read fails. */
 function stubStorage(read: (key: string) => Promise<unknown>) {
   chatWrites = [];
   Object.assign(storage, { read: mock(read) });

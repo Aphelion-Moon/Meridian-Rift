@@ -22,7 +22,7 @@ import {
 } from './atoms';
 import { useSettings } from './use-settings';
 
-// What a player had saved before the session: not the defaults.
+// What the player had saved before the session. Not the defaults.
 const saved = {
   ...defaultSettings,
   ...defaultHighlights,
@@ -38,14 +38,14 @@ function Probe() {
   return null;
 }
 
-/** The panel-settings writes made during a test. */
+/** The panel-settings writes in a test. */
 let panelWrites: unknown[];
 
 /**
- * Stubs the storage the panel reads its settings from. `read` is what the
- * store answers: a value, undefined for nothing stored, or a rejection when it
- * couldn't be read. A store that can't answer gave `get` undefined, so `get`
- * resolves that way whenever `read` doesn't resolve a value.
+ * Stubs the storage the panel reads its settings from. `read` gives what the
+ * store answers: a value, undefined if nothing's saved, or a rejection if the
+ * read fails. A store that doesn't answer gave `get` undefined, so `get` gives
+ * undefined whenever `read` doesn't give a value.
  */
 function stubStorage(read: () => Promise<unknown>) {
   panelWrites = [];
@@ -70,7 +70,7 @@ async function mountPanel() {
       <Probe />
     </Provider>,
   );
-  // Let the load and anything it chains run out.
+  // Let the load and what it starts finish.
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 20));
   });

@@ -18,9 +18,8 @@ type StorageBackend = {
   get(key: string): Promise<any>;
   // APHELION EDIT ADDITION START - CHAT_SETTINGS
   /**
-   * The stored value, or undefined when nothing is stored. Rejects when the
-   * store can't answer, so a caller never takes a failed read for an empty
-   * store and saves defaults over what is there.
+   * The saved value, or undefined if nothing's saved. Fails if the store
+   * doesn't answer, so a failed read never looks like an empty store.
    */
   read(key: string): Promise<any>;
   // APHELION EDIT ADDITION END
@@ -90,7 +89,7 @@ export class IFrameIndexedDbBackend implements StorageBackend { // APHELION EDIT
   private documentElement: HTMLIFrameElement;
   private iframeWindow: Window;
   // APHELION EDIT ADDITION START - CHAT_SETTINGS
-  /** How long a read waits for the iframe before it counts as failed, in ms. */
+  /** How long a read waits for the iframe before it fails, in ms. */
   private timeout: number;
   // APHELION EDIT ADDITION END
 
@@ -163,7 +162,8 @@ export class IFrameIndexedDbBackend implements StorageBackend { // APHELION EDIT
         ) {
           clearTimeout(timeout);
           window.removeEventListener('message', listener);
-          // APHELION EDIT CHANGE START - CHAT_SETTINGS - ORIGINAL: resolve(message.data.value);
+          // resolve(message.data.value); // APHELION EDIT REMOVAL - CHAT_SETTINGS
+          // APHELION EDIT ADDITION START - CHAT_SETTINGS
           if (message.data.error) {
             reject(
               new Error(
@@ -173,16 +173,17 @@ export class IFrameIndexedDbBackend implements StorageBackend { // APHELION EDIT
           } else {
             resolve(message.data.value);
           }
-          // APHELION EDIT CHANGE END
+          // APHELION EDIT ADDITION END
         }
       };
       const timeout = setTimeout(() => {
         window.removeEventListener('message', listener);
-        // APHELION EDIT CHANGE START - CHAT_SETTINGS - ORIGINAL: resolve(undefined);
+        // resolve(undefined); // APHELION EDIT REMOVAL - CHAT_SETTINGS
+        // APHELION EDIT ADDITION START - CHAT_SETTINGS
         reject(
           new Error(`Storage didn't answer for '${key}' in ${this.timeout} ms`),
         );
-        // APHELION EDIT CHANGE END
+        // APHELION EDIT ADDITION END
       }, this.timeout); // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: }, STORAGE_CDN_TIMEOUT);
 
       window.addEventListener('message', listener);
@@ -243,8 +244,8 @@ export class StorageProxy implements StorageBackend { // APHELION EDIT CHANGE - 
           ).some((settings) => settings !== undefined);
           */ // APHELION EDIT REMOVAL END
           // APHELION EDIT ADDITION START - CHAT_SETTINGS
-          // Only a store that answers it is empty takes byondstorage's copy:
-          // one that can't answer may hold the player's own settings.
+          // Copy byondstorage only into a store that answered it's empty.
+          // A store that didn't answer can still hold the player's settings.
           let iframeHasPersistedStorage: boolean;
           try {
             if (await iframe.read('byondstorage-migrated')) return iframe;

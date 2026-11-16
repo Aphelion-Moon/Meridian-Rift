@@ -63,8 +63,8 @@
             });
             */ // APHELION EDIT REMOVAL END
             // APHELION EDIT ADDITION START - CHAT_SETTINGS
-            // A read that fails answers too, so the page never takes it for
-            // an empty store and saves defaults over the player's data.
+            // Answer a failed read too, so the page doesn't take it for an
+            // empty store and save defaults over the player's settings.
             get(messageEvent.data.key).then(
               (value) => {
                 messageEvent.source.postMessage(

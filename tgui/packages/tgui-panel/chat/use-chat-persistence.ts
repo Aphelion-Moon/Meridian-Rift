@@ -67,7 +67,7 @@ export function useChatPersistence() {
       ]);
       store.set(chatReadAtom, true);
     } catch (error) {
-      // Default tabs for this session, and nothing saved over the stored chat.
+      // Default tabs this session, and nothing saved over the player's chat.
       console.error('Failed to load chat from storage:', error);
     }
     // APHELION EDIT ADDITION END

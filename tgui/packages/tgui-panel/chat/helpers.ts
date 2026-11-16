@@ -66,7 +66,7 @@ function updateMessageCount(countByType: Record<string, number>): void {
 
 export function saveChatToStorage(): void {
   // APHELION EDIT ADDITION START - CHAT_SETTINGS
-  // Not before the stored chat is read; see chatReadAtom.
+  // Only once the saved chat is read. See chatReadAtom.
   if (!store.get(chatReadAtom)) return;
   // APHELION EDIT ADDITION END
   saveChatMessages();

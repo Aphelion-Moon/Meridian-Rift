@@ -55,9 +55,9 @@ export const defaultHighlights: HighlightState = {
 export const settingsLoadedAtom = atom(false);
 // APHELION EDIT ADDITION START - CHAT_SETTINGS
 /**
- * Set once the stored settings have been read. Nothing is saved before that,
- * or for the rest of a session whose read failed, so defaults never go over
- * the settings a player has stored.
+ * Set once the saved settings are read. Until then nothing is saved. If the
+ * read fails, nothing is saved for the rest of the session, so the defaults
+ * never replace the player's saved settings.
  */
 export const settingsReadAtom = atom(false);
 // APHELION EDIT ADDITION END
