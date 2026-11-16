@@ -54,12 +54,32 @@
             messageEvent.source.postMessage(true, '*');
             break;
           case 'get':
+            /* // APHELION EDIT REMOVAL START - CHAT_SETTINGS
             get(messageEvent.data.key).then((value) => {
               messageEvent.source.postMessage(
                 { key: messageEvent.data.key, value: value },
                 '*',
               );
             });
+            */ // APHELION EDIT REMOVAL END
+            // APHELION EDIT ADDITION START - CHAT_SETTINGS
+            // A read that fails answers too, so the page never takes it for
+            // an empty store and saves defaults over the player's data.
+            get(messageEvent.data.key).then(
+              (value) => {
+                messageEvent.source.postMessage(
+                  { key: messageEvent.data.key, value: value },
+                  '*',
+                );
+              },
+              (error) => {
+                messageEvent.source.postMessage(
+                  { key: messageEvent.data.key, error: String(error) },
+                  '*',
+                );
+              },
+            );
+            // APHELION EDIT ADDITION END
             break;
           case 'set':
             set(messageEvent.data.key, messageEvent.data.value);

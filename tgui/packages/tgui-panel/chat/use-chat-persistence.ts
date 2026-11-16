@@ -2,8 +2,9 @@ import { type StorageDiagnostic, storage } from 'common/storage';
 import DOMPurify from 'dompurify';
 import { useAtom, useAtomValue } from 'jotai';
 import { useEffect } from 'react';
+import { store } from '../events/store'; // APHELION EDIT ADDITION - CHAT_SETTINGS
 import { settingsLoadedAtom } from '../settings/atoms';
-import { chatLoadedAtom, versionAtom } from './atom';
+import { chatLoadedAtom, chatReadAtom, versionAtom } from './atom'; // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: import { chatLoadedAtom, versionAtom } from './atom';
 import { MESSAGE_SAVE_INTERVAL } from './constants';
 import { saveChatToStorage } from './helpers';
 import { startChatStateMigration } from './migration';
@@ -50,10 +51,26 @@ export function useChatPersistence() {
   }, [loaded]);
 
   async function loadChatFromStorage(): Promise<void> {
+    /* // APHELION EDIT REMOVAL START - CHAT_SETTINGS
     const [state, messages] = await Promise.all([
       storage.get('chat-state'),
       storage.get('chat-messages'),
     ]);
+    */ // APHELION EDIT REMOVAL END
+    // APHELION EDIT ADDITION START - CHAT_SETTINGS
+    let state: any;
+    let messages: any;
+    try {
+      [state, messages] = await Promise.all([
+        storage.read('chat-state'),
+        storage.read('chat-messages'),
+      ]);
+      store.set(chatReadAtom, true);
+    } catch (error) {
+      // Default tabs for this session, and nothing saved over the stored chat.
+      console.error('Failed to load chat from storage:', error);
+    }
+    // APHELION EDIT ADDITION END
 
     surfaceStorageDiagnostics(storage.diagnostics);
 
