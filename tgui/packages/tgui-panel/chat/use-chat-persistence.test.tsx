@@ -12,9 +12,10 @@ import { act, render } from '@testing-library/react';
 import { storage } from 'common/storage';
 import { Provider } from 'jotai';
 import { store } from '../events/store';
-import { settingsLoadedAtom } from '../settings/atoms';
+import { settingsLoadedAtom, settingsReadAtom } from '../settings/atoms';
 import { chatLoadedAtom, chatReadAtom } from './atom';
 import { saveChatToStorage } from './helpers';
+import { chatRenderer } from './renderer';
 import { useChatPersistence } from './use-chat-persistence';
 
 function Probe() {
@@ -28,7 +29,7 @@ let chatWrites: string[];
 /** Stubs storage. `read` answers each chat key, or rejects if the read fails. */
 function stubStorage(read: (key: string) => Promise<unknown>) {
   chatWrites = [];
-  Object.assign(storage, { read: mock(read) });
+  spyOn(storage, 'read').mockImplementation(read);
   spyOn(storage, 'get').mockImplementation((key: string) =>
     read(key).catch(() => undefined),
   );
@@ -51,13 +52,45 @@ async function mountChat() {
 describe('chat persistence', () => {
   beforeEach(() => {
     store.set(settingsLoadedAtom, true);
+    store.set(settingsReadAtom, true);
     store.set(chatLoadedAtom, false);
     store.set(chatReadAtom, false);
   });
 
   afterEach(() => {
     mock.restore();
-    Object.assign(storage, { read: undefined });
+  });
+
+  /**
+   * The lines put in chat while `load` runs that tell the player something of
+   * theirs didn't load. The test world's own storage notes are left out.
+   */
+  async function notLoadedLines(load: () => Promise<void>): Promise<string[]> {
+    const batches = spyOn(chatRenderer, 'processBatch').mockImplementation(
+      () => {},
+    );
+    await load();
+    return batches.mock.calls
+      .flatMap(([batch]) => batch as { text?: string }[])
+      .map((message) => message.text ?? '')
+      .filter((text) => text.startsWith('[Storage] Your '));
+  }
+
+  it('says in chat what did not load, in plain words', async () => {
+    store.set(settingsReadAtom, false);
+    stubStorage(() => Promise.reject(new Error('storage did not answer')));
+    const lines = await notLoadedLines(mountChat);
+
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toContain("Your chat settings didn't load");
+    expect(lines[1]).toContain("Your chat tabs and history didn't load");
+  });
+
+  it('says nothing of the kind when everything loaded', async () => {
+    stubStorage(async () => undefined);
+    const lines = await notLoadedLines(mountChat);
+
+    expect(lines).toEqual([]);
   });
 
   it('does not save over stored chat it could not read', async () => {

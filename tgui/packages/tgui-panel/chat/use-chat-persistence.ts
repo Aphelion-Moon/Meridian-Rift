@@ -3,7 +3,7 @@ import DOMPurify from 'dompurify';
 import { useAtom, useAtomValue } from 'jotai';
 import { useEffect } from 'react';
 import { store } from '../events/store'; // APHELION EDIT ADDITION - CHAT_SETTINGS
-import { settingsLoadedAtom } from '../settings/atoms';
+import { settingsLoadedAtom, settingsReadAtom } from '../settings/atoms'; // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: import { settingsLoadedAtom } from '../settings/atoms';
 import { chatLoadedAtom, chatReadAtom, versionAtom } from './atom'; // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: import { chatLoadedAtom, versionAtom } from './atom';
 import { MESSAGE_SAVE_INTERVAL } from './constants';
 import { saveChatToStorage } from './helpers';
@@ -70,9 +70,25 @@ export function useChatPersistence() {
       // Default tabs this session, and nothing saved over the player's chat.
       console.error('Failed to load chat from storage:', error);
     }
+    // What didn't load, said in chat so the player knows it's kept.
+    const notLoaded: StorageDiagnostic[] = [];
+    if (!store.get(settingsReadAtom)) {
+      notLoaded.push({
+        level: 'warn',
+        message:
+          "Your chat settings didn't load, so this session uses the defaults and doesn't save changes. Your saved settings are kept and come back next time.",
+      });
+    }
+    if (!store.get(chatReadAtom)) {
+      notLoaded.push({
+        level: 'warn',
+        message:
+          "Your chat tabs and history didn't load, so this session starts fresh and isn't saved. Your saved ones are kept and come back next time.",
+      });
+    }
     // APHELION EDIT ADDITION END
 
-    surfaceStorageDiagnostics(storage.diagnostics);
+    surfaceStorageDiagnostics([...storage.diagnostics, ...notLoaded]); // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: surfaceStorageDiagnostics(storage.diagnostics);
 
     if (messages) {
       handleMessages(messages);

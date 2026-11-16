@@ -46,12 +46,12 @@ describe('iframe storage reads', () => {
 
   it('fails when the store reports an error', async () => {
     const backend = backendWith(() => ({ error: 'InvalidStateError' }));
-    expect(backend.read('panel-settings')).rejects.toThrow();
+    await expect(backend.read('panel-settings')).rejects.toThrow();
   });
 
   it('fails when the store does not answer in time', async () => {
     const backend = backendWith(() => null);
-    expect(backend.read('panel-settings')).rejects.toThrow();
+    await expect(backend.read('panel-settings')).rejects.toThrow();
   });
 
   it('still gives undefined from get when the read fails', async () => {
@@ -60,57 +60,65 @@ describe('iframe storage reads', () => {
   });
 });
 
-describe('importing settings from byondstorage', () => {
-  const byond = Byond as unknown as { storageCdn: string };
-  const cdn = byond.storageCdn;
+const byond = Byond as unknown as { storageCdn: string };
+const cdn = byond.storageCdn;
 
-  afterEach(() => {
-    byond.storageCdn = cdn;
-    Object.assign(window, { hubStorage: undefined });
+/** A byondstorage that holds `stored` under panel-settings and nothing else. */
+function stubHubStorage(stored: string) {
+  Object.assign(window, {
+    hubStorage: {
+      getItem: (key: string) => (key === 'panel-settings' ? stored : null),
+      setItem: () => {},
+      removeItem: () => {},
+      clear: () => {},
+    },
   });
+}
 
-  /** A proxy over an iframe store whose reads answer like `read`. */
-  async function proxyOver(read: (key: string) => Promise<unknown>) {
-    byond.storageCdn = 'https://cdn.invalid/iframe.html';
-    // Another server's settings, from when all servers shared byondstorage.
-    Object.assign(window, {
-      hubStorage: {
-        getItem: (key: string) =>
-          key === 'panel-settings'
-            ? JSON.stringify({ fontSize: 9, theme: 'light' })
-            : null,
-        setItem: () => {},
-        removeItem: () => {},
-        clear: () => {},
-      },
-    });
-    const writes: string[] = [];
-    const iframe = {
-      impl: 2,
-      ready: async () => true,
-      read,
-      get: (key: string) => read(key).catch(() => undefined),
-      set: mock(async (key: string) => {
-        writes.push(key);
-      }),
-      remove: async () => {},
-      clear: async () => {},
-      destroy: async () => {},
-    };
-    const proxy = new StorageProxy(
-      () => iframe as unknown as IFrameIndexedDbBackend,
-    );
-    // Any call waits until the backend is picked, which includes the import.
-    await proxy.get('anything');
-    return { proxy, writes };
-  }
+/** A proxy over an iframe store whose reads answer like `read`. */
+async function proxyOver(read: (key: string) => Promise<unknown>) {
+  byond.storageCdn = 'https://cdn.invalid/iframe.html';
+  // Another server's settings, from when all servers shared byondstorage.
+  stubHubStorage(JSON.stringify({ fontSize: 9, theme: 'light' }));
+  const writes: string[] = [];
+  const iframe = {
+    impl: 2,
+    ready: async () => true,
+    read,
+    get: (key: string) => read(key).catch(() => undefined),
+    set: mock(async (key: string) => {
+      writes.push(key);
+    }),
+    remove: async () => {},
+    clear: async () => {},
+    destroy: async () => {},
+  };
+  const proxy = new StorageProxy(
+    () => iframe as unknown as IFrameIndexedDbBackend,
+  );
+  // Any call waits until the backend is picked, which includes the import.
+  await proxy.get('anything');
+  return { proxy, writes };
+}
 
+afterEach(() => {
+  byond.storageCdn = cdn;
+  Object.assign(window, { hubStorage: undefined });
+});
+
+describe('importing settings from byondstorage', () => {
   it('does not copy byondstorage over iframe data it could not read', async () => {
     const { proxy, writes } = await proxyOver(() =>
       Promise.reject(new Error('storage did not answer')),
     );
     expect(writes).toEqual([]);
-    expect(proxy.diagnostics.some((entry) => entry.level !== 'info')).toBe(
+    expect(
+      proxy.diagnostics.some((entry) =>
+        entry.message.includes('nothing was imported'),
+      ),
+    ).toBe(true);
+    // Nothing the player has to read in chat.
+    expect(proxy.diagnostics.every((entry) => entry.level === 'info')).toBe(
       true,
     );
   });
@@ -118,5 +126,52 @@ describe('importing settings from byondstorage', () => {
   it('still imports byondstorage into an iframe store that is really empty', async () => {
     const { writes } = await proxyOver(async () => undefined);
     expect(writes).toEqual(['panel-settings', 'byondstorage-migrated']);
+  });
+});
+
+describe('storage reads', () => {
+  /**
+   * A proxy over a store that holds a font size. Once `store.failing` is set,
+   * that many of its next reads fail.
+   */
+  async function proxyOverFlakyStore() {
+    const store = { failing: 0 };
+    const read = mock(async (key: string) => {
+      if (store.failing > 0) {
+        store.failing--;
+        throw new Error('storage did not answer');
+      }
+      return key === 'panel-settings' ? { fontSize: 16 } : undefined;
+    });
+    const { proxy } = await proxyOver(read);
+    read.mockClear();
+    return { proxy, read, store };
+  }
+
+  it('asks again when a read fails once', async () => {
+    const { proxy, read, store } = await proxyOverFlakyStore();
+    store.failing = 1;
+
+    expect(await proxy.read('panel-settings')).toEqual({ fontSize: 16 });
+    expect(read).toHaveBeenCalledTimes(2);
+  });
+
+  it('fails when the second try fails too, and asks once from then on', async () => {
+    const { proxy, read, store } = await proxyOverFlakyStore();
+    store.failing = 3;
+
+    await expect(proxy.read('panel-settings')).rejects.toThrow();
+    expect(read).toHaveBeenCalledTimes(2);
+
+    await expect(proxy.read('chat-state')).rejects.toThrow();
+    expect(read).toHaveBeenCalledTimes(3);
+  });
+
+  it('counts a byondstorage value that does not parse as nothing saved', async () => {
+    byond.storageCdn = '';
+    stubHubStorage('{"fontSize": 16');
+    const proxy = new StorageProxy();
+
+    expect(await proxy.read('panel-settings')).toBeUndefined();
   });
 });

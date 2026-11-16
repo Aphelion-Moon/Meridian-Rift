@@ -57,7 +57,8 @@ export const settingsLoadedAtom = atom(false);
 /**
  * Set once the saved settings are read. Until then nothing is saved. If the
  * read fails, nothing is saved for the rest of the session, so the defaults
- * never replace the player's saved settings.
+ * never replace the player's saved settings. Importing settings sets it too,
+ * since the player picked what's saved.
  */
 export const settingsReadAtom = atom(false);
 // APHELION EDIT ADDITION END

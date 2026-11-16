@@ -20,6 +20,7 @@ import {
   settingsLoadedAtom,
   settingsReadAtom,
 } from './atoms';
+import { importChatSettings } from './settingsImExport';
 import { useSettings } from './use-settings';
 
 // What the player had saved before the session. Not the defaults.
@@ -50,7 +51,7 @@ let panelWrites: unknown[];
 function stubStorage(read: () => Promise<unknown>) {
   panelWrites = [];
   const strict = mock(read);
-  Object.assign(storage, { read: strict });
+  spyOn(storage, 'read').mockImplementation(strict);
   spyOn(storage, 'get').mockImplementation(async (key: string) => {
     if (key !== 'panel-settings') return undefined;
     try {
@@ -87,7 +88,17 @@ describe('panel settings load', () => {
 
   afterEach(() => {
     mock.restore();
-    Object.assign(storage, { read: undefined });
+  });
+
+  it('saves again once the player imports settings', async () => {
+    stubStorage(() => Promise.reject(new Error('storage did not answer')));
+    await mountPanel();
+
+    act(() => importChatSettings(JSON.stringify(saved)));
+    expect(panelWrites.at(-1)).toMatchObject({ fontSize: 16, theme: 'dark' });
+
+    act(() => settingsApi?.updateSettings({ fontSize: 18 }));
+    expect(panelWrites.at(-1)).toMatchObject({ fontSize: 18, theme: 'dark' });
   });
 
   it('keeps the stored settings when they could not be read', async () => {

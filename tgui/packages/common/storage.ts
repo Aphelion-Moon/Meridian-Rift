@@ -66,7 +66,16 @@ class HubStorageBackend implements StorageBackend {
 
   // APHELION EDIT ADDITION START - CHAT_SETTINGS
   async read(key: string): Promise<any> {
-    return this.get(key);
+    const value = await window.hubStorage.getItem(key);
+    if (typeof value !== 'string') return undefined;
+    try {
+      return JSON.parse(value);
+    } catch {
+      // Nothing can be read back from a value that doesn't parse, so it counts
+      // as nothing saved. If it failed instead, nothing would ever be saved
+      // over it and the settings would stay stuck on the defaults.
+      return undefined;
+    }
   }
 
   // APHELION EDIT ADDITION END
@@ -218,6 +227,13 @@ export class StorageProxy implements StorageBackend { // APHELION EDIT CHANGE - 
   private backendPromise: Promise<StorageBackend>;
   public impl: StorageImplementation = IMPL_IFRAME_INDEXED_DB;
   public diagnostics: StorageDiagnostic[] = [];
+  // APHELION EDIT ADDITION START - CHAT_SETTINGS
+  /**
+   * Whether a failed read is tried once more. Off after a second try failed
+   * too, so a store that's down isn't waited on twice for every read.
+   */
+  private retryReads = true;
+  // APHELION EDIT ADDITION END
 
   private log(level: StorageDiagnostic['level'], message: string) {
     this.diagnostics.push({ level, message });
@@ -256,8 +272,9 @@ export class StorageProxy implements StorageBackend { // APHELION EDIT CHANGE - 
               )
             ).some((settings) => settings !== undefined);
           } catch {
+            // Info, so it stays out of chat. It changes nothing for the player.
             this.log(
-              'warn',
+              'info',
               "Couldn't read iframe storage, so nothing was imported from byondstorage",
             );
             return iframe;
@@ -352,7 +369,14 @@ export class StorageProxy implements StorageBackend { // APHELION EDIT CHANGE - 
     try {
       return await backend.read(key);
     } catch (error) {
-      this.log('error', `Couldn't read '${key}' from storage`);
+      if (!this.retryReads) throw error;
+    }
+    // A store that was only slow answers the second time, so one slow read
+    // doesn't cost the player their settings for the whole session.
+    try {
+      return await backend.read(key);
+    } catch (error) {
+      this.retryReads = false;
       throw error;
     }
   }
