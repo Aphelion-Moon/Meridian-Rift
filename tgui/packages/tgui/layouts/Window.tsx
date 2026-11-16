@@ -160,8 +160,12 @@ export function Window(props: Props) {
           debug.debugLayout && 'debug-layout',
         ])}
       >
-        {/* APHELION EDIT CHANGE - ICON_MAP - tg #98320 - ORIGINAL: {!suspended && children} */}
+        {/* // APHELION EDIT REMOVAL START - ICON_MAP - tg #98320
+        {!suspended && children}
+        // APHELION EDIT REMOVAL END */}
+        {/* APHELION EDIT ADDITION START - ICON_MAP - tg #98320 */}
         <IconResourceNotice>{!suspended && children}</IconResourceNotice>
+        {/* APHELION EDIT ADDITION END */}
         {showDimmer && <div className="Window__dimmer" />}
       </div>
       <div

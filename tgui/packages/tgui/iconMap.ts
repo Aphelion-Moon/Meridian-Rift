@@ -83,14 +83,16 @@ function waitForRetry(delay: number, signal: AbortSignal): Promise<void> {
 /**
  * Tries the map once, then again after each of RETRY_DELAYS, and marks it
  * ready or failed. Stops quietly once a newer load aborts it.
+ *
+ * With skipCache the first try skips the browser cache too.
  */
-async function runLoad(url: string, signal: AbortSignal) {
+async function runLoad(url: string, signal: AbortSignal, skipCache: boolean) {
   for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
     if (signal.aborted) {
       return;
     }
     try {
-      const map = await fetchMap(url, signal, attempt > 0);
+      const map = await fetchMap(url, signal, skipCache || attempt > 0);
       // An older request must never overwrite a map from a newer asset message.
       if (signal.aborted) {
         return;
@@ -98,10 +100,12 @@ async function runLoad(url: string, signal: AbortSignal) {
       Byond.iconRefMap = map;
       store.set(iconMapStateAtom, { url, status: 'ready' });
       return;
-    } catch {
+    } catch (error) {
       if (signal.aborted) {
         return;
       }
+      // The notice can't say why, so the reason goes to the console
+      console.error(`Icon map try ${attempt + 1} failed for ${url}:`, error);
       if (attempt === RETRY_DELAYS.length) {
         store.set(iconMapStateAtom, { url, status: 'error' });
         return;
@@ -126,10 +130,12 @@ export function loadIconMap(url: string): Promise<void> {
     return Promise.resolve();
   }
 
+  // A load of this url that failed can leave its bad answer in the browser cache, so we don't ask the cache again
+  const failedBefore = state.url === url && state.status === 'error';
   active?.controller.abort();
   const controller = new AbortController();
   store.set(iconMapStateAtom, { url, status: 'loading' });
-  const promise = runLoad(url, controller.signal).finally(() => {
+  const promise = runLoad(url, controller.signal, failedBefore).finally(() => {
     if (active?.controller === controller) {
       active = undefined;
     }
