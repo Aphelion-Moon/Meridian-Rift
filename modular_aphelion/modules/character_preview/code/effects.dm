@@ -192,6 +192,12 @@
 	if (!plan)
 		return flat
 
+	// A sprite only coloured is stretched bare and coloured once after, so each band copies the sprite alone.
+	var/list/colours = character_preview_clear_colours(flat)
+	var/datum/universal_icon/stretched = flat
+	if (colours)
+		stretched = new /datum/universal_icon(flat.icon_file, flat.icon_state, flat.dir, flat.frame)
+
 	// The bands that move are copies taken first; the flat itself, grown to the new rows, keeps the rows that don't.
 	var/lowest = plan[1]
 	var/highest = plan[2]
@@ -200,19 +206,42 @@
 	var/list/moved = plan[5]
 	var/list/pieces = list()
 	for (var/list/band as anything in moved)
-		var/datum/universal_icon/piece = flat.copy()
+		var/datum/universal_icon/piece = stretched.copy()
 		piece.crop(left, band[1] - box[2] + 1, right, band[2] - box[2] + 1)
 		pieces += piece
-	flat.crop(1, lowest - box[2] + 1, box[3], highest - box[2] + 1)
+	stretched.crop(1, lowest - box[2] + 1, box[3], highest - box[2] + 1)
 	for (var/list/rows as anything in plan[6])
-		flat.draw_box("#00000000", left, rows[1] - lowest + 1, right, rows[2] - lowest + 1)
+		stretched.draw_box("#00000000", left, rows[1] - lowest + 1, right, rows[2] - lowest + 1)
 	for (var/index in 1 to length(pieces))
-		flat.blend_icon(pieces[index], ICON_OVERLAY, left, moved[index][3] - lowest + 1)
-	flat.flat_x1 = box[1]
-	flat.flat_y1 = lowest
-	flat.flat_width = box[3]
-	flat.flat_height = highest - lowest + 1
-	return flat
+		stretched.blend_icon(pieces[index], ICON_OVERLAY, left, moved[index][3] - lowest + 1)
+	if (length(colours))
+		stretched.transform.transforms += colours
+	stretched.flat_x1 = box[1]
+	stretched.flat_y1 = lowest
+	stretched.flat_width = box[3]
+	stretched.flat_height = highest - lowest + 1
+	return stretched
+
+/**
+ * A flat icon's own transforms, when they are all colours that leave a clear pixel clear (a multiply, or a colour
+ * matrix with no alpha of its own), so it can be stretched bare and coloured after: the rows a stretch adds and clears
+ * stay clear either way. An empty list for a bare sprite; null for anything else, like a flat with overlays drawn in.
+ */
+/proc/character_preview_clear_colours(datum/universal_icon/flat)
+	var/list/transforms = flat.transform?.transforms
+	if (!length(transforms))
+		return list()
+	for (var/list/transform as anything in transforms)
+		switch (transform["type"])
+			if (RUSTG_ICONFORGE_BLEND_COLOR)
+				if (transform["blend_mode"] != ICON_MULTIPLY)
+					return null
+			if (RUSTG_ICONFORGE_MAP_COLORS)
+				if (transform["a0"])
+					return null
+			else
+				return null
+	return transforms
 
 /**
  * What character_preview_flat_height() moves for an image's height filters on a canvas `box`, counted as
