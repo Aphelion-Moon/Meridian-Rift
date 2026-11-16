@@ -496,8 +496,9 @@ GLOBAL_VAR(character_preview_cleanup_due)
  */
 /proc/character_preview_walk(atom/look, glow = FALSE, animate = FALSE)
 	var/mob/living/body = look
+	var/stretch = character_preview_stretches(look)
 	if(!istype(body) || !character_preview_turns_itself(body))
-		var/datum/universal_icon/flat = get_flat_uni_icon(look, UP, grow = TRUE)
+		var/datum/universal_icon/flat = character_preview_flatten(look, UP, stretch)
 		var/list/box = character_preview_flat_box(flat)
 		. = list("recipes" = uni_icon_facings_json(flat, GLOB.character_preview_facings), "height" = box[4], "x" = 1 - box[1], "y" = 1 - box[2])
 		var/datum/universal_icon/glow_flat = glow ? character_preview_glow(look, UP, box) : null
@@ -516,7 +517,7 @@ GLOBAL_VAR(character_preview_cleanup_due)
 	var/list/glows = glow && emissive_branches_lit(emissive_branches(body)) ? list() : null
 	for(var/facing, dir in GLOB.character_preview_facings)
 		body.setDir(dir)
-		var/datum/universal_icon/flat = get_flat_uni_icon(body, dir, grow = TRUE)
+		var/datum/universal_icon/flat = character_preview_flatten(body, dir, stretch)
 		flats[facing] = flat
 		// On the facing's own canvas for now; both are cropped to the one that fits all four below. Every facing has
 		// one, blank if nothing glows that way.
@@ -553,6 +554,20 @@ GLOBAL_VAR(character_preview_cleanup_due)
 		var/list/animation = character_preview_animation(flats, FALSE, x2 - x1 + 1, y2 - y1 + 1)
 		if(animation)
 			.["animation"] = animation
+
+/**
+ * A look flattened facing `dir` as the preview draws it, on a canvas grown to fit it (see character_preview_flat_box()).
+ * With `stretch`, each image's own height filters are drawn in, for a body that stretches each image, as a taur's does
+ * (character_preview_stretches()). The look's own filters are left for the page (character_preview_effects()).
+ */
+/proc/character_preview_flatten(image/look, dir, stretch)
+	return get_flat_uni_icon(look, dir, grow = TRUE, stretch = stretch)
+
+/// Whether a look is a body that stretches each image for its height, whose drawing has to draw them in. Any other
+/// stretches in one piece, or not at all (an Average one), and draws as fast as it did.
+/proc/character_preview_stretches(atom/look)
+	var/mob/living/carbon/human/dummy/body = look
+	return isdummy(body) && body.mob_height != HUMAN_HEIGHT_MEDIUM && body.stretches_each_image()
 
 /**
  * A flat icon's canvas, list(x1, y1, width, height): where its lower left pixel sits, counted from the flattened look's

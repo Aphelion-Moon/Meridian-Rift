@@ -88,7 +88,7 @@
 	if(!always && !emissive_branches_lit(branches))
 		return null
 	var/mutable_appearance/holder = emissive_holder(branches, look)
-	var/datum/universal_icon/flat = holder ? get_flat_uni_icon(holder, dir, grow = TRUE) : uni_icon('icons/blanks/32x32.dmi', "nothing")
+	var/datum/universal_icon/flat = holder ? character_preview_flatten(holder, dir, character_preview_stretches(look)) : uni_icon('icons/blanks/32x32.dmi', "nothing")
 	var/list/glow_box = character_preview_flat_box(flat)
 	flat.crop(box[1] - glow_box[1] + 1, box[2] - glow_box[2] + 1, box[1] + box[3] - glow_box[1], box[2] + box[4] - glow_box[2])
 	return flat

@@ -403,6 +403,7 @@
 #include "~nova\bulky_augments.dm"
 #include "~nova\cerulean.dm"
 #include "~nova\character_preview_glow.dm"
+#include "~nova\character_preview_height.dm"
 #include "~nova\character_preview_rebuilds.dm"
 #include "~nova\chastity.dm"
 #include "~nova\clothing_variation_icons.dm"
