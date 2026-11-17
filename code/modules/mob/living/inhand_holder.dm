@@ -8,6 +8,10 @@
 	slot_flags = NONE
 	/// Mob inside of us
 	var/mob/living/held_mob
+	// APHELION EDIT ADDITION START - EDIBLE_VERMIN
+	/// True while release() drops us, so landing doesn't release the mob a second time
+	var/releasing = FALSE
+	// APHELION EDIT ADDITION END
 	lefthand_file = 'icons/mob/inhands/clothing/hats_lefthand.dmi'
 	righthand_file = 'icons/mob/inhands/clothing/hats_righthand.dmi'
 	body_parts_covered = HEAD
@@ -46,12 +50,20 @@
 	desc = new_prisoner.desc
 	return TRUE
 
-/obj/item/mob_holder/proc/on_mob_deleted()
+/obj/item/mob_holder/proc/on_mob_deleted(mob/living/source) // APHELION EDIT CHANGE - EDIBLE_VERMIN - ORIGINAL: /obj/item/mob_holder/proc/on_mob_deleted()
 	SIGNAL_HANDLER
 	held_mob = null
 	if (isliving(loc))
 		var/mob/living/holder = loc
 		holder.temporarilyRemoveItemFromInventory(src, force = TRUE)
+	// APHELION EDIT ADDITION START - EDIBLE_VERMIN
+	// its player's ghost starts where we are, not where it is about to go
+	source.ghostize(can_reenter_corpse = FALSE)
+	// out of our contents, or deleting us would delete it a second time
+	source.moveToNullspace()
+	if(QDELETED(src))
+		return
+	// APHELION EDIT ADDITION END
 	qdel(src)
 
 /obj/item/mob_holder/proc/update_visuals(mob/living/held_guy)
@@ -71,7 +83,7 @@
 
 /obj/item/mob_holder/Moved(atom/old_loc, movement_dir, forced, list/old_locs, momentum_change)
 	. = ..()
-	if(held_mob && isturf(loc))
+	if(held_mob && isturf(loc) && !releasing) // APHELION EDIT CHANGE - EDIBLE_VERMIN - ORIGINAL: if(held_mob && isturf(loc))
 		release()
 
 /obj/item/mob_holder/proc/release(display_messages = TRUE)
@@ -84,8 +96,18 @@
 		var/mob/living/captor = loc
 		if(display_messages)
 			to_chat(captor, span_warning("[released_mob] wriggles free!"))
+		// APHELION EDIT ADDITION START - EDIBLE_VERMIN
+		// we let it go ourselves below, so a quiet release stays quiet
+		releasing = TRUE
+		// APHELION EDIT ADDITION END
 		captor.dropItemToGround(src)
-	else
+		releasing = FALSE // APHELION EDIT ADDITION - EDIBLE_VERMIN
+	if(released_mob.loc == src && drop_location()) // APHELION EDIT CHANGE - EDIBLE_VERMIN - ORIGINAL: else
+		// APHELION EDIT ADDITION START - EDIBLE_VERMIN
+		// stop holding it first, so moving it out doesn't release it again
+		held_mob = null
+		UnregisterSignal(released_mob, COMSIG_QDELETING)
+		// APHELION EDIT ADDITION END
 		released_mob.forceMove(drop_location())
 	released_mob.reset_perspective()
 	released_mob.setDir(SOUTH)
@@ -104,6 +126,11 @@
 /obj/item/mob_holder/Exited(atom/movable/gone, direction)
 	. = ..()
 	if(held_mob == gone)
+		// APHELION EDIT ADDITION START - EDIBLE_VERMIN
+		// it got out on its own, so we only delete ourselves
+		held_mob = null
+		UnregisterSignal(gone, COMSIG_QDELETING)
+		// APHELION EDIT ADDITION END
 		release()
 
 /obj/item/mob_holder/on_found(mob/finder)
