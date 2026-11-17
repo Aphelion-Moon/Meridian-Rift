@@ -35,10 +35,8 @@
 	var/asking = FALSE
 	/// Number of the latest question to the critter's player, so a late answer is ignored
 	var/prompt_id = 0
-	/// Who the critter's player let eat it, for this attempt only
-	var/datum/weakref/allowed_eater
-	/// Who the critter's player let feed it to them, for this attempt only
-	var/datum/weakref/allowed_feeder
+	/// Whether the critter's player let the meal under way go ahead
+	var/allowed = FALSE
 	/// Whether the feeder is being asked to confirm right now
 	var/confirming = FALSE
 
@@ -172,7 +170,7 @@
 /obj/item/mob_holder/edible/proc/has_consent(mob/living/eater, mob/living/feeder)
 	if(!held_mob.client)
 		return TRUE
-	return allowed_eater?.resolve() == eater && allowed_feeder?.resolve() == feeder
+	return allowed && meal_eater?.resolve() == eater
 
 /**
  * Asks the critter's player whether they may be eaten, giving them 10 seconds to answer.
@@ -229,13 +227,11 @@
 		return
 	if(!feeder.is_holding(src) || feeder.combat_mode || feeder.incapacitated || !feeder.Adjacent(eater))
 		return
-	allowed_eater = target_ref
-	allowed_feeder = user_ref
+	allowed = TRUE
 	start_meal(eater, feeder)
 	// no meal came of it, so they ask again next time
 	if(!QDELETED(src) && !meal_eater)
-		allowed_eater = null
-		allowed_feeder = null
+		allowed = FALSE
 
 /**
  * Makes the holder food and has the eater try it, as clicking them with food does. Does nothing
@@ -296,8 +292,7 @@
 		return
 	UnregisterSignal(feeder, COMSIG_DO_AFTER_ENDED)
 	meal_eater = null
-	allowed_eater = null
-	allowed_feeder = null
+	allowed = FALSE
 	RemoveComponentSource(SOURCE_EDIBLE_INNATE, /datum/component/edible)
 	QDEL_NULL(reagents)
 

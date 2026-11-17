@@ -1,7 +1,5 @@
 /// Eating a live mouse or bloodroach leaves nothing: no corpse in hand or on the floor, no guts or blood. A player who left goes on as a ghost where it was eaten.
 /datum/unit_test/edible_vermin_eaten
-	/// Key of the player who left their mouse
-	var/old_key = "ediblevermintest"
 
 /datum/unit_test/edible_vermin_eaten/Run()
 	var/mob/living/carbon/human/consistent/eater = allocate(__IMPLIED_TYPE__)
@@ -30,18 +28,18 @@
 
 	var/mob/living/basic/mouse/stray = allocate(__IMPLIED_TYPE__)
 	stray.mind_initialize()
-	stray.ckey = old_key
+	stray.ckey = "ediblevermintest"
 	stray.mob_pickup(eater)
 	holder = stray.loc
 	holder.eat_time = 0
 	holder.melee_attack_chain(eater, eater)
 	TEST_ASSERT(QDELETED(stray), "A mouse whose player left must be eaten without asking")
-	var/mob/ghost = get_mob_by_ckey(old_key)
+	var/mob/ghost = get_mob_by_ckey("ediblevermintest")
 	TEST_ASSERT(isobserver(ghost) && get_turf(ghost) == get_turf(eater), "A mouse whose player left must leave them a ghost where it was eaten")
 
 /// Takes the key off the ghost of the player who left, since deleting a mob that still has a key stack traces.
 /datum/unit_test/edible_vermin_eaten/Destroy()
-	var/mob/keyed = get_mob_by_ckey(old_key)
+	var/mob/keyed = get_mob_by_ckey("ediblevermintest")
 	if(keyed)
 		keyed.ckey = null
 	return ..()
