@@ -26,6 +26,15 @@
 /mob/living/carbon/human/consistent/portal_interaction_state_test/adjust_pain(change_amount = 0)
 	portal_test_pain_received += change_amount
 
+/// Records what it's shown, since show_message() needs a real client to show anything.
+/mob/living/carbon/human/consistent/portal_subtler_test
+	/// Every message shown to us, oldest first.
+	var/list/portal_test_messages = list()
+
+/mob/living/carbon/human/consistent/portal_subtler_test/show_message(msg, type, alt_msg, alt_type, avoid_highlighting = FALSE)
+	portal_test_messages += msg
+	return ..()
+
 /// Counts real device rebuilds while retaining the production appearance path.
 /obj/item/clothing/sextoy/portal_fleshlight/appearance_unit_test
 	var/appearance_updates = 0
@@ -943,6 +952,91 @@
 	TEST_ASSERT(source_portal.buckle_mob(owner, force = TRUE, check_loc = FALSE), "The replacement Subtler portal session could not start.")
 	TEST_ASSERT_NOTEQUAL(source_portal.relayed_body, first_relay, "The replacement Subtler session reused its deleted relay.")
 	TEST_ASSERT_NULL(owner.resolve_portal_output(first_relay_ref), "A prompt from the first Subtler session resolved through its replacement session.")
+
+/// Returns the device a Subtler menu offers candidate through. Null when it offers them some other way, or not at all.
+/datum/unit_test/portal_device/proc/subtler_device_for(list/target_refs, list/portal_device_refs, mob/candidate)
+	var/obj/item/offered_device
+	for(var/target_name, target_ref in target_refs)
+		var/datum/weakref/candidate_ref = target_ref
+		if(candidate_ref.resolve() != candidate)
+			continue
+		var/datum/weakref/device_ref = portal_device_refs[target_name]
+		if(!device_ref)
+			return null
+		offered_device = device_ref.resolve()
+	return offered_device
+
+/// Subtler offers and reaches whoever is on the far end of a portal device link from either end, names them only when
+/// seen, and reaches nobody else.
+/datum/unit_test/portal_device/subtler_through_device/Run()
+	if(CONFIG_GET(flag/disable_lewd_items) || CONFIG_GET(flag/disable_erp_preferences))
+		TEST_NOTICE(src, "Portal device Subtler tests require lewd items and ERP preferences to be enabled by the test configuration.")
+		return
+
+	var/datum/emote/living/subtler/subtler_emote = allocate(/datum/emote/living/subtler)
+	// well past Subtler's ordinary range, so only the link reaches them
+	var/turf/far_turf = locate(run_loc_floor_bottom_left.x + 20, run_loc_floor_bottom_left.y, run_loc_floor_bottom_left.z)
+	var/mob/living/carbon/human/consistent/portal_subtler_test/operator = allocate(/mob/living/carbon/human/consistent/portal_subtler_test, run_loc_floor_bottom_left)
+	var/mob/living/carbon/human/consistent/portal_subtler_test/bystander = allocate(/mob/living/carbon/human/consistent/portal_subtler_test, run_loc_floor_bottom_left)
+	var/mob/living/carbon/human/consistent/portal_subtler_test/wearer = allocate(/mob/living/carbon/human/consistent/portal_subtler_test, far_turf)
+	attach_portal_preferences(operator)
+	attach_portal_preferences(bystander)
+	var/datum/client_interface/wearer_client = attach_portal_preferences(wearer)
+	var/obj/item/clothing/sextoy/portal_fleshlight/device = allocate(/obj/item/clothing/sextoy/portal_fleshlight, run_loc_floor_bottom_left)
+	var/obj/item/clothing/sextoy/portal_panties/receiver = allocate(/obj/item/clothing/sextoy/portal_panties, run_loc_floor_bottom_left)
+	link_pair(device, receiver)
+	TEST_ASSERT(operator.put_in_active_hand(device, forced = TRUE), "The operator could not hold the portal device.")
+	TEST_ASSERT(put_in_mouth(wearer, receiver), "The wearer could not take the receiver in the mouth.")
+	operator.name = "Portal Operator"
+	wearer.name = "Portal Wearer"
+
+	var/list/device_refs = list()
+	var/list/targets = subtler_emote.build_subtler_targets(operator, world.view, device_refs)
+	TEST_ASSERT_EQUAL(subtler_device_for(targets, device_refs, wearer), device, "Subtler did not offer the receiver's wearer through the held device alone.")
+	TEST_ASSERT(!findtext(jointext(device_refs, "|"), wearer.name), "Subtler named a receiver's wearer the sender can't see.")
+	TEST_ASSERT(subtler_emote.send_device_subtler(operator, device, wearer, "waves", NONE, " ", "sender copy"), "Subtler could not reach the receiver's wearer through the device.")
+	TEST_ASSERT_EQUAL(length(wearer.portal_test_messages), 1, "The receiver's wearer was not shown the Subtler sent through the device.")
+	device.anonymous = TRUE
+	TEST_ASSERT(subtler_emote.send_device_subtler(operator, device, wearer, "waves", NONE, " ", "sender copy"), "An anonymous device could not reach the receiver's wearer.")
+	TEST_ASSERT(!findtext(wearer.portal_test_messages[length(wearer.portal_test_messages)], operator.name), "An anonymous device named its operator to the receiver's wearer.")
+	device.anonymous = FALSE
+
+	// in sight, the wearer is named unless their own end is anonymous
+	wearer.forceMove(get_step(run_loc_floor_bottom_left, EAST))
+	device_refs = list()
+	subtler_emote.build_subtler_targets(operator, world.view, device_refs)
+	TEST_ASSERT(findtext(jointext(device_refs, "|"), wearer.name), "Subtler hid a receiver's wearer the sender can see.")
+	receiver.anonymous = TRUE
+	device_refs = list()
+	subtler_emote.build_subtler_targets(operator, world.view, device_refs)
+	TEST_ASSERT(!findtext(jointext(device_refs, "|"), wearer.name), "Subtler named an anonymous receiver's wearer.")
+	wearer.forceMove(far_turf)
+
+	device_refs = list()
+	targets = subtler_emote.build_subtler_targets(wearer, world.view, device_refs)
+	TEST_ASSERT_EQUAL(subtler_device_for(targets, device_refs, operator), device, "Subtler did not offer the wearer the device's holder through the device alone.")
+	TEST_ASSERT_NULL(subtler_device_for(targets, device_refs, bystander), "Subtler offered the wearer someone beside the device who isn't holding it.")
+	operator.portal_test_messages.Cut()
+	TEST_ASSERT(subtler_emote.send_device_subtler(wearer, device, operator, "waves", NONE, " ", "sender copy"), "The wearer could not reach the device's holder through the receiver.")
+	TEST_ASSERT(length(operator.portal_test_messages) == 1 && !findtext(operator.portal_test_messages[1], wearer.name), "The device's holder was not shown the anonymous wearer's Subtler, or it named them.")
+	TEST_ASSERT(!length(bystander.portal_test_messages), "Someone beside the device was shown a Subtler sent through it.")
+	receiver.anonymous = FALSE
+
+	operator.dropItemToGround(device, force = TRUE)
+	TEST_ASSERT(bystander.put_in_active_hand(device, forced = TRUE), "The bystander could not take the portal device.")
+	TEST_ASSERT(!subtler_emote.send_device_subtler(wearer, device, operator, "waves", NONE, " ", "sender copy"), "A Subtler offered to the device's old holder reached them after it changed hands.")
+
+	var/mob/living/basic/mouse/nonhuman = allocate(/mob/living/basic/mouse, run_loc_floor_bottom_left)
+	attach_portal_preferences(nonhuman)
+	TEST_ASSERT(device.can_reach_device(nonhuman), "The non-human could not reach the held device.")
+	device_refs = list()
+	subtler_emote.build_subtler_targets(nonhuman, world.view, device_refs)
+	TEST_ASSERT(!length(device_refs), "A non-human next to the device was offered its receiver's wearer.")
+	TEST_ASSERT(!subtler_emote.send_device_subtler(nonhuman, device, wearer, "squeaks", NONE, " ", "sender copy"), "A non-human reached a receiver's wearer through the device.")
+
+	TEST_ASSERT(subtler_emote.send_device_subtler(bystander, device, wearer, "waves", NONE, " ", "sender copy"), "The device's new holder could not reach the receiver's wearer.")
+	TEST_ASSERT(wearer_client.prefs.write_preference(GLOB.preference_entries[/datum/preference/toggle/erp/sex_toy], FALSE), "Could not disable the wearer's sex-toy preference.")
+	TEST_ASSERT(!subtler_emote.send_device_subtler(bystander, device, wearer, "waves", NONE, " ", "sender copy"), "Subtler reached a wearer through the device after they turned off the sex-toy preference.")
 
 /// A relay carries only the half of its occupant it shows, the rest is reached in person, and stale or unbound relays carry nothing.
 /datum/unit_test/portal_device/ordinary_position_authority/Run()

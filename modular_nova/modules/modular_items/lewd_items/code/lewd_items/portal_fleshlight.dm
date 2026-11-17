@@ -105,6 +105,30 @@
 	return receiver_wearer.allows_portal_use() ? receiver_wearer : null
 
 /**
+ * Returns whoever is on the other end of our link from user. Both of them must be human and allow portal use, or it
+ * returns null.
+ *
+ * From someone who can reach us, that's the receiver's wearer. From the wearer, it's whoever is holding us, and nobody
+ * while we lie out or are packed away.
+ */
+/obj/item/clothing/sextoy/portal_fleshlight/proc/far_end_partner(mob/living/user)
+	if(!ishuman(user))
+		return null
+	var/mob/living/carbon/human/receiver_wearer = climax_receiver_wearer(user)
+	if(receiver_wearer && receiver_wearer != user)
+		return receiver_wearer
+	var/mob/living/carbon/human/holder = loc
+	if(ishuman(holder) && holder != user && climax_receiver_wearer(holder) == user)
+		return holder
+	return null
+
+/// Whether participant's end of our link is anonymous, by the receiver's setting while they wear it and ours otherwise.
+/obj/item/clothing/sextoy/portal_fleshlight/proc/hides_participant(mob/living/participant)
+	if(is_link_valid() && linked_panties.get_equipped_wearer() == participant)
+		return linked_panties.anonymous
+	return anonymous
+
+/**
  * Returns whether user can put their body against this device right now.
  *
  * That is holding it, or standing within a tile of it while it lies out in the open or sits in someone's hands.
