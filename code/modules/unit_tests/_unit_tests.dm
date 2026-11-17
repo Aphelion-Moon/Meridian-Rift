@@ -413,6 +413,7 @@
 #include "~nova\digitigrade_legs.dm"
 #include "~nova\dirt_mess_drawing.dm"
 #include "~nova\dirt_mess_manifest.dm"
+#include "~nova\edible_vermin.dm"
 #include "~nova\fitness.dm"
 #include "~nova\language_understanding.dm"
 #include "~nova\limb_marking_cache.dm"
