@@ -13,7 +13,9 @@ A cockroach that dies leaves a body that you can also eat.
 - The holder is food only while someone tries to eat it. If they stop, or their mouth is covered, or they are too full,
   it becomes a plain holder again. So syringes, grinders, dishes, fridges and the DNA infuser cannot use it. If the
   holder is deleted, the critter goes free, as with any held mob.
-- If a player controls the critter, they get a prompt first. "Wriggle free" lets it go. "Let them", or no answer in
+- If the critter is alive, whoever feeds it is asked first whether they are sure. No answer in 10 seconds means no.
+  A dead one, or a feeder with no player, skips the question.
+- If a player controls the critter, they get a prompt next. "Wriggle free" lets it go. "Let them", or no answer in
   10 seconds, starts the meal. The critter can still escape by moving, or by a late "Wriggle free", until it is
   swallowed. The answer counts for one attempt: if the meal stops or cannot start, the next attempt asks again. If its
   player has left, it is eaten without a prompt and the player becomes a ghost where it was eaten.

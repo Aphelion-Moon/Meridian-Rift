@@ -14,7 +14,8 @@
  * plain holder again, so nothing else can use up the meal. Eating deletes the critter instead of
  * killing it, as mobs that eat vermin do, so it leaves no corpse, guts or splatter.
  *
- * A critter with a player in it is asked first, and no answer counts as a yes.
+ * Whoever feeds it is asked to confirm first, if it is alive. A critter with a player in it is
+ * asked next, and no answer counts as a yes.
  */
 /obj/item/mob_holder/edible
 	abstract_type = /obj/item/mob_holder/edible
@@ -38,6 +39,8 @@
 	var/datum/weakref/allowed_eater
 	/// Who the critter's player let feed it to them, for this attempt only
 	var/datum/weakref/allowed_feeder
+	/// Whether the feeder is being asked to confirm right now
+	var/confirming = FALSE
 
 /obj/item/mob_holder/edible/mouse
 	food_reagents = list(/datum/reagent/consumable/nutriment = 3, /datum/reagent/consumable/nutriment/vitamin = 2)
@@ -69,12 +72,53 @@
 	if(refusal)
 		balloon_alert(user, refusal)
 		return
-	if(!has_consent(target, user))
-		if(!asking)
-			ask_critter(target, user)
+	if(asking)
 		balloon_alert(user, "it squirms...")
 		return
-	start_meal(target, user)
+	// nobody to ask, or it's dead already
+	if(!user.client || held_mob.stat == DEAD)
+		try_meal(target, user)
+		return
+	if(confirming)
+		return
+	confirming = TRUE
+	var/question = target == user ? "Are you sure you want to eat [held_mob]?" : "Are you sure you want to feed [held_mob] to [target]?"
+	INVOKE_ASYNC(GLOBAL_PROC, GLOBAL_PROC_REF(confirm_edible_critter), WEAKREF(src), user, question, WEAKREF(target))
+
+/**
+ * Acts on the feeder's answer to whether they want to eat it or feed it to someone.
+ *
+ * Arguments:
+ * - eater: Who would eat it, or null if they are gone.
+ * - feeder: Who would feed it to them, the eater when eating it themselves.
+ * - answer: The button pressed, or null for none.
+ */
+/obj/item/mob_holder/edible/proc/feeder_answered(mob/living/carbon/eater, mob/living/feeder, answer)
+	confirming = FALSE
+	if(answer != "Yes" || QDELETED(eater) || QDELETED(feeder))
+		return
+	if(!feeder.is_holding(src) || feeder.combat_mode || feeder.incapacitated || !feeder.Adjacent(eater))
+		return
+	try_meal(eater, feeder)
+
+/**
+ * Starts the meal, or asks the critter's player first. Says why when it may not be eaten.
+ *
+ * Arguments:
+ * - eater: Who would eat it.
+ * - feeder: Who would feed it to them, the eater when eating it themselves.
+ */
+/obj/item/mob_holder/edible/proc/try_meal(mob/living/carbon/eater, mob/living/feeder)
+	var/refusal = eat_refusal(feeder)
+	if(refusal)
+		balloon_alert(feeder, refusal)
+		return
+	if(!has_consent(eater, feeder))
+		if(!asking)
+			ask_critter(eater, feeder)
+		balloon_alert(feeder, "it squirms...")
+		return
+	start_meal(eater, feeder)
 
 /**
  * Says why the held critter can't be eaten.
@@ -272,6 +316,23 @@
 		held_mob.investigate_log("has been eaten [state] by [key_name(eater)].", INVESTIGATE_DEATHS)
 	to_chat(held_mob, span_userdanger("[eater] swallows you whole!"))
 	qdel(held_mob)
+
+/**
+ * Asks whoever holds a live critter whether they really want to eat it or feed it to someone, and
+ * passes the answer to its holder.
+ *
+ * It keeps only a weakref to the holder, so the holder can still be deleted while the question is up.
+ *
+ * Arguments:
+ * - holder_ref: The holder the critter is in.
+ * - feeder: Who is asked.
+ * - question: What to ask.
+ * - eater_ref: Who would eat it.
+ */
+/proc/confirm_edible_critter(datum/weakref/holder_ref, mob/living/feeder, question, datum/weakref/eater_ref)
+	var/answer = tgui_alert(feeder, question, "Eat it alive", list("Yes", "No"), 10 SECONDS)
+	var/obj/item/mob_holder/edible/holder = holder_ref.resolve()
+	holder?.feeder_answered(eater_ref.resolve(), feeder, answer)
 
 /**
  * Asks a critter's player whether they may be eaten, and passes the answer to its holder.
