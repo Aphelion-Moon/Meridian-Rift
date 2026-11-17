@@ -712,8 +712,6 @@ GLOBAL_LIST_INIT(vox_sounds, generate_vox_sounds())
 	"lower" = 'sound/announcer/vox_fem/lower.ogg',
 	"lowest" = 'sound/announcer/vox_fem/lowest.ogg',
 	"lusty" = 'sound/announcer/vox_fem/lusty.ogg',
-	)
-	. += list(
 	"m" = 'sound/announcer/vox_fem/m.ogg',
 	"machine" = 'sound/announcer/vox_fem/machine.ogg',
 	"made" = 'sound/announcer/vox_fem/made.ogg',
