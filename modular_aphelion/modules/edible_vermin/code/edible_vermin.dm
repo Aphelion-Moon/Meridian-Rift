@@ -133,13 +133,12 @@
 	// a shapeshifter carries its real body inside, which would go with it
 	if(locate(/datum/status_effect/shapechange_mob) in held_mob.status_effects)
 		return "it squirms..."
-	var/static/list/named_critters = typecacheof(list(/mob/living/basic/mouse/brown/tom, /mob/living/basic/frog/icemoon_facility))
-	if(HAS_TRAIT(held_mob, TRAIT_TAMED) || is_type_in_typecache(held_mob, named_critters) || !has_stock_name())
+	if(HAS_TRAIT(held_mob, TRAIT_TAMED) || istype(held_mob, /mob/living/basic/mouse/brown/tom) || istype(held_mob, /mob/living/basic/frog/icemoon_facility) || !has_stock_name())
 		return "someone's pet!"
-	for(var/ally_ref in held_mob.allies)
-		var/mob/living/ally = locate(ally_ref)
+	for(var/friend_ref in held_mob.allies)
+		var/mob/living/friend = locate(friend_ref)
 		// owners are people other than regal rats
-		if(ally != held_mob && istype(ally) && !QDELETED(ally) && ally.mind && !isregalrat(ally))
+		if(friend != held_mob && istype(friend) && !QDELETED(friend) && friend.mind && !isregalrat(friend))
 			return "someone's pet!"
 	if(feeder && held_mob.stat != DEAD && HAS_TRAIT(feeder, TRAIT_PACIFISM))
 		return "don't want to hurt it!"
@@ -153,11 +152,11 @@
  * name of the roach it was.
  */
 /obj/item/mob_holder/edible/proc/has_stock_name()
-	var/stock_name = initial(held_mob.name)
-	if(held_mob.name == stock_name || held_mob.name == "ice-[stock_name]")
+	var/base_name = initial(held_mob.name)
+	if(held_mob.name == base_name || held_mob.name == "ice-[base_name]")
 		return TRUE
-	for(var/mob/living/basic/cockroach/roach_type as anything in typesof(/mob/living/basic/cockroach))
-		if(initial(roach_type.minion_path) == held_mob.type && held_mob.name == "ice-[initial(roach_type.name)]")
+	for(var/mob/living/basic/cockroach/mob_type as anything in typesof(/mob/living/basic/cockroach))
+		if(initial(mob_type.minion_path) == held_mob.type && held_mob.name == "ice-[initial(mob_type.name)]")
 			return TRUE
 	return FALSE
 
@@ -185,11 +184,11 @@
 /obj/item/mob_holder/edible/proc/ask_critter(mob/living/carbon/eater, mob/living/feeder)
 	asking = TRUE
 	prompt_id++
-	var/datum/weakref/eater_ref = WEAKREF(eater)
-	var/datum/weakref/feeder_ref = WEAKREF(feeder)
-	addtimer(CALLBACK(src, PROC_REF(critter_answered), prompt_id, eater_ref, feeder_ref, null), 10 SECONDS)
+	var/datum/weakref/target_ref = WEAKREF(eater)
+	var/datum/weakref/user_ref = WEAKREF(feeder)
+	addtimer(CALLBACK(src, PROC_REF(critter_answered), prompt_id, target_ref, user_ref, null), 10 SECONDS)
 	var/question = eater == feeder ? "[feeder] is trying to eat you!" : "[feeder] is trying to feed you to [eater]!"
-	INVOKE_ASYNC(GLOBAL_PROC, GLOBAL_PROC_REF(ask_edible_critter), WEAKREF(src), prompt_id, held_mob, question, eater_ref, feeder_ref)
+	INVOKE_ASYNC(GLOBAL_PROC, GLOBAL_PROC_REF(ask_edible_critter), WEAKREF(src), prompt_id, held_mob, question, target_ref, user_ref)
 
 /**
  * Acts on the answer from the critter's player, or on no answer after 10 seconds.
@@ -200,19 +199,19 @@
  *
  * Arguments:
  * - prompt: Number of the question this answers.
- * - eater_ref: Who would eat it.
- * - feeder_ref: Who would feed it to them.
+ * - target_ref: Who would eat it.
+ * - user_ref: Who would feed it to them.
  * - answer: The button pressed, "closed" for a closed prompt, or null for no answer in time.
  */
-/obj/item/mob_holder/edible/proc/critter_answered(prompt, datum/weakref/eater_ref, datum/weakref/feeder_ref, answer)
+/obj/item/mob_holder/edible/proc/critter_answered(prompt, datum/weakref/target_ref, datum/weakref/user_ref, answer)
 	if(prompt != prompt_id)
 		return
 	// a late wriggle still lets it go
 	if(!asking && answer != "Wriggle free")
 		return
 	asking = FALSE
-	var/mob/living/carbon/eater = eater_ref.resolve()
-	var/mob/living/feeder = feeder_ref.resolve()
+	var/mob/living/carbon/eater = target_ref.resolve()
+	var/mob/living/feeder = user_ref.resolve()
 	var/outcome
 	switch(answer)
 		if(null)
@@ -221,8 +220,8 @@
 			outcome = "closed the prompt"
 		else
 			outcome = "chose \"[answer]\""
-	var/fed_by = eater == feeder ? "" : ", fed by [key_name(feeder)]"
-	held_mob.log_message("[outcome] on being eaten by [key_name(eater)][fed_by].", LOG_ATTACK)
+	var/suffix = eater == feeder ? "" : ", fed by [key_name(feeder)]"
+	held_mob.log_message("[outcome] on being eaten by [key_name(eater)][suffix].", LOG_ATTACK)
 	if(answer == "Wriggle free")
 		release()
 		return
@@ -230,8 +229,8 @@
 		return
 	if(!feeder.is_holding(src) || feeder.combat_mode || feeder.incapacitated || !feeder.Adjacent(eater))
 		return
-	allowed_eater = eater_ref
-	allowed_feeder = feeder_ref
+	allowed_eater = target_ref
+	allowed_feeder = user_ref
 	start_meal(eater, feeder)
 	// no meal came of it, so they ask again next time
 	if(!QDELETED(src) && !meal_eater)
@@ -327,12 +326,12 @@
  * - holder_ref: The holder the critter is in.
  * - feeder: Who is asked.
  * - question: What to ask.
- * - eater_ref: Who would eat it.
+ * - target_ref: Who would eat it.
  */
-/proc/confirm_edible_critter(datum/weakref/holder_ref, mob/living/feeder, question, datum/weakref/eater_ref)
+/proc/confirm_edible_critter(datum/weakref/holder_ref, mob/living/feeder, question, datum/weakref/target_ref)
 	var/answer = tgui_alert(feeder, question, "Eat it alive", list("Yes", "No"), 10 SECONDS)
 	var/obj/item/mob_holder/edible/holder = holder_ref.resolve()
-	holder?.feeder_answered(eater_ref.resolve(), feeder, answer)
+	holder?.feeder_answered(target_ref.resolve(), feeder, answer)
 
 /**
  * Asks a critter's player whether they may be eaten, and passes the answer to its holder.
@@ -344,16 +343,16 @@
  * - prompt: Number of the question, given back with the answer.
  * - critter: The critter being asked.
  * - question: What to ask.
- * - eater_ref: Who would eat it.
- * - feeder_ref: Who would feed it to them.
+ * - target_ref: Who would eat it.
+ * - user_ref: Who would feed it to them.
  */
-/proc/ask_edible_critter(datum/weakref/holder_ref, prompt, mob/living/critter, question, datum/weakref/eater_ref, datum/weakref/feeder_ref)
-	var/asked_at = world.time
+/proc/ask_edible_critter(datum/weakref/holder_ref, prompt, mob/living/critter, question, datum/weakref/target_ref, datum/weakref/user_ref)
+	var/start_time = world.time
 	var/answer = tgui_alert(critter, question, "Being eaten", list("Wriggle free", "Let them"), 10 SECONDS)
-	if(!answer && world.time < asked_at + 10 SECONDS)
+	if(!answer && world.time < start_time + 10 SECONDS)
 		answer = "closed"
 	var/obj/item/mob_holder/edible/holder = holder_ref.resolve()
-	holder?.critter_answered(prompt, eater_ref, feeder_ref, answer)
+	holder?.critter_answered(prompt, target_ref, user_ref, answer)
 
 /**
  * A cockroach that dies whole leaves a dead roach and no guts, in the hand or pocket that held it,
@@ -363,21 +362,21 @@
 	// no item when the body stays, a shapeshifter's caster comes back, or it bursts
 	if(gibbed || stat == DEAD || !(basic_mob_flags & DEL_ON_DEATH) || (locate(/datum/status_effect/shapechange_mob) in status_effects) || istype(src, /mob/living/basic/cockroach/bloodroach))
 		return ..()
-	var/atom/corpse_spot = drop_location()
+	var/atom/drop_loc = drop_location()
 	var/mob/living/carrier
 	var/hand_index
-	var/pocket_slot
+	var/slot
 	var/obj/item/mob_holder/holder = loc
 	if(istype(holder))
-		corpse_spot = holder.loc
-		if(isliving(corpse_spot))
-			carrier = corpse_spot
+		drop_loc = holder.loc
+		if(isliving(drop_loc))
+			carrier = drop_loc
 			hand_index = carrier.get_held_index_of_item(holder)
-			pocket_slot = carrier.get_slot_by_item(holder) & (ITEM_SLOT_LPOCKET | ITEM_SLOT_RPOCKET)
-			corpse_spot = carrier.drop_location()
-	if(istype(corpse_spot, /obj/machinery/microwave))
+			slot = carrier.get_slot_by_item(holder) & (ITEM_SLOT_LPOCKET | ITEM_SLOT_RPOCKET)
+			drop_loc = carrier.drop_location()
+	if(istype(drop_loc, /obj/machinery/microwave))
 		return ..()
-	var/obj/item/food/deadroach/corpse = new(corpse_spot)
+	var/obj/item/food/deadroach/corpse = new(drop_loc)
 	corpse.copy_corpse(src)
 	// the guts are still in the body
 	RemoveElement(/datum/element/death_drops, /obj/effect/decal/cleanable/insectguts)
@@ -385,8 +384,8 @@
 	. = ..()
 	if(hand_index)
 		carrier.put_in_hand(corpse, hand_index)
-	else if(pocket_slot)
-		carrier.equip_to_slot_if_possible(corpse, pocket_slot, disable_warning = TRUE)
+	else if(slot)
+		carrier.equip_to_slot_if_possible(corpse, slot, disable_warning = TRUE)
 
 /// A cockroach that died whole, lying on its back
 /obj/item/food/deadroach
@@ -413,11 +412,11 @@
  * Takes the dead roach's name, sprite and tint.
  *
  * Arguments:
- * - dead_roach: The cockroach this was.
+ * - roach: The cockroach this was.
  */
-/obj/item/food/deadroach/proc/copy_corpse(mob/living/basic/cockroach/dead_roach)
-	name = "dead [dead_roach.name]"
-	icon = dead_roach.icon
-	icon_state = dead_roach.icon_dead
-	if(dead_roach.color)
-		add_atom_colour(dead_roach.color, FIXED_COLOUR_PRIORITY)
+/obj/item/food/deadroach/proc/copy_corpse(mob/living/basic/cockroach/roach)
+	name = "dead [roach.name]"
+	icon = roach.icon
+	icon_state = roach.icon_dead
+	if(roach.color)
+		add_atom_colour(roach.color, FIXED_COLOUR_PRIORITY)
