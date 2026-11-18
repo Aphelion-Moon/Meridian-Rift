@@ -25,6 +25,11 @@ export DREAMLUAU_REPO="tgstation/dreamluau"
 #dreamluau git tag
 export DREAMLUAU_VERSION=0.1.2
 
+# APHELION EDIT ADDITION START - Fresh TGS installs got the newest Rust, and 1.100 can't build dreamluau 0.1.2
+#rust toolchain for the TGS rust-g and dreamluau builds
+export RUST_VERSION=1.99.1
+
+# APHELION EDIT ADDITION END
 #hypnagogic repo
 export CUTTER_REPO=spacestation13/hypnagogic
 
