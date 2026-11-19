@@ -19,7 +19,7 @@
 
 /datum/reagent/pax/catnip/on_mob_life(mob/living/carbon/affected_mob, seconds_per_tick, metabolization_ratio)
 	if(isfeline(affected_mob))
-		if(prob(10))
+		if(prob(15))
 			affected_mob.emote("[pick("meow","mggaow", "mrrp", "prbt", "purr")]")
 		if(prob(20))
 			to_chat(affected_mob, span_notice("[pick("Headpats feel nice.", "Backrubs would be nice.", "Mew!")]"))

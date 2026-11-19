@@ -56,7 +56,7 @@
 	if(affected_mob.adjust_stamina_loss(min(50 - affected_mob.get_stamina_loss(), 3)))
 		. = UPDATE_MOB_HEALTH
 	if(isfeline(affected_mob))
-		if(prob(10))
+		if(prob(15))
 			affected_mob.emote("[pick("meow","mggaow", "mrrp", "prbt", "purr")]")
 		if(prob(20))
 			to_chat(affected_mob, span_notice("[pick("Headpats feel nice.", "Backrubs would be nice.", "Mew!")]"))
