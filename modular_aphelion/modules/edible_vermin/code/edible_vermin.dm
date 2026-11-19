@@ -1,138 +1,59 @@
-/mob/living/basic/frog
-	inhand_holder_type = /obj/item/mob_holder/frog
-
-/mob/living/basic/frog/rare
-	inhand_holder_type = /obj/item/mob_holder/frog/rare
-
-/mob/living/basic/frog/crazy/rare
-	inhand_holder_type = /obj/item/mob_holder/frog/rare
-
 /**
- * A held frog that can be eaten once it is dead, in one bite, like any food.
- *
- * It is food only while someone tries to eat it. If the attempt ends without a swallow, it is a
- * plain holder again, so nothing else can use up the meal. Eating deletes the body.
+ * Turns a dead frog into a food item when someone picks it up.
+ * A pet frog, or a frog that a player was in, keeps its body and is held as usual.
  */
-/obj/item/mob_holder/frog
-	/// Reagents the frog is worth, all swallowed in one bite
-	var/list/food_reagents = list(/datum/reagent/consumable/nutriment = 3, /datum/reagent/consumable/nutriment/protein = 2)
-	/// Who is trying to eat it right now
-	var/datum/weakref/meal_eater
+/mob/living/basic/frog/mob_pickup(mob/living/user)
+	if(stat != DEAD || mind || is_pet())
+		return ..()
+	// a frog with mushroom hallucinogen in its bite is a rare one
+	var/corpse_type = poison_type == /datum/reagent/drug/mushroomhallucinogen ? /obj/item/food/deadfrog/rare : /obj/item/food/deadfrog
+	var/obj/item/food/deadfrog/corpse = new corpse_type(drop_location())
+	corpse.name = "dead [name]"
+	corpse.icon = icon
+	corpse.icon_state = icon_dead
+	user.visible_message(span_warning("[user] scoops up [src]!"))
+	user.put_in_hands(corpse)
+	qdel(src)
 
-/// A frog with hallucinogen in its bite. Swallowed whole, it is a strong sunshine pill.
-/obj/item/mob_holder/frog/rare
-	// food is half pure, which halves the mushroom overdose to 15
+/// Returns whether the frog is a pet. A pet is tamed, has a name, or belongs to a player.
+/mob/living/basic/frog/proc/is_pet()
+	if(HAS_TRAIT(src, TRAIT_TAMED) || name != initial(name) || istype(src, /mob/living/basic/frog/icemoon_facility))
+		return TRUE
+	for(var/friend_ref in allies)
+		var/mob/living/friend = locate(friend_ref)
+		// an owner is a player, and a regal rat's frogs aren't pets
+		if(friend != src && istype(friend) && !QDELETED(friend) && friend.mind && !isregalrat(friend))
+			return TRUE
+	return FALSE
+
+/// The food item a dead frog turns into when it is picked up
+/obj/item/food/deadfrog
+	name = "dead frog"
+	desc = "They seem a little dead."
+	icon = 'icons/mob/simple/animal.dmi'
+	icon_state = "frog_dead"
+	w_class = WEIGHT_CLASS_TINY
+	food_reagents = list(/datum/reagent/consumable/nutriment = 3, /datum/reagent/consumable/nutriment/protein = 2)
+	foodtypes = MEAT | RAW
+	tastes = list("frog" = 1, "slime" = 1)
+	eatverbs = list("devour", "gulp", "swallow")
+	bite_consumption = 5
+	decomp_type = null
+	// random food, gifts and mystery boxes don't roll one
+	spawn_blacklisted = TRUE
+
+/// A dead rare frog. Eating it gives a strong trip, from the same two drugs as a sunshine pill.
+/obj/item/food/deadfrog/rare
+	name = "dead rare frog"
+	icon_state = "rare_frog_dead"
+	// food reagents are half pure, so the mushroom overdoses at 15 units, not 30
 	food_reagents = list(
 		/datum/reagent/consumable/nutriment = 3,
 		/datum/reagent/consumable/nutriment/protein = 2,
 		/datum/reagent/drug/mushroomhallucinogen = 10,
 		/datum/reagent/toxin/mindbreaker = 25,
 	)
-
-/// Clicking someone with a dead one outside combat mode feeds it to them, if it may be eaten.
-/obj/item/mob_holder/frog/pre_attack(atom/target, mob/living/user, list/modifiers, list/attack_modifiers)
-	. = ..()
-	if(. || user.combat_mode || !iscarbon(target) || held_mob.stat != DEAD)
-		return
-	. = TRUE
-	user.changeNext_move(attack_speed)
-	var/refusal = eat_refusal()
-	if(refusal)
-		balloon_alert(user, refusal)
-		return
-	start_meal(target, user)
-
-/**
- * Says why the held frog's body can't be eaten.
- *
- * Returns:
- * - text: A balloon alert, or null if it can be eaten.
- */
-/obj/item/mob_holder/frog/proc/eat_refusal()
-	// a shapeshifter carries its real body inside, which would go with it
-	if(locate(/datum/status_effect/shapechange_mob) in held_mob.status_effects)
-		return "can't eat that!"
-	if(HAS_TRAIT(held_mob, TRAIT_TAMED) || istype(held_mob, /mob/living/basic/frog/icemoon_facility) || held_mob.name != initial(held_mob.name))
-		return "someone's pet!"
-	for(var/friend_ref in held_mob.allies)
-		var/mob/living/friend = locate(friend_ref)
-		// owners are people other than regal rats
-		if(friend != held_mob && istype(friend) && !QDELETED(friend) && friend.mind && !isregalrat(friend))
-			return "someone's pet!"
-	return null
-
-/**
- * Makes the holder food and has the eater try it, as clicking them with food does. Does nothing
- * while someone is trying already.
- *
- * Arguments:
- * - eater: Who eats it.
- * - feeder: Who feeds it to them, the eater when eating it themselves.
- */
-/obj/item/mob_holder/frog/proc/start_meal(mob/living/carbon/eater, mob/living/feeder)
-	if(meal_eater || DOING_INTERACTION(feeder, eater))
-		return
-	meal_eater = WEAKREF(eater)
-	AddComponentFrom(\
-		SOURCE_EDIBLE_INNATE,\
-		/datum/component/edible,\
-		initial_reagents = food_reagents,\
-		foodtypes = MEAT | RAW,\
-		eat_time = 3 SECONDS,\
-		tastes = list("frog" = 1, "slime" = 1),\
-		eatverbs = list("devour", "gulp", "swallow"),\
-		bite_consumption = counterlist_sum(food_reagents),\
-		on_consume = CALLBACK(src, PROC_REF(swallowed)),\
-	)
-	RegisterSignal(feeder, COMSIG_DO_AFTER_ENDED, PROC_REF(on_attempt_ended))
-	attack(eater, feeder)
-	if(!QDELETED(src) && !DOING_INTERACTION(feeder, eater))
-		end_meal(feeder)
-
-/**
- * When the feeder stops trying, lets go of a frog that may no longer be eaten, before it is
- * bitten. Otherwise the holder turns plain again a moment later, unless it was swallowed.
- *
- * Arguments:
- * - feeder: Whose action ended.
- */
-/obj/item/mob_holder/frog/proc/on_attempt_ended(mob/living/feeder)
-	SIGNAL_HANDLER
-	var/mob/living/eater = meal_eater?.resolve()
-	// another of the feeder's actions ended
-	if(eater && DOING_INTERACTION(feeder, eater))
-		return
-	// it came back to life, or became a pet
-	if(held_mob.stat != DEAD || eat_refusal())
-		release()
-		return
-	addtimer(CALLBACK(src, PROC_REF(end_meal), feeder), 1, TIMER_UNIQUE)
-
-/**
- * Makes the holder plain again after an attempt that didn't end in a swallow.
- *
- * Arguments:
- * - feeder: Who was feeding it.
- */
-/obj/item/mob_holder/frog/proc/end_meal(mob/living/feeder)
-	var/mob/living/eater = meal_eater?.resolve()
-	if(eater && DOING_INTERACTION(feeder, eater))
-		return
-	UnregisterSignal(feeder, COMSIG_DO_AFTER_ENDED)
-	meal_eater = null
-	RemoveComponentSource(SOURCE_EDIBLE_INNATE, /datum/component/edible)
-	QDEL_NULL(reagents)
-
-/**
- * Deletes the swallowed body, which deletes the holder.
- *
- * Arguments:
- * - eater: Who swallowed it.
- * - feeder: Who fed it to them.
- */
-/obj/item/mob_holder/frog/proc/swallowed(mob/living/eater, mob/living/feeder)
-	log_combat(eater, held_mob, "swallowed", addition = feeder == eater ? "dead" : "dead, fed by [key_name(feeder)]")
-	qdel(held_mob)
+	bite_consumption = 40
 
 /**
  * A cockroach that dies whole leaves a dead roach and no guts, in the hand or pocket that held it,
