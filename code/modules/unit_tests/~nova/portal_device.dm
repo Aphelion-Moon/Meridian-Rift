@@ -1022,7 +1022,28 @@
 	TEST_ASSERT(!length(bystander.portal_test_messages), "Someone beside the device was shown a Subtler sent through it.")
 	receiver.anonymous = FALSE
 
-	operator.dropItemToGround(device, force = TRUE)
+	// packed away on its carrier, the link stays open both ways
+	var/obj/item/clothing/under/color/grey/jumpsuit = allocate(/obj/item/clothing/under/color/grey, run_loc_floor_bottom_left)
+	var/obj/item/storage/backpack/bag = allocate(/obj/item/storage/backpack, run_loc_floor_bottom_left)
+	TEST_ASSERT(operator.equip_to_slot_if_possible(jumpsuit, ITEM_SLOT_ICLOTHING) && operator.equip_to_slot_if_possible(bag, ITEM_SLOT_BACK), "The operator could not put on a jumpsuit and a backpack.")
+	TEST_ASSERT(operator.temporarilyRemoveItemFromInventory(device) && operator.equip_to_slot_if_possible(device, ITEM_SLOT_LPOCKET), "The operator could not pocket the portal device.")
+	TEST_ASSERT(device.loc == operator && !operator.is_holding(device), "The portal device was not in the operator's pocket.")
+	TEST_ASSERT(subtler_emote.send_device_subtler(wearer, device, operator, "waves", NONE, " ", "sender copy"), "The wearer could not reach whoever has the device in a pocket.")
+	TEST_ASSERT(bag.atom_storage.attempt_insert(device, operator, messages = FALSE) && device.loc == bag, "The portal device did not go in the operator's backpack.")
+	device_refs = list()
+	targets = subtler_emote.build_subtler_targets(wearer, world.view, device_refs)
+	TEST_ASSERT_EQUAL(subtler_device_for(targets, device_refs, operator), device, "Subtler did not offer the wearer whoever has the device in a bag.")
+	TEST_ASSERT(subtler_emote.send_device_subtler(wearer, device, operator, "waves", NONE, " ", "sender copy"), "The wearer could not reach whoever has the device in a bag.")
+	device_refs = list()
+	targets = subtler_emote.build_subtler_targets(operator, world.view, device_refs)
+	TEST_ASSERT_EQUAL(subtler_device_for(targets, device_refs, wearer), device, "Subtler did not offer the receiver's wearer through a device in the sender's bag.")
+	device_refs = list()
+	subtler_emote.build_subtler_targets(bystander, world.view, device_refs)
+	TEST_ASSERT(!length(device_refs), "Subtler offered the receiver's wearer through a device in someone else's bag.")
+	operator.dropItemToGround(bag, force = TRUE)
+	TEST_ASSERT(!subtler_emote.send_device_subtler(wearer, device, operator, "waves", NONE, " ", "sender copy"), "A Subtler reached the device's old carrier after they put its bag down.")
+	device.forceMove(run_loc_floor_bottom_left)
+
 	TEST_ASSERT(bystander.put_in_active_hand(device, forced = TRUE), "The bystander could not take the portal device.")
 	TEST_ASSERT(!subtler_emote.send_device_subtler(wearer, device, operator, "waves", NONE, " ", "sender copy"), "A Subtler offered to the device's old holder reached them after it changed hands.")
 

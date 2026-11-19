@@ -333,11 +333,11 @@
 /**
  * Returns every portal device that could link user to someone on its far end, each once.
  *
- * That's every device user holds or stands within a tile of, plus the device linked to any receiver that user wears.
+ * That's every device user carries or stands within a tile of, plus the device linked to any receiver that user wears.
  * far_end_partner() decides whether each link is actually open.
  */
 /datum/emote/living/subtler/proc/portal_device_candidates(mob/living/user)
-	var/list/devices = list()
+	var/list/devices = user.get_all_contents_type(/obj/item/clothing/sextoy/portal_fleshlight)
 	for(var/atom/movable/nearby in view(1, user))
 		if(istype(nearby, /obj/item/clothing/sextoy/portal_fleshlight))
 			devices |= nearby
@@ -354,17 +354,18 @@
 /**
  * Returns a short note on how user is linked to the device, so two links that both show Unknown can be told apart.
  *
- * That's the slot user wears the device's receiver in, the hand they hold the device in, the floor, or whoever next
- * to them holds it.
+ * That's the slot user wears the device's receiver in, the hand they hold the device in, that they carry it packed
+ * away, the floor, or whoever next to them holds it.
  */
 /datum/emote/living/subtler/proc/portal_device_place(mob/living/carbon/human/user, obj/item/clothing/sextoy/portal_fleshlight/device)
 	if(device.linked_panties.get_equipped_wearer() == user)
 		return "in your [device.linked_panties.current_target]"
-	if(device.loc == user)
+	if(user.is_holding(device))
 		return "in your [user.get_held_index_name(user.get_held_index_of_item(device))]"
 	if(isturf(device.loc))
 		return "on the floor"
-	return "held by [device.loc]"
+	var/mob/living/holder = device.loc
+	return (istype(holder) && holder != user) ? "held by [holder]" : "you carry"
 
 /// Delivers one Subtler through a portal relay to whoever is on the far side, anonymously.
 /datum/emote/living/subtler/proc/send_portal_subtler(
