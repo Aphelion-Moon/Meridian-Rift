@@ -11,6 +11,10 @@ original_dir=$PWD
 cd "$1"
 . dependencies.sh
 cd "$original_dir"
+# APHELION EDIT ADDITION START - rust-g and dreamluau build on the pinned compiler, not whatever stable rustup installed
+~/.cargo/bin/rustup toolchain install "$RUST_VERSION" --profile minimal
+export RUSTUP_TOOLCHAIN="$RUST_VERSION"
+# APHELION EDIT ADDITION END
 
 NEED_BUN_INSTALL=0
 if [ -x "$HOME/.bun/bin/bun" ]; then
