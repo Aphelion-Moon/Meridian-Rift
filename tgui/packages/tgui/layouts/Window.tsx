@@ -30,6 +30,7 @@ import {
 import { suspendStart } from '../events/handlers/suspense';
 import { useWindowSizing } from '../hooks/useWindowSizing'; // APHELION EDIT ADDITION - window sizing
 import { createLogger } from '../logging';
+import { IconResourceNotice } from './IconResourceNotice'; // APHELION EDIT ADDITION - ICON_MAP - tg #98320
 import { Layout } from './Layout';
 import { TitleBar } from './TitleBar';
 
@@ -159,7 +160,12 @@ export function Window(props: Props) {
           debug.debugLayout && 'debug-layout',
         ])}
       >
+        {/* // APHELION EDIT REMOVAL START - ICON_MAP - tg #98320
         {!suspended && children}
+        // APHELION EDIT REMOVAL END */}
+        {/* APHELION EDIT ADDITION START - ICON_MAP - tg #98320 */}
+        <IconResourceNotice>{!suspended && children}</IconResourceNotice>
+        {/* APHELION EDIT ADDITION END */}
         {showDimmer && <div className="Window__dimmer" />}
       </div>
       <div
