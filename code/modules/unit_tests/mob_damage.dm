@@ -468,8 +468,8 @@
 	MODIFY_PHYSIOLOGY(pressure_dummy, BRUTE, brute_modifier)
 	MODIFY_PHYSIOLOGY(damage_dummy, BRUTE, brute_modifier)
 	var/datum/gas_mixture/environment = allocate(/datum/gas_mixture)
-	environment.volume = CELL_VOLUME
-	environment.temperature = T20C
+	environment.set_volume(CELL_VOLUME) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: environment.volume = CELL_VOLUME
+	environment.set_temperature(T20C) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: environment.temperature = T20C
 	environment.set_gas(GAS_O2, oxygen_moles)
 
 	control.dna.species.handle_environment_pressure(control, environment, PRESSURE_TEST_EXPOSURE_SECONDS)

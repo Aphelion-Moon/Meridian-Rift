@@ -35,7 +35,7 @@
 	ttv.update_appearance()
 
 /obj/effect/spawner/newbomb/proc/calculate_pressure(datum/gas_mixture/gasmix, pressure)
-	return pressure * gasmix.volume/(R_IDEAL_GAS_EQUATION*gasmix.temperature)
+	return pressure * gasmix.return_volume()/(R_IDEAL_GAS_EQUATION*gasmix.return_temperature()) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: return pressure * gasmix.volume/(R_IDEAL_GAS_EQUATION*gasmix.temperature)
 
 /obj/effect/spawner/newbomb/plasma
 

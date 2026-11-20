@@ -420,7 +420,7 @@
 	var/datum/gas_mixture/fresh_air = new
 	fresh_air.set_gas(/datum/gas/oxygen, MOLES_O2STANDARD)
 	fresh_air.set_gas(/datum/gas/nitrogen, MOLES_N2STANDARD)
-	fresh_air.temperature = T20C
+	fresh_air.set_temperature(T20C) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: fresh_air.temperature = T20C
 	return fresh_air
 
 /obj/structure/chrono_field/singularity_act()

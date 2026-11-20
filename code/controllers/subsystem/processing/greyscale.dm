@@ -35,6 +35,11 @@ PROCESSING_SUBSYSTEM_DEF(greyscale)
 		config.CrossVerify()
 #ifdef USE_RUSTG_ICONFORGE_GAGS
 		job_ids += rustg_iconforge_load_gags_config_async(greyscale_type, config.raw_json_string, config.string_icon_file)
+		// APHELION EDIT ADDITION START - DOGMOS
+		// rust-g starts one thread per job; bound in-flight jobs so 32-bit DreamDaemon keeps address space for Dogmos.
+		if(length(job_ids) >= 32)
+			UNTIL(jobs_completed(job_ids))
+		// APHELION EDIT ADDITION END
 
 	UNTIL(jobs_completed(job_ids))
 #endif

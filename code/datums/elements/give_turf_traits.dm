@@ -15,11 +15,13 @@
 	src.traits = traits
 
 	RegisterSignal(target, COMSIG_MOVABLE_MOVED, PROC_REF(on_moved))
+	RegisterSignal(target, COMSIG_ATOM_EXITING, PROC_REF(on_exiting)) // APHELION EDIT ADDITION - TURF_CONTEXT
 	if(isturf(target.loc))
 		add_to_occupied_turfs(target.loc, target)
 
 /datum/element/give_turf_traits/Detach(atom/movable/source)
 	UnregisterSignal(source, COMSIG_MOVABLE_MOVED)
+	UnregisterSignal(source, COMSIG_ATOM_EXITING) // APHELION EDIT ADDITION - TURF_CONTEXT
 	if(isturf(source.loc))
 		remove_from_occupied_turfs(source.loc, source)
 	return ..()
@@ -32,6 +34,14 @@
 
 	if(isturf(source.loc))
 		add_to_occupied_turfs(source.loc, source)
+// APHELION EDIT ADDITION START - TURF_CONTEXT
+
+/// Entered() can delete the source before Moved(), so release the old turf on exit.
+/datum/element/give_turf_traits/proc/on_exiting(atom/movable/source, atom/exiting)
+	SIGNAL_HANDLER
+	if(isturf(exiting))
+		remove_from_occupied_turfs(exiting, source)
+// APHELION EDIT ADDITION END
 
 /**
  * Registers the turf signals if it was previously unoccupied and adds it to the list of occupied turfs.
@@ -56,6 +66,10 @@
  */
 /datum/element/give_turf_traits/proc/remove_from_occupied_turfs(turf/location, atom/movable/source)
 	var/trait_source = REF(source)
+	// APHELION EDIT ADDITION START - TURF_CONTEXT
+	if(!(trait_source in trait_sources?[location]))
+		return
+	// APHELION EDIT ADDITION END
 	LAZYREMOVEASSOC(trait_sources, location, trait_source)
 	if(isnull(trait_sources) || isnull(trait_sources[location]))
 		UnregisterSignal(location, COMSIG_TURF_CHANGE)
