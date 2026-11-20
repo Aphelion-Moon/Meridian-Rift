@@ -72,6 +72,7 @@
 /datum/supply_pack/companies/apparel/sol_fed/large_case
 	cost = CARGO_CRATE_VALUE
 
+/* // APHELION EDIT REMOVAL START - PRIVATE_PURCHASES
 /datum/supply_pack/companies/apparel/sol_fed/small_case/trappiste
 	contains = list(/obj/item/storage/toolbox/guncase/nova/pistol/trappiste_small_case)
 
@@ -119,18 +120,21 @@
 
 /datum/supply_pack/companies/apparel/sol_fed/large_case/greencase
 	contains = list(/obj/item/storage/toolbox/guncase/nova/green)
+*/ // APHELION EDIT REMOVAL END
 
 // Vitezstvi
 
 /datum/supply_pack/companies/apparel/vitezstvi
 	cost = CARGO_CRATE_VALUE * 0.5
 
+/* // APHELION EDIT REMOVAL START - PRIVATE_PURCHASES
 /datum/supply_pack/companies/apparel/vitezstvi/small_case
 	contains = list(/obj/item/storage/toolbox/guncase/nova/pistol)
 
 /datum/supply_pack/companies/apparel/vitezstvi/large_case
 	contains = list(/obj/item/storage/toolbox/guncase/nova)
 	cost = CARGO_CRATE_VALUE
+*/ // APHELION EDIT REMOVAL END
 
 /datum/supply_pack/companies/apparel/vitezstvi/bandolier
 	contains = list(/obj/item/storage/belt/bandolier)
