@@ -25,7 +25,7 @@
 			to_chat(affected_mob, span_notice("[pick("Headpats feel nice.", "Backrubs would be nice.", "Mew!")]"))
 	else
 		to_chat(affected_mob, span_notice("[pick("I feel oddly calm.", "I feel relaxed.", "Mew?")]"))
-	..()
+	return ..()
 
 #define DERMAGEN_SCAR_FIX_AMOUNT 10
 
