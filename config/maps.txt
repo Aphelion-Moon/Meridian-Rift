@@ -99,5 +99,10 @@ map oceanpubby
     votable
 endmap
 
+map MetamorphicStation
+	votable
+endmap
+
 map runtimestation_minimal
 endmap
+
