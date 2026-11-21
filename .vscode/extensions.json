@@ -1,6 +1,7 @@
 {
 	"recommendations": [
 		"platymuus.dm-langclient",
+		"sohpea.auxtools",
 		"EditorConfig.EditorConfig",
 		"arcanis.vscode-zipfs",
 		"stylemistake.auto-comment-blocks",

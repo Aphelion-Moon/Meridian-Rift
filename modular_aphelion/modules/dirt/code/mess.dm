@@ -59,7 +59,7 @@
  *
  * Arguments:
  * - zone: A DIRT_ZONE_* define, not DIRT_ZONE_COCK.
- * - variant: 0 to DIRT_MESS_VARIANTS - 1.
+ * - variant: 0 to DIRT_VARIANTS - 1.
  */
 /datum/dirt_aim/New(zone, variant)
 	. = ..()
@@ -69,7 +69,7 @@
 	// each clamped end takes its own bound: on one row they drew garters or a band
 	staggered = bounded && (zone == DIRT_ZONE_STOMACH || zone == DIRT_ZONE_THIGHS)
 	beaded = zone == DIRT_ZONE_BUTT
-	// at most the aimed zones' DIRT_MESS_VARIANTS each
+	// holds at most DIRT_VARIANTS entries for each aimed zone
 	var/static/alist/drawn = alist()
 	var/key = "[zone]:[variant]"
 	var/list/draws = drawn[key]
@@ -657,10 +657,10 @@
 	return (seed % 2 && room > 2) ? 2 : 0
 
 /**
- * Returns the mess's tints, indexed by DIRT_ROLE_* define, each list(colour, alpha from 0 to 1), as dirt_baked_icon()
- * takes them. Pearl white, translucent where thin and near opaque where thick, a light grey underside that sets drops
- * apart on pale skin, and a white highlight. Haze is the film's colour at half its alpha, drawn as film at half coverage.
- * You should NEVER modify it.
+ * Returns the mess material's tints (/datum/dirt_material/var/tints), indexed by DIRT_ROLE_* define, each list(colour,
+ * alpha from 0 to 1). Mess is pearl white, translucent where thin and near opaque where thick. It has a light grey
+ * underside that sets drops apart on pale skin, and a white highlight. Haze is the film's colour at half its alpha,
+ * drawn as film at half coverage. You should NEVER modify it.
  */
 /proc/dirt_mess_role_tints()
 	RETURN_TYPE(/list)

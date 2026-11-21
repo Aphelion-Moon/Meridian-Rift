@@ -67,7 +67,7 @@
 	var/datum/bodypart_overlay/mutant/taur_body/taur = custom_sprite_taur_overlay(body)
 	var/obj/item/bodypart/chest = body.get_bodypart(BODY_ZONE_CHEST)
 	if(taur && chest)
-		geometry += list(taur.icon_render_key(chest))
+		geometry += list(custom_sprite_taur_key(taur, chest))
 	var/key = md5(json_encode(geometry))
 	if(maps[key])
 		return maps[key]

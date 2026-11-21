@@ -10,6 +10,20 @@
 	var/limb
 	/// The DIRT_ROLE_* define it always draws in, or null to draw in the role its thickness picks.
 	var/role
+	/// The DIRT_ROLE_* define it draws in on bare skin instead, or null. Settled soot reaches skin as film only.
+	var/skin_role
+	/// Whether it's a veil, an even film that may cover the mouth but never an eye. On a face a veil keeps to
+	/// dirt_face_zone()'s limits rather than the face's guard, which keeps other dirt off the eyes and mouth.
+	var/veil = FALSE
+	/// Whether it's drawn on cloth only, as a wipe mark is.
+	var/cloth_only = FALSE
+	/// Whether it's drawn on bare skin only, and never on cloth.
+	var/skin_only = FALSE
+	/// Whether it's a speck, placed after the coats and kept clear of them (dirt_scatter()), rather than a coat.
+	var/scatter = FALSE
+	/// Whether a broken film ring runs round what it draws (dirt_rings()). Abrasion marks dark cloth, and its ring
+	/// marks light cloth.
+	var/ring = FALSE
 	/// Whether it's left out facing east or west: in profile only a back's edge shows, and mess on it read as a strap.
 	var/profile_hidden = FALSE
 	/// Whether it's drawn facing east or west only:
@@ -26,7 +40,7 @@
 	/// The only level it's drawn from, for a run carried on past its bulb, or null.
 	var/from_level
 	/// alist(pixel index = thickness) on the view it's drawn on, where it lies at all, set by bind() as it's first
-	/// asked for (pixels_on()).
+	/// asked for (pixels_on()). It's kept until unbind() frees the feature for another view.
 	var/alist/drawn_pixels
 	/// Degrees round its limb that one pixel spans, from dirt_metric().
 	var/degrees_per_pixel
@@ -40,6 +54,16 @@
 	var/reach_low = -INFINITY
 	/// The highest h it can reach.
 	var/reach_high = INFINITY
+	/// Its mask job's table of the deposit's noise (/datum/dirt_mask_job/var/deposit_samples), or null to sample afresh
+	/// (noise()). It's handed over each time dirt_level_features() hands out the feature's level.
+	var/alist/deposit_samples
+	/// The part of deposit_samples that noise() read last, for site_seed and site_scale:
+	/// alist(sample_y = alist(sample_x = value)). It's kept until unbind().
+	var/alist/site_samples
+	/// The seed site_samples is for.
+	var/site_seed
+	/// The scale site_samples is for.
+	var/site_scale
 
 /**
  * Starts a feature on a limb.
@@ -68,7 +92,8 @@
 
 /**
  * Returns how thick the feature lies on each pixel of the view it's drawn on, where it lies at all: alist(pixel index =
- * thickness), worked out the first time (bind()). A feature is drawn on one view only. You should NEVER modify it.
+ * thickness). It's worked out the first time it's asked for (bind()). A feature is drawn on one view at a time, and
+ * unbind() frees it for the next. You should NEVER modify it.
  *
  * Arguments:
  * - surface: The view's surface.
@@ -82,7 +107,9 @@
 
 /**
  * Works out the pixels the feature draws on in one view, into drawn_pixels: by default its thickness() on each pixel
- * of its limb it can reach. A few pick their pixels instead.
+ * of its limb it can reach. A few pick their pixels instead. Every pixel's theta lies within 90 degrees of the way the
+ * view faces (/datum/dirt_surface/proc/place_pixels()). So if a view faces more than 90 degrees past a feature's
+ * reach, it shows none of the feature, and no pixel is weighed.
  *
  * Arguments:
  * - surface: The view's surface.
@@ -92,6 +119,12 @@
 	drawn_pixels = alist()
 	var/list/rows = surface_rows[limb]
 	if(!rows)
+		return
+	// the facing place_pixels() turns each theta from, and since a gauss-drawn reach_theta can lie past a half turn,
+	// the turn to it is wrapped in full (DIRT_MODULO), and the 0.01 covers rounding
+	var/direction = surface.direction
+	var/facing = direction == NORTH ? 180 : (direction == EAST ? 90 : (direction == WEST ? -90 : 0))
+	if(abs(DIRT_MODULO(reach_theta - facing + 180, 360) - 180) > reach_degrees + 90.01)
 		return
 	var/list/theta_of = surface.theta_of
 	var/list/height_of = surface.height_of
@@ -108,8 +141,53 @@
 				drawn_pixels[index] = thickness
 
 /**
+ * Frees the feature for another view. It drops what it bound on the last view and the part of its job's noise table
+ * it read, and it binds again on the next view when asked (pixels_on()). The rest of what it was made with stays,
+ * because a mask job draws a deposit's features in each direction in turn (dirt_level_features()).
+ */
+/datum/dirt_feature/proc/unbind()
+	drawn_pixels = null
+	site_samples = null
+
+/**
+ * Returns two octaves of value noise at a point, as dirt_spread_noise() does. With its mask job's table
+ * (deposit_samples), it returns the value kept there for the same four numbers, which the table keys exactly, or
+ * samples one now and keeps it. In one drafting state (SSdirt.drafting) the noise depends on its arguments alone, and
+ * a job draws every direction of a deposit while drafting. So a kept value is what sampling again returns.
+ *
+ * Arguments:
+ * - sample_x, sample_y, seed, scale: As dirt_spread_noise()'s.
+ */
+/datum/dirt_feature/proc/noise(sample_x, sample_y, seed, scale)
+	if(!deposit_samples)
+		return dirt_spread_noise(sample_x, sample_y, seed, scale)
+	var/alist/by_y = site_samples
+	// a site samples one seed and scale at every pixel, so this runs once a view, but a broken mantle alternates two
+	if(!by_y || seed != site_seed || scale != site_scale)
+		var/alist/by_scale = deposit_samples[seed]
+		if(!by_scale)
+			by_scale = alist()
+			deposit_samples[seed] = by_scale
+		by_y = by_scale[scale]
+		if(!by_y)
+			by_y = alist()
+			by_scale[scale] = by_y
+		site_samples = by_y
+		site_seed = seed
+		site_scale = scale
+	var/alist/by_x = by_y[sample_y]
+	if(!by_x)
+		by_x = alist()
+		by_y[sample_y] = by_x
+	. = by_x[sample_x]
+	if(isnull(.))
+		. = dirt_spread_noise(sample_x, sample_y, seed, scale)
+		by_x[sample_x] = .
+
+/**
  * A streak between two surface points, tapering toward its end. A fringe draws a film edge round it; a fluid's drip
- * goes without, since a fringe dithered a 1 px streak.
+ * goes without, since a fringe would dither a 1 px streak. A fringe on one side only keeps two streaks from merging
+ * into one blob.
  */
 /datum/dirt_feature/stroke
 	/// The theta it starts at.
@@ -122,6 +200,8 @@
 	var/taper
 	/// Whether a film edge runs round it.
 	var/fringe
+	/// The side its fringe keeps to, 1 or -1 (which side of the line from its start to its end), or 0 for both.
+	var/film_side
 	/// Pixels round the limb from its start to its end.
 	var/span_across
 	/// Pixels up the limb from its start to its end.
@@ -139,14 +219,16 @@
  * - width: Its width at the start, in pixels.
  * - taper: How much of its width it loses by its end.
  * - fringe: Whether a film edge runs round it.
+ * - film_side: The side its fringe keeps to, 1 or -1, or 0 for both.
  */
-/datum/dirt_feature/stroke/New(limb, list/start, list/finish, width, taper = 0.5, fringe = TRUE)
+/datum/dirt_feature/stroke/New(limb, list/start, list/finish, width, taper = 0.5, fringe = TRUE, film_side = 0)
 	. = ..(limb)
 	start_theta = start[1]
 	start_along = start[2]
 	src.width = width
 	src.taper = taper
 	src.fringe = fringe
+	src.film_side = film_side
 	var/turn = finish[1] - start_theta
 	span_across = DIRT_WRAP_DEGREES(turn) / degrees_per_pixel
 	span_up = (finish[2] - start_along) / along_per_pixel
@@ -161,7 +243,8 @@
 	reach_high = middle + reach_along
 
 /**
- * Body within the streak's half width of its line, a film fringe 0.7 px past that.
+ * Returns body within the streak's half width of its line, and a film fringe 0.7 px past that. A fringe that keeps to
+ * one side draws on that side only.
  */
 /datum/dirt_feature/stroke/thickness(theta, along)
 	var/turn = theta - start_theta
@@ -174,9 +257,11 @@
 	var/half = width * (1 - taper * fraction) / 2
 	if(distance <= half)
 		return DIRT_BODY_T
-	if(fringe && distance <= half + 0.7)
-		return DIRT_FILM_T
-	return 0
+	if(!fringe || distance > half + 0.7)
+		return 0
+	if(film_side && span_squared && (span_across * miss_up - span_up * miss_across) * film_side <= 0)
+		return 0
+	return DIRT_FILM_T
 
 /**
  * A rounded lump of goo where it landed: thickest underneath, a thin film round it, its outline wobbling a little with
@@ -239,7 +324,7 @@
 	var/distance = sqrt(stretched_across * stretched_across + stretched_up * stretched_up)
 	if(distance > 1.6)
 		return 0
-	distance += (dirt_spread_noise(theta / degrees_per_pixel, along / along_per_pixel, seed, 1.8) - 0.5) * 2 * ragged
+	distance += (noise(theta / degrees_per_pixel, along / along_per_pixel, seed, 1.8) - 0.5) * 2 * ragged
 	if(distance >= 1)
 		return distance < 1.2 ? DIRT_FILM_T : 0
 	if(underside && up < -0.2 * radius_y && distance < 0.85)
@@ -501,12 +586,17 @@
 	var/list/flags_of = surface.flags_of
 	var/list/theta_of = surface.theta_of
 	var/width = surface.width
-	// the torso's last row of body pixels, not the margin's
+	// walk the torso's rows up from the bottom to its last row of body pixels, not the margin's
 	var/last = -1
-	for(var/index in 1 to length(flags_of))
-		var/flags = flags_of[index]
-		if(DIRT_PIXEL_LIMB(flags) == DIRT_LIMB_TORSO && DIRT_PIXEL_ZONE(flags))
-			last = max(last, floor((index - 1) / width))
+	var/list/torso_rows = surface_rows[DIRT_LIMB_TORSO]
+	for(var/position in length(torso_rows) to 1 step -1)
+		var/list/entry = torso_rows[position]
+		for(var/index in entry[4])
+			if(DIRT_PIXEL_ZONE(flags_of[index]))
+				last = entry[1]
+				break
+		if(last >= 0)
+			break
 	if(last < 0)
 		return
 	var/list/line = list()
