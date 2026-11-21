@@ -7506,6 +7506,7 @@
 #include "modular_aphelion\modules\dirt\code\taur.dm"
 #include "modular_aphelion\modules\dirt\code\taur_overlay.dm"
 #include "modular_aphelion\modules\dirt\code\worn.dm"
+#include "modular_aphelion\modules\edible_vermin\code\edible_vermin.dm"
 #include "modular_aphelion\modules\fitness\code\female_cut.dm"
 #include "modular_aphelion\modules\fitness\code\fitness_body.dm"
 #include "modular_aphelion\modules\fitness\code\fitness_limbs.dm"
