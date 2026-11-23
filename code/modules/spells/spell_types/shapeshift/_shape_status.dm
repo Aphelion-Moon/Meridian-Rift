@@ -95,6 +95,13 @@
 	caster_mob.remove_status_effect(/datum/status_effect/grouped/stasis, STASIS_SHAPECHANGE_EFFECT)
 
 	var/atom/former_loc = owner.loc
+	// APHELION EDIT ADDITION START - EDIBLE_VERMIN
+	// let a held form go first, since its holder is deleted along with it
+	if(istype(former_loc, /obj/item/mob_holder))
+		var/obj/item/mob_holder/holder = former_loc
+		holder.release(display_messages = FALSE)
+		former_loc = owner.loc
+	// APHELION EDIT ADDITION END
 	owner.moveToNullspace()
 	caster_mob.forceMove(former_loc) // This is to avoid crushing our former cockroach body
 
