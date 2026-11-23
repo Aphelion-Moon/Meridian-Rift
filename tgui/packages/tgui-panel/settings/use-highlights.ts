@@ -2,16 +2,7 @@ import { storage } from 'common/storage';
 import { useAtom, useAtomValue } from 'jotai';
 import { createUuid } from 'tgui-core/uuid';
 import { chatRenderer } from '../chat/renderer';
-// import { defaultHighlightSetting, highlightsAtom, settingsAtom } from './atoms'; // APHELION EDIT REMOVAL - CHAT_SETTINGS
-// APHELION EDIT ADDITION START - CHAT_SETTINGS
-import { store } from '../events/store';
-import {
-  defaultHighlightSetting,
-  highlightsAtom,
-  settingsAtom,
-  settingsReadAtom,
-} from './atoms';
-// APHELION EDIT ADDITION END
+import { defaultHighlightSetting, highlightsAtom, settingsAtom } from './atoms';
 import type { HighlightSetting, HighlightState } from './types';
 
 /** Custom hook with utility functions for updating highlight settings */
@@ -21,21 +12,10 @@ export function useHighlights() {
 
   function storeHighlights(update: HighlightState): void {
     setHighlights(update);
-    /* // APHELION EDIT REMOVAL START - CHAT_SETTINGS
     storage.set('panel-settings', {
       ...settings,
       ...update,
     });
-    */ // APHELION EDIT REMOVAL END
-    // APHELION EDIT ADDITION START - CHAT_SETTINGS
-    // Only once the saved settings are read. See settingsReadAtom.
-    if (store.get(settingsReadAtom)) {
-      storage.set('panel-settings', {
-        ...settings,
-        ...update,
-      });
-    }
-    // APHELION EDIT ADDITION END
     chatRenderer.setHighlight(
       update.highlightSettings,
       update.highlightSettingById,
