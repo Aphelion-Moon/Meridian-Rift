@@ -2,8 +2,8 @@
  * Adds pleasure, and climaxes once it reaches the threshold.
  *
  * Arguments:
- * * pleas - how much pleasure to add, negative to take some away
- * * stimulated_slot - the organ slot the pleasure came from, if known, passed on to climax()
+ * - pleas: How much pleasure to add, negative to take some away.
+ * - stimulated_slot: The organ slot the pleasure came from, if known, passed on to climax().
  */
 /mob/living/carbon/human/proc/adjust_pleasure(pleas = 0, stimulated_slot)
 	SHOULD_NOT_SLEEP(TRUE)

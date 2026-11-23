@@ -2,13 +2,12 @@
 #define DIRT_MASK_SOLID 255
 #define DIRT_MASK_HALF 128
 /// How many of a wag frame's pixels one piece of a mask job carries from the still tail (/datum/dirt_tail_carry). The
-/// first piece also works out the frame's coordinates. A piece takes up to 16.8 ms on the widest tails shipped, about
-/// 130 us a pixel.
+/// first piece also works out the frame's coordinates.
 #define DIRT_CARRY_PIXELS 128
 
 /**
- * One mark on a carrier, at a level: a variant of a zone's mess, or a general deposit (a variant of a cause's dirt in a
- * material). More shots on the zone raise a mess splat's level. Past the top level, another splat starts.
+ * One piece of dirt on a carrier, at a level. It's a variant of a zone's mess, or of a general deposit, a cause's dirt
+ * in a material. More shots on the zone raise a mess splat's level. Past the top level, another splat starts.
  */
 /datum/dirt_splat
 	/// A mess splat's DIRT_ZONE_* define, or null for a general deposit.
@@ -30,16 +29,6 @@
 	/// 0 for mess. On a general deposit, 0 means every limb.
 	var/limbs = 0
 
-/**
- * Arguments:
- * - zone: A DIRT_ZONE_* define for mess, or null.
- * - level: Its level.
- * - variant: 0 to DIRT_VARIANTS - 1.
- * - serial: From SSdirt.next_serial(), as it lands.
- * - cause: A general deposit's DIRT_CAUSE_* define, or null for mess.
- * - material: What it's made of, as /datum/dirt_splat/var/material.
- * - limbs: The limbs a general deposit covers, DIRT_LIMB_BIT() of each.
- */
 /datum/dirt_splat/New(zone, level, variant, serial, cause = null, material = DIRT_MATERIAL_MESS, limbs = 0)
 	. = ..()
 	src.zone = zone
@@ -55,13 +44,7 @@
 	if(limbs)
 		src.limbs = limbs
 
-/**
- * Returns each splat's material in order (/datum/dirt_splat/var/material), as dirt_merge() takes them, or null when
- * every one is mess.
- *
- * Arguments:
- * - splats: The splats.
- */
+/// Returns each splat's material in order, as dirt_merge() takes them, or null when every one is mess.
 /proc/dirt_splat_materials(list/splats)
 	RETURN_TYPE(/list)
 	for(var/datum/dirt_splat/splat as anything in splats)
@@ -89,14 +72,14 @@
 /**
  * What a surface's masks are made from: the body they're drawn on and the splats on it. Requests with the same
  * mask_key() share their masks, so bodies drawn from the same sprites with the same splats draw the same icons. A
- * request is made once and never changed: it keeps copies of the splats, so a splat that levels up or lands while its
+ * request is made once and never changed. It keeps copies of the splats. So a splat that levels up or lands while its
  * masks wait in the queue changes neither the key nor what's drawn under it.
  */
 /datum/dirt_mask_request
 	/// What it's drawn on: DIRT_MASKS_BODY, DIRT_MASKS_PART, DIRT_MASKS_TAUR, DIRT_MASKS_SHAPE or DIRT_MASKS_HAIR, or
 	/// DIRT_MASKS_WET for sweat's multiplier (/datum/dirt_mask_request/wet).
 	var/kind
-	/// The body's sprites, as dirt_zone_sources() returns them: its template's. On a taur, the rider's.
+	/// The sprites the body's template is built from, as dirt_zone_sources() returns them. On a taur, the rider's.
 	var/list/zone_sources
 	/// The key of the template its zone sources build (dirt_template_key()), or null without zone sources. It's worked
 	/// out once, for the masks' key and for finding the template.
@@ -107,27 +90,26 @@
 	var/surface_kind
 	/// Copies of the surface's /datum/dirt_splat as they were when it was made, oldest first. They merge in this order.
 	var/list/splats
-	/// The parts the splats reach, each a /datum/dirt_part_source, lowest first. They drop the mess's level below the
-	/// top one, which keeps its glaze, and it leaves out the rounded ones' pixels; in each direction a part drawn under
-	/// the surface (/datum/dirt_part_source/proc/under()) has its own mess drawn in these masks, and one drawn
-	/// over it on itself.
+	/// The parts the splats reach, each a /datum/dirt_part_source, lowest first. Below the top level, the surface's
+	/// mess drops a level or two where they take a share (dirt_part_body_level()), and it always leaves out the rounded
+	/// parts' pixels. In each direction, a part drawn under the surface (/datum/dirt_part_source/proc/under()) has its
+	/// own mess drawn in these masks, and a part drawn over it has its mess drawn on itself.
 	var/list/parts
 	/// The layer of the surface the masks are drawn on, which the parts are drawn under or over.
 	var/surface_layer
-	/// For a part's masks, the part they're drawn on: their mess keeps to its pixels.
+	/// For a part's masks, the part they're drawn on. Their mess keeps to its pixels.
 	var/datum/dirt_part_source/part_source
-	/// For a part's masks, the directions it draws its share in, where it shows over what it lies on;
-	/// null for all four.
+	/// For a part's masks, the directions it shows over what it lies on and draws its share in, or null for all four.
 	var/list/facings
 	/// For a taur body's, a drawn part's or the hair's dirt, the shape it's drawn on.
 	var/datum/dirt_shape_source/shape_source
-	/// For skin, the sprites worn over it, from dirt_cover_sprites(): its mess fades out beside them.
+	/// For skin, the sprites worn over it, from dirt_cover_sprites(). Its dirt fades out beside them.
 	var/list/cover
-	/// For cloth on underclothes, the sprites its mess is kept to, each list(icon, icon state)...
+	/// For cloth on underclothes, the sprites its dirt is kept to, each list(icon, icon state).
 	var/list/clip
-	/// ...less the pixels of these, drawn over them.
+	/// The sprites drawn over clip's, in the same form, whose pixels the dirt is kept off.
 	var/list/cut
-	/// The body's dirtier side, 1 or -1, which general deposits draw on.
+	/// The dirtier side, 1 (the body's right) or -1, which general deposits draw on.
 	var/side = 1
 	/// Whether the body is bare, so general deposits on its skin draw their painted designs. Only ever TRUE where they're
 	/// rasterised on skin.
@@ -147,29 +129,11 @@
 
 /**
  * Arguments:
- * - kind: DIRT_MASKS_BODY, DIRT_MASKS_PART, DIRT_MASKS_TAUR, DIRT_MASKS_SHAPE or DIRT_MASKS_HAIR.
- * - zone_sources: The body's sprites, as dirt_zone_sources() returns them. A part's masks need them only for the vulva
- *   on skin, which takes the ring of the body round it.
- * - surface_kind: DIRT_SURFACE_SKIN or DIRT_SURFACE_CLOTH, or DIRT_SURFACE_FUR for a drawn part. For a part, what it
- *   lies on.
- * - splats: The surface's /datum/dirt_splat, oldest first. Copied: the request never reads them again.
- * - parts: The parts the splats reach, lowest first, from dirt_surface_parts(), or null.
- * - part_source: For a part's masks, the part.
- * - shape_source: For a taur body's, a drawn part's or the hair's dirt, the shape.
- * - cover: The sprites worn over skin, from dirt_cover_sprites(), or null.
- * - clip: The sprites cloth's mess is kept to, each list(icon, icon state), or null for the whole canvas.
- * - cut: The sprites drawn over `clip`'s, in the same form, or null.
+ * - zone_sources: A part's masks need them only for the vulva on skin, which takes the ring of the body round it.
+ * - surface_kind: For a part's masks, what the part lies on.
+ * - parts: From dirt_surface_parts(), or null for none.
+ * - clip: The sprites cloth's dirt is kept to, or null for the whole canvas.
  * - surface_layer: The surface's layer: a garment's, DIRT_UNDERCLOTHES_LAYER or DIRT_SKIN_LAYER.
- * - facings: For a part's masks, the directions it draws its share in, or null for all four.
- * - side: The body's dirtier side, 1 or -1.
- * - painted: Whether the body is bare. Kept only where general deposits are rasterised on skin, the one surface
- *   painted designs draw on.
- * - deposit_surface: What general deposits are rasterised on: DIRT_SURFACE_SKIN for underwear, or null to use
- *   surface_kind.
- * - deposit_parts: For skin holding general deposits, the parts drawn over it in some direction (dirt_parts_over()),
- *   or null.
- * - blood: For blood below a taur's waist, from dirt_taur_blood_data(), or null.
- * - rows: For a taur body's own dirt, the rows its rider shows at its height (dirt_height_rows()), or null.
  */
 /datum/dirt_mask_request/New(kind, list/zone_sources, surface_kind, list/splats, list/parts, datum/dirt_part_source/part_source, datum/dirt_shape_source/shape_source, list/cover, list/clip, list/cut, surface_layer, list/facings, side = 1, painted = FALSE, deposit_surface = null, list/deposit_parts = null, list/blood = null, list/rows = null)
 	. = ..()
@@ -204,14 +168,10 @@
 
 /**
  * Returns the masks' key: an MD5 of what they're drawn on and each splat's zone, level and variant, in order. A general
- * deposit gives its cause, material, level, variant and limbs, so two materials never share masks. Where general
- * deposits draw, the key adds the body's side, whether it's bare and what the deposits are rasterised on. It adds the
- * sprites that fade or keep the masks, and the parts that shape them, each with where it draws against the surface in
- * each direction. For masks drawn on a part or a shape, it adds that part or shape and the directions it draws in. It
- * adds the parts that take the surface's general deposits too. Serials stay out of it, so splats that landed apart
+ * deposit gives its cause, material, level, variant and limbs, so two materials never share masks. It adds everything
+ * else that changes what they draw, each only when there is any. Serials stay out of it, so splats that landed apart
  * draw alike. A part's splats count at the level they draw at. A taur body's count at their own level, because the
- * rider's mess that its pools keep clear of is drawn at that level. A taur body's key adds the rows its rider shows at
- * a height that stretches the rider.
+ * rider's mess that its pools keep clear of is drawn at that level.
  */
 /datum/dirt_mask_request/proc/mask_key()
 	var/list/key_parts = list(kind, template_key || "", surface_kind)
@@ -267,8 +227,8 @@
 			. += list(list(sprite[1], sprite[2], purpose, length(sprite) > 2 ? sprite[3] : null))
 
 /**
- * A surface's masks: its mess baked into four-direction RGBA icons (dirt_baked_icon()), registered in the resource
- * cache, each drawn as it is (dirt_mess_baked_image()).
+ * A surface's masks: its dirt baked into four-direction RGBA icons (dirt_baked_icon()) and registered in the resource
+ * cache. Each icon is drawn as it is, because its colours and alpha are in its pixels.
  */
 /datum/dirt_masks
 	/// The request's mask_key().
@@ -286,6 +246,9 @@
 	/// For skin: alist(the same key = an MD5 of what its baked icon draws, dirt_runs_key()), for the part's render key.
 	/// Null if there are none.
 	var/alist/part_keys
+	/// For skin: alist(kind = TRUE), each kind of part a key in part_keys starts with
+	/// (/datum/dirt_part_source/proc/part_key()). Null if there are none.
+	var/alist/part_kinds
 	/// For cloth: the baked icon on the whole canvas, which the garment's own pixels clip. For a part, the same, already
 	/// kept to the part's pixels. Null when it draws nothing.
 	var/baked
@@ -298,10 +261,6 @@
 	/// without sweat. For sweat's multiplier itself (DIRT_MASKS_WET) it's null too, and `baked` is the multiplier.
 	var/alist/wet
 
-/**
- * Arguments:
- * - key: The request's mask_key().
- */
 /datum/dirt_masks/New(key)
 	. = ..()
 	src.key = key
@@ -350,10 +309,10 @@
 	/// What the sprites read cover:
 	/// alist("cover", "clip" or "cut" = alist(direction = list of TRUE or null per pixel)).
 	var/alist/sprite_pixels = alist()
-	/// For a taur body's or a drawn part's dirt: alist(direction = what each pixel of its canvas shows, from
-	/// dirt_taur_owners()). For a wag, it's the still sprite's, which every frame's dirt is carried from. A taur body's
-	/// own dirt reads its rider here at Average height, whatever the rider's own height is. So that dirt is made as if
-	/// the rider were Average height. Blood below the waist reads the rider at its height (dirt_blood_carriers()).
+	/// For a taur body's, a drawn part's or the hair's dirt: alist(direction = what each pixel of its canvas shows,
+	/// from dirt_taur_owners()). For a wag, it's the still sprite's, which every frame's dirt is carried from. A taur
+	/// body's own dirt reads its rider here at Average height, whatever the rider's own height. Blood below the waist
+	/// reads the rider at its height (dirt_blood_carriers()).
 	var/alist/taur_owners = alist()
 	/// For a taur body's own dirt at a height that stretches its rider (/datum/dirt_mask_request/var/rows): taur_owners
 	/// with the rider stretched. The merge is carried onto the pixels the rider uncovers (dirt_taur_height_fill()), and
@@ -370,33 +329,27 @@
 	/// and limb_masks() reads it.
 	var/alist/part_runs
 	/// The masks that the drawing which queued this job draws until this job's are made, or null. limb_masks() takes
-	/// their icon for each limb and part whose runs are the same. Dropped at the end of limb_masks(), or with the job.
+	/// their icon for each limb and part whose runs are the same, then drops them.
 	var/datum/dirt_masks/previous
-	/// alist(field key = /datum/dirt_canvas_field), the fields of the deposit being made. For a taur body's, a drawn
-	/// part's or the hair's dirt, they're its canvas fields, and its douses and taur coats in each direction. For
-	/// a body's, they're its plunge, blast or douse in each direction (/datum/dirt_canvas_field/body). Each is made
-	/// once (field_for()), and they're dropped once the deposit is made in every direction.
+	/// alist(field key = /datum/dirt_canvas_field), the fields of the deposit being made (field_for()). They're dropped
+	/// once it's made in every direction (drop_deposit()).
 	var/alist/canvas_fields
 	/// alist(field key without its facing = /datum/dirt_canvas_field/var/samples): the noise of the deposit being made.
-	/// Its fields share one table in every direction (field_for()), and it's dropped with them. The fields are all of
-	/// one type, which the cause and the request pick. Each noise term samples a point and seed given by its position
-	/// and the deposit's random draws, whichever way the field faces. The position is a pixel's index, or the one
-	/// coordinate the term takes, and the canvas or template surface is the same size every way. So a value that one
-	/// direction kept is what sampling it again returns.
+	/// Its fields are of one type and share one table in every direction (field_for()), and it's dropped with them. A
+	/// term samples by its position and the deposit's random draws, whichever way the field faces, and the canvas or
+	/// template surface is the same size every way. So a value one direction kept is what sampling it again returns.
 	var/alist/field_samples
 	/// alist(level = its features, from dirt_cause_features()) of the general deposit being made on a body's template.
 	/// The first direction to ask makes them, and the others get them unbound (dirt_level_features()). They're dropped
-	/// with the deposit's fields. It holds one deposit's levels and their last binding, while it's drawn.
+	/// with the deposit's fields.
 	var/alist/deposit_features
 	/// alist(seed = alist(scale = alist(sample_y = alist(sample_x = value)))): the noise deposit_features have sampled
 	/// in the deposit's levels and directions (/datum/dirt_feature/proc/noise()), each value under its exact arguments.
-	/// It's handed out and dropped with the features. It holds one deposit's noise, while it's drawn.
+	/// It's handed out and dropped with the features.
 	var/alist/deposit_samples
-	/// The draft's noise lattice that the general deposit being made has sampled in its directions so far
-	/// (dirt_drafted()). The job holds it while none of the deposit's fields does. A field takes it at its first band
-	/// and gives it back once done, and a direction drawn whole goes on from it. It's dropped once the deposit is made
-	/// in every direction, so it holds one deposit's points, DIRT_LATTICE_POINTS at most. Each direction and band reads
-	/// the points the others hashed, which are what hashing them again gives.
+	/// The draft's noise lattice that the general deposit being made has sampled in its directions so far,
+	/// DIRT_LATTICE_POINTS at most. The job keeps it between the deposit's directions (dirt_drafted()), and drops it
+	/// once the deposit is made in every direction.
 	var/alist/lattice
 	/// How many points `lattice` holds.
 	var/lattice_points = 0
@@ -432,28 +385,23 @@
 	/// For blood below a taur's waist: alist(direction = dirt_blood_carriers() there), each read with its owners.
 	var/alist/blood_carriers
 
-/**
- * Arguments:
- * - request: What it makes.
- * - key: The request's mask_key().
- */
 /datum/dirt_mask_job/New(datum/dirt_mask_request/request, key)
 	. = ..()
 	src.request = request
 	src.key = key
 
 /// Returns the most pieces the job can take. A body's or a part's masks take a piece for each sprite direction of its
-/// parts or shape that it reads, then a piece for each part read, and four rasters for each splat. A plunge, a blast or
-/// a douse takes a band a piece instead, as a canvas field on the tile does (dirt_field_pieces()). Then come a piece
-/// that finds only cached splats left, four merges, a piece for each sprite read, and the icons. A taur body's or a
-/// drawn part's masks take their reads, then four canvas reads and up to three pieces for each splat in each direction.
-/// For mess those are the rider's mess on cloth and on skin, then the pools. Then come a piece that finds only cached
-/// splats left, four merges and the icons. The hair's masks take the same. At a height that stretches a taur body's
-/// rider, its masks read the canvas again with the rider stretched, in four more pieces. A wag takes a piece for each
+/// parts that it reads, then a piece for each part read. Each splat then takes a piece a direction, but on a part one
+/// piece draws all four. A plunge, a blast or a douse takes a band a piece instead, as a canvas field on the tile does
+/// (dirt_field_pieces()). Then come a piece that finds only cached splats left, four merges, a piece for each sprite
+/// read, and the icons. A taur body's, a drawn part's or the hair's masks take their reads, then four canvas reads and
+/// up to three pieces for each splat in each direction. For mess those are the rider's mess on cloth and on skin, then
+/// the pools. Then come a piece that finds only cached splats left, four merges and the icons. At a height that
+/// stretches a taur body's rider, its masks read the canvas again in four more pieces. A wag takes a piece for each
 /// state of its sprite loaded, and its still sprite's dirt takes the same pieces as above, once. Then each frame takes
 /// four reads, four carries and a bake, and its icons come last. A carry takes a piece for each DIRT_CARRY_PIXELS of
-/// its canvas at most. Each deposit's canvas fields, douses or taur coats take a band a piece
-/// (dirt_field_pieces()). Sweat's multiplier takes a piece for each direction, and one for the icon.
+/// its canvas at most. Each deposit's canvas fields, douses or taur coats take a band a piece. Sweat's multiplier takes
+/// a piece for each direction, and one for the icon.
 /datum/dirt_mask_job/most_pieces()
 	if(request.kind == DIRT_MASKS_WET)
 		return length(dirt_mask_directions()) + 1
@@ -516,9 +464,8 @@
 				. += list(list(source.icon, state, direction, ICON_SIZE_X, ICON_SIZE_Y))
 
 /**
- * Reads the next sprite direction of the job's parts or shape that SSdirt.sprite_reads doesn't hold, so
- * the pieces after find them all read: a horse taur draws six states and a part up to three, each read whole in four
- * directions.
+ * Reads the next sprite direction of the job's parts or shape that SSdirt.sprite_reads doesn't hold, so the pieces
+ * after find them all read.
  *
  * Returns whether it read one.
  */
@@ -530,9 +477,7 @@
 			return TRUE
 	return FALSE
 
-/**
- * Returns the template it's drawn on once that's built, or null.
- */
+/// Returns the template it's drawn on once that's built, or null.
 /datum/dirt_mask_job/proc/held_template()
 	RETURN_TYPE(/datum/dirt_template)
 	if(template)
@@ -547,7 +492,6 @@
  * isn't drawn again.
  *
  * Arguments:
- * - body: The body.
  * - redraw_flags: DIRT_REDRAW_* flags, what to draw again.
  */
 /datum/dirt_mask_job/proc/wait(mob/living/carbon/human/body, redraw_flags)
@@ -571,11 +515,7 @@
 	if(request.kind == DIRT_MASKS_WET)
 		return next_wet_piece()
 	if(!started)
-		if(istype(template_source, /datum/dirt_template_job))
-			var/datum/dirt_template_job/template_job = template_source
-			template = template_job.built()
-		else if(template_source)
-			template = template_source
+		template = held_template()
 		// a part's, a drawn part's and the hair's masks need no template
 		if(!template && (request.zone_sources || (request.kind != DIRT_MASKS_PART && request.kind != DIRT_MASKS_SHAPE && request.kind != DIRT_MASKS_HAIR)))
 			failed = TRUE
@@ -586,9 +526,9 @@
 		if(request.blood)
 			// each stain's continuation merges as a splat's raster would, in its own material
 			splat_materials = list()
-			for(var/list/stain as anything in request.blood[1])
+			for(var/list/stain as anything in request.blood[DIRT_BLOOD_DATA_STAINS])
 				splat_rasters += list(alist())
-				splat_materials += stain[2]
+				splat_materials += stain[DIRT_STAIN_MATERIAL]
 		sprites = request.read_sprites()
 		parts = request.read_parts()
 		var/datum/dirt_wag_source/wag = request.shape_source
@@ -611,9 +551,7 @@
 			rasterise_part(next_splat++)
 			return FALSE
 		for(var/direction in dirt_mask_directions())
-			var/list/fields = list()
-			for(var/alist/fields_by_direction as anything in splat_rasters)
-				fields += fields_by_direction[direction]
+			var/list/fields = direction_rasters(direction)
 			merged[direction] = length(fields) ? dirt_merge(fields, splat_materials) : new /datum/dirt_pixels
 		masks = canvas_masks()
 		return TRUE
@@ -634,17 +572,13 @@
  * Makes the next piece of a taur body's, a drawn part's or the hair's dirt, once its states are read
  * (read_wanted_sprite()). A piece is what one direction of its canvas shows (dirt_taur_owners()), one splat in one
  * direction (rasterise_taur()), one direction of blood below a taur's waist (rasterise_blood()), one direction's splats
- * merged (the hair's by hair_merge()), or the icons (taur_masks()). A taur body's own dirt reads its rider at Average
- * height, then again at its own if that height stretches the rider. Each direction's merge is then carried onto the
- * pixels the stretched rider uncovers (dirt_taur_height_fill()). Blood below the waist reads the rider at its height
- * (dirt_blood_carriers()). A wag (/datum/dirt_wag_source) loads its sprite a state a piece, then goes a frame at a
- * time. Each frame is read as it's made (frame_owners()), and its dirt is carried from the still sprite's
- * (carry_frame()) and baked into its layers' animated icons (bake_frame()). Then the job puts those together
- * (frame_masks()). The still's dirt is made once, before the first frame is carried, as the still's own masks make it.
- * Its rasters are the still's, in SSdirt.rasters. A one-frame wag ends once its frame is read if it shows the still
- * sprite's pixels in every direction. Its masks and its wag are then noted as showing the still's
- * (/datum/dirt_masks/var/shows_still). A wag whose sprites SSdirt.wag_sprites holds (sprite_frames_kept) loads and
- * reads nothing, because each frame's pixels and carry come from there.
+ * merged (the hair's by hair_merge()), or the icons (taur_masks()). At a height that stretches a taur body's rider, the
+ * canvas is read again with the rider stretched (height_owners). A wag (/datum/dirt_wag_source) loads its sprite a
+ * state a piece, then goes a frame at a time. Each frame is read (frame_owners()), carried from the still sprite's dirt
+ * (carry_frame()) and baked into its layers' animated icons (bake_frame()). The still's dirt is made once, before the
+ * first frame is carried. Once the last frame is baked, frame_masks() puts the icons together. A one-frame wag that
+ * shows the still sprite's pixels in every direction ends once its frame is read. Its masks are then noted as showing
+ * the still's (/datum/dirt_masks/var/shows_still).
  *
  * Returns:
  * - TRUE: The masks are made.
@@ -686,7 +620,7 @@
 				blood_carriers ||= alist()
 				blood_carriers[direction] = dirt_blood_carriers(request.shape_source, template ? template.surfaces[direction] : null, direction, request.blood)
 				var/list/carriers = blood_carriers[direction]
-				taur_owners[direction] = carriers[1]
+				taur_owners[direction] = carriers[DIRT_BLOOD_CANVAS_OWNERS]
 				return FALSE
 			taur_owners[direction] = dirt_taur_owners(wag ? wag.still : request.shape_source, template ? template.surfaces[direction] : null, direction)
 			return FALSE
@@ -708,9 +642,7 @@
 		if(request.kind == DIRT_MASKS_HAIR)
 			hair_merge(direction)
 			return FALSE
-		var/list/drawn_rasters = list()
-		for(var/alist/pools as anything in splat_rasters)
-			drawn_rasters += pools[direction]
+		var/list/drawn_rasters = direction_rasters(direction)
 		merged[direction] = length(drawn_rasters) ? dirt_merge(drawn_rasters, splat_materials, size[1], size[2]) : new /datum/dirt_pixels(size[1], size[2])
 		if(height_owners)
 			dirt_taur_height_fill(merged[direction], taur_owners[direction], height_owners[direction])
@@ -740,12 +672,8 @@
  * Returns the dirt of a wag's frame being made in one direction, carried from its still sprite's along the tail and
  * across it (/datum/dirt_tail_carry). So the dirt swings with the tail and draws as it does when the tail is still.
  * Where the frame shows the still sprite's pixels (frame_from), it's the still's dirt as it is. Each piece carries
- * DIRT_CARRY_PIXELS of the frame's pixels, and the first also works out the frame's coordinates (and the still's, at
- * its first carry). Returns null until the last piece, which notes the frame's pixels and carry in sprite_frames. A
- * kept wag's dirt is carried whole from sprite_frames (dirt_wag_carried()).
- *
- * Arguments:
- * - direction: The direction.
+ * DIRT_CARRY_PIXELS of the frame's pixels. It returns null until the last piece, which notes the frame's pixels and
+ * carry in sprite_frames. A kept wag's dirt is carried whole from sprite_frames (dirt_wag_carried()).
  */
 /datum/dirt_mask_job/proc/carry_frame(direction)
 	RETURN_TYPE(/datum/dirt_pixels)
@@ -772,9 +700,6 @@
  * one does, the frame takes the still's dirt as it is (carry_frame()), or that frame's bake (bake_frame()). The match
  * is noted in sprite_frames too, and the still's pixels are noted there with the first frame. A kept wag's pixels are
  * unpacked from sprite_frames, read from no sprite, and empty where an earlier frame shows the same.
- *
- * Arguments:
- * - direction: The direction.
  */
 /datum/dirt_mask_job/proc/frame_owners(direction)
 	RETURN_TYPE(/list)
@@ -832,11 +757,11 @@
 			. += direction
 
 /**
- * Bakes the frame being made into each layer of the wag that has the frame, in every direction, at the layer's own
- * delay for it (/datum/dirt_wag_source/var/layer_frames). Each direction gets the runs of the carried dirt on the
- * pixels the layer shows at the frame, an earlier frame's bake where it shows the same pixels, or a blank. A layer's
- * animated icon (frame_icons) starts at its first frame with dirt, with blanks for the frames before it. Nothing is
- * registered here, because only frame_masks() registers what's shown.
+ * Bakes the frame being made into each layer of the wag that has it, in every direction, at the layer's own delay
+ * (/datum/dirt_wag_source/var/layer_frames). Each direction gets the carried dirt's runs on the pixels the layer shows
+ * at the frame, or a blank if there are none. Where an earlier frame shows the same pixels, it takes that frame's bake.
+ * A layer's animated icon (frame_icons) starts at its first frame with dirt, with blanks for the frames before it.
+ * Nothing is registered here, because only frame_masks() registers what's shown.
  */
 /datum/dirt_mask_job/proc/bake_frame()
 	var/datum/dirt_wag_source/wag = request.shape_source
@@ -875,7 +800,7 @@
 /**
  * Returns a wag's masks once every frame is baked: each layer's animated icon with dirt, registered in the resource
  * cache. An icon built at run time can't hold the rewind flag. So a layer that rewinds gets its frames again in reverse
- * after the last, at their delays, and its dirt keeps step with the state it's drawn over. A layer without dirt in any
+ * after the last, at their delays. Its dirt then keeps step with the state it's drawn over. A layer without dirt in any
  * frame draws none.
  */
 /datum/dirt_mask_job/proc/frame_masks()
@@ -904,8 +829,6 @@
  * (field_samples). A body's fields also share the deposit's features (deposit_features).
  *
  * Arguments:
- * - splat: The deposit.
- * - material: Its /datum/dirt_material.
  * - facing: The direction the field is drawn facing. For a douse, a coat or a body, it's the direction being drawn.
  * - surface_kind: What it's drawn as: DIRT_SURFACE_FUR, DIRT_SURFACE_CLOTH (a taur suit's field) or DIRT_SURFACE_HAIR.
  *   On a body, DIRT_SURFACE_SKIN or DIRT_SURFACE_CLOTH.
@@ -972,10 +895,10 @@
 /**
  * Makes the next splat on a taur body or a drawn part in the next direction it lacks. First it takes the directions
  * already made on this shape (and rider) from SSdirt.rasters, which cost no piece. A general deposit lands by the
- * shape's own rules (rasterise_shape_deposit()). Mess makes pools, which keep clear of the rider's mess: the splat at
+ * shape's own rules (rasterise_shape_deposit()). Mess makes pools, which keep clear of the rider's mess, the splat at
  * its own level on the rider's cloth and skin. That rider's mess comes from SSdirt.rasters too, as the rider's own
- * masks may have made it. Each one made here is a piece of its own. The pools are made with the rider at Average
- * height (taur_owners), so every height shares their rasters. What's made goes in SSdirt.rasters.
+ * masks may have made it. Each one made here is a piece of its own. The pools are made with the rider at Average height
+ * (taur_owners), so every height shares their rasters. What's made goes in SSdirt.rasters.
  */
 /datum/dirt_mask_job/proc/rasterise_taur()
 	var/static/list/rider_surfaces = list(DIRT_SURFACE_CLOTH, DIRT_SURFACE_SKIN)
@@ -1012,21 +935,17 @@
 		next_splat++
 
 /**
- * Makes one direction of a general deposit on a taur body or a drawn part (dirt_shape_deposit()), or on the hair as
- * hair (dirt_shape_rasterise()), unless every direction is made. Directions already made on this shape (and rider)
- * come from SSdirt.rasters. They're kept there under the cause, the material's shape class, the level, the variant and
- * the body's side, so materials alike share them. A taur body's are made as an Average rider shows its canvas
- * (taur_owners), so every height shares them. What's made goes in SSdirt.rasters. A deposit under its cause's first
- * hair level (dirt_hair_levels()) makes none on the hair. A deposit that the shape takes from the canvas field
- * (dirt_shape_field_facing()) is drawn from that field a band a piece (field_for()), once for every direction it
- * serves. The hair's is then kept to its crown (dirt_hair_crown()). Every shape's but a taur body's is clipped to its
- * pixels. A taur body's and a taur suit's are kept whole, as dirt_shape_deposit() draws them. A douse on any shape,
- * and a taur body's contact coat (dirt_taur_coat_cause()), on its fur or a taur suit's cloth, are drawn a band a piece
- * in each direction (field_for() too). A wag's rasters are its still sprite's, under the still's keys, which its own
- * masks' job keeps. Its frames carry them (carry_frame()).
+ * Makes the next direction of a general deposit on a taur body or a drawn part (dirt_shape_deposit()), or on the hair
+ * as hair (dirt_shape_rasterise()). Directions already made on this shape (and rider) come from SSdirt.rasters. Their
+ * key has the material's shape class rather than the material, so materials alike share them. A taur body's are made as
+ * an Average rider shows its canvas (taur_owners), so every height shares them. A deposit under its cause's first hair
+ * level (dirt_hair_levels()) makes none on the hair. A deposit the shape takes from the canvas field
+ * (dirt_shape_field_facing()) is drawn from it a band a piece (field_for()), once for every direction it serves. It's
+ * then clipped to the shape's pixels, but a taur body's and a taur suit's stay whole, as dirt_shape_deposit() draws
+ * them. A douse on any shape, and a taur body's contact coat (dirt_taur_coat_cause()), are drawn a band a piece in each
+ * direction. A wag's rasters are its still sprite's, under the still's keys.
  *
  * Arguments:
- * - splat: The deposit.
  * - rasters: alist(direction = /datum/dirt_pixels/proc/drawn()), its rasters so far, added to.
  *
  * Returns whether it made a direction or a band of its field. Either is a piece.
@@ -1128,8 +1047,8 @@
  * Returns, for each layer of the stack but the rider, the pixels of a taur body's, a drawn part's or the hair's merge
  * that the layer shows: alist(layer key = alist(direction = indexes in row-major order)), with every direction listed.
  * In each direction one walk over the merge's drawn span (/datum/dirt_pixels/proc/drawn_span()) hands each drawn pixel
- * to the layer that shows it (height_owners at a height that stretches a taur's rider, else taur_owners). A pixel the
- * rider shows goes to no layer. The walk goes in row-major order, as dirt_role_runs() needs the pixels.
+ * to the layer that shows it. That's by height_owners at a height that stretches a taur's rider, else by taur_owners. A
+ * pixel the rider shows goes to no layer. The walk goes in row-major order, as dirt_role_runs() needs the pixels.
  */
 /datum/dirt_mask_job/proc/layers_shown()
 	RETURN_TYPE(/alist)
@@ -1162,19 +1081,14 @@
 				indexes += index
 	return shown_by_layer
 
-/**
- * Reads the pixels a part takes its share on in every direction (dirt_part_own()).
- *
- * Arguments:
- * - source: The part.
- */
+/// Reads the pixels a part takes its share on in every direction (dirt_part_own()).
 /datum/dirt_mask_job/proc/read_part(datum/dirt_part_source/source)
 	for(var/direction in dirt_mask_directions())
 		var/alist/owns = part_owns[direction]
 		owns[source] = dirt_part_own(source, direction, template, parts, request.surface_kind)
 
 /**
- * Rasterises one splat's field on a part's masks' part, in every direction.
+ * Rasterises one splat on the part the masks are drawn on, in every direction (dirt_part_field()).
  *
  * Arguments:
  * - position: The splat's place in the request.
@@ -1209,24 +1123,15 @@
 			covered[index] = TRUE
 
 /**
- * Rasterises the next splat in the next direction it lacks (dirt_rasterise()). First it takes the directions already
- * rasterised on this template from SSdirt.rasters, which cost no piece. Each direction rasterised goes in
- * SSdirt.rasters. Mess goes there at its level in that direction (dirt_part_body_level()), under its zone, level and
- * variant. A general deposit goes under the surface it's rasterised on (the request's deposit_surface), its cause, its
- * material's shape class, level and variant, the body's side and whether it wears a painted design
- * (dirt_painted_design()). So materials alike share it and take their colours in the bake. On a bare body, one that
- * wears a design goes under its material instead, as each material's design differs. It's kept whole there, on every
- * limb, so every carrier holding it shares it, and each carrier keeps to its own limbs as it merges (merge()). A
- * plunge, a blast or a douse is drawn a band a piece (field_for()) and kept once its last band is drawn, as
- * dirt_rasterise() draws it whole. Each direction of a general deposit goes on from the lattice its other directions
- * sampled (/datum/dirt_mask_job/var/lattice), the features its first direction made (deposit_features) and the noise
- * they sampled (deposit_samples). A plunge's, a blast's or a douse's directions go on from their noise (field_samples).
- *
- * A deposit without a design on a bare body shares a dressed body's rasters, because it draws the same. Bareness
- * (painted) is read for the design alone. dirt_finish_deposit() reads it, finds no design and leaves the deposit
- * unpainted. dirt_rasterise_deposit() reads it for walking and kneeling, which have a design. dirt_rasterise() and the
- * body field (/datum/dirt_canvas_field/body/var/painted) only pass it on. Whether it's on skin
- * (dirt_rasterise_level()'s on_skin, the whole-body coat's set_material()) depends on the surface, which is in the key.
+ * Rasterises the next splat in the next direction it lacks (dirt_rasterise()) and keeps the raster in SSdirt.rasters.
+ * First it takes the directions already rasterised on this template from there, which cost no piece. Mess is rasterised
+ * at its level in that direction (dirt_part_body_level()). A general deposit is kept whole, on every limb, so every
+ * carrier holding it shares it. Each carrier keeps to its own limbs as it merges (merge()). Its key has its material's
+ * shape class, so materials alike share it and take their colours in the bake. On a bare body, one that wears a painted
+ * design (dirt_painted_design()) is keyed by its material instead, as each material's design differs. One without a
+ * design shares a dressed body's rasters, because bareness (painted) changes only the design. A plunge, a blast or a
+ * douse is drawn a band a piece (field_for()). It's kept once its last band is drawn, as dirt_rasterise() draws it
+ * whole.
  */
 /datum/dirt_mask_job/proc/rasterise_next()
 	var/list/sources = request.parts
@@ -1257,13 +1162,11 @@
 				if(!dirt_canvas_field_band(field, src))
 					return
 				drawn = field.merged
-#ifdef DIRT_DRAFT_EXACT
 			else if(splat.cause)
 				// drafting here, as dirt_rasterise() drafts it, on the lattice its other directions sampled
 				drawn = dirt_drafted(GLOBAL_PROC_REF(dirt_rasterise), list(splat.cause, material, level, splat.variant, request.side, deposit_surface, template.surfaces[direction], request.painted, (deposit_features ||= alist()), (deposit_samples ||= alist())), null, src)
-#endif
 			else
-				drawn = dirt_rasterise(splat.cause || "[DIRT_CAUSE_AIMED_PREFIX][splat.zone]", material, level, splat.variant, request.side, splat.cause ? deposit_surface : request.surface_kind, template.surfaces[direction], request.painted)
+				drawn = dirt_rasterise("[DIRT_CAUSE_AIMED_PREFIX][splat.zone]", material, level, splat.variant, request.side, request.surface_kind, template.surfaces[direction], request.painted)
 			rasters[direction] = SSdirt.rasters.store_direction(raster_key, direction, drawn.drawn())
 			return
 		drop_deposit()
@@ -1282,21 +1185,25 @@
 	lattice_points = 0
 
 /**
+ * Returns each splat's raster in one direction, in the splats' order, each as its rasteriser left it: text on a body,
+ * a /datum/dirt_pixels on a part or a drawn shape.
+ */
+/datum/dirt_mask_job/proc/direction_rasters(direction)
+	RETURN_TYPE(/list)
+	. = list()
+	for(var/alist/rasters as anything in splat_rasters)
+		. += rasters[direction]
+
+/**
  * Merges one direction's splats into one mask, the thickest winning each pixel, with the parts drawn under and over the
  * surface (dirt_merge_with_parts()). Each splat's packed raster is read as it merges, a general deposit's on its limbs
  * alone. Mess's limbs are 0, so it's read whole.
- *
- * Arguments:
- * - direction: The direction.
  */
 /datum/dirt_mask_job/proc/merge(direction)
 	var/datum/dirt_surface/surface = template.surfaces[direction]
-	var/list/drawn_rasters = list()
+	var/list/drawn_rasters = direction_rasters(direction)
 	var/list/limbs = list()
-	for(var/position in 1 to length(splat_rasters))
-		var/alist/rasters = splat_rasters[position]
-		var/datum/dirt_splat/splat = request.splats[position]
-		drawn_rasters += rasters[direction]
+	for(var/datum/dirt_splat/splat as anything in request.splats)
 		limbs += splat.limbs
 	if(!length(drawn_rasters))
 		merged[direction] = new /datum/dirt_pixels(surface.width, surface.height)
@@ -1309,7 +1216,7 @@
 /**
  * Returns the masks for skin: each limb's baked from its runs (limb_runs()), and each part's that takes its general
  * deposits from its own runs (part_runs). A limb or part whose runs key matches the one in `previous` takes that icon
- * rather than a new bake, because equal runs bake the same icon (dirt_baked_icon()).
+ * rather than a new bake. Equal runs bake the same icon (dirt_baked_icon()).
  */
 /datum/dirt_mask_job/proc/limb_masks()
 	RETURN_TYPE(/datum/dirt_masks)
@@ -1326,17 +1233,20 @@
 		if(!made.baked_by_part)
 			made.baked_by_part = alist()
 			made.part_keys = alist()
+			made.part_kinds = alist()
 		made.baked_by_part[part_key] = baked
 		made.part_keys[part_key] = runs_key
+		// a placed key starts with its kind and a bar
+		made.part_kinds[copytext(part_key, 1, findtextEx(part_key, "|"))] = TRUE
 	previous = null
 	return made
 
 /**
- * Returns skin's runs, once its pieces are made: alist(limb zone = dirt_shown_runs()), for each limb they draw on, each
- * clipped to the pixels its image shows, so nothing floats in the margin past the body, and each limb's overlay draws
- * only on its own limb. The chest's also takes the pixels past the body of the parts drawn under the skin there (a butt
- * in profile), which carry their share in the skin's mess, so they're drawn with the chest. The parts taking its
- * general deposits get theirs in part_runs, faded as the limbs' runs are (deposit_part_runs()).
+ * Returns skin's runs, once its pieces are made: alist(limb zone = dirt_shown_runs()), for each limb they draw on. Each
+ * is clipped to the pixels its image shows. So nothing floats in the margin past the body, and each limb's overlay
+ * draws only on its own limb. The chest's also takes the pixels past the body of the parts drawn under the skin there,
+ * such as a butt in profile. They carry their share in the skin's mess, so they're drawn with the chest. The parts
+ * taking its general deposits get theirs in part_runs, faded as the limbs' runs are (deposit_part_runs()).
  */
 /datum/dirt_mask_job/proc/limb_runs()
 	RETURN_TYPE(/alist)
@@ -1358,11 +1268,11 @@
 
 /**
  * Returns the runs of skin's general deposits on each part taking them (/datum/dirt_mask_request/var/deposit_parts)
- * that they reach: alist(its placed_key() against the skin = dirt_shown_runs()). A part takes them on its own pixels
- * in each direction it draws over the skin, where their raster lies on the body's template, as far past the body as
- * that reaches. That's how the reference generator composites the body's dirt over the parts drawn on it. Mess stays
- * off them, because a part takes its share of mess on itself. It takes no share of general deposits, and draws them
- * at their own level.
+ * that they reach: alist(its placed_key() against the skin = dirt_shown_runs()). A part takes them on its own pixels in
+ * each direction it draws over the skin. They lie where their raster lies on the body's template, as far past the body
+ * as that reaches. That's how the reference generator composites the body's dirt over the parts drawn on it. Mess stays
+ * off them, because a part takes its share of mess on itself. It takes no share of general deposits, and draws them at
+ * their own level.
  *
  * Arguments:
  * - fades: alist(direction = dirt_cover_fades()), as the limbs' runs fade beside what's worn, or null.
@@ -1465,7 +1375,6 @@
  * one pixel further), for the pixels drawn that it leaves bare. Steps are up, down and across.
  *
  * Arguments:
- * - pixel_map: The mask.
  * - covered: Which pixels are worn over, a list of TRUE or null per pixel.
  */
 /proc/dirt_cover_fades(datum/dirt_pixels/pixel_map, list/covered)
@@ -1473,7 +1382,7 @@
 	var/alist/fades = alist()
 	var/list/neighbours = dirt_neighbour_table(pixel_map.width, pixel_map.height)
 	var/list/roles = pixel_map.roles
-	for(var/index in pixel_map.drawn_indexes || dirt_index_range(length(roles)))
+	for(var/index in pixel_map.walk_indexes())
 		if(!roles[index] || covered[index])
 			continue
 		var/ring = 0
@@ -1493,23 +1402,20 @@
 			fades[index] = ring
 	return fades
 
-/**
- * Returns the directions a mask is made in, in the order its pieces go. You should NEVER modify it.
- */
+/// Returns the directions a mask is made in, in the order its pieces go. You should NEVER modify it.
 /proc/dirt_mask_directions()
 	RETURN_TYPE(/list)
 	var/static/list/directions = list(SOUTH, NORTH, EAST, WEST)
 	return directions
 
 /**
- * Returns a mask's drawn pixels alone, which is all a cached raster keeps, packed as text: "1" if it covers, else "0",
- * then its drawn pixels in row-major order, a run at a time. A run is pixels side by side in one role and thickness.
- * Each run is four base-64 digits ("0" to "o") holding 24 bits (DIRT_PACKED_RUN()): its first pixel's index - 1 in 11,
- * its length - 1 in 6, its role in 3 and its thickness's code in 4 (dirt_thickness_code()). Every run is as long as it
- * goes, up to 64 pixels, so equal masks pack as equal text. 11 bits hold indexes up to 2048, the size of the 64x32 taur
- * canvas, and every canvas fits in that. A bigger mask can't be packed. SSdirt.rasters keeps a splat's four directions
- * joined in one text, held under its key. Only this proc writes the text. DIRT_PACKED_BITS() and the fields after
- * it read it back.
+ * Returns its drawn pixels alone, packed as text, which is all a cached raster keeps: "1" if it covers, else "0", then
+ * its drawn pixels in row-major order, a run at a time. A run is pixels side by side in one role and thickness. Each
+ * run is four base-64 digits ("0" to "o") holding 24 bits (DIRT_PACKED_RUN()): its first pixel's index - 1 in 11, its
+ * length - 1 in 6, its role in 3 and its thickness's code in 4 (dirt_thickness_code()). Every run is as long as it
+ * goes, up to 64 pixels, so the same pixels always pack as the same text. 11 bits hold indexes up to 2048, the size of
+ * the 64x32 taur canvas, and every canvas fits in that. A bigger canvas can't be packed. Only this proc writes the
+ * text, and DIRT_PACKED_BITS() and the fields after it read it back.
  */
 /datum/dirt_pixels/proc/drawn()
 	var/static/list/digits
@@ -1566,11 +1472,8 @@
 
 /**
  * Returns the code a thickness packs as in /datum/dirt_pixels/proc/drawn(), from 0: its place among the thicknesses
- * packed so far this round. A mask's thicknesses come from a handful of values, because every thickness a mask is
- * drawn with is a constant. A thickness worked out per pixel would use up the codes.
- *
- * Arguments:
- * - thickness: The thickness.
+ * packed so far this round. Thicknesses come from a handful of values, because every thickness dirt is drawn with is a
+ * constant. A thickness worked out per pixel would use up the codes.
  *
  * Crashes:
  * - Past 16 thicknesses, which a code can't hold.
@@ -1587,26 +1490,24 @@
 	codes[thickness] = length(thicknesses) - 1
 	return codes[thickness]
 
-/**
- * Returns the thicknesses packed so far, indexed by their code + 1 (dirt_thickness_code()). You should NEVER modify it.
- */
+/// Returns the thicknesses packed so far, indexed by code + 1 (dirt_thickness_code()). You should NEVER modify it.
 /proc/dirt_packed_thicknesses()
 	RETURN_TYPE(/list)
 	var/static/list/thicknesses = list()
 	return thicknesses
 
 /**
- * Returns a mask made again from its drawn pixels. Given a general deposit's limbs, it keeps the pixels on them alone.
- * That's because a carrier holds a deposit only on the limbs it showed on as it landed. A pixel off them is skipped.
- * It's never written and never in drawn_indexes, so every merge reads it as a pixel with no role. Limbs 0 or every limb
- * keep every pixel. A merge reads the text itself instead (dirt_merge()).
+ * Returns a raster unpacked from its text. Given a general deposit's limbs, it keeps the pixels on them alone. A
+ * carrier holds a deposit only on the limbs it showed on as it landed. A pixel off them is never written and never in
+ * drawn_indexes, so every merge reads it as a pixel with no role. Limbs 0 or every limb keep every pixel. A merge reads
+ * the text itself instead (dirt_merge()).
  *
  * Arguments:
  * - drawn: From /datum/dirt_pixels/proc/drawn().
  * - width: Pixels across.
  * - height: Pixels down.
  * - limbs: The limbs kept, DIRT_LIMB_BIT() of each, or 0 or null for every one.
- * - surface: The surface it's rasterised on, whose pixels name their limbs; read only with limbs.
+ * - surface: The surface it's rasterised on, whose pixels name their limbs. It's read only with limbs.
  */
 /proc/dirt_pixels_from_drawn(drawn, width, height, limbs = null, datum/dirt_surface/surface = null)
 	RETURN_TYPE(/datum/dirt_pixels)
@@ -1633,12 +1534,7 @@
 			drawn_thicknesses[index] = thickness
 	return pixel_map
 
-/**
- * Returns the indexes of a mask's drawn pixels, in row-major order.
- *
- * Arguments:
- * - drawn: From /datum/dirt_pixels/proc/drawn().
- */
+/// Returns the indexes of the drawn pixels in a packed text (/datum/dirt_pixels/proc/drawn()), in row-major order.
 /proc/dirt_drawn_indexes(drawn)
 	RETURN_TYPE(/list)
 	. = list()
@@ -1648,7 +1544,7 @@
 			. += index
 
 /**
- * Returns the roles runs are drawn in, one to a pixel, in the order they're baked: haze is film at half
+ * Returns the roles runs are drawn in, one to a pixel, in the order they're baked. Haze is drawn as film at half
  * (dirt_role_runs()). You should NEVER modify it.
  */
 /proc/dirt_drawn_roles()
@@ -1661,7 +1557,7 @@
  * alist(direction = runs))), each material as a splat stores it.
  *
  * Arguments:
- * - merged: alist(direction = /datum/dirt_pixels), the surface's mess in each direction.
+ * - merged: alist(direction = /datum/dirt_pixels), the surface's mask in each direction.
  * - shown: alist(direction = indexes), the only pixels drawn, or null for the whole canvas. With null, a mask that
  *   keeps its drawn pixels is walked from the first to the last (/datum/dirt_pixels/proc/drawn_span()).
  * - fades: alist(direction = dirt_cover_fades()): pixels drawn fainter beside what's worn over them, or null.
@@ -1681,7 +1577,7 @@
 
 /**
  * Returns runs baked into one four-direction RGBA icon on a blank state (dirt_baked_frames()), or null when they draw
- * nothing. It's registered in the resource cache the way bulge_register_icon() registers an icon built at run time.
+ * nothing. It's registered in the resource cache (bulge_register_icon()).
  *
  * Arguments:
  * - runs: From dirt_shown_runs().
@@ -1698,9 +1594,9 @@
 
 /**
  * Returns runs drawn on a blank in each direction, alist(direction = icon), unregistered, or null when they draw
- * nothing. Each run is one DrawBox() in its material's tint colour for its role (dirt_material()), at the tint's alpha
- * times the run's level, rounded to 8 bits. A wet material's runs (sweat) take no colour, because the cloth darkens
- * under them in its own colour (dirt_wet_image()).
+ * nothing. Each run is one DrawBox() in its material's tint colour for its role (dirt_material()). Its alpha is the
+ * tint's times the run's level, rounded to 8 bits. A wet material's runs (sweat) take no colour, because the cloth
+ * darkens under them in its own colour (dirt_wet_image()).
  *
  * Arguments:
  * - runs: From dirt_shown_runs(), or dirt_role_runs() in some directions.
@@ -1781,7 +1677,6 @@
  * Arguments:
  * - pixel_map: The mask. Its pixels are mess's where it holds no materials.
  * - indexes: The pixels to draw, in row-major order.
- * - direction: The direction it's seen from.
  * - runs: alist(material = alist(DIRT_ROLE_* define = alist(direction = runs))), added to.
  * - fades: dirt_cover_fades() in this direction, or null.
  */
@@ -1821,7 +1716,7 @@
 			last_index = index
 			last_icon_x++
 			continue
-		var/row = floor((index - 1) / width)
+		var/row = DIRT_INDEX_ROW(index, width)
 		var/icon_x = index - row * width
 		var/icon_y = pixel_map.height - row
 		var/list/run = open[role]
@@ -1852,9 +1747,7 @@
  *
  * Arguments:
  * - runs: alist(material = alist(DIRT_ROLE_* define = alist(direction = runs))), added to.
- * - material_key: The material.
  * - role: A DIRT_ROLE_* define.
- * - direction: The direction.
  */
 /proc/dirt_runs_target(alist/runs, material_key, role, direction)
 	RETURN_TYPE(/list)

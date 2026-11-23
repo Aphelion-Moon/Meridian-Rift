@@ -1,7 +1,7 @@
 /**
- * One direction of a body's dirt surface. Dirt lies on limbs, not on the screen: every pixel of the body and of a
- * margin round it maps to a limb, an angle round that limb (theta) and a height along it (h), so a mark keeps its place
- * on the body as the mob turns.
+ * One direction of a body's dirt surface. Dirt lies on limbs, not on the screen. Every pixel of the body and its
+ * margin maps to a limb, an angle round it (theta) and a height along it (h). So a mark keeps its place on the body as
+ * the mob turns.
  * - theta: degrees round the limb, 0 at the body's front, 90 its right side, 180 its back and -90 its left.
  * - h: 0 at the limb's lowest row, 1 at its highest.
  *
@@ -11,11 +11,13 @@
 /datum/dirt_surface
 	/// The direction it's seen from.
 	var/direction
+	/// Pixels across.
 	var/width = ICON_SIZE_X
+	/// Pixels down.
 	var/height = ICON_SIZE_Y
 	/// Each pixel's flags, one number, or null off the surface: its limb (DIRT_PIXEL_LIMB()), its zone
 	/// (DIRT_PIXEL_ZONE(): the body zone whose image shows there, dirt_zone_owners()'s, or none off the body), and the
-	/// marks DIRT_PIXEL_RIM, DIRT_PIXEL_OUTLINE and DIRT_PIXEL_BAND.
+	/// flags DIRT_PIXEL_RIM, DIRT_PIXEL_OUTLINE and DIRT_PIXEL_BAND.
 	var/list/flags_of
 	/// Each pixel's theta, from -180 up to 180.
 	var/list/theta_of
@@ -50,11 +52,9 @@
  * Builds one direction of a body's surface from the sprites it draws.
  *
  * Arguments:
- * - direction: The direction it's seen from.
  * - masks: Each drawn zone's sprite pixels, from dirt_zone_pixels().
  * - owners: The zone each pixel shows, from dirt_zone_owners().
  * - eyes: The eye sprites' pixels, or null for a body without eyes.
- * - human_head: Whether the head is a human's, whose mouth is guarded.
  * - zone_sources: The sprites it's drawn from, as dirt_zone_sources() returns them. The hands' sprites are read for
  *   their brightest pixel.
  */
@@ -104,7 +104,7 @@
 		var/facing = dirt_sprite_read_facing(source[1], source[2], direction, sprite)
 		var/brightest = -1
 		for(var/index in points)
-			var/row = floor((index - 1) / width)
+			var/row = DIRT_INDEX_ROW(index, width)
 			var/list/channels = rgb2num(sprite.GetPixel(index - row * width, height - row, null, facing))
 			var/brightness = 0
 			for(var/channel in 1 to 3)
@@ -126,8 +126,8 @@
 
 /**
  * Marks DIRT_PIXEL_OUTLINE on the body pixels a covering coat fades at: the silhouette's edge, and where the head, an
- * arm or a hand meets another zone. The legs' meeting with the chest stays off it: a film line there read as a
- * waistband. Marked once.
+ * arm or a hand meets another zone. The legs' meeting with the chest stays off it, because a film line there reads as
+ * a waistband. Marked once.
  */
 /datum/dirt_surface/proc/outline()
 	if(outline_built)
@@ -151,8 +151,8 @@
 	outline_built = TRUE
 
 /**
- * Marks DIRT_PIXEL_BAND on the outline and the pixels beside it, where a covering coat breaks in profile: whole, it ran
- * the torso's height as one band. Marked once.
+ * Marks DIRT_PIXEL_BAND on the outline and the pixels beside it, where a covering coat breaks in profile. Whole, it
+ * runs the torso's height as one band. Marked once.
  */
 /datum/dirt_surface/proc/outline_band()
 	if(band_built)
@@ -169,7 +169,7 @@
 
 /**
  * Returns each body pixel's limb: its zone's, except below the belt, where the torso's pixels go to the legs. Facing
- * south or north they split down the middle; in profile they go to the near leg. Each body pixel's zone goes in its
+ * south or north they split down the middle. In profile they go to the near leg. Each body pixel's zone goes in its
  * flags.
  *
  * Arguments:
@@ -216,9 +216,9 @@
 	for(var/zone, pixels in masks)
 		var/limb = lookup[zone]
 		for(var/index in pixels)
-			var/row = floor((index - 1) / width)
+			var/row = DIRT_INDEX_ROW(index, width)
 			if(limb != DIRT_LIMB_TORSO || row < DIRT_BELT)
-				widen_row(limb_rows, limb, row, index - 1 - row * width)
+				widen_row(limb_rows, limb, row, DIRT_INDEX_COLUMN(index, row, width))
 	var/alist/extra_rows = alist()
 	for(var/row in DIRT_BELT to height - 1)
 		for(var/column in 0 to width - 1)
@@ -236,14 +236,10 @@
  *
  * Arguments:
  * - spans: alist(limb = alist(row = list(leftmost column, rightmost column))).
- * - limb: The limb.
  * - row, column: The pixel.
  */
 /datum/dirt_surface/proc/widen_row(alist/spans, limb, row, column)
-	var/alist/rows = spans[limb]
-	if(!rows)
-		rows = alist()
-		spans[limb] = rows
+	var/alist/rows = (spans[limb] ||= alist())
 	var/list/span = rows[row]
 	if(span)
 		span[1] = min(span[1], column)
@@ -283,7 +279,7 @@
 /**
  * Places each pixel of the body and its margin on its limb, from the limb's span in the nearest row it covers, the
  * upper one on a tie. Theta is the angle whose sine is how far the pixel sits from the span's middle, as a fraction of
- * its half width, turned to the direction; h runs from the limb's lowest row, 0, to its highest, 1.
+ * its half width, turned to the direction. Its h runs from the limb's lowest row, 0, to its highest, 1.
  *
  * Arguments:
  * - spread: Each pixel's limb, the margin included, from spread_margin().
@@ -370,8 +366,8 @@
 	if(length(eyes))
 		eye_span = list(height, width, -1, length(eyes))
 	for(var/index in eyes)
-		var/row = floor((index - 1) / width)
-		var/column = index - 1 - row * width
+		var/row = DIRT_INDEX_ROW(index, width)
+		var/column = DIRT_INDEX_COLUMN(index, row, width)
 		eye_span[1] = min(eye_span[1], row)
 		eye_span[2] = min(eye_span[2], column)
 		eye_span[3] = max(eye_span[3], column)
@@ -379,10 +375,10 @@
 			var/neighbour = pixel_index(column + offset[1], row + offset[2])
 			if(neighbour)
 				face_guard[neighbour] = DIRT_GUARD_EYE
-	// Every eye's sides first: a corner of one eye beside another stays guarded.
+	// every eye's sides first, so a corner of one eye beside another stays guarded
 	for(var/index in eyes)
-		var/row = floor((index - 1) / width)
-		var/column = index - 1 - row * width
+		var/row = DIRT_INDEX_ROW(index, width)
+		var/column = DIRT_INDEX_COLUMN(index, row, width)
 		for(var/list/offset as anything in corners)
 			var/neighbour = pixel_index(column + offset[1], row + offset[2])
 			if(neighbour && face_guard[neighbour] != DIRT_GUARD_EYE)
@@ -397,9 +393,6 @@
 /**
  * Returns a human head's mouth pixels facing one way, each list(column, row) from the top left. Facing north there
  * are none. You should NEVER modify it.
- *
- * Arguments:
- * - direction: The direction.
  */
 /proc/dirt_mouth_pixels(direction)
 	RETURN_TYPE(/list)
@@ -494,9 +487,7 @@
 	built_count++
 	return built_count >= length(directions)
 
-/**
- * Returns the template once every direction is built, or null while some are left or when it failed.
- */
+/// Returns the template once every direction is built, or null while some are left or when it failed.
 /datum/dirt_template_job/proc/built()
 	RETURN_TYPE(/datum/dirt_template)
 	return (!failed && built_count >= length(directions)) ? template : null
@@ -587,9 +578,6 @@
  * icon state)) for each drawn limb and each hand, "eyes" = list(icon file, left state, right state) when the head draws
  * eyes, and "human_head" = whether the head is a human's. Stumps, invisible limbs and a taur's hidden legs draw no
  * sprite of their own, so they're left out.
- *
- * Arguments:
- * - body: The body.
  */
 /proc/dirt_zone_sources(mob/living/carbon/human/body)
 	var/alist/zone_sources = alist()
@@ -610,15 +598,9 @@
 
 /**
  * Returns whether a body draws the sprites zone sources name, as dirt_zone_sources() reads them, without building them:
- * the sheet and state of each limb in some zones and of its hand, the eyes, and whether the head is a human's. Skin
- * mess asks it only when what a limb is drawn from has changed since it last matched (skin_reads). A worn garment's
- * mess and a taur suit's pools ask it only once what the wearer is drawn from differs from the notes on the wearer's
- * carrier (dirt_worn_sources_match()). Without those notes, they ask it on every draw. A taur body's pools ask it only
- * once what its rider is drawn from differs from what was noted (rider_reads). The vulva's ring of skin and the blood
- * below a taur's waist ask it on every draw.
+ * the sheet and state of each limb in some zones and of its hand, the eyes, and whether the head is a human's.
  *
  * Arguments:
- * - body: The body.
  * - zone_sources: The sprites, as dirt_zone_sources() returns them.
  * - zones: The body zones whose limbs to check: every one, or those a caller doesn't check otherwise.
  */
@@ -673,7 +655,6 @@
  *
  * Arguments:
  * - zone_sources: The sprites, as dirt_zone_sources() returns them.
- * - direction: The direction to read.
  */
 /proc/dirt_zone_pixels(list/zone_sources, direction)
 	RETURN_TYPE(/list)
@@ -755,7 +736,6 @@
  *
  * Arguments:
  * - sprite: The sprite, a whole state.
- * - direction: The direction.
  */
 /proc/dirt_sprite_shows(icon/sprite, direction)
 	var/static/list/rows
@@ -816,12 +796,11 @@
  *
  * Arguments:
  * - masks: Each drawn zone's sprite pixels, from dirt_zone_pixels().
- * - direction: The direction they're seen from.
  */
 /proc/dirt_zone_owners(list/masks, direction)
 	RETURN_TYPE(/list)
 	var/icon/leg_crop_mask = icon('icons/mob/leg_masks.dmi')
-	// Each layer's images, lowest first: zone -> the pixels its image there covers.
+	// each layer's images, lowest first: zone -> the pixels its image there covers
 	var/list/lower = list()
 	var/list/middle = list()
 	var/list/upper = list()
@@ -835,8 +814,8 @@
 		var/mask_state = zone == BODY_ZONE_R_LEG ? "right_leg" : "left_leg"
 		var/list/halves = list(list(), list())
 		for(var/index in pixels)
-			var/row = floor((index - 1) / ICON_SIZE_X)
-			var/column = index - 1 - row * ICON_SIZE_X
+			var/row = DIRT_INDEX_ROW(index, ICON_SIZE_X)
+			var/column = DIRT_INDEX_COLUMN(index, row, ICON_SIZE_X)
 			if(leg_crop_mask.GetPixel(column + 1, ICON_SIZE_Y - row, mask_state, direction))
 				halves[1] += index
 			if(leg_crop_mask.GetPixel(column + 1, ICON_SIZE_Y - row, "[mask_state]_lower", direction))
@@ -878,9 +857,7 @@
 			sources[zone] = list(BODYPART_ICON_HUMAN, state)
 	return sources
 
-/**
- * Returns the directions dirt_measure_metrics() reads, the only ones its template needs. You should NEVER modify it.
- */
+/// Returns the directions dirt_measure_metrics() reads, the only ones its template needs. You should NEVER modify it.
 /proc/dirt_metric_directions()
 	RETURN_TYPE(/list)
 	var/static/list/directions = list(SOUTH, EAST)
@@ -888,7 +865,7 @@
 
 /**
  * Returns alist(limb = list(degrees per pixel, h per pixel)), measured from the plain human template facing south, then
- * facing east for a limb the south view lacks. A limb's diameter is its median row width; its length, its rows.
+ * facing east for a limb the south view lacks. A limb's diameter is its median row width, and its length its rows.
  *
  * Arguments:
  * - human: The template built from dirt_metric_sources(), facing at least dirt_metric_directions().

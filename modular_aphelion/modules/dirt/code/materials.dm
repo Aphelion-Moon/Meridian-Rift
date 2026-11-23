@@ -19,8 +19,6 @@
 	var/flags = NONE
 	/// The DIRT_CAUSE_* defines it's drawn a step darker by, or null.
 	var/list/darker_causes
-	/// For slime and blood, the colour it's made from: "#RRGGBB".
-	var/base_colour
 
 /// Keys it by its id, as a splat stores every material but slime and blood.
 /datum/dirt_material/New()
@@ -189,12 +187,17 @@
 /datum/dirt_material/mess
 	id = DIRT_MATERIAL_MESS
 	name = "mess"
+	// pearl white, translucent where thin and near opaque where thick, with a light grey underside that sets drops apart
+	// on pale skin, and a white glint
+	tints = list(
+		list("#F1EEE6", 0.21), // haze
+		list("#F1EEE6", 0.42), // film
+		list("#ECE7DA", 0.9), // body
+		list("#CEC9BC", 0.8), // core
+		list("#ECE7DA", 0.9), // fleck
+		list("#FFFFFF", 1), // glint
+	)
 	flags = DIRT_MATERIAL_GLOSSY | DIRT_MATERIAL_GOO
-
-/// Takes mess's tints (dirt_mess_role_tints()).
-/datum/dirt_material/mess/New()
-	. = ..()
-	tints = dirt_mess_role_tints()
 
 /datum/dirt_material/slime
 	id = DIRT_MATERIAL_SLIME
@@ -207,7 +210,6 @@
  */
 /datum/dirt_material/slime/New(colour)
 	. = ..()
-	base_colour = colour
 	key = "[id][colour]"
 	tints = dirt_slime_tints(colour)
 
@@ -222,7 +224,6 @@
  */
 /datum/dirt_material/blood/New(colour)
 	. = ..()
-	base_colour = colour
 	key = "[id][colour]"
 	tints = dirt_blood_tints(colour)
 
@@ -239,21 +240,20 @@
  */
 /proc/dirt_material(id, colour = null)
 	RETURN_TYPE(/datum/dirt_material)
-	var/static/regex/hex_colour = regex(@"^#[0-9A-Fa-f]{6}$")
 	if(!istext(id))
 		return null
 	SSdirt.materials ||= dirt_made_materials()
 	var/datum/dirt_material/material = SSdirt.materials[id]
 	if(material)
 		return material
-	var/coloured_id = copytext(id, 1, length(DIRT_MATERIAL_BLOOD) + 1) == DIRT_MATERIAL_BLOOD ? DIRT_MATERIAL_BLOOD : DIRT_MATERIAL_SLIME
+	var/coloured_id = DIRT_HAS_PREFIX(id, DIRT_MATERIAL_BLOOD) ? DIRT_MATERIAL_BLOOD : DIRT_MATERIAL_SLIME
 	if(isnull(colour))
-		if(copytext(id, 1, length(coloured_id) + 1) != coloured_id)
+		if(!DIRT_HAS_PREFIX(id, coloured_id))
 			return null
 		colour = copytext(id, length(coloured_id) + 1)
 	else if(id != coloured_id)
 		return null
-	if(!istext(colour) || !hex_colour.Find(colour))
+	if(!istext(colour) || !findtext(colour, GLOB.is_color))
 		return null
 	colour = uppertext(colour)
 	var/key = "[coloured_id][colour]"
@@ -263,9 +263,7 @@
 		return material
 	return kept.store_value(key, coloured_id == DIRT_MATERIAL_BLOOD ? new /datum/dirt_material/blood(colour) : new /datum/dirt_material/slime(colour))
 
-/**
- * Makes every material but slime and blood, and returns them as alist(DIRT_MATERIAL_* define = /datum/dirt_material).
- */
+/// Makes every material but slime and blood, and returns them as alist(DIRT_MATERIAL_* define = /datum/dirt_material).
 /proc/dirt_made_materials()
 	RETURN_TYPE(/alist)
 	var/alist/materials = alist()
@@ -277,8 +275,8 @@
 /**
  * Returns slime's tints from its colour, indexed by DIRT_ROLE_* define, as the reference generator's ramp makes them
  * from tg's own slimes. Shadows turn toward blue or magenta, and a warm colour turns less, because its underside reads
- * as dried blood if it turns far. Highlights turn toward yellow. Saturation is full at the base and gone only in the
- * highlight. Value runs from about a quarter to nine tenths, never black or white.
+ * as dried blood if it turns far. The light tones turn toward yellow. Saturation is full at the base and gone only in
+ * the glint. Value runs from about a quarter to nine tenths, never black or white.
  *
  * Arguments:
  * - colour: "#RRGGBB".
@@ -309,8 +307,6 @@
  *
  * Arguments:
  * - hue: The slime's hue, from 0 up to 1.
- * - value: The tone's value.
- * - saturation: The tone's saturation.
  * - toward: The hue it turns toward, in degrees.
  * - degrees: How far it turns at most, in degrees.
  */
@@ -320,11 +316,9 @@
 
 /**
  * Returns blood's tints from its colour, indexed by DIRT_ROLE_* define, in only the tones tg's own stain shows. The
- * stain's sheets are grey and drawn in the blood's colour, so each role is the colour times a grey, at an alpha. Both
- * are taken from the stain's pixels beside the taur waist crop (rows 15-20 of tg's four worn blood sheets, every
- * facing). Sorted by alpha they fall in four bands. Film, body and core take the middle grey and alpha of the upper
- * three. Haze takes film's at half its alpha, fleck the darkest grey the dense ones show at core's alpha, and glint
- * body's. Each channel rounds halves up, and each alpha rounds to three decimals.
+ * stain's sheets are grey and drawn in the blood's colour, so each role is the colour times a grey, at an alpha. Each
+ * role's grey and alpha come from the stain's pixels beside the taur waist crop, on tg's worn blood sheets. Each
+ * channel rounds halves up, and each alpha rounds to three decimals.
  *
  * Arguments:
  * - colour: "#RRGGBB".
@@ -342,12 +336,11 @@
 
 /**
  * Returns a hue moved toward another the short way round, by `amount` at most, from 0 up to 1. Hues are in turns,
- * where 1 is the whole colour wheel.
+ * where 1 is the whole colour wheel. A target half a turn away turns the hue down, as in the reference generator,
+ * where tg's closer_angle_difference() turns up.
  *
  * Arguments:
- * - hue: The hue.
  * - target: The hue it moves toward.
- * - amount: The most it moves.
  */
 /proc/dirt_hue_toward(hue, target, amount)
 	var/difference = target - hue + 0.5
@@ -382,11 +375,11 @@
 	return list(hue - floor(hue), spread / brightest, brightest)
 
 /**
- * Returns list(red, green, blue) of a colour, each from 0 to 1, as Python's colorsys.
+ * Returns list(red, green, blue) of a colour, each from 0 to 1. This and dirt_rgb_to_hsv() follow Python's colorsys,
+ * as the reference generator does, rather than BYOND's HSV (tg's rgb2hsv()).
  *
  * Arguments:
- * - hue: From 0 up to 1.
- * - saturation, value: From 0 to 1.
+ * - hue, saturation, value: Each from 0 to 1, the hue never 1.
  */
 /proc/dirt_hsv_to_rgb(hue, saturation, value)
 	RETURN_TYPE(/list)

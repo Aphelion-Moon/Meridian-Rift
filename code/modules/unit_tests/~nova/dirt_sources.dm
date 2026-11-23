@@ -119,13 +119,17 @@
 	TEST_ASSERT(held.mob_mood.has_mood_of_category("hug"), "The human's hug didn't happen.")
 	TEST_ASSERT(!length(deposits_of(held, DIRT_CAUSE_SLIMED_CHEST)) && !length(deposits_of(hugger, DIRT_CAUSE_SLIMED_CHEST)), "A human's hug landed slime.")
 
-/// Tool work on a machine rolls the engineer's chance for an engineer and the general one for anyone else.
+/// Tool work on a machine rolls the engineer's chance for an engineer and the general chance for anyone else. A tool
+/// job finished on a machine rolls it (/obj/machinery/tool_act()).
 /datum/unit_test/dirt_sources/proc/check_tool_work()
 	var/obj/machinery/machine = allocate(/obj/machinery/seed_extractor)
 	var/mob/living/carbon/human/consistent/assistant = allocate(/mob/living/carbon/human/consistent)
 	assistant.mind_initialize()
 	assistant.mind.set_assigned_role(SSjob.get_job_type(/datum/job/assistant))
-	TEST_ASSERT(dirt_tool_work(assistant, machine, TOOL_SCREWDRIVER, 100, 0), "Tool work on a machine, its general chance forced, landed nothing on an assistant.")
+	var/restore = dirt_test_seed_roll(/datum/dirt_source/tool_work::chance)
+	var/dirtied = dirt_tool_work(assistant, machine, TOOL_SCREWDRIVER)
+	rand_seed(restore)
+	TEST_ASSERT(dirtied, "Tool work on a machine put no dirt on an assistant, though its general chance passed.")
 	var/list/worked = deposits_of(assistant, DIRT_CAUSE_MACHINE)
 	TEST_ASSERT(length(worked), "Tool work on a machine landed no machine work's dirt on an assistant.")
 	var/datum/dirt_splat/work_splat = worked[1]
@@ -134,20 +138,42 @@
 	var/mob/living/carbon/human/consistent/engineer = allocate(/mob/living/carbon/human/consistent)
 	engineer.mind_initialize()
 	engineer.mind.set_assigned_role(SSjob.get_job_type(/datum/job/station_engineer))
-	TEST_ASSERT_EQUAL(dirt_tool_work(engineer, machine, TOOL_SCREWDRIVER, 100, 0), 0, "Tool work on a machine rolled the general chance for an engineer.")
+	// a roll the general chance passes and the engineer's fails
+	restore = dirt_test_seed_roll(/datum/dirt_source/tool_work::chance, /datum/dirt_source/tool_work::engineer_chance)
+	dirtied = dirt_tool_work(engineer, machine, TOOL_SCREWDRIVER)
+	rand_seed(restore)
+	TEST_ASSERT_EQUAL(dirtied, 0, "Tool work on a machine rolled the general chance for an engineer.")
 	var/mob/living/carbon/human/consistent/greased_engineer = allocate(/mob/living/carbon/human/consistent)
 	greased_engineer.mind_initialize()
 	greased_engineer.mind.set_assigned_role(SSjob.get_job_type(/datum/job/station_engineer))
-	TEST_ASSERT(dirt_tool_work(greased_engineer, machine, TOOL_SCREWDRIVER, 0, 100), "Tool work on a machine, its engineer's chance forced, landed nothing on an engineer.")
+	restore = dirt_test_seed_roll(/datum/dirt_source/tool_work::engineer_chance)
+	dirtied = dirt_tool_work(greased_engineer, machine, TOOL_SCREWDRIVER)
+	rand_seed(restore)
+	TEST_ASSERT(dirtied, "Tool work on a machine put no dirt on an engineer, though the engineer's chance passed.")
 
-/// A walk over a dirt decal, its chance forced, lands grime once, and floor_check_interval holds off the next look. A
-/// real step onto dirt spends the look, so one forced straight after lands nothing.
+	// a screwdriver opening the panel finishes a tool job, and its roll starts the cooldown whether it passes or not
+	var/mob/living/carbon/human/consistent/fixer = allocate(/mob/living/carbon/human/consistent)
+	var/obj/item/screwdriver/screwdriver = allocate(/obj/item/screwdriver)
+	fixer.put_in_active_hand(screwdriver, forced = TRUE)
+	click_wrapper(fixer, machine)
+	TEST_ASSERT(machine.panel_open, "A screwdriver didn't open the machine's panel, so its tool job can't be checked.")
+	var/datum/component/dirt_sources/fixer_sources = fixer.GetComponent(/datum/component/dirt_sources)
+	TEST_ASSERT(fixer_sources.cooling_down(/datum/dirt_source/tool_work), "A tool job the machine finished rolled no machine work's dirt.")
+
+/// A walk over a dirt decal whose chance passes puts grime on the walker, and floor_check_interval holds off the next
+/// look. A real step onto dirt spends the look, so a look straight after it puts nothing on, though its chance passes.
 /datum/unit_test/dirt_sources/proc/check_walk()
 	var/mob/living/carbon/human/consistent/walker = allocate(/mob/living/carbon/human/consistent)
 	allocate(/obj/effect/decal/cleanable/dirt, walker.loc)
 	var/datum/component/dirt_sources/sources = walker.GetComponent(/datum/component/dirt_sources)
-	TEST_ASSERT(sources.check_floor(100, 100), "A walk over dirt, its chance forced, landed nothing.")
-	TEST_ASSERT_EQUAL(sources.check_floor(100, 100), 0, "The next step over dirt within floor_check_interval landed again.")
+	var/restore = dirt_test_seed_roll(/datum/dirt_source/floor_decal::chance)
+	var/dirtied = sources.check_floor()
+	rand_seed(restore)
+	TEST_ASSERT(dirtied, "A walk over dirt put nothing on the walker, though its chance passed.")
+	restore = dirt_test_seed_roll(/datum/dirt_source/floor_decal::chance)
+	dirtied = sources.check_floor()
+	rand_seed(restore)
+	TEST_ASSERT_EQUAL(dirtied, 0, "The next step over dirt within floor_check_interval put dirt on again.")
 	var/list/walked = deposits_of(walker, DIRT_CAUSE_WALK)
 	TEST_ASSERT(length(walked), "A walk over dirt landed no walking dirt.")
 	var/datum/dirt_splat/walk_splat = walked[1]
@@ -160,7 +186,10 @@
 	stepper.Move(dirty, EAST)
 	TEST_ASSERT(stepper.loc == dirty && !QDELETED(dirt), "The human didn't step onto the dirt, so a step looking at the floor can't be checked.")
 	var/datum/component/dirt_sources/stepper_sources = stepper.GetComponent(/datum/component/dirt_sources)
-	TEST_ASSERT_EQUAL(stepper_sources.check_floor(100, 100), 0, "A step onto dirt didn't look at the floor, so a look straight after landed.")
+	restore = dirt_test_seed_roll(/datum/dirt_source/floor_decal::chance)
+	dirtied = stepper_sources.check_floor()
+	rand_seed(restore)
+	TEST_ASSERT_EQUAL(dirtied, 0, "A step onto dirt didn't look at the floor, so a look straight after put dirt on.")
 
 /// A heavy and a light explosion each land their blast at their severity once SSdirt fires.
 /datum/unit_test/dirt_sources/proc/check_blast()

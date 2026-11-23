@@ -152,7 +152,7 @@
  * along the limbs, and the seed of its noise. The points are mirrored for a body dirtier on the other side, and copied
  * round the body where dirt goes all round (dirt_painted_around()). A level shows some of them (dirt_painted_shown()),
  * the same ones in every direction (dirt_painted_near()). Each pixel of the body then takes the role of the nearest
- * point on its limb within DIRT_PAINTED_REACH, and the point painted first wins a tie. At level 4 the role is a step
+ * point on its limb within DIRT_PAINTED_REACH. The point painted first wins a tie. At level 4 the role is a step
  * darker: haze goes to film and film to body. Every pixel drawn has a thickness of 1.
  *
  * Arguments:
@@ -160,8 +160,7 @@
  * - material: The /datum/dirt_material it's made of.
  * - level: 1 to the cause's top level.
  * - variant: 0 to DIRT_VARIANTS - 1.
- * - side: The mob's dirtier side, 1 or -1.
- * - surface: The direction's surface.
+ * - side: The dirtier side, 1 (the body's right) or -1.
  */
 /proc/dirt_painted_rasterise(cause, datum/dirt_material/material, level, variant, side, datum/dirt_surface/surface)
 	RETURN_TYPE(/datum/dirt_pixels)
@@ -217,11 +216,10 @@
  * alist(limb = list(thetas, heights, roles, alist(row = indexes), degrees per pixel, h per pixel)). Each limb's entry
  * holds the points shown on it, each point's copies in turn, and their indexes by the row up the limb each lies in. A
  * design painted in materials' own tones keeps the points painted in the deposit's material. Grease takes oil's,
- * because the hands' design is lettered in oil and soot alone. No surface comes in. The points lie on the plain human
- * template facing south (dirt_painted_points()), and each is copied and shown by its own limb, theta and h
- * (dirt_painted_around(), dirt_painted_shown()). The limbs are measured once a round (dirt_metric()), so only placing
- * the points on pixels reads a direction. The last deposit's points are kept, so the four directions a mask job draws
- * it in, one after another, build them once. You should NEVER modify it.
+ * because the hands' design is lettered in oil and soot alone. It reads no direction's surface. Each point is copied
+ * and shown by its own limb, theta and h (dirt_painted_around(), dirt_painted_shown()), and the limbs' sizes come from
+ * dirt_metric(). It keeps the last deposit's points, so the four directions a mask job draws it in, one after another,
+ * build them once. You should NEVER modify it.
  *
  * Arguments:
  * - cell: The deposit's DIRT_PAINTED_* define, from dirt_painted_design().
@@ -232,8 +230,8 @@
 	var/static/kept_key
 	var/static/alist/kept
 	var/shown_level = min(level, 3)
-	// all it reads: the cause and material pick the cell, and drafting picks the noise dirt_painted_shown() samples
-	var/key = "[cause]:[material.id]:[shown_level]:[variant]:[side]:[SSdirt.drafting]"
+	// all it reads: the cause and material pick the cell
+	var/key = "[cause]:[material.id]:[shown_level]:[variant]:[side]"
 	if(key == kept_key)
 		return kept
 	var/datum/dirt_random/rng = dirt_general_stream("painted:[cause]:[num2text(variant, 12)]")
@@ -285,10 +283,7 @@
 			near_heights += along
 			near_roles += role
 			var/row = floor(along / entry[6])
-			var/list/bin = bins[row]
-			if(!bin)
-				bin = list()
-				bins[row] = bin
+			var/list/bin = (bins[row] ||= list())
 			bin += length(near_thetas)
 	kept_key = key
 	kept = near
@@ -302,7 +297,6 @@
  *
  * Arguments:
  * - cell: A DIRT_PAINTED_* define.
- * - material_id: The deposit's material id.
  * - limb: The point's limb, mirrored.
  * - theta: Its theta, mirrored and jittered.
  * - along: Its h, jittered.
@@ -331,8 +325,7 @@
  *
  * Arguments:
  * - cell: A DIRT_PAINTED_* define.
- * - limb: The point's limb.
- * - theta: Its theta, as copied (dirt_painted_around()).
+ * - theta: The point's theta, as copied (dirt_painted_around()).
  * - along: Its h.
  * - role: Its DIRT_ROLE_* define.
  * - level: 1 to 3.

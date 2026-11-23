@@ -1,14 +1,13 @@
 /**
- * The dirt a person or an item carries, as splats. Mess splats are each a variant of a zone's mess at a level. General
- * deposits are each a variant of a cause's dirt in a material, on some limbs. SSdirt makes the masks they draw with. A
+ * The dirt a person or an item carries, as splats (/datum/dirt_splat). SSdirt makes the masks they draw with. A
  * person's skin splats draw through one /datum/bodypart_overlay/dirt_skin on each limb they lie on, under what the
  * person wears, and fade out beside it. The splats on their underclothes are kept with each piece. While the piece is
  * worn and shows, they draw over it through one /datum/bodypart_overlay/dirt_underclothes on the chest. The splats on a
  * person's parts draw with each part's own front layer. A taur body's pools and general deposits draw with its own
  * images. The splats of tails, wings, ears, horns and other drawn parts draw with each part's images (appendages.dm).
  * The hair's draw over the hair while it shows (hair.dm). A garment's splats draw inset over it while a person wears
- * it. A taur suit's back splats and general deposits draw on the taur canvas round it too. The parts that a surface's
- * mess reaches shape it (dirt_surface_parts()). Washing clears it, as it clears the floor's decals.
+ * it. A taur suit's back splats and general deposits draw on the taur canvas round it too. Washing clears it, as it
+ * clears the floor's decals.
  */
 /datum/component/dirtiness
 	/// This carrier's splats (/datum/dirt_splat) on a person's skin or an item's cloth, mess and general deposits
@@ -40,10 +39,8 @@
 	var/alist/skin_reads
 	/// The skin's request skin_reads were read for. Another one reads them again.
 	var/datum/dirt_mask_request/skin_reads_for
-	/// What skin_hidden() last read, or null to read it again: list(the body's overlays_standing[UNIFORM_LAYER], its
-	/// [SUIT_LAYER] entry, the organ in its taur body's slot or null, whether dirt_body_hidden() found the body hidden,
-	/// the icon the uniform's entry draws or null, the suit's, whether either icon isn't 32x32).
-	var/list/hidden_read
+	/// What skin_hidden() last read, or null to read it again.
+	var/datum/dirt_hidden_read/hidden_read
 	/// What the taur body's rider was drawn from when it last matched the request of the taur body's masks
 	/// (rider_unchanged()), for rider_reads_for: alist(body zone = /obj/item/bodypart/proc/dirt_sprite_reads(), or null
 	/// with no limb, "eyes" = dirt_eye_reads()).
@@ -83,23 +80,23 @@
 	var/list/suit_blood_seen
 	/// The blood DNA list note_waist_blood() last saw on the person's uniform.
 	var/list/uniform_blood_seen
+	/// The suit whose blood DNA list is suit_blood_seen, as a weakref. So another suit holding the same list counts as
+	/// blood landing (note_waist_blood()).
+	var/datum/weakref/suit_blood_garment
+	/// The uniform whose blood DNA list is uniform_blood_seen, as a weakref.
+	var/datum/weakref/uniform_blood_garment
 	/// On an item, the serial (/datum/controller/subsystem/dirt/proc/next_serial()) of its newest visible blood landing,
 	/// or null.
 	var/blood_landed
 	/// On an item, the serial of the newest mess or general deposit landed or raised on its cloth, or null. A wet
 	/// material (sweat) isn't counted.
 	var/dirt_landed
-	/// A person's dirtier side, 1 or -1, or null until it's picked at random on first use (dirtier_side()). Every
-	/// general deposit on them and on what they wear draws on it. Mess never asks, so it spends no random draw.
+	/// A person's dirtier side, 1 (the body's right) or -1, or null until dirtier_side() first picks it at random.
+	/// Every general deposit on them and on what they wear draws on it. Mess never asks, so it spends no random draw.
 	var/side
 	/// How many times a slot that covers skin has changed on the person (on_overlay_changed()). A part whose masks
 	/// follow what's worn over its zone reads it to know whether to look again (ready_part_masks()).
 	var/worn_changes = 0
-
-/datum/dirt_drawing
-	/// For a part drawn at more than one layer, or the vulva, its carrier's worn_changes when its masks were last
-	/// matched to what's worn over its zone (/datum/component/dirtiness/proc/ready_part_masks()).
-	var/worn_seen
 
 /datum/component/dirtiness/Initialize()
 	if(!ishuman(parent) && !isitem(parent))
@@ -157,50 +154,44 @@
  * Puts a mess on a zone of this carrier: its skin or cloth, or the part in an organ slot. As a shot lands it, the
  * levels go on the zone's newest splat, up to DIRT_MESS_MAX_LEVEL. What's left starts another splat with that many
  * levels, at most the top one. The new splat takes a variant this carrier doesn't have on that zone yet, if there's
- * one. A splat raised keeps its place and counts as landed now (/datum/dirt_splat/var/last_serial). A variant given
- * places a new splat at `levels` with that variant.
+ * one. A splat raised keeps its place and counts as the newest (/datum/dirt_splat/var/last_serial). It draws nothing.
+ * The caller draws once it's done (mess_changed(), dirt_draw_landing()), so a shot past the cap asks for no masks for
+ * splats it's about to take off.
  *
  * Arguments:
  * - zone: A DIRT_ZONE_* define.
  * - organ_slot: The part's ORGAN_SLOT_* define, or null for the skin or cloth.
  * - levels: How many levels it adds, 1 or more.
- * - variant: 0 to DIRT_VARIANTS - 1, or null.
- * - redraw: Whether to draw the change. A caller that changes more first, as a landing past the cap does, draws once
- *   after (mess_changed()), so no masks are made for splats it's about to take off.
- * - new_variant: The variant a splat started without `variant` takes, or null for one the zone doesn't have yet: a part
- *   takes the variant of the shot's splat on the surface under it.
+ * - new_variant: The variant a splat it starts takes, or null for one the zone doesn't have yet. A part takes the
+ *   variant of the shot's splat on the surface under it.
  *
  * Returns the splat it started, or the one it raised when it started none.
  */
-/datum/component/dirtiness/proc/add_mess(zone, organ_slot = null, levels = 1, variant = null, redraw = TRUE, new_variant = null)
+/datum/component/dirtiness/proc/add_mess(zone, organ_slot = null, levels = 1, new_variant = null)
 	RETURN_TYPE(/datum/dirt_splat)
 	var/list/splats = mess_splats
 	if(organ_slot)
 		splats = (part_mess_splats[organ_slot] ||= list())
-	var/datum/dirt_splat/touched = stack_mess(splats, zone, levels, variant, new_variant)
+	var/datum/dirt_splat/touched = stack_mess(splats, zone, levels, new_variant)
 	if(touched)
 		if(isitem(parent))
 			dirt_landed = touched.last_serial
 		else if(organ_slot == ORGAN_SLOT_EXTERNAL_TAUR)
 			taur_dirt_landed = touched.last_serial
-	if(redraw)
-		mess_changed(organ_slot)
 	return touched
 
 /**
- * Puts a mess on a zone of the underclothes a person wears in a slot, as add_mess() puts it on the skin. It stays with
- * that piece, kept while it's off or hidden.
+ * Puts a mess on a zone of the underclothes a person wears in a slot, as add_mess() puts it on the skin. Like
+ * add_mess(), it draws nothing. It stays with that piece, kept while it's off or hidden.
  *
  * Arguments:
  * - zone: A DIRT_ZONE_* define.
  * - piece: A DIRT_UNDERCLOTHES_* define the person wears.
  * - levels: How many levels it adds, 1 or more.
- * - variant: 0 to DIRT_VARIANTS - 1, or null.
- * - redraw: Whether to draw the change, as add_mess()'s.
  *
  * Returns the splat it started or raised, or null when the person doesn't wear that piece.
  */
-/datum/component/dirtiness/proc/add_underclothes_mess(zone, piece, levels = 1, variant = null, redraw = TRUE)
+/datum/component/dirtiness/proc/add_underclothes_mess(zone, piece, levels = 1)
 	RETURN_TYPE(/datum/dirt_splat)
 	var/datum/sprite_accessory/accessory = dirt_underclothes_worn(parent)[piece]
 	if(!accessory)
@@ -208,37 +199,32 @@
 	underclothes_splats ||= alist()
 	var/key = dirt_underclothes_key(piece, accessory.name)
 	var/list/splats = (underclothes_splats[key] ||= list())
-	var/datum/dirt_splat/touched = stack_mess(splats, zone, levels, variant)
-	if(redraw)
-		mess_changed()
-	return touched
+	return stack_mess(splats, zone, levels)
 
 /**
  * Adds a mess to one surface's splats as add_mess() describes, and returns the splat it started, or the one it raised.
  *
  * Arguments:
  * - splats: The surface's splats, oldest first. Added to.
- * - zone, levels, variant, new_variant: As add_mess()'s.
+ * - zone, levels, new_variant: As add_mess()'s.
  */
-/datum/component/dirtiness/proc/stack_mess(list/splats, zone, levels, variant, new_variant = null)
+/datum/component/dirtiness/proc/stack_mess(list/splats, zone, levels, new_variant = null)
 	RETURN_TYPE(/datum/dirt_splat)
 	var/datum/dirt_splat/touched
-	if(isnull(variant))
-		for(var/index in length(splats) to 1 step -1)
-			var/datum/dirt_splat/newest = splats[index]
-			// a general deposit has no zone, so mess never stacks on one
-			if(newest.zone != zone)
-				continue
-			var/risen = min(levels, DIRT_MESS_MAX_LEVEL - newest.level)
-			if(risen > 0)
-				newest.level += risen
-				newest.last_serial = SSdirt.next_serial()
-				levels -= risen
-				touched = newest
-			break
+	for(var/index in length(splats) to 1 step -1)
+		var/datum/dirt_splat/newest = splats[index]
+		// a general deposit has no zone, so mess never stacks on one
+		if(newest.zone != zone)
+			continue
+		var/risen = min(levels, DIRT_MESS_MAX_LEVEL - newest.level)
+		if(risen > 0)
+			newest.level += risen
+			newest.last_serial = SSdirt.next_serial()
+			levels -= risen
+			touched = newest
+		break
 	if(levels > 0)
-		if(isnull(variant))
-			variant = isnull(new_variant) ? dirt_fresh_variant(splats, zone) : new_variant
+		var/variant = isnull(new_variant) ? dirt_fresh_variant(splats, zone) : new_variant
 		touched = new /datum/dirt_splat(zone, min(levels, DIRT_MESS_MAX_LEVEL), variant, SSdirt.next_serial())
 		splats += touched
 	return touched
@@ -252,7 +238,7 @@
  * - material: Its material as a splat stores it (/datum/dirt_material/var/key).
  * - level: Its level, 1 up to the cause's top. A level under 1 counts as 1.
  * - limbs: The limbs it covers here, DIRT_LIMB_BIT() of each, or NONE on a drawn part, which has no limbs.
- * - variant: 0 to DIRT_VARIANTS - 1, for a deposit it starts, or null for one at random.
+ * - variant: 0 to DIRT_VARIANTS - 1, for a deposit it starts.
  * - organ_slot: The drawn part's ORGAN_SLOT_* define (part_splats), or null for the skin or cloth.
  *
  * Returns the deposit it started or raised.
@@ -305,7 +291,7 @@
 /datum/component/dirtiness/proc/stack_dirt(list/splats, cause, material, level, limbs, variant)
 	RETURN_TYPE(/datum/dirt_splat)
 	var/top = dirt_cause_max_level(cause)
-	// whole and 1 at least, as dirt_land() takes a level
+	// whole and 1 at least
 	level = isnum(level) ? max(1, floor(level)) : 1
 	var/deposits = 0
 	var/datum/dirt_splat/oldest
@@ -323,25 +309,9 @@
 	if(deposits >= DIRT_CARRIER_DEPOSITS)
 		splats -= oldest
 	// the variant keys and seeds the deposit's raster
-	variant = isnum(variant) ? clamp(floor(variant), 0, DIRT_VARIANTS - 1) : rand(0, DIRT_VARIANTS - 1)
 	var/datum/dirt_splat/started = new(null, min(level, top), variant, SSdirt.next_serial(), cause, material, limbs)
 	splats += started
 	return started
-
-/**
- * Returns a variant of a zone's mess this carrier doesn't have on that zone yet, at random, or any once it has them
- * all.
- *
- * Arguments:
- * - zone: A DIRT_ZONE_* define.
- * - piece: A DIRT_UNDERCLOTHES_* define for the underclothes a person wears in that slot, or null for the skin or
- *   cloth.
- */
-/datum/component/dirtiness/proc/fresh_mess_variant(zone, piece = null)
-	if(piece)
-		var/datum/sprite_accessory/accessory = dirt_underclothes_worn(parent)[piece]
-		return dirt_fresh_variant(accessory && underclothes_splats?[dirt_underclothes_key(piece, accessory.name)], zone)
-	return dirt_fresh_variant(mess_splats, zone)
 
 /**
  * Returns a variant of a zone's mess none of some splats on that zone has, at random, or any once they have them all.
@@ -360,20 +330,14 @@
 	return length(unused) ? pick(unused) : rand(0, DIRT_VARIANTS - 1)
 
 /**
- * Takes one splat off this carrier, wherever it lies.
+ * Takes one splat off this carrier, wherever it lies. It draws nothing, as add_mess() draws nothing.
  *
- * Arguments:
- * - splat: The splat.
- * - redraw: Whether to draw the change, as add_mess()'s.
- *
- * Returns the ORGAN_SLOT_* define of the part it was on, or null for the skin, the cloth or the underclothes: what to
- * draw again (mess_changed()).
+ * Returns the ORGAN_SLOT_* define of the part it was on, or null for the skin, the cloth or the underclothes. That's
+ * what to draw again (mess_changed()).
  */
-/datum/component/dirtiness/proc/remove_mess(datum/dirt_splat/splat, redraw = TRUE)
+/datum/component/dirtiness/proc/remove_mess(datum/dirt_splat/splat)
 	if(splat in mess_splats)
 		mess_splats -= splat
-		if(redraw)
-			mess_changed()
 		return null
 	// a part's mess, then its general deposits
 	for(var/alist/slots as anything in list(part_mess_splats, part_splats))
@@ -383,8 +347,6 @@
 				slot_splats -= splat
 				if(!length(slot_splats))
 					slots -= organ_slot
-				if(redraw)
-					mess_changed(organ_slot)
 				return organ_slot
 	for(var/key, splats in underclothes_splats)
 		var/list/piece_splats = splats
@@ -395,8 +357,6 @@
 				var/datum/dirt_drawing/piece_drawing = underclothes_drawings?[key]
 				piece_drawing?.drop_jobs(parent)
 				LAZYREMOVE(underclothes_drawings, key)
-			if(redraw)
-				mess_changed()
 			return null
 	return null
 
@@ -477,24 +437,15 @@
 
 /// Returns how many splats this carrier holds, parts and underclothes included.
 /datum/component/dirtiness/proc/mess_count()
-	. = length(mess_splats)
-	for(var/alist/slots as anything in list(part_mess_splats, part_splats))
-		for(var/organ_slot, splats in slots)
-			var/list/slot_splats = splats
-			. += length(slot_splats)
-	for(var/key, splats in underclothes_splats)
-		var/list/piece_splats = splats
-		. += length(piece_splats)
+	. = 0
+	for(var/list/splats as anything in splat_lists())
+		. += length(splats)
 
 /**
  * Returns whether this carrier holds nothing worth keeping it for: no splats, no drawing of any surface (blood below a
- * taur's waist included), nothing drawn on a limb and no dirtier side picked. A person's skin drawing is made when the
- * skin first asks for masks, and stays until the carrier is destroyed. So a person whose skin has drawn dirt never
- * holds nothing. If a carrier on a person, their uniform or their suit holds nothing, the person's next cover check
- * deletes it (check_taur_blood()), whatever made it. While blood runs below a taur's waist, that check keeps the
- * person's carrier and the taur-fitted garment's. A garment's is also deleted as it's taken off after drawing that
- * blood (on_dropped()). An item's is deleted as soon as a wash, Clear Dirt or the cap leaves it no splats and no such
- * blood (clear_mess(), mess_changed()).
+ * taur's waist included), nothing drawn on a limb and no dirtier side picked. A person's skin drawing is made at the
+ * skin's first ask for masks and stays until the carrier is destroyed. So a person whose skin has drawn dirt never
+ * holds nothing. check_taur_blood(), on_dropped(), clear_mess() and mess_changed() delete a carrier that does.
  */
 /datum/component/dirtiness/proc/holds_nothing()
 	return !mess_count() && !side && !skin && !cloth && !taur_cloth && !taur_blood && !length(part_drawings) && !length(underclothes_drawings) && !underclothes_overlay && !length(skin_overlays)
@@ -504,13 +455,7 @@
 /datum/component/dirtiness/proc/oldest_mess()
 	RETURN_TYPE(/datum/dirt_splat)
 	var/datum/dirt_splat/oldest
-	var/list/surfaces = list(mess_splats)
-	for(var/alist/slots as anything in list(part_mess_splats, part_splats))
-		for(var/organ_slot, splats in slots)
-			surfaces += list(splats)
-	for(var/key, splats in underclothes_splats)
-		surfaces += list(splats)
-	for(var/list/splats as anything in surfaces)
+	for(var/list/splats as anything in splat_lists())
 		for(var/datum/dirt_splat/splat as anything in splats)
 			if(!oldest || splat.last_serial < oldest.last_serial)
 				oldest = splat
@@ -585,9 +530,6 @@
 /**
  * Puts a skin overlay on each limb the skin's splats lie on (skin_limbs()), and takes them off once they don't.
  * Nothing is drawn until the body's next update_body_parts().
- *
- * Arguments:
- * - body: The person.
  */
 /datum/component/dirtiness/proc/sync_skin_overlays(mob/living/carbon/human/body)
 	var/limbs = skin_limbs()
@@ -625,9 +567,6 @@
 /**
  * Puts the underclothes overlay on the chest while the underclothes carry mess, and takes it off once they don't.
  * Nothing is drawn until the body's next update_body_parts().
- *
- * Arguments:
- * - body: The person.
  */
 /datum/component/dirtiness/proc/sync_underclothes_overlay(mob/living/carbon/human/body)
 	var/obj/item/bodypart/chest = body.get_bodypart(BODY_ZONE_CHEST)
@@ -637,12 +576,7 @@
 		underclothes_overlay = new(src)
 		chest.add_bodypart_overlay(underclothes_overlay, update = FALSE)
 
-/**
- * Takes the underclothes overlay off, wherever it is. Nothing is drawn until the body's next update_body_parts().
- *
- * Arguments:
- * - body: The person.
- */
+/// Takes the underclothes overlay off, wherever it is. Nothing is drawn until the body's next update_body_parts().
 /datum/component/dirtiness/proc/drop_underclothes_overlay(mob/living/carbon/human/body)
 	if(!underclothes_overlay)
 		return
@@ -656,23 +590,18 @@
  * Returns the masks the skin's splats are drawn with on a limb, or null while there are none to draw. The first ask
  * after a change queues them with SSdirt, which draws the body again once they're made. Until then the masks before
  * them are drawn, so mess already there stays while more is added. Masks made for other sprites than the body draws (a
- * new size, a swapped limb, other eyes) are dropped and made again. On every draw, each limb that skin mess draws on
- * checks its own sprites, and the chest also checks the arms, the hands and the eyes. Each is read again only once what
- * it's drawn from has changed since it last matched (skin_reads), so a steady draw compares a few vars. The masks fade
- * out beside what the body wears (dirt_cover_sprites()). The parts the splats reach shape them (dirt_surface_parts()),
- * as each part draws over or under the skin in each direction: every front image over it, and a butt's back image and
+ * new size, a swapped limb, other eyes) are dropped and made again. A steady draw only compares what each limb is drawn
+ * from with skin_reads. The masks fade out beside what the body wears (dirt_cover_sprites()). The parts the splats
+ * reach shape them (dirt_surface_parts()). Every part's front image draws over the skin, and a butt's back image and
  * the pecs guide under it. General deposits draw on the person's dirtier side, and on a bare body (dirt_bare_bodied())
- * as their painted designs. The parts drawn over the skin take them on their own pixels (dirt_parts_over()), drawn with
- * each part. A body hidden under a worn sprite larger than its tile (skin_hidden()) draws none. Its request is made,
- * but no masks are.
- *
- * Arguments:
- * - limb: The limb asking.
+ * as their painted designs. The parts drawn over the skin take them on their own pixels (dirt_parts_over()), drawn
+ * with each part. A body hidden under a worn sprite larger than its tile (skin_hidden()) draws none. Its request is
+ * made, but no masks are.
  */
 /datum/component/dirtiness/proc/ready_skin_masks(obj/item/bodypart/limb)
 	RETURN_TYPE(/datum/dirt_masks)
 	var/mob/living/carbon/human/body = parent
-	if(!length(mess_splats) || !istype(body))
+	if(!length(mess_splats))
 		return null
 	skin ||= new
 	if(skin.request)
@@ -702,43 +631,63 @@
 /**
  * Returns whether the body is hidden under a worn sprite larger than its tile (dirt_body_hidden()). The answer is read
  * once and kept with everything it was read from (hidden_read). That's the uniform's and suit's entries in
- * overlays_standing, and the organ in the taur body's slot, which decides whether a wide suit is a taur suit. Once an
- * entry isn't the same one, as after every worn redraw of its slot, the icon each entry draws is read.
+ * overlays_standing, and the organ in the taur body's slot. The organ decides whether a wide suit is a taur suit. Once
+ * an entry isn't the same one, as after every worn redraw of its slot, the icon each entry draws is read.
  * dirt_body_hidden() reads only those icons' sizes, and the organ for an icon that isn't 32x32. So the same icons give
  * the same answer, with the same organ where an icon isn't 32x32. The answer is read again only once any of those
- * differs. The organ is read from the slot list itself, as get_organ_slot() reads it. A taur body joining or leaving
- * drops it too, letting go of the organ.
- *
- * Arguments:
- * - body: The person.
+ * differs. A taur body joining or leaving drops it too, letting go of the organ.
  */
 /datum/component/dirtiness/proc/skin_hidden(mob/living/carbon/human/body)
 	var/uniform = body.overlays_standing[UNIFORM_LAYER]
 	var/suit = body.overlays_standing[SUIT_LAYER]
-	if(hidden_read && hidden_read[1] == uniform && hidden_read[2] == suit && (!hidden_read[7] || hidden_read[3] == body.organs_slot[ORGAN_SLOT_EXTERNAL_TAUR]))
-		return hidden_read[4]
+	if(hidden_read && hidden_read.uniform == uniform && hidden_read.suit == suit && (!hidden_read.off_tile || hidden_read.taur_body == body.organs_slot[ORGAN_SLOT_EXTERNAL_TAUR]))
+		return hidden_read.hidden
 	var/taur_body = body.organs_slot[ORGAN_SLOT_EXTERNAL_TAUR]
 	var/image/uniform_leaf = bulge_drawn_leaf(bulge_drawn_root(uniform))
 	var/image/suit_leaf = bulge_drawn_leaf(bulge_drawn_root(suit))
 	var/uniform_icon = uniform_leaf?.icon
 	var/suit_icon = suit_leaf?.icon
-	var/same_icons = hidden_read && hidden_read[5] == uniform_icon && hidden_read[6] == suit_icon
+	var/same_icons = hidden_read && hidden_read.uniform_icon == uniform_icon && hidden_read.suit_icon == suit_icon
 	// only an icon that isn't 32x32 has dirt_body_hidden() read the organ (dirt_taur_suit_sprite())
-	var/off_tile = same_icons && hidden_read[7]
+	var/off_tile = same_icons && hidden_read.off_tile
 	if(!same_icons)
 		for(var/drawn_icon in list(uniform_icon, suit_icon))
 			var/list/size = drawn_icon && get_icon_dimensions(drawn_icon)
 			off_tile ||= size && (size["width"] != ICON_SIZE_X || size["height"] != ICON_SIZE_Y)
-	var/hidden = (same_icons && (!off_tile || hidden_read[3] == taur_body)) ? hidden_read[4] : dirt_body_hidden(body)
-	hidden_read = list(uniform, suit, taur_body, hidden, uniform_icon, suit_icon, off_tile)
+	var/hidden = (same_icons && (!off_tile || hidden_read.taur_body == taur_body)) ? hidden_read.hidden : dirt_body_hidden(body)
+	hidden_read = new(uniform, suit, taur_body, hidden, uniform_icon, suit_icon, off_tile)
 	return hidden
 
+/// What skin_hidden() last read a body's hiding from, and what it found.
+/datum/dirt_hidden_read
+	/// The body's overlays_standing[UNIFORM_LAYER] entry.
+	var/uniform
+	/// The body's overlays_standing[SUIT_LAYER] entry.
+	var/suit
+	/// The organ in the body's taur body slot, or null.
+	var/obj/item/organ/taur_body
+	/// Whether dirt_body_hidden() found the body hidden.
+	var/hidden
+	/// The icon the uniform's entry draws, or null.
+	var/uniform_icon
+	/// The icon the suit's entry draws, or null.
+	var/suit_icon
+	/// Whether either icon isn't 32x32.
+	var/off_tile
+
+/datum/dirt_hidden_read/New(uniform, suit, taur_body, hidden, uniform_icon, suit_icon, off_tile)
+	. = ..()
+	src.uniform = uniform
+	src.suit = suit
+	src.taur_body = taur_body
+	src.hidden = hidden
+	src.uniform_icon = uniform_icon
+	src.suit_icon = suit_icon
+	src.off_tile = off_tile
+
 /**
- * Returns whether what the chest's draw checks of the skin's sprites besides its own, the arms and hands, the eyes and
- * whether the head is a human's, is drawn from what it was when they last matched (skin_reads).
- *
- * Arguments:
- * - body: The person.
+ * Returns whether the skin's sprites that the chest's draw checks besides its own are drawn from what they were when
+ * they last matched (skin_reads). They're the arms and hands, the eyes and whether the head is a human's.
  */
 /datum/component/dirtiness/proc/skin_besides_unchanged(mob/living/carbon/human/body)
 	for(var/zone in dirt_skin_besides(BODY_ZONE_CHEST))
@@ -751,13 +700,9 @@
 	return eye_read && dirt_eyes_unchanged(body, skin.request.zone_sources, eye_read)
 
 /**
- * Returns whether the body draws the sprites the skin's masks were made from, as a limb's draw checks them: its own,
- * and for the chest the arms and hands, the eyes and whether the head is a human's (dirt_zone_sources_match(), which
- * checks the eyes whichever limb asks). When it does, notes what they're drawn from (skin_reads).
- *
- * Arguments:
- * - body: The person.
- * - limb: The limb asking.
+ * Returns whether the body draws the sprites the skin's masks were made from, as a limb's draw checks them
+ * (dirt_zone_sources_match()). A limb checks its own, and the chest also the arms and hands and whether the head is a
+ * human's. The eyes are checked whichever limb asks. When they match, it notes what they're drawn from (skin_reads).
  */
 /datum/component/dirtiness/proc/skin_read_again(mob/living/carbon/human/body, obj/item/bodypart/limb)
 	var/list/zones = list(limb.body_zone) + dirt_skin_besides(limb.body_zone)
@@ -767,12 +712,10 @@
 	return TRUE
 
 /**
- * Notes what some zones' limbs, and the eyes when asked, are drawn from now, for the skin's request (skin_reads): its
- * zone sources name what they draw.
+ * Notes what some zones' limbs, and the eyes when asked, are drawn from now, for the skin's request (skin_reads). The
+ * request's zone sources name what they draw.
  *
  * Arguments:
- * - body: The person.
- * - zones: The body zones.
  * - eyes: Whether to note the eyes and the head they're read through.
  */
 /datum/component/dirtiness/proc/note_skin_reads(mob/living/carbon/human/body, list/zones, eyes)
@@ -805,17 +748,17 @@
 		worn_reads = null
 
 /**
- * Returns the masks of each piece of a person's underclothes that has some drawn and is worn and shows now, asking for
+ * Returns the masks of each piece of a person's underclothes that has some drawn and is worn and shows now. It asks for
  * those not made yet as ready_skin_masks() does. Each is cloth's, kept to the pixels the piece shows, under those drawn
- * over it, and shaped by the parts its splats reach (dirt_surface_parts()): pecs under a tank top, or a genital set to
- * draw below the underwear. Underwear takes the skin's general dirt, as the skin draws it, painted on a bare body. The
- * other pieces take cloth's. A piece that's off or hidden keeps its splats but draws none.
+ * over it. The parts its splats reach shape it (dirt_surface_parts()), such as pecs under a tank top, or a genital set
+ * to draw below the underwear. Underwear takes the skin's general dirt, as the skin draws it, painted on a bare body.
+ * The other pieces take cloth's. A piece that's off or hidden keeps its splats but draws none.
  */
 /datum/component/dirtiness/proc/ready_underclothes_masks()
 	RETURN_TYPE(/list)
 	. = list()
 	var/mob/living/carbon/human/body = parent
-	if(!length(underclothes_splats) || !istype(body))
+	if(!length(underclothes_splats))
 		return
 	underclothes_drawings ||= alist()
 	var/list/drawn
@@ -855,18 +798,16 @@
 			. += masks
 
 /**
- * Returns the masks a worn item's cloth is drawn with on its wearer, or null while there are none to draw, asking for
+ * Returns the masks a worn item's cloth is drawn with on its wearer, or null while there are none to draw. It asks for
  * them as ready_skin_masks() does. Masks made for a body drawn from other sprites (another wearer, other eyes) are
- * dropped and made again, as are general deposits' masks made for another wearer's dirtier side. A change to the parts
+ * dropped and made again. So are general deposits' masks made for another wearer's dirtier side. A change to the parts
  * its splats reach (dirt_surface_parts()) makes them again too, and the old ones are drawn meanwhile. A taur suit's
  * masks are those of its upper part, over the rider on the body's tile. Its general deposits draw there as on any
- * garment, beside its hem band on the taur canvas (ready_taur_cloth_masks()). The upper part leaves out the legs'
- * share of walking, crawling and dust. The hem band draws that share as the taur body's contact coat. Masks asked for
- * while the item is drawn as a taur suit are made again once it isn't, and the other way round.
+ * garment, beside its hem band on the taur canvas (ready_taur_cloth_masks()). The upper part leaves out the legs' share
+ * of walking, crawling and dust. The hem band draws that share as the taur body's contact coat. Masks asked for while
+ * the item is drawn as a taur suit are made again once it isn't, and the other way round.
  *
  * Arguments:
- * - garment: The item.
- * - wearer: Who wears it.
  * - taur_suit: Whether it's drawn as a taur suit (dirt_taur_suit_sprite()).
  */
 /datum/component/dirtiness/proc/ready_cloth_masks(obj/item/garment, mob/living/carbon/human/wearer, taur_suit = FALSE)
@@ -917,11 +858,11 @@
 
 /**
  * Returns the masks of a person's part's own mess, its share drawn with its front layer, or null while there are none
- * to draw, asking for them as ready_skin_masks() does; SSdirt draws the whole body again once they're made. Masks made
- * for another sprite of the part (an erection, a jiggle, another size) are dropped and made again: they wouldn't fit
- * it. The vulva on bare skin takes the ring of skin round it, so its masks follow the body's template too. A part drawn
- * at more than one layer (a butt's front and back images) draws its share only in the directions it shows over what it
- * lies on (dirt_zone_layer()): the surface's masks take it in the rest.
+ * to draw. It asks for them as ready_skin_masks() does, and SSdirt draws the whole body again once they're made. Masks
+ * made for another sprite of the part (an erection, a jiggle, another size) are dropped and made again, as they
+ * wouldn't fit it. The vulva on bare skin takes the ring of skin round it, so its masks follow the body's template too.
+ * A part drawn at more than one layer (a butt) draws its share only in the directions it shows over what it lies on
+ * (dirt_zone_layer()). The surface's masks take it in the rest.
  *
  * Arguments:
  * - organ_slot: The part's ORGAN_SLOT_* define.
@@ -931,7 +872,7 @@
 	RETURN_TYPE(/datum/dirt_masks)
 	var/mob/living/carbon/human/body = parent
 	var/list/splats = part_mess_splats[organ_slot]
-	if(!length(splats) || !source || !istype(body))
+	if(!length(splats) || !source)
 		return null
 	part_drawings ||= alist()
 	var/datum/dirt_drawing/drawing = (part_drawings[organ_slot] ||= new /datum/dirt_drawing)
@@ -968,15 +909,14 @@
 
 /**
  * Returns the masks of a taur suit's dirt on its wearer over the whole taur canvas, or null while there are none to
- * draw, asking for them as ready_skin_masks() does. Its back splats draw as pools along the back of the taur body it
- * hides, as that body would draw them (ready_taur_masks()). The general deposits that body would take
+ * draw. It asks for them as ready_skin_masks() does. Its back splats draw as pools along the back of the taur body it
+ * hides, as that body would draw them (ready_shape_masks()). The general deposits that body would take
  * (dirt_taur_takes()) draw as its hem band. Walking, crawling and dust draw as that body's contact coat
  * (dirt_taur_coat()). The others draw as that body takes them on cloth (dirt_shape_deposit()), on its wearer's dirtier
  * side. Its upper part alone draws the rest (ready_cloth_masks()). Masks made for another taur body, rider or side are
  * dropped and made again.
  *
  * Arguments:
- * - garment: The item.
  * - wearer: The taur wearing it.
  */
 /datum/component/dirtiness/proc/ready_taur_cloth_masks(obj/item/garment, mob/living/carbon/human/wearer)
@@ -1002,17 +942,6 @@
 	return taur_cloth.current(wearer, dirt_slot_redraw(wearer.get_slot_by_item(garment)))
 
 /**
- * Returns the masks of a person's taur body's dirt, drawn with its own images, or null while there are none to draw
- * (ready_shape_masks()).
- *
- * Arguments:
- * - source: The taur body as it draws now (/datum/bodypart_overlay/mutant/taur_body/proc/dirt_read_source()), or null.
- */
-/datum/component/dirtiness/proc/ready_taur_masks(datum/dirt_taur_source/source)
-	RETURN_TYPE(/datum/dirt_masks)
-	return ready_shape_masks(ORGAN_SLOT_EXTERNAL_TAUR, source)
-
-/**
  * Returns the masks of a person's drawn part's dirt, or null while there are none to draw, asking for them as
  * ready_skin_masks() does. The part is their taur body, another drawn part or their hair. The masks draw with the
  * part's own images, and the hair's over the hair. SSdirt draws the body again once they're made, and the hair with the
@@ -1020,10 +949,8 @@
  * deposits land by the part's own rules (dirt_shape_deposit()), the hair's as hair (dirt_hair_dirt()), on the person's
  * dirtier side. Masks made for another sprite (lying down, another kind, another hairstyle or hat) are dropped and made
  * again. On a taur body, so are masks made for another rider or height. A wag never has them made again, as a tail is
- * read still.
- * A steady draw compares a few vars. The source a request was made with stands for its key. The rider is read again
- * only once what a limb or the eyes are drawn from changes (rider_unchanged()). A taur body's mess and deposits are
- * joined into one list, oldest first, only as a request is made.
+ * read still. A steady draw compares a few vars, and the rider is read again only once a limb or the eyes change
+ * (rider_unchanged()).
  *
  * Arguments:
  * - organ_slot: The part's ORGAN_SLOT_* define, or DIRT_CARRIER_HAIR.
@@ -1034,7 +961,7 @@
 	var/mob/living/carbon/human/body = parent
 	var/list/mess = part_mess_splats[organ_slot]
 	var/list/deposits = part_splats?[organ_slot]
-	if((!length(mess) && !length(deposits)) || !source || !istype(body))
+	if((!length(mess) && !length(deposits)) || !source)
 		return null
 	part_drawings ||= alist()
 	var/datum/dirt_drawing/drawing = (part_drawings[organ_slot] ||= new /datum/dirt_drawing)
@@ -1060,7 +987,6 @@
  * The zone sources are read again only once any differs, and noted anew if they still match.
  *
  * Arguments:
- * - body: The person.
  * - request: The request of the taur body's masks.
  */
 /datum/component/dirtiness/proc/rider_unchanged(mob/living/carbon/human/body, datum/dirt_mask_request/request)
@@ -1073,11 +999,10 @@
 
 /**
  * Returns whether every limb and the eyes are drawn from what some notes hold (dirt_body_reads()). They're read as
- * dirt_zone_sources_match() reads them: the limb in each zone, or no limb then and now, and the eyes and the head
- * they're read through.
+ * dirt_zone_sources_match() reads them. That's the limb in each zone, or no limb then and now, and the eyes and the
+ * head they're read through.
  *
  * Arguments:
- * - body: The person.
  * - zone_sources: The sprites the notes were read against.
  * - reads: The notes: rider_reads or worn_reads.
  */
@@ -1093,10 +1018,6 @@
 /**
  * Notes in rider_reads what every zone's limb and the eyes are drawn from now, for the request of the taur body's
  * masks. The request's zone sources name what they draw.
- *
- * Arguments:
- * - body: The person.
- * - request: The request.
  */
 /datum/component/dirtiness/proc/note_rider_reads(mob/living/carbon/human/body, datum/dirt_mask_request/request)
 	rider_reads_for = request
@@ -1107,7 +1028,6 @@
  * /obj/item/bodypart/proc/dirt_sprite_reads(), or null with no limb, "eyes" = dirt_eye_reads()).
  *
  * Arguments:
- * - body: The person.
  * - zone_sources: The sprites they're read against, which name what they draw.
  */
 /proc/dirt_body_reads(mob/living/carbon/human/body, list/zone_sources)
@@ -1123,9 +1043,6 @@
  * Returns the zone sources a garment asks for its masks with on its wearer (dirt_zone_sources()). While every limb and
  * the eyes are drawn from what the wearer's carrier noted (worn_reads), each garment gets the same list. Its draws then
  * match by comparing a few vars (dirt_worn_sources_match()). A wearer without a carrier gets a new list each time.
- *
- * Arguments:
- * - wearer: Who wears it.
  */
 /proc/dirt_worn_sources(mob/living/carbon/human/wearer)
 	RETURN_TYPE(/list)
@@ -1144,7 +1061,6 @@
  * rider_unchanged() notes again. It keeps its notes if they're still true. Later draws then compare against them.
  *
  * Arguments:
- * - wearer: Who wears it.
  * - zone_sources: The masks' request's zone sources.
  */
 /proc/dirt_worn_sources_match(mob/living/carbon/human/wearer, list/zone_sources)
@@ -1172,7 +1088,7 @@
  * - organ_slot: The part's ORGAN_SLOT_* define.
  * - wag: The part read wagging (/datum/bodypart_overlay/mutant/proc/dirt_shape_source_of()), or null when it can't be.
  * - ask: Whether to ask for the masks, queueing them if they aren't made. A still tail doesn't ask, but it starts the
- *   request its next wag asks for, so the job of the request before goes if the new one is different.
+ *   request its next wag asks for. So the job of the request before goes if the new one is different.
  */
 /datum/component/dirtiness/proc/ready_wag_masks(organ_slot, datum/dirt_wag_source/wag, ask = TRUE)
 	RETURN_TYPE(/datum/dirt_masks)
@@ -1198,11 +1114,8 @@
 	return first.serial - second.serial
 
 /**
- * Returns the side a worn item's general deposits draw on: its wearer's dirtier side, or 1 for a wearer without a
- * carrier, as none is made mid-render. A carrier made later with another side has the item's masks made again.
- *
- * Arguments:
- * - wearer: Who wears it.
+ * Returns the side a worn item's general deposits draw on, its wearer's dirtier side. A wearer without a carrier gives
+ * 1, as none is made mid-render. A carrier made later with another side has the item's masks made again.
  */
 /proc/dirt_wearer_side(mob/living/carbon/human/wearer)
 	var/datum/component/dirtiness/wearer_carrier = wearer.GetComponent(/datum/component/dirtiness)
@@ -1216,9 +1129,6 @@
 /**
  * Returns whether a garment's blood stain draws over its dirt (/datum/component/dirtiness/proc/stain_over()). A
  * garment without a carrier holds no dirt, so its stain does.
- *
- * Arguments:
- * - garment: The garment.
  */
 /proc/dirt_stain_over(obj/item/garment)
 	var/datum/component/dirtiness/carrier = garment.GetComponent(/datum/component/dirtiness)
@@ -1226,25 +1136,20 @@
 
 /**
  * Draws an item's dirt over it while a person wears it: inset images in its worn wrapper, from the wearer's cloth
- * masks, moved back onto the body's tile by what build_worn_icon() moves the wrapper by (dirt_worn_shift()). Sweat in
- * those masks darkens the item's own pixels through its multiplier (current_wet()), made from the sprite being worn.
- * The accessories drawn over the item stay dry (dirt_accessory_sprites()). A taur suit is a sprite spanning the taur
- * canvas (dirt_taur_fitted()). On one, the suit's back splats also draw as pools along the taur body's back. The
- * general deposits that body would take draw as its hem band, on the canvas round that tile. Its walking, crawling and
- * dust there are that body's contact coat (dirt_taur_coat()). So its upper part draws none of their legs' share
- * (ready_cloth_masks()). While the suit holds general dirt, its upper part's image, mess and all, draws over the hem
- * band and the pools. A suit holding mess alone draws it under its pools. Off the body it draws none. The item's blood
- * stain, which tg adds after these images, draws over all of them while its newest blood landed after its newest dirt
- * (stain_over()). Otherwise, while the item holds blood that shows, dirt_order_worn() moves a stain it finds under all
- * of the dirt, the hem band's too. It moves the sweat to just under the stain. Sweat always draws under the stain.
- * An item that draws no stain keeps the order it has without blood, its sweat over its dirt. Blood can run down below
- * a taur's waist onto a taur-fitted garment's cloth (ready_taur_blood_cloth_masks()). That run draws over all of the
- * dirt while its blood landed after the cloth's own newest dirt (dirt_cloth_run_over()). Otherwise the run draws under
- * all of the dirt, with or without mess. The taur body's own share of that blood takes its side separately, against
- * the body's own dirt (waist_blood_over()). So at the hem the two can differ. Each image of the item's dirt, the hem
- * band's and the pools' too, draws its emissive blocker just after it (dirt_emissive_blocker()). The blocker is inset
- * and moved as its image is. So on the emissive plane it keeps that image's place against a glowing stain. The
- * multiplier and the run draw none.
+ * masks, moved back onto the body's tile (dirt_worn_shift()). Sweat in those masks darkens the item's own pixels
+ * through its multiplier (current_wet()), made from the sprite being worn. The accessories drawn over it stay dry
+ * (dirt_accessory_sprites()). On a taur suit (dirt_taur_fitted()), the back splats also draw as pools along the taur
+ * body's back. The general deposits that body would take draw as its hem band, on the taur canvas round the tile. While
+ * the suit holds general dirt, its upper part's image draws over the hem band and the pools. A suit holding mess alone
+ * draws it under its pools. Off the body it draws none.
+ *
+ * The item's blood stain, which tg adds after these images, draws over them while its newest blood landed after its
+ * newest dirt (stain_over()). Otherwise dirt_order_worn() moves it under all of the dirt, and the sweat to just under
+ * it. Blood run down below a taur's waist onto the cloth (ready_taur_blood_cloth_masks()) draws over all of the dirt or
+ * under it, as dirt_cloth_run_over() says. Each image of the dirt, the hem band's and the pools' too, draws its
+ * emissive blocker just after it (dirt_emissive_blocker()), but only while something under the dirt could glow
+ * (dirt_glow_under()). The blocker is inset and moved as its image is, so it keeps that image's place against a glowing
+ * stain. The multiplier and the run draw none.
  *
  * Arguments:
  * - source: The item.
@@ -1291,13 +1196,16 @@
 		if(factors)
 			wet = dirt_wet_image(factors, shift[1], shift[2])
 	var/stain_place = length(overlays) + 1
+	var/glow_under = dirt_glow_under(source, draw_target, overlays)
 	if(hem_under)
 		overlays += hem
-		overlays += dirt_emissive_blocker(pools.baked, source, hem)
+		if(glow_under)
+			overlays += dirt_emissive_blocker(pools.baked, source, hem)
 	if(masks?.baked)
 		var/mutable_appearance/cloth_dirt = dirt_mess_inset_image(masks.baked, shift[1], shift[2])
 		overlays += cloth_dirt
-		overlays += dirt_emissive_blocker(masks.baked, source, cloth_dirt)
+		if(glow_under)
+			overlays += dirt_emissive_blocker(masks.baked, source, cloth_dirt)
 	if(wet)
 		overlays += wet
 	// dirt landed after the newest blood that shows (get_blood_overlay()), so a stain goes under it with the sweat
@@ -1305,7 +1213,8 @@
 		source.dirt_stain_slot = list(stain_place, wet ? length(overlays) : 0)
 	if(hem && !hem_under)
 		overlays += hem
-		overlays += dirt_emissive_blocker(pools.baked, source, hem)
+		if(glow_under)
+			overlays += dirt_emissive_blocker(pools.baked, source, hem)
 	if(run_last)
 		overlays += blood_run
 
@@ -1314,8 +1223,6 @@
  * dirt, and a person's names the dirt on them and on what they wear. Mess adds none.
  *
  * Arguments:
- * - source: The carrier.
- * - user: Who examines it.
  * - examine_list: The examine's lines, added to.
  */
 /datum/component/dirtiness/proc/on_examine(atom/source, mob/user, list/examine_list)
@@ -1326,11 +1233,10 @@
 
 /**
  * Returns the line examining a person or an item shows for its general dirt, or null with none. It names the heaviest
- * material on the carriers, by the sum of its deposits' levels, worded by its thickest deposit's level
- * ("It is caked in mud."). Mess shows none.
+ * material on the carriers by the sum of its deposits' levels. Its thickest deposit's level picks the words ("It is
+ * caked in mud."). Mess shows none.
  *
  * Arguments:
- * - examined: The person or item.
  * - carriers: Its carriers, /datum/component/dirtiness.
  */
 /proc/dirt_examine_line(atom/examined, list/carriers)
@@ -1340,7 +1246,7 @@
 	var/alist/totals = alist()
 	var/alist/thickest = alist()
 	for(var/datum/component/dirtiness/carrier as anything in carriers)
-		for(var/list/splats as anything in carrier.splat_lists(drawn_parts = TRUE))
+		for(var/list/splats as anything in carrier.splat_lists())
 			for(var/datum/dirt_splat/splat as anything in splats)
 				if(splat.cause)
 					totals[splat.material] += splat.level
@@ -1356,23 +1262,21 @@
 	var/list/words = (material.flags & DIRT_MATERIAL_WET) ? wet_words : dry_words
 	return "[examined.p_They()] [examined.p_are()] [words[min(thickest[heaviest], length(words))]] [material.name]."
 
-/// Returns this carrier's lists of splats: its own, then each piece of underclothes', then, with `drawn_parts`, each
-/// drawn part's general deposits (part_splats).
-/datum/component/dirtiness/proc/splat_lists(drawn_parts)
+/// Returns this carrier's lists of splats: its own, then each part's mess (part_mess_splats) and each drawn part's
+/// general deposits (part_splats), then each piece of underclothes'.
+/datum/component/dirtiness/proc/splat_lists()
 	RETURN_TYPE(/list)
-	var/list/surfaces = list(mess_splats)
+	. = list(mess_splats)
+	for(var/alist/slots as anything in list(part_mess_splats, part_splats))
+		for(var/organ_slot, splats in slots)
+			. += list(splats)
 	for(var/key, splats in underclothes_splats)
-		surfaces += list(splats)
-	if(drawn_parts)
-		for(var/organ_slot, splats in part_splats)
-			surfaces += list(splats)
-	return surfaces
+		. += list(splats)
 
 /**
  * Clears this carrier's mess when it's washed as the floor's decals are.
  *
  * Arguments:
- * - source: The carrier.
  * - clean_types: CLEAN_TYPE_* flags.
  */
 /datum/component/dirtiness/proc/on_clean(datum/source, clean_types)
@@ -1385,7 +1289,7 @@
 
 /**
  * Notes visible blood landing on an item (blood_landed), so its stain draws over the dirt that landed before it
- * (stain_over()). It draws nothing. The merge that follows draws its slot, but not on an item's first blood, because
+ * (stain_over()). It draws nothing. The merge that follows draws its slot. It doesn't on an item's first blood, because
  * its forensics look for a stain before the item holds them. The slot's next draw shows that stain.
  *
  * Arguments:
@@ -1414,15 +1318,13 @@
 		wearer_carrier?.note_waist_blood(wearer)
 
 /**
- * Follows what a person wears: a change to the underclothes has their masks made again for what's drawn now, and a
- * change to any slot that covers skin has SSdirt check, once the slots settle, whether the skin's mess fades at other
- * edges now (check_cover()). A change to a taur's uniform or suit, its blood included, is checked the same way, for the
- * blood below its waist. Blood landing on either is noted as the slot draws (note_waist_blood()). The merge draws the
- * slot in the landing's own call, except on an item's first blood. The blood is noted again once it's merged
+ * Follows what a person wears. A change to the underclothes has their masks made again for what's drawn now. A change
+ * to any slot that covers skin has SSdirt check, once the slots settle, whether the skin's dirt fades at other edges
+ * now (check_cover()). A change to a taur's uniform or suit, its blood included, is checked the same way, for the blood
+ * below its waist. Blood landing on either is noted as the slot draws (note_waist_blood()), and again once it's merged
  * (/obj/item/add_blood_DNA()).
  *
  * Arguments:
- * - source: The person.
  * - cache_index: The overlays_standing slot applied or removed.
  */
 /datum/component/dirtiness/proc/on_overlay_changed(mob/living/carbon/human/source, cache_index)
@@ -1444,8 +1346,6 @@
  * again (skin_hidden()).
  *
  * Arguments:
- * - source: The person.
- * - organ: The organ gained.
  * - special: Whether it was put in without the usual effects.
  */
 /datum/component/dirtiness/proc/on_organ_gained(mob/living/carbon/human/source, obj/item/organ/organ, special)
@@ -1464,8 +1364,6 @@
  * any carrier left holding nothing (check_taur_blood()).
  *
  * Arguments:
- * - source: The person.
- * - organ: The organ lost.
  * - special: Whether it was taken out without the usual effects.
  */
 /datum/component/dirtiness/proc/on_organ_lost(mob/living/carbon/human/source, obj/item/organ/organ, special)
@@ -1486,12 +1384,8 @@
 		SSdirt.redraw_later(source, DIRT_REDRAW_PARTS)
 
 /**
- * Has SSdirt look, once the change settles, whether the parts the body draws changed with a genital's sprite (an
- * erection, a new size) and the masks they shape need making again (check_parts()).
- *
- * Arguments:
- * - source: The person.
- * - genital: The genital whose sprite changed.
+ * Has SSdirt look, once the change settles, whether a genital's new sprite (an erection, a new size) changed the parts
+ * the body draws. If it did, the masks they shape are made again (check_parts()).
  */
 /datum/component/dirtiness/proc/on_genital_updated(mob/living/carbon/human/source, obj/item/organ/genital/genital)
 	SIGNAL_HANDLER
@@ -1499,10 +1393,10 @@
 		SSdirt.redraw_later(source, DIRT_REDRAW_PARTS)
 
 /**
- * Has the masks the body's parts shape made again if what it draws of them changed since they were asked for (a genital
- * shown, hidden, layered otherwise, swapped or resized), and draws the body. The skin and each piece of underclothes
- * are judged by the parts their own masks were asked for with, so a piece made again meanwhile can't hide skin masks
- * made before; the garments by a change since this last looked.
+ * Has the masks the body's parts shape made again if what it draws of them changed since they were asked for, and draws
+ * the body. A genital shown, hidden, layered otherwise, swapped or resized changes them. The skin and each piece of
+ * underclothes are judged by the parts their own masks were asked for with. So a piece made again meanwhile can't hide
+ * skin masks made before. The garments are judged by a change since this last looked.
  */
 /datum/component/dirtiness/proc/check_parts()
 	var/mob/living/carbon/human/body = parent
@@ -1520,8 +1414,8 @@
 		parts_changed()
 
 /**
- * Has every mask a body's parts shape made again, the old ones drawn meanwhile: the skin's, the underclothes', and the
- * garments' it wears, which their own draws make again. Draws the body.
+ * Has every mask a body's parts shape made again, the old ones drawn meanwhile. That's the skin's, the underclothes'
+ * and the garments' it wears, which their own draws make again. It draws the body.
  */
 /datum/component/dirtiness/proc/parts_changed()
 	var/mob/living/carbon/human/body = parent
@@ -1534,7 +1428,7 @@
 	body.update_body_parts()
 
 /**
- * Has every piece of underclothes' masks made again for what's drawn now: its splats stay with it, worn or not.
+ * Has every piece of underclothes' masks made again for what's drawn now. Its splats stay with it, worn or not.
  * Nothing is drawn until the body's next update_body_parts().
  *
  * Arguments:
@@ -1551,7 +1445,7 @@
  * (dirt_bare_bodied()). The underwear's masks are made again if its general deposits are painted while the body isn't
  * bare, or unpainted while it is. So are the masks of a taur's blood below the waist, if what it's drawn from changed
  * (check_taur_blood()). That blood is also drawn again if the side of the dirt it lies on isn't the side it takes.
- * Draws the body if any changed.
+ * It draws the body if any changed.
  */
 /datum/component/dirtiness/proc/check_cover()
 	var/mob/living/carbon/human/body = parent
@@ -1579,13 +1473,11 @@
 		body.update_body_parts()
 
 /**
- * Has the masks made again for the body a limb attached to the person makes, every limb shaping the others'
- * silhouettes, and gives the limb a skin overlay if skin mess draws on it, and the chest the underclothes overlay. The
- * attach draws the body.
+ * Has the masks made again for the body a limb attached to the person makes, as every limb shapes the others'
+ * silhouettes. It gives the limb a skin overlay if the skin's dirt draws on it, and the chest the underclothes overlay.
+ * The attach draws the body.
  *
  * Arguments:
- * - source: The person.
- * - limb: The limb being attached.
  * - special: Whether it's swapped without the usual effects.
  * - lazy: Whether the person is still being made.
  */
@@ -1616,8 +1508,6 @@
  * the body.
  *
  * Arguments:
- * - source: The person.
- * - limb: The limb being removed.
  * - special: Whether it's swapped without the usual effects.
  * - dismembered: Whether it was cut off.
  */

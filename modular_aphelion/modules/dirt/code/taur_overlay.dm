@@ -1,5 +1,5 @@
 /datum/bodypart_overlay/mutant/taur_body
-	/// The taur body as mess reads it (dirt_read_source()), or null when it can't be.
+	/// The taur body as dirt reads it (dirt_read_source()), or null when it can't be.
 	var/datum/dirt_taur_source/dirt_source
 	/// What dirt_source was read for: list(the accessory, its base state (standing or lying), the limb's gender).
 	var/list/dirt_source_read
@@ -24,7 +24,7 @@
 	var/mob/living/carbon/human/owner = limb.owner
 	var/datum/component/dirtiness/own = istype(owner) ? owner.GetComponent(/datum/component/dirtiness) : null
 	var/datum/component/dirtiness/carrier = dirt_pools_carrier(limb, own)
-	// icon_render_key() asked for the masks before this draw, with the same checks: read what it found
+	// icon_render_key() asked for the masks before this draw, with the same checks, so read what it found
 	var/datum/dirt_drawing/drawing = carrier?.part_drawings?[ORGAN_SLOT_EXTERNAL_TAUR]
 	var/baked = drawing?.masks?.baked_by_layer[layer_index]
 	var/blood = own?.taur_blood?.masks?.baked_by_layer[layer_index]
@@ -42,13 +42,13 @@
 	. = ..()
 	var/mob/living/carbon/human/owner = limb?.owner
 	var/datum/component/dirtiness/own = istype(owner) ? owner.GetComponent(/datum/component/dirtiness) : null
+	if(!own)
+		return
 	var/datum/component/dirtiness/carrier = dirt_pools_carrier(limb, own)
 	if(carrier)
 		// dirt_pools_carrier() read the taur body just now
-		var/datum/dirt_masks/masks = carrier.ready_taur_masks(dirt_source)
+		var/datum/dirt_masks/masks = carrier.ready_shape_masks(ORGAN_SLOT_EXTERNAL_TAUR, dirt_source)
 		. += "[DIRT_PRIVATE_KEY]pools=[masks ? masks.key : "pending"]"
-	if(!own)
-		return
 	var/datum/dirt_masks/blood = own.ready_taur_blood_masks(src, limb)
 	if(!own.taur_blood)
 		return
@@ -72,8 +72,8 @@
 /**
  * Returns the taur body as dirt reads it: the images of each of its layers as get_images() draws them, with their
  * states taken together (dirt_read_images()). Returns null if they draw nothing on the 64x32 taur canvas, or if its
- * kind takes no dirt. Big Legs kinds take none: they're legs under the rider with no taur back. The body is read again
- * when the accessory, its base state or the limb's gender changes. The three are compared directly.
+ * kind takes no dirt. Big Legs kinds take none, because they're legs under the rider with no taur back. The body is
+ * read again when the accessory, its base state or the limb's gender changes.
  *
  * Arguments:
  * - limb: The chest it's drawn on.

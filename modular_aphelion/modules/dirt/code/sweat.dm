@@ -31,7 +31,6 @@
 /**
  * Arguments:
  * - source: The masks the garment draws, holding wet pixels.
- * - look: dirt_wet_look() of `garment`.
  * - garment: As dirt_wet_look() takes it.
  */
 /datum/dirt_mask_request/wet/New(datum/dirt_masks/source, look, list/garment)
@@ -39,23 +38,18 @@
 	wet = source.wet
 	masks_key = source.key
 	src.look = look
-	sheet = garment[1]
-	state = garment[2]
-	if(istext(garment[3]))
-		colour = garment[3]
-	shift_x = garment[5]
-	shift_y = garment[6]
-	if(length(garment) > 6)
-		kept_dry = garment[7]
+	sheet = garment[DIRT_WET_GARMENT_SHEET]
+	state = garment[DIRT_WET_GARMENT_STATE]
+	if(istext(garment[DIRT_WET_GARMENT_COLOUR]))
+		colour = garment[DIRT_WET_GARMENT_COLOUR]
+	shift_x = garment[DIRT_WET_GARMENT_SHIFT_X]
+	shift_y = garment[DIRT_WET_GARMENT_SHIFT_Y]
+	if(length(garment) >= DIRT_WET_GARMENT_KEPT_DRY)
+		kept_dry = garment[DIRT_WET_GARMENT_KEPT_DRY]
 
 /// Returns the multiplier's key: dirt_wet_key() of the garment's look and its masks' key.
 /datum/dirt_mask_request/wet/mask_key()
 	return dirt_wet_key(look, masks_key)
-
-/datum/dirt_drawing
-	/// The key of the multiplier last asked for and what it was worked out from (current_wet()): list(the key, the
-	/// masks' key, the garment as current_wet() took it, the garment's look), or null.
-	var/list/wet_read
 
 /datum/dirt_mask_job
 	/// For sweat's multiplier: the garment's sprite, then each sprite kept dry, as icon() makes them from the request.
@@ -72,8 +66,8 @@
  *   filter instead is left out.
  */
 /proc/dirt_wet_look(list/garment)
-	. = "[dirt_sprite_key(garment[1])]|[garment[2]]|[istext(garment[3]) ? garment[3] : ""]|[garment[4]]|[garment[5]],[garment[6]]"
-	for(var/list/sprite as anything in (length(garment) > 6 ? garment[7] : null))
+	. = "[dirt_sprite_key(garment[DIRT_WET_GARMENT_SHEET])]|[garment[DIRT_WET_GARMENT_STATE]]|[istext(garment[DIRT_WET_GARMENT_COLOUR]) ? garment[DIRT_WET_GARMENT_COLOUR] : ""]|[garment[DIRT_WET_GARMENT_GREYSCALE]]|[garment[DIRT_WET_GARMENT_SHIFT_X]],[garment[DIRT_WET_GARMENT_SHIFT_Y]]"
+	for(var/list/sprite as anything in (length(garment) >= DIRT_WET_GARMENT_KEPT_DRY ? garment[DIRT_WET_GARMENT_KEPT_DRY] : null))
 		. += "|[dirt_sprite_key(sprite[1])]:[sprite[2]]:[sprite[3]],[sprite[4]]"
 
 /**
@@ -100,18 +94,16 @@
  *
  * Arguments:
  * - look: dirt_wet_look() of the garment.
- * - masks_key: The masks' key.
  */
 /proc/dirt_wet_key(look, masks_key)
 	return md5("[DIRT_MASKS_WET]|[look]|[masks_key]")
 
 /**
  * Returns sweat's multiplier to draw with the masks drawn on a garment, or null for none. Once SSdirt has made the
- * multiplier for those masks and the garment's look, this drawing holds it (wet, wet_key). So it's drawn after
- * SSdirt.wet_icons drops it, and while a new one is made, as masks are (current()). One not made yet is asked for, and
- * `body` is drawn again once it's made. Masks without sweat drop it, and so does forget() with the masks. So a garment
- * washed or taken off while its multiplier is made draws none once it is. The key asked for is kept with the masks' key
- * and the garment it was worked out from (wet_read). So a draw that reads the same builds no text and no MD5.
+ * multiplier for those masks and the garment's look, this drawing holds it (wet, wet_key). One not made yet is asked
+ * for, and `body` is drawn again once it's made. Masks without sweat drop it, and so does forget() with the masks. So a
+ * garment washed or taken off while its multiplier is made draws none once it is. The key is worked out again only when
+ * the masks' key or the garment changes (wet_read).
  *
  * Arguments:
  * - body: The body it's drawn on.
@@ -161,7 +153,7 @@
  * Returns the wet pixels of a cloth surface's merged masks, for sweat's multiplier, or null when none is wet. The
  * result is alist(material key = a list of one text for each direction, in dirt_mask_directions() order). Each text is
  * /datum/dirt_pixels/proc/drawn() of that direction's wet pixels. A wet material's pixels take no colour in the bake
- * (dirt_baked_icon()). Each material is asked once whether it's wet.
+ * (dirt_baked_icon()).
  *
  * Arguments:
  * - merged: alist(direction = /datum/dirt_pixels), the surface's merged masks.
@@ -181,7 +173,7 @@
 		if(!pixel_materials)
 			continue
 		// the order doesn't matter, as each pixel is written on its own
-		for(var/index in shown ? shown[direction] : (pixel_map.drawn_indexes || dirt_index_range(length(roles))))
+		for(var/index in shown ? shown[direction] : pixel_map.walk_indexes())
 			var/role = roles[index]
 			if(!role)
 				continue
@@ -259,8 +251,8 @@
 	var/first_wet_row = ICON_SIZE_Y
 	var/last_wet_row = -1
 	for(var/index in wet)
-		var/row = floor((index - 1) / ICON_SIZE_X)
-		var/column = index - 1 - row * ICON_SIZE_X
+		var/row = DIRT_INDEX_ROW(index, ICON_SIZE_X)
+		var/column = DIRT_INDEX_COLUMN(index, row, ICON_SIZE_X)
 		first_wet_row = min(first_wet_row, row)
 		last_wet_row = max(last_wet_row, row)
 		for(var/near_column in max(column - 2, 0) to min(column + 2, ICON_SIZE_X - 1))
@@ -271,7 +263,7 @@
 	for(var/index in first_wet_row * ICON_SIZE_X + 1 to (last_wet_row + 1) * ICON_SIZE_X)
 		if(!across[index])
 			continue
-		var/row = floor((index - 1) / ICON_SIZE_X)
+		var/row = DIRT_INDEX_ROW(index, ICON_SIZE_X)
 		for(var/near_row in max(row - 2, 0) to min(row + 2, ICON_SIZE_Y - 1))
 			wanted[index + (near_row - row) * ICON_SIZE_X] = TRUE
 	// the rows the wanted pixels lie in, the only ones looked through
@@ -285,7 +277,7 @@
 	for(var/index in first_row * ICON_SIZE_X + 1 to (last_row + 1) * ICON_SIZE_X)
 		if(!wanted[index])
 			continue
-		var/row = floor((index - 1) / ICON_SIZE_X)
+		var/row = DIRT_INDEX_ROW(index, ICON_SIZE_X)
 		var/sprite_x = index - row * ICON_SIZE_X + shift_x
 		var/sprite_y = ICON_SIZE_Y - row + shift_y
 		if(sprite_x < 1 || sprite_y < 1 || sprite_x > width || sprite_y > height)
@@ -308,7 +300,6 @@
  * 1 - a + a * m, where `a` is how wet the pixel is and `m` is the cloth's local colour. That colour is a 5x5 mean over
  * the garment's pixels, at most DIRT_WET_CAP. The factor is then pulled toward the darkened mean by DIRT_WET_FLATTEN at
  * full wet, so the cloth's own shading flattens rather than deepens. It's never over 1, as a multiply can't lighten.
- * The 5x5 sums are read from summed areas over the rows and columns they reach.
  *
  * Arguments:
  * - garment_pixels: alist(index = list(red, green, blue)) of the garment's pixels near the wet ones, from
@@ -329,8 +320,8 @@
 	for(var/index, alpha in wet)
 		if(garment_pixels[index])
 			on_garment[index] = alpha
-			var/row = floor((index - 1) / width)
-			var/column = index - 1 - row * width
+			var/row = DIRT_INDEX_ROW(index, width)
+			var/column = DIRT_INDEX_COLUMN(index, row, width)
 			top_row = min(top_row, row)
 			bottom_row = max(bottom_row, row)
 			left_column = min(left_column, column)
@@ -369,8 +360,8 @@
 			count_area[cell] = count_area[cell - stride] + count_run
 	var/list/channel_areas = list(red_area, green_area, blue_area)
 	for(var/index, alpha in on_garment)
-		var/row = floor((index - 1) / width)
-		var/column = index - 1 - row * width
+		var/row = DIRT_INDEX_ROW(index, width)
+		var/column = DIRT_INDEX_COLUMN(index, row, width)
 		if(!((column < width - 1 && on_garment[index + 1]) || (column > 0 && on_garment[index - 1]) || (row < height - 1 && on_garment[index + width]) || (row > 0 && on_garment[index - width])))
 			continue
 		// the box's corners in the summed areas
@@ -411,7 +402,7 @@
 		var/icon/frame = icon(blank)
 		for(var/index, factors in factors_by_direction[direction])
 			var/list/bytes = factors
-			var/row = floor((index - 1) / ICON_SIZE_X)
+			var/row = DIRT_INDEX_ROW(index, ICON_SIZE_X)
 			frame.DrawBox(rgb(bytes[1], bytes[2], bytes[3]), index - row * ICON_SIZE_X, ICON_SIZE_Y - row)
 			drew = TRUE
 		baked.Insert(frame, "", direction)

@@ -39,8 +39,7 @@
 
 /// Where the first image drawn from an icon file on a body's layer lands, as list(x, y): its offsets summed with its parents'
 /datum/unit_test/worn_stain_fit/proc/find_drawn(mob/living/carbon/human/body, layer, icon_file)
-	var/standing = body.overlays_standing[layer]
-	return find_in(islist(standing) ? standing : list(standing), icon_file, 0, 0)
+	return find_in(standing_images(body.overlays_standing[layer]), icon_file, 0, 0)
 
 /// find_drawn's depth-first search, carrying the offset of the images above
 /datum/unit_test/worn_stain_fit/proc/find_in(list/images, icon_file, x, y)

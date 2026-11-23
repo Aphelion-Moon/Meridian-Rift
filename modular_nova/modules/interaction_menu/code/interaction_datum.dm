@@ -425,14 +425,14 @@ GLOBAL_LIST_INIT(interaction_pec_words, list(
 	return (ORGAN_SLOT_BREASTS in user_required_parts) ? user : target
 
 /**
- * The one organ slot this interaction needs of a participant, or null when it needs none or several.
+ * Returns the one organ slot this interaction needs of a participant, or null when it needs none or several.
  *
  * Someone acting on themselves gets both sides' parts, since self interactions list theirs as the target's.
  *
  * Arguments:
- * * user - who performs it
- * * target - who receives it
- * * as_user - TRUE for the user's part, FALSE for the target's
+ * - user: Who performs it.
+ * - target: Who receives it.
+ * - as_user: TRUE for the user's part, FALSE for the target's.
  */
 /datum/interaction/proc/stimulated_slot_for(mob/living/carbon/human/user, mob/living/carbon/human/target, as_user)
 	var/list/parts = as_user ? user_required_parts : target_required_parts

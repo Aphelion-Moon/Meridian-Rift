@@ -21,13 +21,7 @@
 	/// path through the body reaches the floor. Steps across and down count 1, diagonals 1.414.
 	var/list/distances
 
-/**
- * Reads a taur body's silhouette in one direction and measures it.
- *
- * Arguments:
- * - source: The taur body.
- * - direction: The direction.
- */
+/// Reads a taur body's silhouette in one direction and measures it.
 /datum/dirt_canvas_view/taur/New(datum/dirt_taur_source/source, direction)
 	..(DIRT_CANVAS_TAUR, direction)
 	mask = alist()
@@ -50,7 +44,7 @@
 					flags |= DIRT_PIXEL_RIM
 					break
 		flags_of[index] = flags
-		var/row = floor((index - 1) / width)
+		var/row = DIRT_INDEX_ROW(index, width)
 		if(row == height - 1 || !mask[index + width])
 			underside[index] = TRUE
 		lowest = isnull(lowest) ? row : max(lowest, row)
@@ -58,7 +52,7 @@
 	var/list/contact = list()
 	var/list/contact_columns = new /list(width)
 	for(var/index in underside)
-		if(floor((index - 1) / width) >= lowest - 1)
+		if(DIRT_INDEX_ROW(index, width) >= lowest - 1)
 			contact += index
 			contact_columns[(index - 1) % width + 1] = TRUE
 	// runs of touching columns 6 or fewer wide are feet
@@ -104,8 +98,8 @@
 		var/index = dirt_heap_pop(heap_distances, heap_indexes)
 		if(distance > distances[index])
 			continue
-		var/row = floor((index - 1) / width)
-		var/column = index - 1 - row * width
+		var/row = DIRT_INDEX_ROW(index, width)
+		var/column = DIRT_INDEX_COLUMN(index, row, width)
 		for(var/list/step_by as anything in steps)
 			var/near_column = column + step_by[1]
 			var/near_row = row + step_by[2]
@@ -120,13 +114,12 @@
 				dirt_heap_push(heap_distances, heap_indexes, through, near)
 
 /**
- * Adds an entry to a binary heap kept least first: by key, then by value.
+ * Adds an entry to a binary heap kept least first: by key, then by value. It's hand-rolled for speed, as tg's
+ * /datum/heap calls a compare proc for each comparison and would need a list for each entry.
  *
  * Arguments:
  * - keys: The heap's keys, changed.
  * - values: Its values, changed alongside.
- * - key: The entry's key.
- * - value: Its value.
  */
 /proc/dirt_heap_push(list/keys, list/values, key, value)
 	keys += key
@@ -175,7 +168,7 @@
 
 /**
  * Every random draw a taur coat makes. They don't depend on its level, so its levels nest. A speck's or a tongue's pick
- * is kept as the whole random draw, and turned into a place once the list it picks from is known (dirt_taur_picked()).
+ * is kept as its random(), and turned into a place once the list it picks from is known (dirt_taur_picked()).
  */
 /datum/dirt_taur_draws
 	/// How far through the body the coat's line reaches at each level.
@@ -202,7 +195,7 @@
 	draws.seed = rng.randrange(65536)
 	draws.specks = list()
 	for(var/speck_number in 1 to 16)
-		var/pick = SSdirt.drafting ? rng.random() : rng.draw()
+		var/pick = rng.random()
 		var/extra = rng.uniform(1.5, 4.5)
 		draws.specks += list(list(pick, extra, rng.random() < 0.35))
 	for(var/fleck_number in 1 to 24)
@@ -211,22 +204,19 @@
 		rng.randrange(3)
 	draws.tongues = list()
 	for(var/tongue_number in 1 to 3)
-		var/pick = SSdirt.drafting ? rng.random() : rng.draw()
+		var/pick = rng.random()
 		draws.tongues += list(list(pick, rng.uniform(1.5, 2.5)))
 	return draws
 
 /**
- * Returns the item a taur coat's pick lands on: the whole random draw modulo the count, or, while drafting,
- * the draft's int(random() * (count - 1)).
+ * Returns the item a taur coat's pick lands on: the draft's int(random() * (count - 1)).
  *
  * Arguments:
  * - items: The list picked from, not empty.
  * - pick: The pick, from dirt_taur_draws().
  */
 /proc/dirt_taur_picked(list/items, pick)
-	if(SSdirt.drafting)
-		return items[dirt_fraction_index(pick, length(items) - 1) + 1]
-	return items[pick % length(items) + 1]
+	return items[dirt_fraction_index(pick, length(items) - 1) + 1]
 
 /**
  * Returns how much higher a coat's line climbs at each column, indexed by column + 1, or null where it doesn't climb.
@@ -234,8 +224,6 @@
  * seam. Level 2 has one, and each level after it one more. The first tongue on a column holds it.
  *
  * Arguments:
- * - view: The taur body.
- * - draws: The coat's random draws.
  * - level: 1 to 3.
  */
 /proc/dirt_taur_tongues(datum/dirt_canvas_view/taur/view, datum/dirt_taur_draws/draws, level)
@@ -259,17 +247,13 @@
 
 /**
  * Returns a coat's thickness on some of a taur body's pixels at one level, alist(index = thickness). The coat is solid
- * under the feet. Up to a noise-roughened line, in distance through the body, it goes from the body role near the
- * ground through a wide film band to haze. The line's noise is stretched along it, because round noise reads as camo.
- * Extra kick-up film lies along the belly. One spray field breaks the coat up: film blots in the haze, and mud thrown
- * up past the line in soft blots that thin out. A light material reaches less, keeps the body role only in clumps by
- * the contact, and breaks its film up. Each pixel's thickness is worked out from that pixel alone. Its noise doesn't
- * depend on the level: the line's roughening, the spray, the belly's kick-up and a light material's breaks are the
- * same at every level of a coat. So its field samples them once a pixel, and the spray only where it's read.
+ * under the feet. Up to a noise-roughened line, measured through the body, it goes from the body tone near the ground
+ * through a wide film band to haze. The line's noise is stretched along it, because round noise reads as camo. Extra
+ * kick-up film lies along the belly. One spray field breaks the coat up: film blots in the haze, and mud thrown up past
+ * the line in soft blots that thin out. A light material reaches less, keeps the body tone only in clumps by the
+ * contact, and breaks its film up.
  *
  * Arguments:
- * - view: The taur body.
- * - draws: The coat's random draws.
  * - level: 1 to 3.
  * - light: Whether its material is light.
  * - tongues: The level's tongues (dirt_taur_tongues()).
@@ -291,8 +275,8 @@
 		var/distance = view.distances[index]
 		if(isnull(distance))
 			continue
-		var/row = floor((index - 1) / width)
-		var/column = index - 1 - row * width
+		var/row = DIRT_INDEX_ROW(index, width)
+		var/column = DIRT_INDEX_COLUMN(index, row, width)
 		var/line = reach + (dirt_field_spread_noise(samples, "taur line", index, column * 0.45, row, seed, 3.4) - 0.5) * 2.6
 		if(tongues[column + 1])
 			line += tongues[column + 1]
@@ -326,14 +310,11 @@
 	return coat
 
 /**
- * Puts soft specks beyond a taur coat's line, changing the mask: four at level 2 and eight at 3. Each goes on the pixel
- * its pick lands on, among those within 0.8 px either side of its distance past the line. It's kept clear of the coat
- * and of every speck's rows and columns (dirt_place_speck()). The pixels are picked from in row-major order, or, while
- * drafting, column by column, as the draft picked them.
+ * Puts soft specks beyond a taur coat's line. Each goes on the pixel its pick lands on, among those within 0.8 px
+ * either side of its distance past the line. It's kept clear of the coat and of every speck's rows and columns
+ * (dirt_place_speck()). The pixels are picked from column by column, as the draft picks them.
  *
  * Arguments:
- * - view: The taur body.
- * - draws: The coat's random draws.
  * - level: 1 to 3.
  * - drawn: The coat, changed.
  */
@@ -345,14 +326,10 @@
 	var/width = view.width
 	var/height = view.height
 	var/list/points = list()
-	if(SSdirt.drafting)
-		for(var/column in 0 to width - 1)
-			for(var/row in 0 to height - 1)
-				if(view.mask[row * width + column + 1])
-					points += row * width + column + 1
-	else
-		for(var/index in view.mask)
-			points += index
+	for(var/column in 0 to width - 1)
+		for(var/row in 0 to height - 1)
+			if(view.mask[row * width + column + 1])
+				points += row * width + column + 1
 	var/reach = draws.reach[level]
 	var/list/used_rows = new /list(height)
 	var/list/used_columns = new /list(width)
@@ -370,33 +347,27 @@
 		if(!length(band))
 			continue
 		var/index = dirt_taur_picked(band, speck[1])
-		var/row = floor((index - 1) / width)
-		if(dirt_place_speck(drawn, dirt_soft_speck(index - 1 - row * width, row, speck[3], width, height, view.mask), used_rows, used_columns))
+		var/row = DIRT_INDEX_ROW(index, width)
+		if(dirt_place_speck(drawn, dirt_soft_speck(DIRT_INDEX_COLUMN(index, row, width), row, speck[3], width, height, view.mask), used_rows, used_columns))
 			placed++
 
 /**
- * Returns a contact coat on a taur body in one direction, on the 64x32 taur canvas. It holds levels 1 to `level`,
- * each from the same random draws of the "taur:<cause>:<variant>" stream (dirt_taur_draws()). They're merged by role
- * rank, and the later level wins a tie. Each level's coat (dirt_taur_coat_thickness()) is cleaned up (dirt_cleanup())
- * and takes its material's edge, halo or tide. For walking (not dust) it takes its specks too (dirt_taur_specks()).
- * A light material draws film at the contact, because core there would paint a light outline. A material's sheen
- * draws nothing here, because it looks for a leg. The coat is drawn while drafting, by its field
- * (/datum/dirt_canvas_field/taur_coat), its bands back to back, as a mask job draws them a piece each.
+ * Returns a contact coat on a taur body in one direction, on the 64x32 taur canvas. It holds levels 1 to `level`, each
+ * from the same random draws of the "taur:<cause>:<variant>" stream (dirt_taur_draws()). They're merged by role rank,
+ * and the later level wins a tie. Each level's coat (dirt_taur_coat_thickness()) is cleaned up (dirt_cleanup()) and
+ * takes its material's edge, halo or tide. For walking (not dust) it takes its specks too (dirt_taur_specks()). A light
+ * material draws film at the contact, because core there would paint a light outline. A material's sheen draws nothing
+ * here, because it looks for a leg. It's drawn while drafting, by its field (/datum/dirt_canvas_field/taur_coat).
  *
  * Arguments:
- * - source: The taur body.
  * - cause: DIRT_CAUSE_WALK or DIRT_CAUSE_DUST.
- * - material: The /datum/dirt_material it's made of.
  * - level: 1 to 3.
  * - variant: 0 to DIRT_VARIANTS - 1.
- * - direction: The direction.
  */
 /proc/dirt_taur_coat(datum/dirt_taur_source/source, cause, datum/dirt_material/material, level, variant, direction)
 	RETURN_TYPE(/datum/dirt_pixels)
-#ifdef DIRT_DRAFT_EXACT
 	if(!SSdirt.drafting)
 		return dirt_drafted(GLOBAL_PROC_REF(dirt_taur_coat), args.Copy())
-#endif
 	var/datum/dirt_canvas_field/taur_coat/field = new(source, cause, material, level, variant, direction)
 	// a turn for its view, then each level's bands, which cover the canvas's pixels at most, and its finish
 	for(var/turn in 1 to 1 + field.level * (ceil(ICON_SIZE_Y / field.band_rows) + 1))
@@ -423,16 +394,11 @@
 /**
  * A taur body's contact coat in one direction, as dirt_taur_coat() draws it. It's drawn some of its body's pixels at a
  * time (draw_rows()). A mask job draws it a band a piece (dirt_canvas_field_band()) and keeps it among its fields
- * (/datum/dirt_mask_job/proc/field_for()). Its first band reads the body (/datum/dirt_canvas_view/taur) and makes the
- * coat's random draws (dirt_taur_draws()), as a piece of its own. Then each level's coat (dirt_taur_coat_thickness())
- * is drawn over the body's pixels a band of them at a time, in the mask's order, as many as a field's band draws of the
- * canvas. Once the level's last pixel is drawn, its finish (cleanup, edge, specks) is a band of its own, stacked on the
- * levels before.
+ * (/datum/dirt_mask_job/proc/field_for()).
  *
  * It draws the same pixels however it's banded. dirt_taur_coat() draws a whole coat through it too, its bands back to
  * back, so the job's draw and the whole one are one code path. Each coat pixel is worked out from that pixel alone, and
- * each level picks its tongues as its first band begins. Every level takes the one set of random draws (the stream's
- * first, the same for each), and each finish runs once, on the whole level.
+ * each level picks its tongues as its first band begins. Each finish runs once, on the whole level.
  */
 /datum/dirt_canvas_field/taur_coat
 	/// The taur body, until it's read.
@@ -471,9 +437,9 @@
 
 /**
  * Draws the coat's next piece. The first piece makes its view and random draws. Each piece after that draws a level's
- * coat on as many of the body's next pixels as `rows` of the canvas hold, and the level's first piece picks its
- * tongues. Once the level's last pixel is drawn, the next piece is its finish, stacked on the levels before. Once the
- * last level's finish is drawn, the view, random draws and samples go. Call it while drafting.
+ * coat on as many of the body's next pixels as `rows` of the canvas hold. The level's first piece picks its tongues.
+ * Once the level's last pixel is drawn, the next piece is its finish, stacked on the levels before. Once the last
+ * level's finish is drawn, the view, random draws and samples go. Call it while drafting.
  *
  * Arguments:
  * - rows: How many pixels to draw, counted in rows of the canvas, at least one.
@@ -501,7 +467,7 @@
 	if(next_pixel <= length(pixels))
 		var/last_pixel = min(next_pixel + rows * taur_view.width, length(pixels) + 1) - 1
 		for(var/index, thickness in dirt_taur_coat_thickness(taur_view, draws, drawing_level, light, tongues, pixels, next_pixel, last_pixel, samples))
-			var/role = dirt_thickness_role(thickness)
+			var/role = DIRT_THICKNESS_ROLE(thickness)
 			drawn.put_index(index, (light && role == DIRT_ROLE_CORE) ? DIRT_ROLE_FILM : role, thickness)
 		next_pixel = last_pixel + 1
 		return FALSE

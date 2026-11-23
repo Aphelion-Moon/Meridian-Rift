@@ -26,12 +26,7 @@
 	/// Where a wet coat catches the light, each list(pixels across, pixels up).
 	var/list/shine
 
-/**
- * Returns a plunge's or a blast's draws, from its random stream.
- *
- * Arguments:
- * - rng: The deposit's random stream.
- */
+/// Returns a plunge's or a blast's draws, from its random stream.
 /proc/dirt_cover_draws(datum/dirt_random/rng)
 	RETURN_TYPE(/datum/dirt_cover_draws)
 	var/static/list/base_lines = list(9, 18, 40)
@@ -55,10 +50,7 @@
 				break
 		if(apart)
 			draws.kept_runs += list(coat_run)
-	draws.shine = list()
-	for(var/shine_number in 1 to 5)
-		var/across = rng.uniform(-8, 8)
-		draws.shine += list(list(across, rng.uniform(5, 24)))
+	draws.shine = dirt_shine_draws(rng)
 	return draws
 
 /**
@@ -78,9 +70,6 @@
 /**
  * Returns a douse's draws, from its random stream. It draws twelve candidate streams with uneven widths and lengths.
  * It keeps each one that lies 3 px or more across from every stream kept before it.
- *
- * Arguments:
- * - rng: The deposit's random stream.
  */
 /proc/dirt_douse_draws(datum/dirt_random/rng)
 	RETURN_TYPE(/datum/dirt_douse_draws)
@@ -99,19 +88,26 @@
 		if(apart)
 			draws.streams += list(stream)
 	draws.seed = rng.randrange(65536)
-	draws.shine = list()
+	draws.shine = dirt_shine_draws(rng)
+	return draws
+
+/**
+ * Returns where a wet coat catches the light: five points, each list(pixels across, pixels up), drawn from a deposit's
+ * random stream after its other draws.
+ */
+/proc/dirt_shine_draws(datum/dirt_random/rng)
+	RETURN_TYPE(/list)
+	. = list()
 	for(var/shine_number in 1 to 5)
 		var/across = rng.uniform(-8, 8)
-		draws.shine += list(list(across, rng.uniform(5, 24)))
-	return draws
+		. += list(list(across, rng.uniform(5, 24)))
 
 /**
  * Returns how thick a plunge's coat lies at a point: haze over a jagged line, and film along it. Under the line it's
  * the body tone, with film windows stretched into vertical runs that open up with height, so the garment's shading
  * shows. Short runs of thicker material lie apart, and the floor's row is solid. A glossy material keeps almost no
  * windows under level 2's line. Bare skin thins with height much faster, in uneven blotches mixed with drip streaks,
- * because even weight reads as camo. A light material thins out more. The noise doesn't depend on the level, so its
- * field samples it once. It samples the line's jag once a cell across, and the body noise once a pixel.
+ * because even weight reads as camo. A light material thins out more.
  *
  * Arguments:
  * - mob_x: Pixels across from the tile's middle.
@@ -168,7 +164,7 @@
  * Returns how thick a blast's coat lies at a point: large soft round patches, because a stretched field draws tiger
  * stripes. They cover more with the level, and the more squarely the point faces the blast. From level 2 some lie on
  * the lee side, as clouds wrap round. The head's and the shoulders' tops ramp up smoothly, because a step draws a
- * headband. A light material covers less. The noise doesn't depend on the level, so its field samples it once a pixel.
+ * headband. A light material covers less.
  *
  * Arguments:
  * - mob_x: Pixels across from the tile's middle.
@@ -193,25 +189,18 @@
 		return DIRT_HAZE_T
 	return 0
 
-/**
- * Returns how squarely a point faces a theta, from 0 (away) to 1 (straight at it).
- *
- * Arguments:
- * - theta: The point's theta.
- * - facing: The theta it's faced with.
- */
+/// Returns how squarely a point at `theta` faces the theta `facing`, from 0 (away) to 1 (straight at it).
 /proc/dirt_facing_amount(theta, facing)
 	return (1 + cos(theta - facing)) / 2
 
 /**
  * Returns a light material's coat at a point. Pale dirt never coats, because a coat reads as a pastel recolour or white
  * hair. So its film stays where 2-3 px noise allows, about 55% of it, and the body tone only as clumps on spots that
- * face up. The noise doesn't depend on the level, so its field samples it once a pixel.
+ * face up.
  *
  * Arguments:
  * - thickness: How thick the coat lies there.
  * - sample_x, sample_y: Where its noise is sampled.
- * - seed: The coat's seed.
  * - top: Whether the point faces up.
  * - samples: Its field's samples (/datum/dirt_canvas_field/var/samples).
  * - index: The pixel's index, which the samples are kept under.
@@ -225,20 +214,16 @@
 
 /**
  * Returns the height along the torso (h) over which a whole-body coat lies as film at most. It wanders by column,
- * because a dark band under the chin reads as a beard, and a level one as a neckline. It depends only on the column,
- * so its field samples it once a column.
+ * because a dark band under the chin reads as a beard, and a level one as a neckline.
  *
  * Arguments:
- * - column: The pixel's column.
- * - seed: The coat's seed.
  * - samples: Its field's samples (/datum/dirt_canvas_field/var/samples).
  */
 /proc/dirt_cover_collar(column, seed, alist/samples)
 	return 0.9 + (dirt_field_spread_noise(samples, "collar", column, column, 0, seed + 31, 2.5) - 0.5) * 0.16
 
 /**
- * Returns how many pixels under a column's top edge a douse's cap reaches, by level, with a jagged lower edge. The jag
- * depends only on the column, so its field samples it once a column.
+ * Returns how many pixels under a column's top edge a douse's cap reaches, by level, with a jagged lower edge.
  *
  * Arguments:
  * - mob_x: Pixels across from the tile's middle.
@@ -252,13 +237,10 @@
 
 /**
  * Returns how thick a douse lies at a point, `depth` pixels under its column's top edge. A cap follows that edge,
- * mostly the body tone, then streams run below it, and from level 2 the run-off lies round the feet. The noise doesn't
- * depend on the level, so its field samples it once. It samples the cap's body noise once a pixel, its jag once a
- * column, and the streams' centres once a row.
+ * mostly the body tone, then streams run below it, and from level 2 the run-off lies round the feet.
  *
  * Arguments:
  * - mob_x: Pixels across from the tile's middle.
- * - depth: Pixels under the column's top edge.
  * - up: Pixels up from the floor.
  * - level: 1 to 3.
  * - draws: The deposit's draws, from dirt_douse_draws().
@@ -282,8 +264,7 @@
 /**
  * Returns how thick a douse's streams lie under its cap. Each wanders as it runs, thins, and ends in a soft drip a
  * little wider than it. Its length is its share of the level's reach, and level 2 stops above the knees. Two run at
- * level 1, four at 2 and five at 3. Where each wanders depends only on the row, so its field samples it once a row,
- * keeping each row's centres by stream.
+ * level 1, four at 2 and five at 3.
  *
  * Arguments:
  * - mob_x: Pixels across from the tile's middle.
@@ -297,14 +278,8 @@
 	var/static/list/reaches = list(5, 12, 30)
 	var/static/list/counts = list(2, 4, 5)
 	var/list/streams = draws.streams
-	var/alist/centres_by_up = samples["streams"]
-	if(!centres_by_up)
-		centres_by_up = alist()
-		samples["streams"] = centres_by_up
-	var/list/centres = centres_by_up[up]
-	if(!centres)
-		centres = new /list(length(streams))
-		centres_by_up[up] = centres
+	var/alist/centres_by_up = (samples["streams"] ||= alist())
+	var/list/centres = (centres_by_up[up] ||= new /list(length(streams)))
 	var/best = 0
 	for(var/position in 1 to min(counts[level], length(streams)))
 		var/list/stream = streams[position]
@@ -332,11 +307,10 @@
 /**
  * Returns how thick what runs off the head lies on the torso. It flows down the front and back centre lines, heavy near
  * the top, then thins to a jagged end. A light centre with heavy sides reads as an open coat. It's nothing on another
- * limb. Its width and its end's jag depend only on the column, so its field samples them once a column.
+ * limb.
  *
  * Arguments:
  * - limb: The point's DIRT_LIMB_* define.
- * - theta: Its theta.
  * - along: Its h, its height along the limb.
  * - mob_x: Pixels across from the tile's middle.
  * - level: 1 to 3.
@@ -373,14 +347,9 @@
 	var/glossy = FALSE
 	/// Whether it's drawn on bare skin.
 	var/on_skin = FALSE
+	/// Where its wet coat catches the light, each list(pixels across, pixels up), from its draws, or null.
+	var/list/shine
 
-/**
- * Starts a whole-body coat.
- *
- * Arguments:
- * - cause: The DIRT_CAUSE_* define it's drawn by.
- * - level: Its level, 1 to 3.
- */
 /datum/dirt_feature/coverage/New(cause, level)
 	. = ..(null)
 	src.cause = cause
@@ -402,7 +371,6 @@
  *
  * Arguments:
  * - material: The /datum/dirt_material it's made of, or null.
- * - on_skin: Whether it's drawn on bare skin.
  */
 /datum/dirt_feature/coverage/proc/set_material(datum/dirt_material/material, on_skin)
 	var/material_flags = material?.flags
@@ -416,9 +384,7 @@
  * every row at once gives, in the same order. A body field binds them that way (/datum/dirt_canvas_field/body).
  *
  * Arguments:
- * - surface: The view's surface.
  * - first_row: The first row, from 0.
- * - last_row: The last row.
  * - samples: The field's samples (/datum/dirt_canvas_field/var/samples), the noise its levels share.
  */
 /datum/dirt_feature/coverage/proc/bind_rows(datum/dirt_surface/surface, first_row, last_row, alist/samples)
@@ -431,8 +397,8 @@
 		var/limb = DIRT_PIXEL_LIMB(flags_of[index])
 		if(!limb)
 			continue
-		var/row = floor((index - 1) / width)
-		var/thickness = at(index - 1 - row * width, row, limb, theta_of[index], height_of[index], index, samples)
+		var/row = DIRT_INDEX_ROW(index, width)
+		var/thickness = at(DIRT_INDEX_COLUMN(index, row, width), row, limb, theta_of[index], height_of[index], index, samples)
 		if(thickness)
 			drawn_pixels[index] = thickness
 
@@ -442,24 +408,13 @@
  * Arguments:
  * - column, row: The pixel, from the left and from the top, from 0.
  * - limb: Its DIRT_LIMB_* define.
- * - theta: Its theta.
  * - along: Its h, its height along the limb.
- * - index: Its index.
  * - samples: The field's samples (/datum/dirt_canvas_field/var/samples).
  */
 /datum/dirt_feature/coverage/proc/at(column, row, limb, theta, along, index, alist/samples)
 	return 0
 
-/**
- * Returns where the wet coat catches the light: its draws' shine points, each list(pixels across, pixels up).
- */
-/datum/dirt_feature/coverage/proc/shine_points()
-	RETURN_TYPE(/list)
-	return null
-
-/**
- * A plunge or a blast over the body.
- */
+/// A plunge or a blast over the body.
 /datum/dirt_feature/coverage/cover
 	/// Its draws, from dirt_cover_draws().
 	var/datum/dirt_cover_draws/draws
@@ -469,12 +424,11 @@
  *
  * Arguments:
  * - cause: DIRT_CAUSE_PLUNGE or DIRT_CAUSE_BLAST.
- * - level: Its level, 1 to 3.
- * - draws: Its draws, from dirt_cover_draws().
  */
 /datum/dirt_feature/coverage/cover/New(cause, level, datum/dirt_cover_draws/draws)
 	. = ..(cause, level)
 	src.draws = draws
+	shine = draws.shine
 
 /**
  * Returns the field's coat, clumped for a light material. On bare skin a blast's body tone breaks up with noise,
@@ -498,13 +452,7 @@
 		return min(thickness, DIRT_FILM_T)
 	return thickness
 
-/// Returns its draws' shine points.
-/datum/dirt_feature/coverage/cover/shine_points()
-	return draws.shine
-
-/**
- * A douse over the body: each column's top edge is read from the body's own pixels, as gravity is down in every view.
- */
+/// A douse over the body. Each column's top edge is read from the body's own pixels, as gravity is down in every view.
 /datum/dirt_feature/coverage/douse
 	/// Its draws, from dirt_douse_draws().
 	var/datum/dirt_douse_draws/draws
@@ -514,16 +462,10 @@
 	/// The columns of a mouth in the view it's drawn on, set with `tops`.
 	var/list/mouth_columns
 
-/**
- * Starts a douse.
- *
- * Arguments:
- * - level: Its level, 1 to 3.
- * - draws: Its draws, from dirt_douse_draws().
- */
 /datum/dirt_feature/coverage/douse/New(level, datum/dirt_douse_draws/draws)
 	. = ..(DIRT_CAUSE_DOUSE, level)
 	src.draws = draws
+	shine = draws.shine
 
 /**
  * Reads each column's top body row from the whole surface, and the view's mouth columns, as its first rows are bound.
@@ -543,8 +485,8 @@
 	for(var/index in 1 to length(flags_of))
 		if(!DIRT_PIXEL_ZONE(flags_of[index]))
 			continue
-		var/row = floor((index - 1) / width)
-		var/column = index - 1 - row * width
+		var/row = DIRT_INDEX_ROW(index, width)
+		var/column = DIRT_INDEX_COLUMN(index, row, width)
 		if(isnull(tops[column + 1]))
 			tops[column + 1] = row
 	..()
@@ -583,18 +525,13 @@
 			return thickness
 	return DIRT_FILM_T
 
-/// Returns its draws' shine points.
-/datum/dirt_feature/coverage/douse/shine_points()
-	return draws.shine
-
 /**
  * Returns a plunge's features, for a body that fell or waded in: knee-deep, then chest-deep, then over the head. At
  * level 3 it smudges the cheeks too.
  *
  * Arguments:
  * - level: 1 to 3.
- * - rng: The deposit's random stream.
- * - side: The mob's dirtier side, 1 or -1.
+ * - side: The dirtier side, 1 (the body's right) or -1.
  */
 /proc/dirt_cause_plunge(level, datum/dirt_random/rng, side)
 	RETURN_TYPE(/list)
@@ -609,8 +546,7 @@
  *
  * Arguments:
  * - level: 1 to 3.
- * - rng: The deposit's stream.
- * - side: The mob's dirtier side, 1 or -1.
+ * - side: The dirtier side, 1 (the body's right) or -1.
  */
 /proc/dirt_cause_blast(level, datum/dirt_random/rng, side)
 	RETURN_TYPE(/list)
@@ -626,8 +562,7 @@
  *
  * Arguments:
  * - level: 1 to 3.
- * - rng: The deposit's random stream.
- * - side: The mob's dirtier side, 1 or -1.
+ * - side: The dirtier side, 1 (the body's right) or -1.
  */
 /proc/dirt_cause_douse(level, datum/dirt_random/rng, side)
 	RETURN_TYPE(/list)

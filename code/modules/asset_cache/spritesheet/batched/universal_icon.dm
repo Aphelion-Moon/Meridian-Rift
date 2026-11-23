@@ -411,7 +411,7 @@
 /// Still fairly slow for complex appearances due to filesystem operations. Try to avoid using it
 // APHELION EDIT ADDITION START
 /// grow: the canvas fits every overlay, nested ones where they really are; see flat_x1.
-/// stretch: with grow, each image below the flattened one has its own height filters drawn in; see character_preview_flatten().
+/// stretch: with grow, images under the flattened one get their height filters drawn in (character_preview_flatten()).
 // APHELION EDIT ADDITION END
 /proc/get_flat_uni_icon(image/appearance, defdir, deficon, defstate, defblend, start = TRUE, parentcolor, grow = FALSE, stretch = FALSE) // APHELION EDIT CHANGE - ORIGINAL: /proc/get_flat_uni_icon(image/appearance, defdir, deficon, defstate, defblend, start = TRUE, parentcolor)
 	// Loop through the underlays, then overlays, sorting them into the layers list

@@ -1,6 +1,6 @@
 /// A pixel of the taur canvas as an index, from its column and row, both from 0.
 #define DIRT_BLOOD_INDEX(column, row) ((row) * DIRT_TAUR_WIDTH + (column) + 1)
-/// Whether a pixel lies on the taur canvas and in a mask (a list TRUE or null per pixel). Pass it variables or sums.
+/// Whether a pixel lies on the taur canvas and in a list holding TRUE or null per pixel. Pass it variables or sums.
 #define DIRT_BLOOD_ON(pixels, column, row) ((column) >= 0 && (column) < DIRT_TAUR_WIDTH && (row) >= 0 && (row) < ICON_SIZE_Y && (pixels)[DIRT_BLOOD_INDEX(column, row)])
 /// A taur canvas index's column.
 #define DIRT_BLOOD_COLUMN(index) (((index) - 1) % DIRT_TAUR_WIDTH)
@@ -54,9 +54,6 @@
 /**
  * Returns the last stain row a taur's waist crop keeps in a direction, read from the crop itself (taur_waist_crop()).
  * That's the last of the rows from the top that the crop keeps whole. It's read once a direction.
- *
- * Arguments:
- * - direction: The direction.
  */
 /proc/dirt_blood_last_kept_row(direction)
 	var/static/alist/rows = alist()
@@ -85,7 +82,6 @@
  *
  * Arguments:
  * - state: The stain's state in icons/effects/blood.dmi ("coatblood").
- * - direction: The direction.
  */
 /proc/dirt_blood_seeds(state, direction)
 	RETURN_TYPE(/list)
@@ -115,7 +111,6 @@
  *
  * Arguments:
  * - state: The stain's state in icons/effects/blood.dmi.
- * - direction: The direction.
  */
 /proc/dirt_blood_sheet_rows(state, direction)
 	RETURN_TYPE(/list)
@@ -143,15 +138,13 @@
  * Returns what of a stain a taur's blood may hang from, as it's drawn on the taur canvas: the stain's alpha out of 255
  * on each such pixel, else null. That's its mass: the largest 8-connected piece of its pixels at least
  * DIRT_BLOOD_MASS_ALPHA dense on its own rows (dirt_blood_sheet_rows()). A tie goes to the piece reaching lowest, then
- * to the leftmost. The mass also takes every other such piece of 2 px or more that touches the rider's hands drawn
- * over it, as the stain going on behind a hand. A uniform's stain is drawn under the hands, which hide it, and a
- * suit's over them. At a height that stretches the rider, its pieces are found on the sheet's own rows, as an Average
- * rider wears it. They're then drawn where the height draws each row. A row drawn twice or not at all changes no
- * piece's size, so the same columns run at every height.
+ * to the leftmost. The mass also takes every other such piece of 2 px or more that touches the rider's hands drawn over
+ * it. That's the stain going on behind a hand. At a height that stretches the rider, its pieces are found on the
+ * sheet's own rows, as an Average rider wears it. They're then drawn where the height draws each row. A row drawn twice
+ * or not at all changes no piece's size, so the same columns run at every height.
  *
  * Arguments:
  * - state: The stain's state in icons/effects/blood.dmi.
- * - direction: The direction.
  * - seam_row: The row its blood starts on, the first under its drawn end.
  * - rows: The row each row shows at the rider's height (dirt_height_rows()), or null. If null, the stain's last kept
  *   row lies on the row over the seam.
@@ -207,7 +200,7 @@
  * marks each as taken.
  *
  * Arguments:
- * - pixels: A number or null per pixel. The piece takes the pixels holding at least `minimum`.
+ * - pixels: A number or null per pixel.
  * - start: The first pixel, which must hold at least `minimum`.
  * - piece_of: TRUE on the pixels already in a piece. It's changed in place.
  * - minimum: The least a pixel holds to be in the piece.
@@ -233,7 +226,7 @@
 	return piece
 
 /**
- * Returns whether a pixel of the taur canvas, or one of the eight round it, is in a mask.
+ * Returns whether `pixels` holds a value at a pixel of the taur canvas, or at one of the eight round it.
  *
  * Arguments:
  * - pixels: TRUE or a value, or null, per pixel.
@@ -269,14 +262,11 @@
 			return drawn_row + 1
 
 /**
- * Returns which row of a 32 px tall image each of its rows shows once a person's height stretches it, as their rider
- * and a taur-fitted garment are drawn (apply_height(), ENTIRE_BODY). The list is by row + 1, from the top, and holds
- * the row each row shows, or null where it shows none. Returns null at a height that stretches nothing. Each filter is
- * a displacement map whose green moves a row by up to its size (128 none, 0 a size up, 255 a size down), read at the
- * nearest row, in the filters' order. It's read once a height from the maps the game puts on.
- *
- * Arguments:
- * - body: The person.
+ * Returns which row of a 32 px tall image each of its rows shows once a person's height stretches it. That's how their
+ * rider and a taur-fitted garment are drawn (apply_height(), ENTIRE_BODY). The list is by row + 1, from the top, and
+ * holds the row each row shows, or null where it shows none. Returns null at a height that stretches nothing. Each
+ * filter is a displacement map whose green moves a row by up to its size (128 none, 0 a size up, 255 a size down). The
+ * maps are read at the nearest row, in the filters' order. Each height's list is read once, from the game's own maps.
  */
 /proc/dirt_height_rows(mob/living/carbon/human/body)
 	RETURN_TYPE(/list)
@@ -311,12 +301,7 @@
 		by_height[height_key] = shows
 	return shows
 
-/**
- * Returns a bloodied garment's blood as a material key, "blood#RRGGBB", in the colour its stain is drawn in.
- *
- * Arguments:
- * - garment: The garment.
- */
+/// Returns a bloodied garment's blood as a material key, "blood#RRGGBB", in the colour its stain is drawn in.
 /proc/dirt_blood_material_key(obj/item/garment)
 	var/list/channels = rgb2num(garment.get_blood_dna_color())
 	return "[DIRT_MATERIAL_BLOOD][uppertext(rgb(channels[1], channels[2], channels[3]))]"
@@ -324,9 +309,6 @@
 /**
  * Returns the variant a garment's blood draws in, 0 to DIRT_VARIANTS - 1. It's a hash of the garment's first blood
  * DNA, so two taurs bloodied by different people differ, and one taur's blood never flickers.
- *
- * Arguments:
- * - garment: The bloodied garment.
  */
 /proc/dirt_blood_variant(obj/item/garment)
 	var/list/blood = GET_ATOM_BLOOD_DECALS(garment)
@@ -341,10 +323,9 @@
  * waist (/obj/item/clothing/proc/cuts_effects_at_taur_waist()), on a taur that takes dirt (dirt_read_source()). A
  * garment's rips draw nothing. The outermost taur-fitted garment (dirt_taur_suit_sprite()) carries what lies on its
  * cloth, and the taur body, while it draws, carries the rest. It's read from the garments and the sprites drawn, so
- * it's never stored, and nothing changes when it goes.
+ * it's never stored, and nothing has to change when the blood goes.
  *
  * Arguments:
- * - wearer: The person.
  * - drawing: A garment being drawn now, whose sprite isn't in overlays_standing yet, or null.
  * - draw_target: That garment's sprite as worn.
  */
@@ -380,9 +361,9 @@
 		// a suit drawn over it hides its stain where the suit's sprite reaches the crop's last row
 		if(suit_sprite?.icon)
 			var/list/shift = dirt_worn_shift(wearer.wear_suit)
-			stain[4] = suit_sprite.icon
-			stain[5] = suit_sprite.icon_state
-			stain[6] = (shift[1] || shift[2]) ? shift : null
+			stain[DIRT_STAIN_COVER_ICON] = suit_sprite.icon
+			stain[DIRT_STAIN_COVER_STATE] = suit_sprite.icon_state
+			stain[DIRT_STAIN_COVER_SHIFT] = (shift[1] || shift[2]) ? shift : null
 		stains += list(stain)
 	var/list/cloth
 	var/cloth_slot
@@ -405,12 +386,11 @@
  * its own side, against the body's own dirt (/datum/component/dirtiness/proc/waist_blood_over()).
  *
  * Arguments:
- * - wearer: The taur.
  * - inputs: From dirt_taur_blood_inputs().
  */
 /proc/dirt_cloth_run_over(mob/living/carbon/human/wearer, list/inputs)
-	var/obj/item/cloth = wearer.get_item_by_slot(inputs[4])
-	if(inputs[4] == inputs[5])
+	var/obj/item/cloth = wearer.get_item_by_slot(inputs[DIRT_BLOOD_INPUT_CLOTH_SLOT])
+	if(inputs[DIRT_BLOOD_INPUT_CLOTH_SLOT] == inputs[DIRT_BLOOD_INPUT_OUTER_SLOT])
 		return dirt_stain_over(cloth)
 	var/datum/component/dirtiness/cloth_carrier = cloth.GetComponent(/datum/component/dirtiness)
 	if(!length(cloth_carrier?.mess_splats))
@@ -426,23 +406,13 @@
 /datum/component/dirtiness/proc/waist_blood_over()
 	return (length(part_mess_splats[ORGAN_SLOT_EXTERNAL_TAUR]) || length(part_splats?[ORGAN_SLOT_EXTERNAL_TAUR])) && waist_blood_landed > taur_dirt_landed
 
-/datum/component/dirtiness
-	/// The suit whose blood DNA list is suit_blood_seen, as a weakref. So another suit holding the same list counts as
-	/// blood landing (note_waist_blood()).
-	var/datum/weakref/suit_blood_garment
-	/// The uniform whose blood DNA list is uniform_blood_seen, as a weakref.
-	var/datum/weakref/uniform_blood_garment
-
 /**
  * Notes blood landing on the uniform or suit a taur wears, while its stain runs below the waist (dirt_waist_blood()).
- * Blood counts as landed now (waist_blood_landed) on a garment other than the one last seen in its slot. A blood DNA
- * list the garment didn't hold when last seen counts too, unless its merge added only blood that draws no stain
- * (dirt_waist_blood_landed()). A merge makes a new list, so the same DNA landing again counts too. A garment's first
- * blood is the list it was given, and another garment given that list holds it too. So each slot notes its garment
- * beside its list. A bloodied garment put on counts as its blood landing when it's first noted here. Taking a garment
- * off and putting it back on counts nothing, unless another bloodied one was worn in that slot meanwhile. It can be
- * called whenever blood may have landed, as blood lands or as a slot draws. Blood it has noted counts once. On a body
- * that isn't a taur, it returns at once.
+ * Blood that dirt_waist_blood_landed() finds counts as landed now (waist_blood_landed). A garment's first blood is the
+ * list it was given, and another garment given that list holds it too. So each slot notes its garment beside its list.
+ * A bloodied garment put on counts as its blood landing when it's first noted here. Taking a garment off and putting it
+ * back on counts nothing, unless another bloodied one was worn in that slot meanwhile. It can be called whenever blood
+ * may have landed, as blood lands or as a slot draws. Blood it has noted counts once.
  *
  * Arguments:
  * - body: The person this carrier is on.
@@ -502,7 +472,6 @@
  *
  * Arguments:
  * - garment: The worn uniform or suit, or null.
- * - wearer: Who wears it.
  */
 /proc/dirt_waist_blood(obj/item/clothing/garment, mob/living/carbon/human/wearer)
 	RETURN_TYPE(/list)
@@ -515,18 +484,15 @@
  * list(the stains, the taur-fitted garment's sprite or null, whether the taur body draws, the seam row, the rows the
  * rider and a taur-fitted garment show at the rider's height (dirt_height_rows()) or null). It's worked out as the game
  * draws it at that height. The taur body stays put, the rider and the garment stretch, and the blood starts where the
- * height puts the stain's end (dirt_blood_seam_row()). The taur body and the garment's cloth each keep their share of
- * the one shape, so a run crossing the garment's hem onto the body meets itself there. The cloth's share goes back to
- * the garment's own rows, where it starts on an Average rider's seam row (dirt_blood_rasterise()).
+ * height puts the stain's end (dirt_blood_seam_row()).
  *
  * Arguments:
  * - inputs: From dirt_taur_blood_inputs().
- * - body: The person.
  */
 /proc/dirt_taur_blood_data(list/inputs, mob/living/carbon/human/body)
 	RETURN_TYPE(/list)
 	var/list/rows = dirt_height_rows(body)
-	return list(inputs[1], inputs[2], inputs[3], dirt_blood_seam_row(rows), rows)
+	return list(inputs[DIRT_BLOOD_INPUT_STAINS], inputs[DIRT_BLOOD_INPUT_CLOTH], inputs[DIRT_BLOOD_INPUT_BODY_DRAWS], dirt_blood_seam_row(rows), rows)
 
 /**
  * Returns blood masks' data as one line of text, to key the masks by and to tell when the data changes. Given the taur
@@ -539,31 +505,30 @@
  */
 /proc/dirt_taur_blood_key(list/blood, datum/dirt_taur_source/source = null, materials = TRUE)
 	var/list/parts = source ? list(source.shape_key()) : list()
-	for(var/list/stain as anything in blood[1])
-		var/list/shift = stain[6]
-		parts += "[stain[1]]:[materials ? stain[2] : ""]:[stain[3]][stain[4] ? ":[dirt_sprite_key(stain[4])]:[stain[5]][shift ? ":[shift[1]],[shift[2]]" : ""]" : ""]"
-	var/list/cloth = blood[2]
+	for(var/list/stain as anything in blood[DIRT_BLOOD_DATA_STAINS])
+		var/list/shift = stain[DIRT_STAIN_COVER_SHIFT]
+		parts += "[stain[DIRT_STAIN_STATE]]:[materials ? stain[DIRT_STAIN_MATERIAL] : ""]:[stain[DIRT_STAIN_VARIANT]][stain[DIRT_STAIN_COVER_ICON] ? ":[dirt_sprite_key(stain[DIRT_STAIN_COVER_ICON])]:[stain[DIRT_STAIN_COVER_STATE]][shift ? ":[shift[1]],[shift[2]]" : ""]" : ""]"
+	var/list/cloth = blood[DIRT_BLOOD_DATA_CLOTH]
 	parts += cloth ? "cloth:[dirt_sprite_key(cloth[1])]:[cloth[2]]" : "bare"
-	parts += "body:[blood[3] ? 1 : 0]|seam:[blood[4]]"
+	parts += "body:[blood[DIRT_BLOOD_DATA_BODY_DRAWS] ? 1 : 0]|seam:[blood[DIRT_BLOOD_DATA_SEAM_ROW]]"
 	// an Average rider's key leaves the rows out
-	if(blood[5])
-		parts += "rows:[jointext(blood[5], ",")]"
+	if(blood[DIRT_BLOOD_DATA_ROWS])
+		parts += "rows:[jointext(blood[DIRT_BLOOD_DATA_ROWS], ",")]"
 	return jointext(parts, "|")
 
 /**
  * Returns what the taur canvas holds for blood in one direction, as the game draws it at the rider's height. It's a
  * list of five. The first, its owners, is what each pixel shows, as dirt_taur_owners() stacks the game's own draw order
  * (dirt_taur_drawn_stack()). The second is the carriers' pixels: the taur body's (while it draws) and the taur-fitted
- * garment's. The third is those of them that show, the fourth the rider's pixels that show off them, and the fifth the
- * rider's hands, drawn over a uniform, in the rider's own rows (dirt_blood_mass()). The last four are masks, each a
- * list TRUE or null per pixel. The rider and the garment are drawn stretched by the height (the data's rows), and the
- * taur body where it is. Its owners are a list of its own. Facing north, where blood draws nothing
- * (dirt_blood_continuation()), the owners are empty and the masks null.
+ * garment's. The third is those of them that show, and the fourth the rider's pixels that show off them. The fifth is
+ * the rider's hands, drawn over a uniform, in the rider's own rows (dirt_blood_mass()). The last four each hold TRUE or
+ * null per pixel. The rider and the garment are drawn stretched by the height (the data's rows), and the taur body
+ * where it is. Its owners are a list of its own. Facing north, where blood draws nothing (dirt_blood_continuation()),
+ * the owners are empty and the other four null.
  *
  * Arguments:
  * - source: The taur body as dirt reads it.
  * - rider: The rider's surface in that direction, or null.
- * - direction: The direction.
  * - blood: From dirt_taur_blood_data().
  */
 /proc/dirt_blood_carriers(datum/dirt_taur_source/source, datum/dirt_surface/rider, direction, list/blood)
@@ -571,12 +536,12 @@
 	if(direction == NORTH)
 		return list(new /list(DIRT_TAUR_WIDTH * ICON_SIZE_Y), null, null, null, null)
 	var/static/list/hidden_stack = list(DIRT_TAUR_RIDER, DIRT_TAUR_CLOTH)
-	var/list/cloth = blood[2]
-	var/list/rows = blood[5]
+	var/list/cloth = blood[DIRT_BLOOD_DATA_CLOTH]
+	var/list/rows = blood[DIRT_BLOOD_DATA_ROWS]
 	var/list/cloth_pixels = cloth ? dirt_sprite_pixels(cloth[1], cloth[2], direction, DIRT_TAUR_WIDTH, ICON_SIZE_Y) : null
 	if(cloth_pixels && rows)
 		cloth_pixels = dirt_blood_stretched(cloth_pixels, rows)
-	var/body_draws = blood[3]
+	var/body_draws = blood[DIRT_BLOOD_DATA_BODY_DRAWS]
 	var/list/owners = dirt_taur_owners(source, rider, direction, body_draws ? dirt_taur_drawn_stack() : hidden_stack, cloth_pixels, rows)
 	var/list/surface = new /list(length(owners))
 	for(var/index in cloth_pixels)
@@ -718,7 +683,7 @@
 	return lighter[role]
 
 /**
- * Returns whether a pixel lies on the carrier's outline: the pixel left or right of it isn't the carrier's.
+ * Returns whether a pixel lies on the carrier's outline, where the pixel left or right of it isn't the carrier's.
  *
  * Arguments:
  * - surface: The carrier's pixels.
@@ -748,7 +713,6 @@
  * Arguments:
  * - lowest: Each column's lowest carrier row, by column + 1, or null.
  * - carrier_floor: The carrier's lowest row.
- * - column: The column.
  */
 /proc/dirt_blood_last_row(list/lowest, carrier_floor, column)
 	var/bottom = (column >= 0 && column < DIRT_TAUR_WIDTH) ? lowest[column + 1] : null
@@ -764,7 +728,6 @@
  * - surface: The carrier's pixels.
  * - rider: The rider's pixels that show off the carrier, or null.
  * - column: The canvas column.
- * - seam_row: The seam row.
  * - carrier_floor: The carrier's lowest row.
  */
 /proc/dirt_blood_start(list/surface, list/rider, column, seam_row, carrier_floor)
@@ -779,15 +742,14 @@
 	return null
 
 /**
- * Returns a run's pixels, one a row, as indexes. The run goes straight down the carrier, and steps a column aside
- * where its hash byte is under DIRT_BLOOD_WOBBLE, though never on two rows running or in its first two steps. It also
- * steps aside where the carrier's edge turns under it. A step onto the outline goes a column in, if that column isn't
- * on the outline, else the run ends. Within `inset` of the outline a step goes a column further in, `inset` + 1
- * columns in all. The run stops where what it may take ends, at its column's last row (dirt_blood_last_row()), or
- * beside another run. Facing east or west, a run stopped on its last row where the body turns into a coil behind it
- * (dirt_blood_turns()) rounds the bend. Its last two rows give way to a curve back along the coil: a column back and a
- * row down, twice, then one more column back on the same row. The curve is DIRT_BLOOD_BEND px at most and at least 2,
- * each pixel on what the run may take.
+ * Returns a run's pixels, one a row, as indexes. The run goes straight down the carrier. It steps a column aside where
+ * its hash byte is under DIRT_BLOOD_WOBBLE, though never on two rows running or in its first two steps. It also steps
+ * aside where the carrier's edge turns under it. A step onto the outline goes a column in, if that column isn't on the
+ * outline, else the run ends. Within `inset` of the outline a step goes a column further in, `inset` + 1 columns in
+ * all. The run stops where what it may take ends, at its column's last row (dirt_blood_last_row()), or beside another
+ * run. Facing east or west, a run stopped on its last row where the body turns into a coil behind it
+ * (dirt_blood_turns()) rounds the bend. Its last two rows give way to a curve back along the coil, each pixel on what
+ * the run may take. The curve is at least 2 px and at most DIRT_BLOOD_BEND.
  *
  * Arguments:
  * - surface: The carrier's pixels.
@@ -798,7 +760,6 @@
  * - run_length: The most pixels it takes.
  * - seed: The view's noise seed.
  * - inset: How many carrier pixels it keeps between it and the outline, or 0.
- * - direction: The direction.
  * - bent: Given the curve's pixels where it rounds the bend. Changed.
  */
 /proc/dirt_blood_walk(list/surface, list/ground, list/taken, list/lowest, carrier_floor, column, row, run_length, seed, inset, direction, list/bent)
@@ -864,8 +825,8 @@
 
 /**
  * Returns whether the carrier turns at a pixel. It does if, from that pixel toward `back`, the carrier goes on for
- * DIRT_BLOOD_TURN_REACH px or more on that row, and every one of those columns reaches the ground. A coil lying behind
- * its front does that, and a leg or a belly doesn't.
+ * DIRT_BLOOD_TURN_REACH px or more on that row. Every one of those columns must reach the ground too. A coil lying
+ * behind its front does that, and a leg or a belly doesn't.
  *
  * Arguments:
  * - ground: The carrier's pixels that show.
@@ -933,29 +894,23 @@
 
 /**
  * Returns the blood a taur's garment stain runs down onto the carrier below its seam, in one direction, on the taur
- * canvas: the reference's soaked band. Each stain pixel on the crop's last row (dirt_blood_seeds()) can seed a run. The
- * run starts on the carrier's first row at or under the seam, crossing up to DIRT_BLOOD_DROP rows of the rider's own
- * pixels between. There are up to DIRT_BLOOD_RUNS runs, kept apart, the densest first, and the variant shifts which
- * (DIRT_BLOOD_PICK_JITTER). The first run leads. It takes a share of the rows its column has, at least
- * DIRT_BLOOD_MIN_ROWS, and it's darkest under the hem. The rest are at most half its length and a tone lighter, and
- * the second is short. Each walks down what shows of the carrier, off its outline, and ends in a 2 px bulb above the
- * ground. Facing south, its first rows are 2 px wide. Under every seed column the carrier takes, a ragged band lies a
- * few rows deep. No dark pixel stands alone, no row runs level, and nothing floats off the seam. North draws nothing,
- * because lines up a taur's back onto the rider defy logic. Random draws come from the "blood:<DIRECTION>:<variant>"
- * stream, four a tile column, and from the lattice hash as a byte. Below another garment's blood, its runs keep off
- * that blood and the pixels round it, and start nowhere it holds.
+ * canvas: the reference's soaked band. Each stain pixel on the crop's last row (dirt_blood_seeds()) can seed a run. A
+ * run starts where dirt_blood_start() puts it. There are up to DIRT_BLOOD_RUNS runs, kept apart, the densest first, and
+ * the variant shifts which. The first run leads, and it's darkest under the hem. The rest are at most half its length
+ * and a tone lighter, and the second is short. Each walks down what shows of the carrier (dirt_blood_walk()), and ends
+ * in a 2 px bulb above the ground unless it rounds a bend. Under every seed column the carrier takes, a ragged band
+ * lies a few rows deep. No dark pixel stands alone. No row runs level, and nothing floats off the seam
+ * (dirt_blood_break_level()). North draws nothing, because lines up a taur's back onto the rider defy logic. Below
+ * another garment's blood, its runs keep off that blood and the pixels round it, and start nowhere it holds.
  *
- * A run leaves only a seed column whose seam pixel is in the stain's mass (dirt_blood_mass()), with a mass pixel at
- * least DIRT_BLOOD_SEED_DENSE dense in it or beside it on the stain's last two rows. A view where no column does draws
- * nothing, and at the end every piece touching none of the mass goes. Facing east or west, a run reaching its last row
- * where the body turns into a coil rounds the bend (dirt_blood_walk()). It's kept whole and one pixel wide round the
- * bend, with a film tip and no bulb.
+ * A run leaves only a seed column whose seam pixel is in the stain's mass (dirt_blood_mass()). That column, or one
+ * beside it, must hold a mass pixel at least DIRT_BLOOD_SEED_DENSE dense on the stain's last two rows. With no such
+ * column, the view draws nothing.
  *
  * Arguments:
  * - surface: The carrier's pixels, TRUE or null per pixel of the taur canvas.
  * - visible: Those that show.
  * - state: The stain's state in icons/effects/blood.dmi.
- * - direction: The direction.
  * - seam_row: The row it starts on, the first under the stain's drawn end.
  * - variant: 0 to DIRT_VARIANTS - 1.
  * - mass: The stain's alpha on the pixels its blood may hang from (dirt_blood_mass()).
@@ -1217,10 +1172,10 @@
 			dirt_blood_put(roles, cell, band_row ? (band_row < depth - 1 ? DIRT_ROLE_FILM : DIRT_ROLE_HAZE) : top)
 			if(cell in band_bridge)
 				over[cell] = TRUE
-	// no dark pixel stands alone: a core with no body or core beside it softens to body, then a body alone to film
+	// no dark pixel stands alone, so a core with no body or core beside it softens to body, then a body alone to film
 	var/list/softened = roles.Copy()
 	for(var/index in 1 to pixel_count)
-		if(roles[index] != DIRT_ROLE_CORE && roles[index] != DIRT_ROLE_FLECK)
+		if(roles[index] != DIRT_ROLE_CORE)
 			continue
 		var/list/near = dirt_blood_neighbour_roles(roles, index)
 		if(!(DIRT_ROLE_BODY in near) && !(DIRT_ROLE_CORE in near))
@@ -1236,34 +1191,11 @@
 	for(var/index in 1 to pixel_count)
 		if(softened[index] && !visible[index] && !over[index])
 			softened[index] = null
-	dirt_blood_break_level(softened, own, seed, seam_row)
-	dirt_blood_keep_hung(softened, mass)
+	dirt_blood_break_level(softened, own, seed, seam_row, mass)
 	for(var/index in 1 to pixel_count)
 		if(softened[index])
 			drawn.put_index(index, softened[index], DIRT_BLOOD_THICKNESS)
 	return drawn
-
-/**
- * Drops every piece (8-connected) of blood touching none of its stain's mass, so nothing hangs from nothing.
- *
- * Arguments:
- * - roles: A DIRT_ROLE_* define or null per pixel of the taur canvas. Changed.
- * - mass: The stain's alpha on the pixels its blood may hang from (dirt_blood_mass()).
- */
-/proc/dirt_blood_keep_hung(list/roles, list/mass)
-	var/list/piece_of = new /list(length(roles))
-	for(var/start in 1 to length(roles))
-		if(!roles[start] || piece_of[start])
-			continue
-		var/list/piece = dirt_blood_piece(roles, start, piece_of, DIRT_ROLE_HAZE)
-		var/hung = FALSE
-		for(var/index in piece)
-			if(dirt_blood_touches(mass, index))
-				hung = TRUE
-				break
-		if(!hung)
-			for(var/index in piece)
-				roles[index] = null
 
 /**
  * Returns whether one sort key comes before another, comparing the lists item by item.
@@ -1291,18 +1223,19 @@
 	return FALSE
 
 /**
- * Breaks every level row of blood. In a row, while 3 px or more lie side by side, the pixel of that run nearest its
- * middle that isn't a run's own goes. Ties go by its hash byte, then to the leftmost. A level run of a run's own pixels
- * stays. Then any piece (8-connected) without a pixel on the seam row goes, so nothing floats off the stain. So does
- * any single pixel left alone, which reads as a dot.
+ * Breaks every level row of blood. While a row holds 3 px or more side by side, the one nearest their middle that isn't
+ * a run's own pixel goes. Ties go by its hash byte, then to the leftmost. Three or more of a run's own pixels side by
+ * side stay. Then any piece (8-connected) without a pixel on the seam row goes, so nothing floats off the stain. So
+ * does any single pixel left alone, which reads as a dot. So does any piece touching none of its stain's mass, so
+ * nothing hangs from nothing. Dropping a whole piece leaves every other piece as it was, so one walk tests all three.
  *
  * Arguments:
  * - roles: A DIRT_ROLE_* define or null per pixel of the taur canvas. Changed.
  * - own: TRUE on each run's own pixels.
  * - seed: The view's noise seed.
- * - seam_row: The seam row.
+ * - mass: The stain's alpha on the pixels its blood may hang from (dirt_blood_mass()).
  */
-/proc/dirt_blood_break_level(list/roles, list/own, seed, seam_row)
+/proc/dirt_blood_break_level(list/roles, list/own, seed, seam_row, list/mass)
 	for(var/row in 0 to ICON_SIZE_Y - 1)
 		for(var/turn in 1 to DIRT_TAUR_WIDTH)
 			var/span_start = -1
@@ -1344,29 +1277,32 @@
 			if(DIRT_BLOOD_ROW(index) == seam_row)
 				on_seam = TRUE
 				break
-		if(!on_seam || length(piece) == 1)
+		var/hung = FALSE
+		if(on_seam && length(piece) > 1)
+			for(var/index in piece)
+				if(dirt_blood_touches(mass, index))
+					hung = TRUE
+					break
+		if(!hung)
 			for(var/index in piece)
 				roles[index] = null
 
 /**
- * Returns one carrier's blood in one direction of a mask job: each stain's continuation (dirt_blood_continuation())
- * on what the canvas holds there (dirt_blood_carriers()), kept to that carrier's own pixels. A uniform's stain is left
- * out where the suit drawn over it reaches the crop's last row. Its runs keep off the suit's blood, which is worked out
- * first. Each continuation hangs from its stain's mass (dirt_blood_mass()). On the taur body, the pixels a run crosses
- * over the rider are drawn by the bridge layer, the body's lowest layer that the game draws over the rider. On a
- * taur-fitted garment, only the pixels on its cloth are kept, back in its own rows (dirt_blood_unstretched()).
+ * Returns one carrier's blood in one direction of a mask job: each stain's continuation (dirt_blood_continuation()) on
+ * what the canvas holds there (dirt_blood_carriers()), kept to that carrier's own pixels. A uniform's stain is left out
+ * where the suit drawn over it reaches the crop's last row. On the taur body, the bridge layer draws the pixels a run
+ * crosses over the rider. That's the body's lowest layer that the game draws over the rider. On a taur-fitted garment,
+ * only the pixels on its cloth are kept, back in its own rows (dirt_blood_unstretched()).
  *
  * A continuation is the same for both carriers and in any colour. So SSdirt.rasters keeps each one whole, under an MD5
  * of the taur body's shape, the rider's template and the blood's data without its materials (dirt_taur_blood_key()).
- * The key adds the stain's place in the list. That key holds everything the continuation reads, so nothing has to
- * forget it. The cache's bound (DIRT_RASTER_CACHE_SIZE) lets the oldest go.
+ * The key adds the stain's place in the list, and holds everything the continuation reads, so nothing has to forget it.
  *
  * Arguments:
  * - blood: From dirt_taur_blood_data().
- * - carriers: From dirt_blood_carriers() in the direction. Its owners are changed: the rider's pixels the blood crosses
- *   become the bridge layer's.
+ * - carriers: From dirt_blood_carriers() in the direction. Its owners are changed, as the rider's pixels the blood
+ *   crosses become the bridge layer's.
  * - source: The taur body.
- * - direction: The direction.
  * - on_cloth: Whether the carrier is the taur-fitted garment, else the taur body.
  * - rider_key: The key of the rider's template the carriers were read on (/datum/dirt_template/var/key).
  *
@@ -1375,7 +1311,7 @@
 /proc/dirt_blood_rasterise(list/blood, list/carriers, datum/dirt_taur_source/source, direction, on_cloth, rider_key)
 	RETURN_TYPE(/list)
 	. = list()
-	var/list/owners = carriers[1]
+	var/list/owners = carriers[DIRT_BLOOD_CANVAS_OWNERS]
 	var/bridge_layer
 	if(!on_cloth)
 		var/list/stack = dirt_taur_drawn_stack()
@@ -1384,8 +1320,8 @@
 				bridge_layer = stack[position]
 				break
 	var/last_kept = dirt_blood_last_kept_row(direction)
-	var/list/rows = blood[5]
-	var/list/stains = blood[1]
+	var/list/rows = blood[DIRT_BLOOD_DATA_ROWS]
+	var/list/stains = blood[DIRT_BLOOD_DATA_STAINS]
 	var/runs_key = "blood|[md5("[source.shape_key()]|[rider_key]|[dirt_taur_blood_key(blood, null, FALSE)]")]"
 	// what the stains worked out so far hold, the suit's first, so the next one's runs never touch them
 	var/list/outer
@@ -1398,16 +1334,16 @@
 			drawn = dirt_pixels_from_drawn(kept, DIRT_TAUR_WIDTH, ICON_SIZE_Y)
 		else
 			var/list/hidden
-			if(stain[4] && direction != NORTH)
+			if(stain[DIRT_STAIN_COVER_ICON] && direction != NORTH)
 				hidden = new /list(ICON_SIZE_X)
 				var/list/seam_pixels = list()
 				for(var/column in 1 to ICON_SIZE_X)
 					seam_pixels += last_kept * ICON_SIZE_X + column
-				for(var/index in dirt_sprite_zone_pixels(stain[4], stain[5], "taur_seam_[last_kept]", seam_pixels, direction, stain[6]))
+				for(var/index in dirt_sprite_zone_pixels(stain[DIRT_STAIN_COVER_ICON], stain[DIRT_STAIN_COVER_STATE], "taur_seam_[last_kept]", seam_pixels, direction, stain[DIRT_STAIN_COVER_SHIFT]))
 					hidden[index - last_kept * ICON_SIZE_X] = TRUE
 			// the rider's hands hide a uniform's stain but not a suit's, which draws over them, and north draws none
-			var/list/mass = direction == NORTH ? null : dirt_blood_mass(stain[1], direction, blood[4], rows, stain[1] == "uniformblood" ? carriers[5] : null)
-			drawn = dirt_blood_continuation(carriers[2], carriers[3], stain[1], direction, blood[4], stain[3], mass, carriers[4], hidden, outer)
+			var/list/mass = direction == NORTH ? null : dirt_blood_mass(stain[DIRT_STAIN_STATE], direction, blood[DIRT_BLOOD_DATA_SEAM_ROW], rows, stain[DIRT_STAIN_STATE] == "uniformblood" ? carriers[DIRT_BLOOD_CANVAS_HANDS] : null)
+			drawn = dirt_blood_continuation(carriers[DIRT_BLOOD_CANVAS_CARRIERS], carriers[DIRT_BLOOD_CANVAS_SHOWN], stain[DIRT_STAIN_STATE], direction, blood[DIRT_BLOOD_DATA_SEAM_ROW], stain[DIRT_STAIN_VARIANT], mass, carriers[DIRT_BLOOD_CANVAS_RIDER], hidden, outer)
 			SSdirt.rasters.store_direction(raster_key, direction, drawn.drawn())
 		// held whole, before either carrier takes its share, so the body's and the cloth's agree
 		outer ||= new /list(length(owners))
@@ -1424,12 +1360,12 @@
 		. += (on_cloth && rows) ? dirt_blood_unstretched(drawn, rows) : drawn
 
 /**
- * Returns the masks of a person's blood below a taur's waist on its taur body, drawn with the body's own images, or
- * null while there are none to draw. It asks for them as ready_skin_masks() does. It's called as the taur body's key is
- * made, and with no blood to draw there, the drawing goes. Masks made for another rider are dropped and made again. A
- * change to the blood, the garments or the height has them made again, with the old ones drawn meanwhile. The key and
- * the draw read which side of the taur body's dirt the blood draws on (waist_blood_over()). A change of that side
- * never has them made again.
+ * Returns the masks of a person's blood below a taur's waist on its taur body, drawn with the body's own images.
+ * Returns null while there are none to draw. It asks for them as ready_skin_masks() does. It's called as the taur
+ * body's key is made, and with no blood to draw there, the drawing goes. Masks made for another rider are dropped and
+ * made again. A change to the blood, the garments or the height has them made again, with the old ones drawn meanwhile.
+ * The key and the draw read which side of the taur body's dirt the blood draws on (waist_blood_over()). A change of
+ * that side never has them made again.
  *
  * Arguments:
  * - taur: The taur body's overlay.
@@ -1439,20 +1375,14 @@
 	RETURN_TYPE(/datum/dirt_masks)
 	var/mob/living/carbon/human/body = parent
 	var/list/inputs = istype(body) ? dirt_taur_blood_inputs(body) : null
-	var/datum/dirt_taur_source/source = inputs?[3] && taur.dirt_read_source(limb)
+	var/datum/dirt_taur_source/source = inputs?[DIRT_BLOOD_INPUT_BODY_DRAWS] && taur.dirt_read_source(limb)
 	if(!source)
 		drop_taur_blood()
 		return null
 	var/list/blood = dirt_taur_blood_data(inputs, body)
 	var/blood_key = dirt_taur_blood_key(blood, source)
 	taur_blood ||= new
-	if(taur_blood.request && !dirt_zone_sources_match(body, taur_blood.request.zone_sources))
-		taur_blood.forget(TRUE)
-	else if(taur_blood.request && taur_blood.parts_key != blood_key)
-		taur_blood.forget(FALSE)
-	if(!taur_blood.request)
-		taur_blood.start(new /datum/dirt_mask_request(DIRT_MASKS_TAUR, dirt_zone_sources(body), DIRT_SURFACE_SKIN, null, shape_source = source, blood = blood), blood_key)
-	return taur_blood.current(body, DIRT_REDRAW_BODY)
+	return current_taur_blood(body, blood, blood_key, source, DIRT_SURFACE_SKIN, DIRT_REDRAW_BODY)
 
 /**
  * Returns the masks of the blood below a taur's waist lying on a taur-fitted garment's cloth, drawn inset in its worn
@@ -1462,8 +1392,6 @@
  * cloth_run_over as the garment draws. That draw is this proc's only caller.
  *
  * Arguments:
- * - garment: The item.
- * - wearer: Who wears it.
  * - draw_target: Its sprite as worn, being built now.
  */
 /datum/component/dirtiness/proc/ready_taur_blood_cloth_masks(obj/item/garment, mob/living/carbon/human/wearer, mutable_appearance/draw_target)
@@ -1473,7 +1401,7 @@
 		drop_taur_blood()
 		return null
 	var/list/inputs = dirt_taur_blood_inputs(wearer, garment, draw_target)
-	var/cloth_slot = inputs?[4]
+	var/cloth_slot = inputs?[DIRT_BLOOD_INPUT_CLOTH_SLOT]
 	var/datum/dirt_taur_source/source = (cloth_slot && garment == (cloth_slot == ITEM_SLOT_OCLOTHING ? wearer.wear_suit : wearer.w_uniform)) ? dirt_taur_source(wearer) : null
 	if(!source)
 		drop_taur_blood()
@@ -1484,13 +1412,28 @@
 		taur_blood = new
 		RegisterSignal(garment, COMSIG_ITEM_DROPPED, PROC_REF(on_dropped))
 	cloth_run_over = dirt_cloth_run_over(wearer, inputs)
-	if(taur_blood.request && !dirt_zone_sources_match(wearer, taur_blood.request.zone_sources))
+	return current_taur_blood(wearer, blood, blood_key, source, DIRT_SURFACE_CLOTH, cloth_slot == ITEM_SLOT_OCLOTHING ? DIRT_REDRAW_SUIT : DIRT_REDRAW_UNIFORM)
+
+/**
+ * Returns the masks taur_blood draws now (/datum/dirt_drawing/proc/current()). It asks for them again when the person's
+ * zone sources or the blood's key changed since they were asked for.
+ *
+ * Arguments:
+ * - blood: The blood's data (dirt_taur_blood_data()).
+ * - blood_key: Its key (dirt_taur_blood_key()).
+ * - source: The taur body as dirt reads it.
+ * - surface_kind: DIRT_SURFACE_SKIN on the taur body, DIRT_SURFACE_CLOTH on a garment's cloth.
+ * - redraw_flags: What to draw again once the masks are made: a DIRT_REDRAW_* define.
+ */
+/datum/component/dirtiness/proc/current_taur_blood(mob/living/carbon/human/body, list/blood, blood_key, datum/dirt_taur_source/source, surface_kind, redraw_flags)
+	RETURN_TYPE(/datum/dirt_masks)
+	if(taur_blood.request && !dirt_zone_sources_match(body, taur_blood.request.zone_sources))
 		taur_blood.forget(TRUE)
 	else if(taur_blood.request && taur_blood.parts_key != blood_key)
 		taur_blood.forget(FALSE)
 	if(!taur_blood.request)
-		taur_blood.start(new /datum/dirt_mask_request(DIRT_MASKS_TAUR, dirt_zone_sources(wearer), DIRT_SURFACE_CLOTH, null, shape_source = source, blood = blood), blood_key)
-	return taur_blood.current(wearer, cloth_slot == ITEM_SLOT_OCLOTHING ? DIRT_REDRAW_SUIT : DIRT_REDRAW_UNIFORM)
+		taur_blood.start(new /datum/dirt_mask_request(DIRT_MASKS_TAUR, dirt_zone_sources(body), surface_kind, null, shape_source = source, blood = blood), blood_key)
+	return taur_blood.current(body, redraw_flags)
 
 /**
  * Stops drawing blood below a taur's waist. It drops the job making its masks if no other body waits for them, as a
@@ -1513,7 +1456,7 @@
 		UnregisterSignal(parent, COMSIG_ITEM_DROPPED)
 
 /**
- * Stops a taur-fitted garment drawing the blood below its wearer's waist as it's taken off, and deletes its carrier if
+ * Stops a taur-fitted garment drawing the blood below its wearer's waist as it's taken off. It deletes its carrier if
  * that leaves it holding nothing (holds_nothing()).
  *
  * Arguments:
@@ -1529,14 +1472,13 @@
 /**
  * Has a taur's blood below the waist drawn again where what it's drawn from changed since it was asked for. It's also
  * drawn again where it was drawn on the other side of the dirt from the one it takes. It does this for the taur body's
- * images and for the taur-fitted garment's. The two sides are decided apart, as they lie on different dirt. The taur
- * body's side is read against the chest's drawn key (waist_blood_over()). The garment's is read against what its last
- * draw noted (dirt_cloth_run_over()). So a key or an image read for anything else can't hide a side left undrawn. That
- * garment gets a carrier of its own to draw the blood through, made here, outside any render. This runs at every cover
- * check (check_cover()), on anyone, taur or not. It deletes any carrier that holds nothing (holds_nothing()), whatever
- * made it. Unless the uniform or the suit carries the blood now, its carrier first drops any blood it drew, then is
- * deleted if it holds nothing. So is this carrier, once no worn garment's blood would draw below a taur's waist. Its
- * taur body is then drawn again without any blood it drew.
+ * images and for the taur-fitted garment's. The taur body's side is read against the chest's drawn key
+ * (waist_blood_over()). The garment's is read against what its last draw noted (dirt_cloth_run_over()). So a key or an
+ * image read for anything else can't hide a side left undrawn. That garment gets a carrier of its own to draw the blood
+ * through, made here, outside any render. This runs at every cover check (check_cover()), on anyone, taur or not. It
+ * deletes any carrier that holds nothing (holds_nothing()), whatever made it. Unless the uniform or the suit carries
+ * the blood now, its carrier first drops any blood it drew, then is deleted if it holds nothing. So is this carrier,
+ * once no worn garment's blood would draw below a taur's waist. Its taur body is then drawn again without the blood.
  *
  * Returns whether the taur body's images need drawing again.
  */
@@ -1548,7 +1490,7 @@
 	if(inputs)
 		var/datum/dirt_taur_source/source = dirt_taur_source(body)
 		blood_key = dirt_taur_blood_key(dirt_taur_blood_data(inputs, body), source)
-	var/obj/item/cloth = inputs?[4] && body.get_item_by_slot(inputs[4])
+	var/obj/item/cloth = inputs?[DIRT_BLOOD_INPUT_CLOTH_SLOT] && body.get_item_by_slot(inputs[DIRT_BLOOD_INPUT_CLOTH_SLOT])
 	// typed, so an empty slot is skipped
 	for(var/obj/item/garment in list(body.w_uniform, body.wear_suit))
 		var/datum/component/dirtiness/garment_carrier = garment.GetComponent(/datum/component/dirtiness)
@@ -1565,7 +1507,7 @@
 			qdel(garment_carrier)
 		if(garment_drew)
 			garment.update_slot_icon()
-	if(inputs?[3])
+	if(inputs?[DIRT_BLOOD_INPUT_BODY_DRAWS])
 		if(taur_blood?.parts_key != blood_key)
 			return TRUE
 		var/drawn_key = body.icon_render_keys[BODY_ZONE_CHEST]
@@ -1582,12 +1524,11 @@
 
 /**
  * Notes a taur whose uniform or suit effect was just cut at the waist (/obj/item/clothing/proc/fit_worn_effect()). If
- * it's a blood stain and the taur has no carrier of dirt yet, SSdirt makes one at its next fire, outside the render, so
- * the blood below the waist draws. A taur with a carrier follows its garments already
+ * it's a blood stain and the taur has no carrier of dirt yet, SSdirt makes one at its next fire, outside the render.
+ * Then the blood below the waist draws. A taur with a carrier follows its garments already
  * (/datum/component/dirtiness/proc/on_overlay_changed()). Rips draw nothing below the waist.
  *
  * Arguments:
- * - wearer: The taur.
  * - effect: The effect cut: a stain or a rip.
  */
 /proc/dirt_note_taur_stain(mob/living/carbon/human/wearer, mutable_appearance/effect)

@@ -28,26 +28,25 @@
 	var/body_images = 0
 	var/paint_images = 0
 	for(var/layer_images in taur.overlays_standing)
-		for(var/image/drawn as anything in (islist(layer_images) ? layer_images : list(layer_images)))
+		for(var/image/drawn as anything in standing_images(layer_images))
 			if(!drawn)
 				continue
 			if(draws_taur_body(drawn))
 				body_images++
-				TEST_ASSERT(!length(displacement_maps(drawn)), "A Tallest taur's body image ([drawn.icon_state]) is stretched for height")
+				TEST_ASSERT(!length(height_filter_maps(drawn)), "A Tallest taur's body image ([drawn.icon_state]) is stretched for height")
 			else if(PLANE_TO_TRUE(drawn.plane) != EMISSIVE_PLANE && (drawn.layer in paint_layers))
 				paint_images++
-				TEST_ASSERT(!length(displacement_maps(drawn)), "A Tallest taur's paint at layer [drawn.layer] is stretched for height, though the taur body under it isn't")
+				TEST_ASSERT(!length(height_filter_maps(drawn)), "A Tallest taur's paint at layer [drawn.layer] is stretched for height, though the taur body under it isn't")
 	TEST_ASSERT(body_images, "No taur body image was found to check")
 	TEST_ASSERT(paint_images, "No taur paint image was found to check")
 
 	var/image/suit_drawn
-	var/suit_standing = taur.overlays_standing[SUIT_LAYER]
-	for(var/image/drawn as anything in (islist(suit_standing) ? suit_standing : list(suit_standing)))
+	for(var/image/drawn as anything in standing_images(taur.overlays_standing[SUIT_LAYER]))
 		if(drawn.plane != EMISSIVE_PLANE)
 			suit_drawn = drawn
 			break
 	TEST_ASSERT_NOTNULL(suit_drawn, "A taur's apron draws nothing")
-	TEST_ASSERT(length(displacement_maps(suit_drawn)), "A Tallest taur's taur-fitted suit isn't stretched for height")
+	TEST_ASSERT(length(height_filter_maps(suit_drawn)), "A Tallest taur's taur-fitted suit isn't stretched for height")
 
 	for(var/height in list(HUMAN_HEIGHT_SHORTEST, HUMAN_HEIGHT_SHORT, HUMAN_HEIGHT_TALL, HUMAN_HEIGHT_TALLER, HUMAN_HEIGHT_TALLEST))
 		taur.set_mob_height(height)
@@ -70,9 +69,10 @@
 	var/image/root = bulge_drawn_root(taur.overlays_standing[SUIT_LAYER])
 	var/image/sprite = bulge_drawn_leaf(root)
 	var/list/size = sprite && get_icon_dimensions(sprite.icon)
-	var/list/maps = root && displacement_maps(root)
+	var/list/maps = root && height_filter_maps(root)
 	TEST_ASSERT(size?["width"] > ICON_SIZE_X && length(maps), "A taur's apron at [height_name] isn't drawn wider than a tile, or isn't stretched for height, so its maps' width can't be checked")
-	for(var/icon/map as anything in maps)
+	for(var/list/map_entry as anything in maps)
+		var/icon/map = map_entry[1]
 		TEST_ASSERT(map.Width() >= size["width"], "A [map.Width()] px wide height map stretches a taur's [size["width"]] px wide apron at [height_name], so only its middle stretches")
 
 /// Whether an image draws a taur body sprite, itself or in an image under it (a container holding its dirt)
@@ -83,12 +83,3 @@
 		if(draws_taur_body(child))
 			return TRUE
 	return FALSE
-
-/// The displacement maps of the height filters on an image. Its filters are read, not its filter_data, which the copy of
-/// it kept for drawing leaves behind.
-/datum/unit_test/taur_height_stretch/proc/displacement_maps(image/drawn)
-	RETURN_TYPE(/list)
-	. = list()
-	for(var/dm_filter/height_filter as anything in drawn.filters)
-		if(height_filter.type == "displace")
-			. += icon(height_filter.icon)

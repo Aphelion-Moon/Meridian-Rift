@@ -1,12 +1,7 @@
 /// How many twister words the draft stream keeps its state in, and how far ahead the twist reaches (MT19937's N and M).
 #define DIRT_DRAFT_WORDS 624
 #define DIRT_DRAFT_REACH 397
-/// The most of the draft's noise lattice points that SSdirt.lattice keeps before it's emptied, about 41 B each. A mask
-/// job keeps the lattice of the general deposit it draws between its pieces, in the field being drawn or in itself
-/// (/datum/dirt_mask_job/var/lattice). So each band and direction reads the points the others hashed. The exception is
-/// a shape's deposit drawn whole in each direction (dirt_shape_deposit()), where each direction starts afresh. Deposits
-/// sample about 540 points each, as measured, though their peak is unmeasured. The queue works one job at a time, so
-/// the lattice holds one job's points at a time, about 335 KB at most.
+/// The most of the draft's noise lattice points that SSdirt.lattice keeps before it's emptied (dirt_draft_noise()).
 #define DIRT_LATTICE_POINTS 8192
 /// The low half of the 32-bit word (`high`, `low`) times the constant (`by_high`, `by_low`), mod 2^32: low * by_low,
 /// taken through `low`'s bytes so no product passes 2^24. Pass it variables, because it reads them more than once.
@@ -15,13 +10,13 @@
 #define DIRT_DRAFT_PRODUCT_HIGH(high, low, by_high, by_low) ((((((((low) & 255) * (by_low)) & 65535) + (((((low) >> 8) * (by_low)) & 255) << 8)) >> 16) + ((((low) & 255) * (by_low)) >> 16) + ((((low) >> 8) * (by_low)) >> 8) + ((((low) & 255) * (by_high)) & 65535) + (((((low) >> 8) * (by_high)) & 255) << 8) + ((((high) & 255) * (by_low)) & 65535) + (((((high) >> 8) * (by_low)) & 255) << 8)) & 65535)
 
 /**
- * A stream of random draws seeded by text, the same on every server and in the reference generator, so a mask drawn
+ * A stream of random draws seeded by text, the same on every server and in the reference generator. So a mask drawn
  * here matches the reference's pixel for pixel. The nth draw, counting from 0, is md5("[seed]:[n]") cut to its first
- * six hex digits: a 24-bit integer, which a DM number holds exactly. Mess takes its random draws from it. Under
- * DIRT_DRAFT_EXACT, general deposits take theirs from the draft stream (/datum/dirt_random/draft).
+ * six hex digits: a 24-bit integer, which a DM number holds exactly. Mess takes its random draws from it, and general
+ * deposits take theirs from the draft stream (/datum/dirt_random/draft).
  *
- * Everything built on draws spends them in the reference's order. Never take a draw with rand() or prob(), and never
- * take a modulo with % or %% on something that may come out negative: use DIRT_MODULO.
+ * Everything built on draws spends them in the reference's order. Never take a draw with rand() or prob(), which the
+ * reference can't repeat. Take a modulo of something that may come out negative with DIRT_MODULO, never % or %%.
  */
 /datum/dirt_random
 	/// The text every draw hashes.
@@ -33,8 +28,8 @@
  * Starts a stream at its first draw.
  *
  * Arguments:
- * - seed: The stream's text, spelled as the reference spells it ("aimed_chest:0"). Seeds are text: a number is written
- *   out in full, which matches the reference for whole numbers only.
+ * - seed: The stream's text, spelled as the reference spells it ("aimed_chest:0"). A number is written out in full,
+ *   which matches the reference for whole numbers only.
  */
 /datum/dirt_random/New(seed)
 	. = ..()
@@ -50,9 +45,7 @@
 	draw_count++
 	return hex2num(copytext(digest, 1, 7))
 
-/**
- * Returns the next draw as a fraction from 0 up to 1, never 1.
- */
+/// Returns the next draw as a fraction from 0 up to 1, never 1.
 /datum/dirt_random/proc/random()
 	return draw() / 16777216
 
@@ -91,9 +84,6 @@
 /**
  * Returns one of `options`, from one draw.
  *
- * Arguments:
- * - options: The list to pick from.
- *
  * Crashes:
  * - Divides by zero when `options` is empty.
  */
@@ -101,36 +91,9 @@
 	return options[randrange(length(options)) + 1]
 
 /**
- * Returns one of `options` by whole-number weights, from one random draw. The draw picks a place below the weights'
- * sum, and the option whose share holds that place is taken. The reference returns it in a list of one.
- *
- * Arguments:
- * - options: The list to pick from.
- * - weights: Each option's weight, a whole number, in the same order.
- *
- * Crashes:
- * - Divides by zero when the weights sum to 0.
- */
-/datum/dirt_random/proc/choices(list/options, list/weights)
-	var/total = 0
-	for(var/weight in weights)
-		total += weight
-	var/target = randrange(total)
-	for(var/position in 1 to length(options))
-		var/weight = weights[position]
-		if(target < weight)
-			return options[position]
-		target -= weight
-	return options[length(options)]
-
-/**
  * Returns a normally distributed number, from two draws (Box-Muller).
  *
  * The first draw is turned round to 1 - random(), so the log never sees 0. DM's trigonometry takes degrees.
- *
- * Arguments:
- * - mean: The centre of the distribution.
- * - deviation: Its standard deviation.
  */
 /datum/dirt_random/proc/gauss(mean, deviation)
 	var/radius_draw = 1 - random()
@@ -139,9 +102,6 @@
 
 /**
  * Shuffles `items` in place, from the last position down (Fisher-Yates), with one draw for each position but the first.
- *
- * Arguments:
- * - items: The list to shuffle.
  *
  * Returns:
  * - `items` itself, shuffled.
@@ -153,21 +113,10 @@
 	return items
 
 /**
- * Returns a whole number from 0 up to `count`, never `count`, as the reference's draw_index() takes one. That's one
- * randrange() here, and int(random() * count) on the draft stream.
- *
- * Arguments:
- * - count: How many results there are, a positive whole number.
- */
-/datum/dirt_random/proc/draw_index(count)
-	return randrange(count)
-
-/**
  * Returns `count` of `items` without repeats, as a new list: a Fisher-Yates from the front, stopped after `count`
  * draws. `items` is left as it was.
  *
  * Arguments:
- * - items: The list to pick from.
  * - count: How many to pick, no more than `items` holds.
  *
  * Crashes:
@@ -180,19 +129,10 @@
 		pool.Swap(position + 1, swap + 1)
 	return pool.Copy(1, count + 1)
 
-/**
- * Returns a general deposit's stream: the draft stream under DIRT_DRAFT_EXACT, else the portable one that mess uses.
- *
- * Arguments:
- * - seed: The stream's text, as the reference spells it ("walk:3").
- */
+/// Returns the draft stream a general deposit draws from, for its seed text as the reference spells it ("walk:3").
 /proc/dirt_general_stream(seed)
-	RETURN_TYPE(/datum/dirt_random)
-#ifdef DIRT_DRAFT_EXACT
+	RETURN_TYPE(/datum/dirt_random/draft)
 	return new /datum/dirt_random/draft(seed)
-#else
-	return new /datum/dirt_random(seed)
-#endif
 
 /**
  * The original draft's stream: Python's random.Random(seed text), word for word, so a general deposit draws as the
@@ -222,9 +162,7 @@
 	. = ..()
 	words = SSdirt.draft_words.fetch(src.seed) || SSdirt.draft_words.store_value(src.seed, new /datum/dirt_draft_words(src.seed))
 
-/**
- * Reads the next 32-bit word into word_high and word_low, making it first if no stream of this text has made it yet.
- */
+/// Reads the next 32-bit word into word_high and word_low, making it first if no stream of this text has made it yet.
 /datum/dirt_random/draft/proc/next_word()
 	var/datum/dirt_draft_words/kept = words
 	if(position >= kept.count)
@@ -329,8 +267,9 @@
 			return drawn
 	CRASH("A dirt draft stream drew 64 times past [count].")
 
-/// Returns int(random() * count), taken exactly.
-/datum/dirt_random/draft/draw_index(count)
+/// Returns a whole number from 0 up to `count`, never `count`, as the reference's draw_index() takes one:
+/// int(random() * count), taken exactly.
+/datum/dirt_random/draft/proc/draw_index(count)
 	return dirt_fraction_index(random(), count)
 
 /// Crashes, because it's the portable stream's alone. An md5 random draw here would silently differ from the draft's.
@@ -349,7 +288,7 @@
  * - options: The list to pick from.
  * - weights: Each option's weight, a whole number, in the same order. Their sum is up to 4096.
  */
-/datum/dirt_random/draft/choices(list/options, list/weights)
+/datum/dirt_random/draft/proc/choices(list/options, list/weights)
 	var/total = 0
 	for(var/weight in weights)
 		total += weight
@@ -366,10 +305,6 @@
 /**
  * Returns a normally distributed number as CPython's gauss() does. It makes a pair from two random()s, returns the
  * cosine's and keeps the sine's for the next call.
- *
- * Arguments:
- * - mean: The centre of the distribution.
- * - deviation: Its standard deviation.
  */
 /datum/dirt_random/draft/gauss(mean, deviation)
 	var/drawn = gauss_next
@@ -382,9 +317,9 @@
 	return mean + drawn * deviation
 
 /**
- * A seed text's draft-stream words, as every stream of it reads them. It holds the tempered words made so far, three
- * packed in four 24-bit numbers. While it's SSdirt.draft_open, it also holds the twister's state to make more. When
- * it's closed and a stream needs more, it's seeded again and twisted on to where it stopped.
+ * A seed text's draft-stream words, as every stream of it reads them. It holds the tempered words made so far. While
+ * it's SSdirt.draft_open, it also holds the twister's state to make more. When it's closed and a stream needs more,
+ * it's seeded again and twisted on to where it stopped.
  */
 /datum/dirt_draft_words
 	/// The seed text.
@@ -401,9 +336,7 @@
 	. = ..()
 	src.seed = seed
 
-/**
- * Seeds the twister again and twists it on past the words already made, closing the entry that was open.
- */
+/// Seeds the twister again and twists it on past the words already made, closing the entry that was open.
 /datum/dirt_draft_words/proc/open()
 	var/datum/dirt_draft_words/was_open = SSdirt.draft_open
 	if(was_open && was_open != src)
@@ -435,12 +368,7 @@
 	twister[slot * 2 + 1] = high
 	twister[slot * 2 + 2] = low
 
-/**
- * Makes words until `wanted` are made, opening the twister first if it's closed.
- *
- * Arguments:
- * - wanted: How many words there should be.
- */
+/// Makes words until `wanted` are made, opening the twister first if it's closed.
 /datum/dirt_draft_words/proc/fill(wanted)
 	if(!state)
 		open()
@@ -639,7 +567,7 @@
  * Returns the tables the draft's noise hash reads (dirt_draft_hash_bits()), each 32-bit product as its high half then
  * its low. From 1 are the column terms (x * 374761393) of x from -512 up to 512, at (x + 512) * 2 + 1. From 2049 are
  * the row terms (y * 668265263), laid out the same way. From 4097 is each byte b in byte place t of a word (from the
- * lowest) times 1274126177, at (t * 256 + b) * 2 + 4097. That's 6,144 numbers, about 48 KB, built on the first call.
+ * lowest) times 1274126177, at (t * 256 + b) * 2 + 4097. That's 6,144 numbers, built on the first call.
  * You should NEVER modify it.
  */
 /proc/dirt_draft_hash_tables()
@@ -677,10 +605,7 @@
 	if(abs(cell_x) >= 2048 || abs(cell_y) >= 2048)
 		return dirt_draft_hash_bits(cell_x, cell_y, seed) / 65535
 	var/alist/lattice = SSdirt.lattice
-	var/alist/points = lattice[seed]
-	if(!points)
-		points = alist()
-		lattice[seed] = points
+	var/alist/points = (lattice[seed] ||= alist())
 	var/key = (cell_x + 2048) * 4096 + cell_y + 2048
 	. = points[key]
 	if(!isnull(.))
@@ -711,8 +636,8 @@
 	return table
 
 /**
- * Returns a lattice point's noise value, from 0 to 1 in steps of 1/255. While a general deposit is drawn under
- * DIRT_DRAFT_EXACT, it's the draft's value (dirt_draft_noise()), read in place where SSdirt.lattice keeps it.
+ * Returns a lattice point's noise value, from 0 to 1 in steps of 1/255. While a general deposit is drawn
+ * (SSdirt.drafting), it's the draft's value (dirt_draft_noise()), read in place where SSdirt.lattice keeps it.
  *
  * The seed's low byte, its next byte and then the point's coordinates are chained through the permutation table.
  * DIRT_MODULO keeps every index in range when a coordinate is negative.
@@ -722,7 +647,6 @@
  * - seed: The noise field's seed, a whole number.
  */
 /proc/dirt_noise_hash(cell_x, cell_y, seed)
-#ifdef DIRT_DRAFT_EXACT
 	if(SSdirt.drafting)
 		// where dirt_draft_noise() keeps it
 		if(cell_x > -2048 && cell_x < 2048 && cell_y > -2048 && cell_y < 2048)
@@ -731,7 +655,6 @@
 			if(!isnull(.))
 				return
 		return dirt_draft_noise(cell_x, cell_y, seed)
-#endif
 	var/static/list/table
 	table ||= dirt_perm_table()
 	var/seed_high = floor(seed / 256)
@@ -743,7 +666,7 @@
 /**
  * Returns smooth value noise from 0 to 1: the four lattice points round a sample, blended with a smoothstep. Each point
  * is dirt_noise_hash()'s, with its chain's seed steps taken once for all four and each column's step once. While a
- * general deposit is drawn under DIRT_DRAFT_EXACT, each point is dirt_draft_noise()'s instead, read in place where
+ * general deposit is drawn (SSdirt.drafting), each point is dirt_draft_noise()'s instead. It's read in place where
  * SSdirt.lattice keeps all four, and asked of dirt_draft_noise() for the rest.
  *
  * Arguments:
@@ -760,7 +683,6 @@
 	var/blend_y = scaled_y - cell_y
 	blend_x = blend_x * blend_x * (3 - 2 * blend_x)
 	blend_y = blend_y * blend_y * (3 - 2 * blend_y)
-#ifdef DIRT_DRAFT_EXACT
 	if(SSdirt.drafting)
 		var/draft_top_left
 		var/draft_top_right
@@ -783,7 +705,6 @@
 		if(isnull(draft_bottom_right))
 			draft_bottom_right = dirt_draft_noise(cell_x + 1, cell_y + 1, seed)
 		return (draft_top_left + (draft_top_right - draft_top_left) * blend_x) * (1 - blend_y) + (draft_bottom_left + (draft_bottom_right - draft_bottom_left) * blend_x) * blend_y
-#endif
 	var/static/list/table
 	table ||= dirt_perm_table()
 	var/seed_high = floor(seed / 256)

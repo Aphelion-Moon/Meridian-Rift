@@ -2,18 +2,16 @@
  * Blood below a taur's waist starts one row under its garment's stain, at every height. The stain is cut at the waist.
  * The rider's height filter then moves the stain's last row while the taur body under it stays put, so the start row
  * follows the height (dirt_blood_seam_row()). This test works out the stain's last row from the crop and the height
- * maps the game puts on it, so a change to either, or to the start rows, fails. Drawing the blood must also settle.
+ * maps the game puts on it. So a change to either, or to the start rows, fails. Drawing the blood must also settle.
  * What it's drawn from is read on the render path, and checked again as worn sprites change. If the two disagree, the
  * taur redraws forever. That's most likely where the most is read: a bloodied uniform under a bloodied suit, and a
  * taur-fitted apron that carries the blood on its cloth and on the body under its hem. A taur-fitted suit draws its
  * share through a carrier of its own, made outside the render. A carrier made for the blood alone goes once the blood
- * is washed off or its garment is taken off. The newest landing draws on top. On a garment, its blood is ordered
- * against its own dirt. Below the waist, the blood is ordered against the taur body's own dirt. When blood lands again
- * over a garment's dirt, the order turns over with no masks made again. A garment holding the blood list of the one it
- * replaced counts as blood landing.
+ * is washed off or its garment is taken off. The newest landing draws on top (check_newest_on_top()), and a garment
+ * holding the blood list of the one it replaced counts as blood landing (check_shared_blood_list()).
  */
 /datum/unit_test/dirt_taur_blood
-	parent_type = /datum/unit_test/dirt_genital_test
+	parent_type = /datum/unit_test/dirt_test
 
 /datum/unit_test/dirt_taur_blood/Run()
 	var/mob/living/carbon/human/consistent/taur = allocate(/mob/living/carbon/human/consistent)
@@ -115,7 +113,7 @@
 	settles(taur, "with soot landed on its labcoat after the coat's blood")
 	var/soot = coat_carrier.cloth?.masks?.baked
 	TEST_ASSERT_NOTNULL(soot, "A horse taur's sooty labcoat draws no soot")
-	var/list/worn = worn_places(taur, soot)
+	var/list/worn = worn_places(taur, SUIT_LAYER, soot)
 	TEST_ASSERT(worn[1] && worn[2], "A horse taur's sooty, bloodied labcoat draws its stain at [worn[1]] and its soot at [worn[2]], not both")
 	TEST_ASSERT(worn[1] < worn[2], "Soot landed after a labcoat's blood draws under the coat's stain")
 	held = container_places(taur, own)
@@ -125,7 +123,7 @@
 
 	coat.add_blood_DNA(list("Test DNA" = get_blood_type(/datum/blood_type/human/o_minus)))
 	SSdirt.finish_all()
-	worn = worn_places(taur, soot)
+	worn = worn_places(taur, SUIT_LAYER, soot)
 	TEST_ASSERT(worn[2] && worn[1] > worn[2], "Blood landed again on a sooty labcoat draws its stain at [worn[1]], under its soot at [worn[2]]")
 	TEST_ASSERT_EQUAL(coat_carrier.cloth.key, cloth_key, "Blood landing on a sooty labcoat has the soot's masks made again")
 	TEST_ASSERT_EQUAL(own.taur_blood?.key, blood_key, "Blood landing again on a horse taur's labcoat has the blood below its waist made again")
@@ -161,33 +159,10 @@
 	TEST_ASSERT(held && held[1] > held[2], "A labcoat put on that holds the blood list of the one it replaced draws its blood below a horse taur's waist under the older mud on its body")
 
 /**
- * Returns where a taur's suit draws its blood stain and an inset image of a baked icon in its worn wrapper, as
- * list(the stain's place, the image's). Each is 0 if it isn't drawn.
- *
- * Arguments:
- * - taur: The taur.
- * - baked: The baked icon.
- */
-/datum/unit_test/dirt_taur_blood/proc/worn_places(mob/living/carbon/human/taur, baked)
-	RETURN_TYPE(/list)
-	var/image/root = bulge_drawn_root(taur.overlays_standing[SUIT_LAYER])
-	var/stain_at = 0
-	var/baked_at = 0
-	var/position = 0
-	for(var/image/child as anything in root?.overlays)
-		position++
-		if(child.icon == 'icons/effects/blood.dmi')
-			stain_at = position
-		else if(child.icon == baked && child.blend_mode == BLEND_INSET_OVERLAY)
-			baked_at = position
-	return list(stain_at, baked_at)
-
-/**
  * Returns where the blood below a taur's waist and the dirt on its taur body lie, as list(the blood's place, the
  * dirt's). It reads the first container on the taur's chest that holds both, and returns null if none does.
  *
  * Arguments:
- * - taur: The taur.
  * - own: The taur's carrier of dirt, with both drawn.
  */
 /datum/unit_test/dirt_taur_blood/proc/container_places(mob/living/carbon/human/taur, datum/component/dirtiness/own)
@@ -197,9 +172,7 @@
 		var/dirt = pools.masks.baked_by_layer[layer_key]
 		if(!blood || !dirt)
 			continue
-		for(var/image/drawn as anything in taur.drawn_limb_icons(BODY_ZONE_CHEST))
-			if(drawn.icon || !length(drawn.overlays))
-				continue
+		for(var/image/drawn as anything in limb_containers(taur, BODY_ZONE_CHEST))
 			var/blood_at = 0
 			var/dirt_at = 0
 			var/position = 0
@@ -236,14 +209,10 @@
 			crop = icon(stain_filter.icon)
 	TEST_ASSERT_NOTNULL(crop, "A horse taur's labcoat stain isn't cut at the waist at [height_name]")
 	var/list/maps = list()
-	for(var/image/drawn as anything in islist(taur.overlays_standing[SUIT_LAYER]) ? taur.overlays_standing[SUIT_LAYER] : list(taur.overlays_standing[SUIT_LAYER]))
-		if(drawn.plane == EMISSIVE_PLANE)
-			continue
-		// keep the maps in the order they're drawn
-		for(var/dm_filter/height_filter as anything in drawn.filters)
-			if(height_filter.type == "displace")
-				maps += list(list(icon(height_filter.icon), height_filter.size))
-		break
+	for(var/image/drawn as anything in standing_images(taur.overlays_standing[SUIT_LAYER]))
+		if(drawn.plane != EMISSIVE_PLANE)
+			maps = height_filter_maps(drawn)
+			break
 	var/drew = FALSE
 	for(var/direction in list(SOUTH, EAST, WEST))
 		var/top = blood_top_row(masks, direction)
@@ -256,7 +225,7 @@
 /// Returns the first image drawn from icons/effects/blood.dmi among some worn images, searching their overlays too.
 /datum/unit_test/dirt_taur_blood/proc/find_stain(standing)
 	RETURN_TYPE(/image)
-	for(var/image/drawn as anything in islist(standing) ? standing : list(standing))
+	for(var/image/drawn as anything in standing_images(standing))
 		if(drawn.icon == 'icons/effects/blood.dmi')
 			return drawn
 		var/image/found = find_stain(drawn.overlays)
@@ -266,9 +235,7 @@
 
 /**
  * Returns the row, from the top, that the stain's last row is drawn on: the crop's last whole row, moved by each height
- * map in turn. A map tells each row which row it shows, by its green channel (128 shows its own, 0 the row a size
- * above, 255 the row a size below), rounded to the nearest row. A row that shows a row past the stain's last shows no
- * stain.
+ * map in turn (row_shown()). A row that shows a row past the stain's last shows no stain.
  */
 /datum/unit_test/dirt_taur_blood/proc/stain_bottom(icon/crop, list/maps, direction)
 	var/bottom = -1
@@ -282,15 +249,9 @@
 			break
 		bottom = row
 	for(var/list/map_entry as anything in maps)
-		var/icon/map = map_entry[1]
-		var/size = map_entry[2]
 		var/moved = -1
 		for(var/row in 0 to ICON_SIZE_Y - 1)
-			var/shown = row
-			var/colour = map.GetPixel(floor(map.Width() / 2), ICON_SIZE_Y - row)
-			if(colour)
-				shown += (rgb2num(colour)[2] - 128) / 127 * size
-			if(floor(shown + 0.5) <= bottom)
+			if(row_shown(map_entry[1], map_entry[2], row) <= bottom)
 				moved = row
 		bottom = moved
 	return bottom

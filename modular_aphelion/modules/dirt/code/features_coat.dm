@@ -1,7 +1,7 @@
 /**
- * A coat up from a limb's lower end. It's contact at the bottom and body up to a jagged line. The line tilts from front
- * to back, and at levels 2 and 3 it rises in a tongue with a film tip. Film runs along under the line, so the coat's
- * edge follows the line and is never one level row. One or two 1x2 film windows break the body.
+ * A coat up from a limb's lower end. It's contact at the bottom and the body tone up to a jagged line. The line tilts
+ * from front to back, and at levels 2 and 3 it rises in a tongue with a film tip. Film runs along under the line, so
+ * the coat's edge follows the line and is never one level row. One or two 1x2 film windows break the body tone.
  */
 /datum/dirt_feature/coatline
 	/// The line's height over the limb's lower end, in pixels, before its tilt and tongue.
@@ -14,21 +14,9 @@
 	var/list/tongue
 	/// How many pixels of film run under the line.
 	var/film_px
-	/// Each window: list(theta, pixels up).
+	/// Each window: list(theta, pixels up), or null for none.
 	var/list/windows
 
-/**
- * Starts a coat.
- *
- * Arguments:
- * - limb: The DIRT_LIMB_* define it lies on.
- * - top_px: The line's height over the limb's lower end, in pixels, before its tilt and tongue.
- * - solid_px: Pixels up from the lower end that are contact.
- * - tilt_px: How much higher the line sits at the front than at the back, in pixels.
- * - tongue: list(theta, height in pixels, half width in degrees), or null.
- * - film_px: How many pixels of film run under the line.
- * - windows: Each window, list(theta, pixels up), or null.
- */
 /datum/dirt_feature/coatline/New(limb, top_px, solid_px, tilt_px = 0, list/tongue = null, film_px = 1, list/windows = null)
 	. = ..(limb)
 	src.top_px = top_px
@@ -54,9 +42,7 @@
 		top += tongue[2] * min(1, closeness * 1.6)
 	return top
 
-/**
- * Returns contact up to solid_px, nothing over the line, film just under it and in the windows, and body between.
- */
+/// Returns contact up to solid_px, nothing over the line, film just under it and in the windows, and body between.
 /datum/dirt_feature/coatline/thickness(theta, along)
 	var/up = along / along_per_pixel
 	if(up <= solid_px)
@@ -74,26 +60,18 @@
 	return DIRT_BODY_T
 
 /**
- * An irregular patch whose outline wobbles round it, with a film ring past it. Its middle may be contact (a kneecap).
+ * An irregular patch whose outline wobbles round it, with a film ring past it.
  *
  * As in the reference generator, a blob whose ring has a width is ringed too (/datum/dirt_feature/var/ring), so a
  * broken film ring also runs round it.
  */
 /datum/dirt_feature/blob
-	/// The theta at its middle.
-	var/centre_theta
-	/// The h at its middle.
-	var/centre_along
 	/// Its radius round the limb, in pixels.
 	var/radius_x
 	/// Its radius up the limb, in pixels.
 	var/radius_y
-	/// The seed of the noise its outline wobbles by.
-	var/seed
 	/// How far its outline wobbles, as a fraction of its radius.
 	var/ragged
-	/// How far out from its middle it's contact, as a fraction of its radius: 0 for none.
-	var/contact
 	/// How far its film ring reaches past its outline, as a fraction of its radius: 0 for none.
 	var/ring_width
 
@@ -101,38 +79,21 @@
  * Starts a blob.
  *
  * Arguments:
- * - limb: The DIRT_LIMB_* define it lies on.
- * - theta: The theta at its middle.
- * - along: The h at its middle.
- * - radius_x: Its radius round the limb, in pixels.
- * - radius_y: Its radius up the limb, in pixels.
  * - seed: The seed of the noise its outline wobbles by, a whole number.
- * - ragged: How far its outline wobbles, as a fraction of its radius.
- * - contact: How far out from its middle it's contact, as a fraction of its radius.
- * - ring_width: How far its film ring reaches past its outline, as a fraction of its radius.
  */
-/datum/dirt_feature/blob/New(limb, theta, along, radius_x, radius_y, seed, ragged = 0.25, contact = 0, ring_width = 0.35)
-	. = ..(limb)
-	centre_theta = theta
-	centre_along = along
+/datum/dirt_feature/blob/New(limb, theta, along, radius_x, radius_y, seed, ragged = 0.25, ring_width = 0.35)
+	. = ..(limb, theta, along)
 	src.radius_x = radius_x
 	src.radius_y = radius_y
 	src.seed = seed
 	src.ragged = ragged
-	src.contact = contact
 	src.ring_width = ring_width
 	ring = ring_width != 0
 	// its widest wobble and ring, and half a pixel to spare
 	var/spread = (1 + ring_width) * (1 + ragged)
-	reach_theta = theta
-	reach_degrees = (spread * radius_x + 0.5) * degrees_per_pixel
-	var/reach_along = (spread * radius_y + 0.5) * along_per_pixel
-	reach_low = along - reach_along
-	reach_high = along + reach_along
+	set_reach(theta, along, spread * radius_x + 0.5, spread * radius_y + 0.5, spread * radius_y + 0.5)
 
-/**
- * Returns contact inside `contact`, body inside the wobbling outline, and film in its ring.
- */
+/// Returns the body tone inside the wobbling outline, and film in its ring.
 /datum/dirt_feature/blob/thickness(theta, along)
 	var/turn = theta - centre_theta
 	var/across = DIRT_WRAP_DEGREES(turn) / degrees_per_pixel
@@ -151,31 +112,21 @@
 	var/stretched_across = across / radius_x
 	var/stretched_up = up / radius_y
 	var/distance = sqrt(stretched_across * stretched_across + stretched_up * stretched_up) / wobble
-	if(distance < contact)
-		return 1
 	if(distance < 1)
 		return DIRT_BODY_T
 	if(distance < 1 + ring_width)
 		return DIRT_FILM_T
 	return 0
 
-/**
- * A worn-in patch that breaks up toward its edge with noise. Below full strength it draws film only.
- */
+/// A worn-in patch that breaks up toward its edge with noise. Below full strength it draws film only.
 /datum/dirt_feature/patch
-	/// The theta at its middle.
-	var/centre_theta
-	/// The h at its middle.
-	var/centre_along
 	/// Its radius round the limb, in pixels.
 	var/radius_x
 	/// Its radius up the limb, in pixels.
 	var/radius_y
-	/// The seed of the noise it breaks up by.
-	var/seed
 	/// How much of it is drawn at its middle, from 0 to 1.
 	var/density
-	/// 1 to draw body where it's thickest, less for film only.
+	/// 1 to draw the body tone where it's thickest, less for film only.
 	var/strength
 	/// The noise's lattice spacing, in pixels.
 	var/scale
@@ -184,20 +135,10 @@
  * Starts a patch.
  *
  * Arguments:
- * - limb: The DIRT_LIMB_* define it lies on.
- * - theta: The theta at its middle.
- * - along: The h at its middle.
- * - radius_x: Its radius round the limb, in pixels.
- * - radius_y: Its radius up the limb, in pixels.
  * - seed: The seed of the noise it breaks up by, a whole number.
- * - density: How much of it is drawn at its middle, from 0 to 1.
- * - strength: 1 to draw body where it's thickest, less for film only.
- * - scale: The noise's lattice spacing, in pixels.
  */
 /datum/dirt_feature/patch/New(limb, theta, along, radius_x, radius_y, seed, density = 1, strength = 1, scale = 2.6)
-	. = ..(limb)
-	centre_theta = theta
-	centre_along = along
+	. = ..(limb, theta, along)
 	src.radius_x = radius_x
 	src.radius_y = radius_y
 	src.seed = seed
@@ -205,15 +146,9 @@
 	src.strength = strength
 	src.scale = scale
 	// nothing past 1.3 radii, and half a pixel to spare
-	reach_theta = theta
-	reach_degrees = (1.3 * radius_x + 0.5) * degrees_per_pixel
-	var/reach_along = (1.3 * radius_y + 0.5) * along_per_pixel
-	reach_low = along - reach_along
-	reach_high = along + reach_along
+	set_reach(theta, along, 1.3 * radius_x + 0.5, 1.3 * radius_y + 0.5, 1.3 * radius_y + 0.5)
 
-/**
- * Returns film where its noise passes a bar rising toward its edge, or body where the noise is high at full strength.
- */
+/// Returns film where its noise passes a bar rising toward its edge, or the body tone where it's high at full strength.
 /datum/dirt_feature/patch/thickness(theta, along)
 	var/turn = theta - centre_theta
 	var/across = DIRT_WRAP_DEGREES(turn) / degrees_per_pixel / radius_x
@@ -227,27 +162,16 @@
 		return 0
 	return (strength >= 1 && noise > 1 - drawn * 0.5) ? DIRT_BODY_T : DIRT_FILM_T
 
-/**
- * An even tone over a whole limb. Its subtypes keep to part of it.
- */
+/// An even tone over a whole limb. Its subtypes keep to part of it.
 /datum/dirt_feature/region
 	/// How thick it lies: DIRT_FILM_T or DIRT_BODY_T.
 	var/value
 
-/**
- * Starts a tone.
- *
- * Arguments:
- * - limb: The DIRT_LIMB_* define it lies on.
- * - value: How thick it lies.
- */
 /datum/dirt_feature/region/New(limb, value = DIRT_FILM_T)
 	. = ..(limb)
 	src.value = value
 
-/**
- * Returns its value wherever it lies on its limb (covers()).
- */
+/// Returns its value wherever it lies on its limb (covers()).
 /datum/dirt_feature/region/thickness(theta, along)
 	return covers(theta, along) ? value : 0
 
@@ -261,24 +185,13 @@
 /datum/dirt_feature/region/proc/covers(theta, along)
 	return TRUE
 
-/**
- * A tone in a band round a limb, between two heights: a cuff, a hem.
- */
+/// A tone in a band round a limb, between two heights: a cuff, a hem.
 /datum/dirt_feature/region/band
 	/// The h it lies over, not on.
 	var/low
 	/// The h it lies under, not on.
 	var/high
 
-/**
- * Starts a band.
- *
- * Arguments:
- * - limb: The DIRT_LIMB_* define it lies on.
- * - low: The h it lies over, not on.
- * - high: The h it lies under, not on.
- * - value: How thick it lies.
- */
 /datum/dirt_feature/region/band/New(limb, low, high, value = DIRT_FILM_T)
 	. = ..(limb, value)
 	src.low = low
@@ -290,9 +203,7 @@
 /datum/dirt_feature/region/band/covers(theta, along)
 	return along > low && along < high
 
-/**
- * A tone over a limb's top, on its front, and on its back too where it reaches there: a collar.
- */
+/// A tone over a limb's top, on its front, and on its back too where it reaches there: a collar.
 /datum/dirt_feature/region/collar
 	/// The h it lies over, not on.
 	var/low
@@ -301,16 +212,6 @@
 	/// How many degrees either side of the back it reaches, up to but not on that angle, or 0 for none.
 	var/back_turn
 
-/**
- * Starts a collar.
- *
- * Arguments:
- * - limb: The DIRT_LIMB_* define it lies on.
- * - low: The h it lies over, not on.
- * - half_turn: How many degrees either side of the front it reaches, up to but not on that angle.
- * - value: How thick it lies.
- * - back_turn: How many degrees either side of the back it reaches, up to but not on that angle, or 0 for none.
- */
 /datum/dirt_feature/region/collar/New(limb, low, half_turn, value = DIRT_FILM_T, back_turn = 0)
 	. = ..(limb, value)
 	src.low = low
@@ -336,13 +237,11 @@
 	var/depth_px
 	/// The theta it faces.
 	var/facing
-	/// The seed of the noise its edge wanders by.
-	var/seed
-	/// The mob's dirtier side, 1 or -1, or 0 for neither.
+	/// The dirtier side, 1 (the body's right) or -1, or 0 for neither.
 	var/side
 	/// How much of its depth reaches round the back.
 	var/back
-	/// How much of its depth, from the top, is body.
+	/// How much of its depth, from the top, is the body tone.
 	var/body_fraction
 	/// Whether it's broken and a step lighter, as bare skin takes it.
 	var/broken
@@ -351,14 +250,7 @@
  * Starts a coat from above.
  *
  * Arguments:
- * - limb: The DIRT_LIMB_* define it lies on.
- * - depth_px: How many pixels down it reaches on the side it faces.
- * - facing: The theta it faces.
  * - seed: The seed of the noise its edge wanders by, a whole number.
- * - side: The mob's dirtier side, 1 or -1, or 0 for neither.
- * - back: How much of its depth reaches round the back.
- * - body_fraction: How much of its depth, from the top, is body.
- * - broken: Whether it's broken and a step lighter.
  */
 /datum/dirt_feature/mantle/New(limb, depth_px, facing, seed, side = 0, back = 0.45, body_fraction = 0.4, broken = FALSE)
 	. = ..(limb)
@@ -373,8 +265,8 @@
 	reach_low = 1 - (depth_px + 3.75) * along_per_pixel
 
 /**
- * Returns body down to its body fraction, film to its depth, and haze a pixel past that. A broken mantle is a step
- * lighter and draws only where its own noise leaves it, and the shoulder tops keep a little more of it.
+ * Returns the body tone down to its body fraction, film to its depth, and haze a pixel past that. A broken mantle is a
+ * step lighter and draws only where its own noise leaves it. The shoulder tops keep a little more of it.
  */
 /datum/dirt_feature/mantle/thickness(theta, along)
 	var/down = (1 - along) / along_per_pixel
@@ -394,10 +286,9 @@
 	return thickness >= DIRT_BODY_T ? DIRT_FILM_T : (thickness >= DIRT_FILM_T ? DIRT_HAZE_T : 0)
 
 /**
- * Where cloth soaks through with sweat. It's wettest in the middle with a soft rim, and large noise makes its outline
+ * Where cloth soaks through with sweat. It's wettest in the middle with a soft rim. Large noise makes its outline
  * wander, since sweat wicks out unevenly and is never round or level. Its shape (/datum/dirt_shape) gives each point's
- * distance from the middle, 1 at the edge. Sweat has no contact point, so a soaked core, if the patch has one, is the
- * one darkest role in its middle.
+ * distance from the middle, 1 at the edge.
  */
 /datum/dirt_feature/damp
 	/// The theta it's anchored at.
@@ -406,12 +297,8 @@
 	var/anchor_along
 	/// Its /datum/dirt_shape, from the anchor.
 	var/datum/dirt_shape/shape
-	/// The seed of the noise its outline wanders by.
-	var/seed
-	/// The distance body reaches to.
+	/// The distance the body tone reaches to.
 	var/body
-	/// The distance the soaked core reaches to: 0 for none.
-	var/core
 	/// How far its outline wanders.
 	var/ragged
 
@@ -419,23 +306,15 @@
  * Starts a damp patch.
  *
  * Arguments:
- * - limb: The DIRT_LIMB_* define it lies on.
- * - theta: The theta it's anchored at.
- * - along: The h it's anchored at.
- * - shape: Its /datum/dirt_shape, from the anchor.
  * - seed: The seed of the noise its outline wanders by, a whole number.
- * - body: The distance body reaches to.
- * - core: The distance the soaked core reaches to: 0 for none.
- * - ragged: How far its outline wanders.
  */
-/datum/dirt_feature/damp/New(limb, theta, along, datum/dirt_shape/shape, seed, body = 0.6, core = 0, ragged = 0.28)
+/datum/dirt_feature/damp/New(limb, theta, along, datum/dirt_shape/shape, seed, body = 0.6, ragged = 0.28)
 	. = ..(limb)
 	anchor_theta = theta
 	anchor_along = along
 	src.shape = shape
 	src.seed = seed
 	src.body = body
-	src.core = core
 	src.ragged = ragged
 	// nothing past 1.6, and half a pixel to spare
 	var/list/extent = shape.extent
@@ -444,9 +323,7 @@
 	reach_low = along + (extent[3] - 0.5) * along_per_pixel
 	reach_high = along + (extent[4] + 0.5) * along_per_pixel
 
-/**
- * Returns the soaked core, body, film to the edge and haze 0.2 past it. The outline wanders past a distance of 0.45.
- */
+/// Returns the body tone out to `body`, film to the edge and haze 0.2 past it. Its outline wanders past 0.45.
 /datum/dirt_feature/damp/thickness(theta, along)
 	var/turn = theta - anchor_theta
 	var/distance = shape.distance(DIRT_WRAP_DEGREES(turn) / degrees_per_pixel, (along - anchor_along) / along_per_pixel)
@@ -455,8 +332,6 @@
 	// the outline wanders but the middle stays one mass, because light islands read as a print
 	var/edge = clamp((distance - 0.45) / 0.4, 0, 1)
 	distance += (noise(theta / degrees_per_pixel, along / along_per_pixel, seed, 2.4) - 0.5) * 2 * ragged * edge
-	if(distance < core)
-		return DIRT_CONTACT + 0.05
 	if(distance < body)
 		return DIRT_BODY_T
 	if(distance < 1)
@@ -483,9 +358,7 @@
 /datum/dirt_shape/proc/distance(across, up)
 	return INFINITY
 
-/**
- * An ellipse about the anchor, longer below it where sweat runs down a side seam.
- */
+/// An ellipse about the anchor, longer below it where sweat runs down a side seam.
 /datum/dirt_shape/ellipse
 	/// Its radius round the limb, in pixels.
 	var/radius_x
@@ -498,8 +371,6 @@
  * Starts an ellipse.
  *
  * Arguments:
- * - radius_x: Its radius round the limb, in pixels.
- * - radius_up: Its radius up from the anchor, in pixels.
  * - radius_down: Its radius down from the anchor, in pixels, or null for radius_up.
  */
 /datum/dirt_shape/ellipse/New(radius_x, radius_up, radius_down = null)
@@ -515,9 +386,7 @@
 	var/stretched_up = up / (up > 0 ? radius_up : radius_down)
 	return sqrt(stretched_across * stretched_across + stretched_up * stretched_up)
 
-/**
- * An ellipse whose middle sits off the anchor: a wing of a butterfly.
- */
+/// An ellipse whose middle sits off the anchor: a wing of a butterfly.
 /datum/dirt_shape/ellipse_at
 	/// Pixels round the limb from the anchor to its middle.
 	var/centre_across
@@ -528,15 +397,6 @@
 	/// Its radius up the limb, in pixels.
 	var/radius_y
 
-/**
- * Starts an ellipse off the anchor.
- *
- * Arguments:
- * - centre_across: Pixels round the limb from the anchor to its middle.
- * - centre_up: Pixels up the limb from the anchor to its middle.
- * - radius_x: Its radius round the limb, in pixels.
- * - radius_y: Its radius up the limb, in pixels.
- */
 /datum/dirt_shape/ellipse_at/New(centre_across, centre_up, radius_x, radius_y)
 	. = ..()
 	src.centre_across = centre_across
@@ -563,14 +423,6 @@
 	/// How much of its width it loses by its end.
 	var/taper
 
-/**
- * Starts a hanging shape.
- *
- * Arguments:
- * - width: Pixels either side at the top.
- * - hang_length: Pixels down to its end.
- * - taper: How much of its width it loses by its end.
- */
 /datum/dirt_shape/hanging/New(width, hang_length, taper = 0.75)
 	. = ..()
 	src.width = width
@@ -588,9 +440,7 @@
 	var/narrowed = width * (1 - taper * min(1, drop / hang_length))
 	return ((abs(across) / narrowed) ** 3 + (drop / hang_length) ** 3) ** (1 / 3)
 
-/**
- * Several shapes as one. Each point's distance is the least of theirs.
- */
+/// Several shapes as one.
 /datum/dirt_shape/union
 	/// Its /datum/dirt_shape parts.
 	var/list/parts
@@ -633,7 +483,6 @@
  * Starts a skewed shape.
  *
  * Arguments:
- * - inner: The shape it changes.
  * - skew: How much wider it is round the limb's way, and narrower the other, between -1 and 1.
  */
 /datum/dirt_shape/skew/New(datum/dirt_shape/inner, skew)
@@ -648,7 +497,7 @@
 	return inner.distance(across > 0 ? across * (1 - skew) : across * (1 + skew), up)
 
 /**
- * Haze up a limb from its lower end, over the pixels a stamp leaves (a dark hand), so the stamp fades into the
+ * Haze up a limb from its lower end, over the pixels a stamp leaves (a dark hand). The stamp then fades into the
  * forearm rather than ending at a line.
  */
 /datum/dirt_feature/fade
@@ -657,14 +506,6 @@
 	/// Pixels up the limb where the haze ends, not on it.
 	var/haze_to
 
-/**
- * Starts a fade.
- *
- * Arguments:
- * - limb: The DIRT_LIMB_* define it lies on.
- * - film_to: Pixels up the limb where the stamp's film ends.
- * - haze_to: Pixels up the limb where the haze ends.
- */
 /datum/dirt_feature/fade/New(limb, film_to, haze_to)
 	. = ..(limb)
 	src.film_to = film_to
@@ -672,89 +513,45 @@
 	reach_low = (film_to - 1) * along_per_pixel
 	reach_high = haze_to * along_per_pixel
 
-/**
- * Returns haze from a pixel under where the stamp's film ends, up to where the haze ends.
- */
+/// Returns haze from a pixel under where the stamp's film ends, up to where the haze ends.
 /datum/dirt_feature/fade/thickness(theta, along)
 	var/up = along / along_per_pixel
 	return (up >= film_to - 1 && up < haze_to) ? DIRT_HAZE_T : 0
 
-/**
- * A contact point, where the full darkness belongs. It's an upright 1x2 (a kneecap), so the cleanup can't fold it.
- */
+/// A contact point, where the full darkness belongs. It's an upright 1x2 (a kneecap), so the cleanup can't fold it.
 /datum/dirt_feature/contact
-	/// The theta it sits at.
-	var/centre_theta
-	/// The h it sits at.
-	var/centre_along
 
-/**
- * Starts a contact point.
- *
- * Arguments:
- * - limb: The DIRT_LIMB_* define it lies on.
- * - theta: The theta it sits at.
- * - along: The h it sits at.
- */
 /datum/dirt_feature/contact/New(limb, theta, along)
-	. = ..(limb)
-	centre_theta = theta
-	centre_along = along
+	. = ..(limb, theta, along)
 	// half a pixel across and a pixel up and down, and half a pixel to spare
-	reach_theta = theta
-	reach_degrees = degrees_per_pixel
-	reach_low = along - 1.5 * along_per_pixel
-	reach_high = along + 1.5 * along_per_pixel
+	set_reach(theta, along, 1, 1.5, 1.5)
 
-/**
- * Returns full thickness on its upright 1x2, and nothing elsewhere.
- */
+/// Returns full thickness on its upright 1x2, and nothing elsewhere.
 /datum/dirt_feature/contact/thickness(theta, along)
 	var/turn = theta - centre_theta
 	var/up = (along - centre_along) / along_per_pixel
 	return (abs(DIRT_WRAP_DEGREES(turn)) / degrees_per_pixel < 0.5 && up > -1 && up <= 1) ? 1 : 0
 
 /**
- * One speck: a body pixel, or a 1x2 film drip. Specks are drawn after the coats and kept clear of them and of each
- * other (dirt_scatter()). A strict speck (kicked up) never shares a row or a column with another. A loose one
+ * One speck: a pixel in the body tone, or a 1x2 film drip. Specks are drawn after the coats and kept clear of them and
+ * of each other (dirt_scatter()). A strict speck (kicked up) never shares a row or a column with another. A loose one
  * (splashed) only keeps a pixel clear.
  */
 /datum/dirt_feature/speck
 	scatter = TRUE
-	/// The theta it sits at.
-	var/centre_theta
-	/// The h it sits at.
-	var/centre_along
 	/// Whether it's a drip.
 	var/drip
 	/// Whether it keeps off the rows and columns of the strict specks before it.
 	var/strict
 
-/**
- * Starts a speck.
- *
- * Arguments:
- * - limb: The DIRT_LIMB_* define it lies on.
- * - theta: The theta it sits at.
- * - along: The h it sits at.
- * - drip: Whether it's a drip.
- * - strict: Whether it keeps off the rows and columns of the strict specks before it.
- */
 /datum/dirt_feature/speck/New(limb, theta, along, drip, strict = TRUE)
-	. = ..(limb)
-	centre_theta = theta
-	centre_along = along
+	. = ..(limb, theta, along)
 	src.drip = drip
 	src.strict = strict
 	// a drip's pixel and the one under it, and half a pixel to spare
-	reach_theta = theta
-	reach_degrees = 1.1 * degrees_per_pixel
-	reach_low = along - 1.6 * along_per_pixel
-	reach_high = along + 1.1 * along_per_pixel
+	set_reach(theta, along, 1.1, 1.6, 1.1)
 
-/**
- * Returns a drip's film over the pixel it sits on and the one under it, or a speck's body on the pixel it sits on.
- */
+/// Returns a drip's film over the pixel it sits on and the one under it, or a speck's body tone on its pixel.
 /datum/dirt_feature/speck/thickness(theta, along)
 	var/turn = theta - centre_theta
 	var/across = DIRT_WRAP_DEGREES(turn) / degrees_per_pixel

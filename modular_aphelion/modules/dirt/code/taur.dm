@@ -25,14 +25,6 @@
 	/// shape_key(), once built.
 	var/cached_key
 
-/**
- * Arguments:
- * - icon: The sheet.
- * - layer_states: alist(EXTERNAL_* = list of states).
- * - stack: Its layer keys, lowest drawn first.
- * - canvas: A DIRT_CANVAS_* define.
- * - kind: A DIRT_SHAPE_* define.
- */
 /datum/dirt_shape_source/New(icon, alist/layer_states, list/stack, canvas, kind)
 	. = ..()
 	src.icon = icon
@@ -69,11 +61,6 @@
 /datum/dirt_taur_source
 	parent_type = /datum/dirt_shape_source
 
-/**
- * Arguments:
- * - icon: The sheet.
- * - layer_states: alist(EXTERNAL_* = list of states).
- */
 /datum/dirt_taur_source/New(icon, alist/layer_states)
 	..(icon, layer_states, dirt_taur_stack(), DIRT_CANVAS_TAUR, DIRT_SHAPE_TAUR)
 
@@ -86,12 +73,7 @@
 	var/static/list/stack = list(EXTERNAL_BEHIND, EXTERNAL_ADJACENT, DIRT_TAUR_RIDER, EXTERNAL_FRONT_UNDER_CLOTHES, EXTERNAL_FRONT, EXTERNAL_FRONT_OVER)
 	return stack
 
-/**
- * Returns a person's taur body as mess reads it, drawn or hidden (a taur suit hides it), or null without one.
- *
- * Arguments:
- * - body: The person.
- */
+/// Returns a person's taur body as dirt reads it, drawn or hidden (a taur suit hides it), or null without one.
 /proc/dirt_taur_source(mob/living/carbon/human/body)
 	RETURN_TYPE(/datum/dirt_taur_source)
 	var/obj/item/organ/taur_body/organ = body?.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAUR)
@@ -118,9 +100,7 @@
  * over it. It's DIRT_TAUR_CLOTH where a taur-fitted garment is, and null where nothing is.
  *
  * Arguments:
- * - source: The shape.
  * - rider: On a taur body, the rider's surface in that direction (the template of the body drawn on it). Else null.
- * - direction: The direction.
  * - stack: The layer keys to stack, lowest first, or null for the source's own.
  * - cloth_pixels: If `stack` holds DIRT_TAUR_CLOTH, the garment's pixels on the canvas, as dirt_sprite_pixels() reads
  *   them.
@@ -157,7 +137,7 @@
 			continue
 		for(var/index in 1 to length(flags_of))
 			if(DIRT_PIXEL_ZONE(flags_of[index]))
-				var/row = floor((index - 1) / ICON_SIZE_X)
+				var/row = DIRT_INDEX_ROW(index, ICON_SIZE_X)
 				owners[index + row * (width - ICON_SIZE_X) + DIRT_TAUR_INSET] = DIRT_TAUR_RIDER
 	return owners
 
@@ -185,9 +165,6 @@
  * - owners: What each pixel of the taur canvas shows, from dirt_taur_owners().
  * - rider_mess: The same shot on the rider's back, on cloth and on skin, each /datum/dirt_pixels/proc/drawn() of it.
  *   Either may lie where the rider is, so the pools keep clear of both.
- * - level: The splat's level.
- * - variant: The splat's variant.
- * - direction: The direction.
  */
 /proc/dirt_taur_pools(list/owners, list/rider_mess, level, variant, direction)
 	RETURN_TYPE(/datum/dirt_pixels)
@@ -195,21 +172,21 @@
 	var/alist/avoid = alist()
 	for(var/drawn in rider_mess)
 		for(var/index in dirt_drawn_indexes(drawn))
-			var/row = floor((index - 1) / ICON_SIZE_X)
+			var/row = DIRT_INDEX_ROW(index, ICON_SIZE_X)
 			var/canvas_index = index + row * (DIRT_TAUR_WIDTH - ICON_SIZE_X) + DIRT_TAUR_INSET
 			if(owners[canvas_index] == DIRT_TAUR_RIDER)
 				avoid[canvas_index] = TRUE
-	return dirt_splat_rasterise(mask, "[DIRT_CAUSE_AIMED_PREFIX][DIRT_ZONE_BACK]", dirt_material(DIRT_MATERIAL_MESS), level, variant, DIRT_SHAPE_TAUR, direction, 1, avoid)
+	return dirt_splat_rasterise(mask, "[DIRT_CAUSE_AIMED_PREFIX][DIRT_ZONE_BACK]", dirt_material(DIRT_MATERIAL_MESS), level, variant, DIRT_SHAPE_TAUR, direction, avoid)
 
 /**
  * Carries a taur body's merged dirt onto the pixels its rider's height uncovers. The dirt is made on the canvas as an
  * Average rider shows it. Pools, slime and a douse lie on what the taur body shows then, so a rider stretched taller
- * leaves bare pixels under its waist. A canvas field or a coat is drawn on the whole canvas, under the rider too, so a
+ * leaves bare pixels under its waist. A canvas field or a coat is drawn on the whole canvas, under the rider too. So a
  * pixel the merge draws there keeps its own dirt. Each other uncovered pixel looks at the pixel just below its run of
  * uncovered pixels in the column. If the taur body shows that pixel at Average height, the uncovered pixel takes its
- * dirt. A glint is carried as body, so it isn't doubled. Above a clean pixel, or above no taur pixel, an uncovered
- * pixel stays clean. A carried pixel is shown on the layer it shows at the rider's height, whichever layer the pixel
- * below is on. The pixels a shorter rider covers keep their dirt here, and layers_shown() leaves them out.
+ * dirt. A glint is carried as the body tone, so it isn't doubled. A carried pixel is shown on the layer it shows at the
+ * rider's height, whichever layer the pixel below is on. The pixels a shorter rider covers keep their dirt here, and
+ * layers_shown() leaves them out.
  *
  * Arguments:
  * - merged: The direction's splats merged, drawn on.
@@ -246,15 +223,11 @@
  * Arguments:
  * - mask: alist(index = TRUE) on the shape's pixels, on its kind's canvas (dirt_shape_canvas()).
  * - cause: A slime DIRT_CAUSE_* define, or for mess "aimed_back".
- * - material: The /datum/dirt_material it's made of.
- * - level: The splat's level.
  * - variant: 0 to DIRT_VARIANTS - 1.
  * - kind: A DIRT_SHAPE_* define.
- * - direction: The direction.
- * - side: The mob's dirtier side, 1 or -1.
  * - avoid: For mess, alist(index = TRUE) on the rider's mess, which the pools keep clear of. Else null.
  */
-/proc/dirt_splat_rasterise(alist/mask, cause, datum/dirt_material/material, level, variant, kind, direction, side = 1, alist/avoid = null)
+/proc/dirt_splat_rasterise(alist/mask, cause, datum/dirt_material/material, level, variant, kind, direction, alist/avoid = null)
 	RETURN_TYPE(/datum/dirt_pixels)
 	if(material.id == DIRT_MATERIAL_MESS)
 		if(kind != DIRT_SHAPE_TAUR || cause != "[DIRT_CAUSE_AIMED_PREFIX][DIRT_ZONE_BACK]")
@@ -268,21 +241,19 @@
 		for(var/index in avoid)
 			avoid_pixels += index
 		return dirt_mess_splat_rasterise(mask_pixels, level, variant, direction, avoid_pixels)
-#ifdef DIRT_DRAFT_EXACT
 	if(!SSdirt.drafting)
 		return dirt_drafted(GLOBAL_PROC_REF(dirt_splat_rasterise), args.Copy())
-#endif
 	return dirt_slime_splat_rasterise(mask, cause, level, variant, kind, direction)
 
 /**
  * Returns the pixels of a taur body mess aimed at its back reaches in one direction: a band 3 px deep under the back
- * line the view shows. None facing south (the band there is the rider's waist, which read as underwear); facing north,
- * the columns whose top lies within 2 px below the back's middle height; in profile, the columns whose top lies within
- * 1 px of it, less the 30% at the far end (a white tuft at the tail) and the 2 beside the rider's waist (the groin).
+ * line the view shows. Facing south it's none, as the band there is the rider's waist, which reads as underwear. Facing
+ * north it's the columns whose top lies within 2 px below the back's middle height. In profile it's the columns whose
+ * top lies within 1 px of it. A profile leaves out the 30% at the far end (a white tuft at the tail) and the 2 beside
+ * the rider's waist (the groin).
  *
  * Arguments:
  * - mask_pixels: The taur body's pixels, as indexes in row-major order on the taur canvas.
- * - direction: The direction.
  */
 /proc/dirt_taur_back_region(list/mask_pixels, direction)
 	RETURN_TYPE(/list)
@@ -291,8 +262,8 @@
 		return
 	var/alist/top = alist()
 	for(var/index in mask_pixels)
-		var/row = floor((index - 1) / DIRT_TAUR_WIDTH)
-		var/column = index - 1 - row * DIRT_TAUR_WIDTH
+		var/row = DIRT_INDEX_ROW(index, DIRT_TAUR_WIDTH)
+		var/column = DIRT_INDEX_COLUMN(index, row, DIRT_TAUR_WIDTH)
 		var/highest = top[column]
 		if(isnull(highest) || row < highest)
 			top[column] = row
@@ -323,8 +294,8 @@
 		for(var/column in far_end)
 			kept[column] = TRUE
 	for(var/index in mask_pixels)
-		var/row = floor((index - 1) / DIRT_TAUR_WIDTH)
-		var/column = index - 1 - row * DIRT_TAUR_WIDTH
+		var/row = DIRT_INDEX_ROW(index, DIRT_TAUR_WIDTH)
+		var/column = DIRT_INDEX_COLUMN(index, row, DIRT_TAUR_WIDTH)
 		if(row - top[column] >= 3)
 			continue
 		if(direction == NORTH ? top[column] - line <= 2 : kept[column])
@@ -332,17 +303,15 @@
 
 /**
  * Returns mess aimed at a taur body's back in one direction, from the "splat:aimed_back:taur:<variant>" and
- * DIRT_MESS_TAUR_SEED streams: broken pools along the back line (dirt_taur_back_region()), ragged
- * underneath, drips of uneven length off them, an opaque core, a highlight per drop and a translucent fringe, all on
- * the taur body's pixels. Level 1 is one drop; levels 2 and 3 two pools, level 3's heavier. A drop or pool that comes
- * beside the rider's mess, or under it where a line would carry on down, is left out whole: a pool beside it read as
- * one straight line across both bodies. Its levels don't nest: each is drawn from the streams on its own.
+ * DIRT_MESS_TAUR_SEED streams. Broken pools lie along the back line (dirt_taur_back_region()), ragged underneath, with
+ * drips of uneven length off them. They're opaque at the core, with a glint on each drop and a translucent fringe, all
+ * on the taur body's pixels. Level 1 is one drop, and levels 2 and 3 two pools, level 3's heavier. A drop or pool that
+ * comes beside the rider's mess, or under it where a line would carry on down, is left out whole. A pool beside it
+ * reads as one straight line across both bodies. Its levels don't nest, as each is drawn from the streams on its own.
  *
  * Arguments:
  * - mask_pixels: The taur body's pixels, as indexes in row-major order on the taur canvas.
- * - level: The splat's level: past DIRT_TAUR_MAX_LEVEL it draws at that one.
- * - variant: The splat's variant.
- * - direction: The direction.
+ * - level: The splat's level. Past DIRT_TAUR_MAX_LEVEL it draws at that one.
  * - avoid: The rider's mess pixels on the taur canvas, as indexes.
  */
 /proc/dirt_mess_splat_rasterise(list/mask_pixels, level, variant, direction, list/avoid)
@@ -366,8 +335,8 @@
 	var/alist/edge = alist()
 	var/list/order = list()
 	for(var/index in region)
-		var/row = floor((index - 1) / DIRT_TAUR_WIDTH)
-		var/column = index - 1 - row * DIRT_TAUR_WIDTH
+		var/row = DIRT_INDEX_ROW(index, DIRT_TAUR_WIDTH)
+		var/column = DIRT_INDEX_COLUMN(index, row, DIRT_TAUR_WIDTH)
 		if(isnull(edge[column]))
 			order += column
 			edge[column] = row
@@ -389,7 +358,7 @@
 		var/column = order[stream.randrange(length(order)) + 1]
 		if(isnull(edge[column + column_step]))
 			column -= column_step
-		// the reference fails on a back line with a lone column; nothing is drawn there
+		// the reference fails on a back line with a lone column, so nothing is drawn there
 		if(isnull(edge[column]) || isnull(edge[column + column_step]))
 			return drawn
 		var/list/part = list()
@@ -402,7 +371,7 @@
 	var/list/pools = list()
 	if(level > 1)
 		for(var/attempt in 1 to 40)
-			// level 3 is heavier by its pools: a thin spread along the back made one straight run with them
+			// level 3 is heavier by its pools, as a thin spread along the back makes one straight run with them
 			var/pool_width = stream.randint(3, level == 3 ? 6 : 5) + (level == 3 ? 1 : 0)
 			// broken: each pixel of a pool lands at its own place along the back
 			var/list/columns = list()
@@ -458,8 +427,8 @@
 	// beside the rider's mess, or under it where a line would carry on down: the whole drop or pool goes
 	var/alist/near = alist()
 	for(var/index in avoid)
-		var/row = floor((index - 1) / DIRT_TAUR_WIDTH)
-		var/column = index - 1 - row * DIRT_TAUR_WIDTH
+		var/row = DIRT_INDEX_ROW(index, DIRT_TAUR_WIDTH)
+		var/column = DIRT_INDEX_COLUMN(index, row, DIRT_TAUR_WIDTH)
 		for(var/near_column in column - 1 to column + 1)
 			for(var/near_row in row - 1 to row + 3)
 				near[DIRT_POOL_KEY(near_column, near_row)] = TRUE
@@ -478,7 +447,7 @@
 	for(var/key in glints)
 		if(solid[key])
 			dirt_pool_draw(drawn, inside, ranks, key, DIRT_ROLE_GLINT, 0.9)
-	// the translucent fringe, none on the rider's side of a drip's top: with both sides the drip read as a T
+	// the translucent fringe, none on the rider's side of a drip's top, as with both sides the drip reads as a T
 	var/alist/bare = alist()
 	if(direction == EAST || direction == WEST)
 		for(var/column in drips)
@@ -521,7 +490,7 @@
 	return TRUE
 
 /**
- * Draws a role on a pool pixel of the taur body, where the role drawn there doesn't outrank it: never off the taur
+ * Draws a role on a pool pixel of the taur body unless the role drawn there outranks it. It never draws off the taur
  * body's pixels.
  *
  * Arguments:
@@ -548,17 +517,15 @@
  * Returns slime landed in a shape's own pixels in one direction, from the "splat:<cause>:<kind>:<variant>" stream. It
  * draws lumps in the region its cause reaches on that kind of shape (dirt_splat_region()), darkest underneath with a
  * glint on top. Drips run down from them and end in a bulb, and spatter lies beside them. Nothing lands off the shape.
- * Level 1 draws one lump, one run and one speck of spatter, level 2 three lumps, two runs and two specks, and level 3
- * five, four and three. It's drawn inside the drafting that dirt_splat_rasterise() sets up (SSdirt.drafting), so the
- * lumps' starts are picked from the region column by column, as the draft picked them.
+ * It's drawn inside the drafting that dirt_splat_rasterise() sets up (SSdirt.drafting). So the lumps' starts are picked
+ * from the region column by column, as the draft picks them.
  *
  * Arguments:
  * - mask: alist(index = TRUE) on the shape's pixels, on its kind's canvas (dirt_shape_canvas()).
  * - cause: A slime DIRT_CAUSE_* define.
- * - level: The splat's level: past 3 it draws at 3.
+ * - level: The splat's level. Past 3 it draws at 3.
  * - variant: 0 to DIRT_VARIANTS - 1.
  * - kind: A DIRT_SHAPE_* define.
- * - direction: The direction.
  */
 /proc/dirt_slime_splat_rasterise(alist/mask, cause, level, variant, kind, direction)
 	RETURN_TYPE(/datum/dirt_pixels)
@@ -574,17 +541,13 @@
 	level = clamp(level, 1, DIRT_DEPOSIT_MAX_LEVEL)
 	var/alist/region = dirt_splat_region(mask, cause, kind, direction, level, width)
 	var/list/points = list()
-	if(SSdirt.drafting)
-		for(var/column in 0 to width - 1)
-			for(var/row in 0 to height - 1)
-				if(region[row * width + column + 1])
-					points += row * width + column + 1
-	else
-		for(var/index in region)
-			points += index
+	for(var/column in 0 to width - 1)
+		for(var/row in 0 to height - 1)
+			if(region[row * width + column + 1])
+				points += row * width + column + 1
 	if(!length(points))
 		return drawn
-	var/datum/dirt_random/rng = dirt_general_stream("splat:[cause]:[kind]:[num2text(variant, 12)]")
+	var/datum/dirt_random/draft/rng = dirt_general_stream("splat:[cause]:[kind]:[num2text(variant, 12)]")
 	var/list/starts = list()
 	for(var/start_number in 1 to 8)
 		starts += points[rng.draw_index(length(points)) + 1]
@@ -631,8 +594,8 @@
 		dirt_shape_put(drawn, mask, ranks, column + 1, row + run_length - 1, DIRT_ROLE_BODY, 0.6)
 	for(var/spatter_number in 1 to spatter_counts[level])
 		var/start = starts[5 + spatter_number]
-		var/row = floor((start - 1) / width)
-		var/column = start - 1 - row * width
+		var/row = DIRT_INDEX_ROW(start, width)
+		var/column = DIRT_INDEX_COLUMN(start, row, width)
 		dirt_shape_put(drawn, mask, ranks, column, row, DIRT_ROLE_BODY, 0.6)
 		dirt_shape_put(drawn, mask, ranks, column + 1, row, DIRT_ROLE_BODY, 0.6)
 	return drawn
@@ -641,7 +604,7 @@
  * Draws a role on a pixel of a shape unless the role drawn there outranks it. It never draws off the shape's pixels.
  *
  * Arguments:
- * - drawn: The mask, drawn on.
+ * - drawn: The raster, drawn on.
  * - mask: alist(index = TRUE) on the shape's pixels.
  * - ranks: dirt_role_ranks().
  * - column, row: The pixel, from the left and from the top, from 0. It may lie off the canvas.
@@ -658,27 +621,20 @@
 	if(!held || ranks[role] >= ranks[held])
 		drawn.put_index(index, role, thickness)
 
-/**
- * Returns a coordinate rounded to a whole pixel. Halves round up, or to even while drafting, as the draft's round()
- * took them.
- *
- * Arguments:
- * - value: The coordinate.
- */
+/// Returns a coordinate rounded to a whole pixel, with halves to even, as the draft's round() takes them.
 /proc/dirt_round_coordinate(value)
 	var/nearest = floor(value + 0.5)
-	if(SSdirt.drafting && nearest - value == 0.5 && nearest % 2)
+	if(nearest - value == 0.5 && nearest % 2)
 		nearest--
 	return nearest
 
 /**
- * Returns whether a back shot on a person also lands along their taur body's back: they have a taur body of a kind
- * with a back (dirt_read_source(): not Big Legs), it draws now, and the surface the shot lands on isn't a garment drawn
- * over the whole taur canvas (a taur suit), which takes the pools itself
+ * Returns whether a back shot on a person also lands along their taur body's back. It does when their taur body has a
+ * back (dirt_read_source(): not Big Legs) and draws now. It doesn't when the shot lands on a garment drawn over the
+ * whole taur canvas (a taur suit), which takes the pools itself
  * (/datum/component/dirtiness/proc/ready_taur_cloth_masks()).
  *
  * Arguments:
- * - target: The person.
  * - carrier: The carrier the shot lands on: theirs, or a garment's.
  */
 /proc/dirt_taur_takes_pools(mob/living/carbon/human/target, datum/component/dirtiness/carrier)
@@ -693,27 +649,23 @@
 
 /**
  * Returns whether a general cause's dirt in a material lands on a taur's lower half: its taur body, or the taur suit
- * over it. It lands if it reaches the legs the taur body stands in place of, or if it's slime on the back, the front
- * or the legs (dirt_splat_region()). A wet material never does, because neither a coat nor a hem band takes sweat.
+ * over it. It lands if it reaches the legs the taur body stands in place of. Slime on the back, the front or the legs
+ * lands too (dirt_splat_region()). A wet material never does, because neither a coat nor a hem band takes sweat.
  *
  * Arguments:
  * - cause: A DIRT_CAUSE_* define.
- * - material: Its /datum/dirt_material.
  */
 /proc/dirt_taur_takes(cause, datum/dirt_material/material)
 	var/static/list/slimed_causes = list(DIRT_CAUSE_SLIMED, DIRT_CAUSE_SLIMED_BACK, DIRT_CAUSE_SLIMED_CHEST, DIRT_CAUSE_SLIMED_R_LEG, DIRT_CAUSE_SLIMED_L_LEG)
 	if(material.flags & DIRT_MATERIAL_WET)
 		return FALSE
-	if(copytext(cause, 1, length(DIRT_CAUSE_SLIMED) + 1) == DIRT_CAUSE_SLIMED)
+	if(DIRT_HAS_PREFIX(cause, DIRT_CAUSE_SLIMED))
 		return cause in slimed_causes
 	return !!(dirt_cause_reach(cause, material) & (DIRT_LIMB_BIT(DIRT_LIMB_R_LEG) | DIRT_LIMB_BIT(DIRT_LIMB_L_LEG)))
 
 /**
  * Returns the outermost taur suit a taur wears over its taur body (dirt_taur_fitted()), or null. The suit takes the
  * general dirt the taur body would take, as its hem band.
- *
- * Arguments:
- * - target: The person.
  */
 /proc/dirt_taur_suit(mob/living/carbon/human/target)
 	RETURN_TYPE(/obj/item)

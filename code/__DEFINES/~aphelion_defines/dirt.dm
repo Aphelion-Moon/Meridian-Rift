@@ -1,9 +1,9 @@
 // Dirt overlays: masks generated at runtime and drawn over skin, clothes and parts. See modular_aphelion/modules/dirt.
 
-// A mask pixel's tone role. Each role is one greyscale mask, tinted with its material's colour and alpha.
+// A mask pixel's tone role. Each role draws in its material's tint for that role (dirt_baked_frames()).
 /// No role: a bare pixel.
 #define DIRT_ROLE_NONE 0
-/// The palest edge, drawn as half coverage in the film mask.
+/// The palest edge, drawn as film at half coverage.
 #define DIRT_ROLE_HAZE 1
 /// A thin coat, from DIRT_THRESHOLD_FILM up: a mark's fringe and edges.
 #define DIRT_ROLE_FILM 2
@@ -11,9 +11,9 @@
 #define DIRT_ROLE_BODY 3
 /// The thickest part: the contact point, or a wet coat's underside.
 #define DIRT_ROLE_CORE 4
-/// A speck highlight: dirt_cleanup() and dirt_despeckle() leave it as it is.
+/// A fleck: dirt_cleanup() and dirt_despeckle() leave it as it is.
 #define DIRT_ROLE_FLECK 5
-/// A wet coat's highlight.
+/// A glint: a bead's, a pool's or a wet coat's.
 #define DIRT_ROLE_GLINT 6
 
 // The limbs a body's surface maps each pixel to. An arm runs on into its hand.
@@ -42,7 +42,7 @@
 #error The last DIRT_LIMB_* define is over 15: a template pixel holds its limb in 4 bits of its flags.
 #endif
 
-// A template pixel's flags (/datum/dirt_surface/var/flags_of): its limb, its zone and three marks, in one number.
+// A template pixel's flags (/datum/dirt_surface/var/flags_of): its limb, its zone and three flags, in one number.
 /// A pixel's limb, a DIRT_LIMB_* define, or 0 off the surface: bits 0 to 3.
 #define DIRT_PIXEL_LIMB(flags) ((flags) & 15)
 /// A pixel's zone, its place in dirt_pixel_zones(), or 0 off the body (the margin, and off the surface): bits 4 to 7.
@@ -56,13 +56,13 @@
 /// covering coat breaks in profile.
 #define DIRT_PIXEL_BAND (1<<10)
 
-// A mask packed as text (/datum/dirt_pixels/proc/drawn()): "1" if it covers, else "0", then its drawn pixels one run at
-// a time in row-major order. Each run is four base-64 digits ("0" to "o") holding 24 bits.
+// A raster packed as text (/datum/dirt_pixels/proc/drawn()): "1" if it covers, else "0", then its drawn pixels one run
+// at a time in row-major order. Each run is four base-64 digits ("0" to "o") holding 24 bits.
 /// How many characters a packed run takes.
 #define DIRT_PACKED_CHARS 4
-/// How many runs a packed mask holds.
+/// How many runs a packed raster holds.
 #define DIRT_PACKED_COUNT(drawn) ((length(drawn) - 1) / DIRT_PACKED_CHARS)
-/// The 24 bits of a packed mask's run, counted from 1, which the fields below read.
+/// The 24 bits of a packed raster's run, counted from 1, which the fields below read.
 #define DIRT_PACKED_BITS(drawn, run) ((text2ascii(drawn, (run) * DIRT_PACKED_CHARS - 2) - 48) * 262144 + (text2ascii(drawn, (run) * DIRT_PACKED_CHARS - 1) - 48) * 4096 + (text2ascii(drawn, (run) * DIRT_PACKED_CHARS) - 48) * 64 + text2ascii(drawn, (run) * DIRT_PACKED_CHARS + 1) - 48)
 /// A run's bits: its first pixel's index - 1 (11 bits), its length - 1 (6), its DIRT_ROLE_* define (3) and its
 /// thickness's code (4, dirt_thickness_code()).
@@ -92,7 +92,7 @@
 #define DIRT_CONTACT 0.86
 /// A solid coat's thickness, drawn as body.
 #define DIRT_BODY_T (DIRT_CONTACT - 0.06)
-/// A fringe's or thin edge's thickness, drawn as film; also the most a covering mark lies on the outline.
+/// A fringe's or thin edge's thickness, drawn as film. It's also the most a covering mark lies on the outline.
 #define DIRT_FILM_T 0.36
 /// A marker, not a thickness: exactly this value draws as haze.
 #define DIRT_HAZE_T 0.3
@@ -103,6 +103,9 @@
 #define DIRT_THRESHOLD_BODY 0.5
 /// Film, and the least that draws at all: anything thinner is dropped.
 #define DIRT_THRESHOLD_FILM 0.22
+/// A thickness's role: haze for exactly DIRT_HAZE_T, else core or body past their thresholds, and film below.
+/// It reads the thickness three times, so pass it a var.
+#define DIRT_THICKNESS_ROLE(thickness) ((thickness) == DIRT_HAZE_T ? DIRT_ROLE_HAZE : ((thickness) >= DIRT_THRESHOLD_CORE ? DIRT_ROLE_CORE : ((thickness) >= DIRT_THRESHOLD_BODY ? DIRT_ROLE_BODY : DIRT_ROLE_FILM)))
 
 // Where a shot can be aimed.
 /// The lower face, under the eyes. Whatever covers the mouth takes the shot.
@@ -154,10 +157,10 @@
 /// The hairstyle, which takes the causes that reach the hair (dirt_hair_levels()) as hair (dirt_shape_rasterise()).
 #define DIRT_SHAPE_HAIR "hair"
 
-/// The layer skin's mess draws at: under the underclothes (UNDER_UNIFORM_LAYER and UNDER_UNIFORM_SOCKS_LAYER) and the
+/// The layer skin's dirt draws at: under the underclothes (UNDER_UNIFORM_LAYER and UNDER_UNIFORM_SOCKS_LAYER) and the
 /// genitals, over body hair (BODY_HAIR_LAYER), markings and the limbs.
 #define DIRT_SKIN_LAYER (BODY_LAYER + 0.25)
-/// The layer mess on the underclothes draws at: over them, under the uniform and genitals drawn above underwear.
+/// The layer dirt on the underclothes draws at: over them, under the uniform and genitals drawn above underwear.
 #define DIRT_UNDERCLOTHES_LAYER (UNDER_UNIFORM_LAYER - 0.02)
 /// The layer skin dirt on a hand draws at: over the hand (BODYPARTS_HIGH_LAYER), which draws over the uniform, and
 /// under gloves.
@@ -166,7 +169,7 @@
 /// setup_lists() override adds it to SSaccessories.all_layer_postfixes, which holds every bodypart_overlay layer
 /// postfix. No accessory icon has a state ending in it, so it adds no matrixed colour channel.
 #define DIRT_HAND_LAYER_POSTFIX "hand"
-/// Starts each key mess adds to a limb's render key: a limb drawn under a key carrying it keeps its images on its own
+/// Starts each key dirt adds to a limb's render key: a limb drawn under a key carrying it keeps its images on its own
 /// mob (/mob/living/carbon/proc/limb_icons_for()), not in tg's shared limb icon cache.
 #define DIRT_PRIVATE_KEY "dirt-private|"
 /// The entry a taur body adds to its render key while the blood below its waist draws over the taur body's own dirt
@@ -184,12 +187,12 @@
 #define DIRT_LIMB_ICONS_CHANGED(limb, key) ((private_limb_icons || findtextEx(key, DIRT_PRIVATE_KEY)) \
 	? limb_icons_for(limb, key, TRUE) : (limb_icon_cache[key] ||= limb.get_limb_icon(FALSE)))
 
-// The underclothes a body can wear, each its own surface for mess.
-/// The underwear slot: the groin, butt and the thighs it reaches; a one-piece swimsuit the chest too.
+// The underclothes a body can wear, each its own surface for dirt.
+/// The underwear slot: the groin, butt and the thighs it reaches, and the chest too for a one-piece swimsuit.
 #define DIRT_UNDERCLOTHES_UNDERWEAR "underwear"
 /// The bra slot: the chest.
 #define DIRT_UNDERCLOTHES_BRA "bra"
-/// The undershirt slot: the chest, stomach and back; a corset or leotard the groin and butt too.
+/// The undershirt slot: the chest, stomach and back, and the groin and butt too for a corset or leotard.
 #define DIRT_UNDERCLOTHES_UNDERSHIRT "undershirt"
 /// The socks slot: the thighs, groin and butt where they reach (stockings, tights). Taurs and bodies with fewer than
 /// two legs wear none.
@@ -197,7 +200,7 @@
 
 /// How many variants each deposit has: a zone's mess or a cause's dirt.
 #define DIRT_VARIANTS 8
-/// The level a splat stops growing at, the one that covers its zone; what a shot adds past it starts another splat.
+/// The level a splat stops growing at, the one that covers its zone. What a shot adds past it starts another splat.
 #define DIRT_MESS_MAX_LEVEL 4
 /// The least amount, in units of fluid, that adds two levels rather than one.
 #define DIRT_MESS_AMOUNT_HEAVY 20
@@ -206,17 +209,10 @@
 /// The most splats a person carries across their skin, underclothes, parts, drawn parts, hair and worn items. Mess and
 /// other dirt count together. Past it, the splat that landed or was raised longest ago goes first.
 #define DIRT_MAX_SPLATS 32
-/// The most general deposits one carrier holds: past it, the oldest goes.
+/// The most general deposits one carrier holds. Past it, the one that landed or was raised longest ago goes.
 #define DIRT_CARRIER_DEPOSITS 3
 /// The skin as a carrier of general dirt (dirt_shown_carriers()), beside worn items and underclothes keys.
 #define DIRT_CARRIER_SKIN "skin"
-/// What dirt_shown_carriers() returns, keyed by worn items. It's a plain list before BYOND 516.1688, where an alist
-/// dropped with an object among its keys never lets go of the object, so the item hard deletes.
-#if DM_VERSION == 516 && DM_BUILD < 1688
-#define DIRT_CARRIERS_LIST list
-#else
-#define DIRT_CARRIERS_LIST alist
-#endif
 /// The hairstyle as a carrier of general dirt, held with the person's drawn parts
 /// (/datum/component/dirtiness/var/part_splats). No organ slot has this name.
 #define DIRT_CARRIER_HAIR "hair"
@@ -243,8 +239,7 @@
 #define DIRT_MATERIAL_SLIME "slime"
 /// What a shot leaves, aimed at a zone (dirt_mess_land()).
 #define DIRT_MATERIAL_MESS "mess"
-/// How many slime colours' materials SSdirt keeps, the newest made: an estimated 600 B each with its key (unmeasured),
-/// so about 40 KB.
+/// How many slime colours' materials SSdirt keeps, the newest made.
 #define DIRT_SLIME_COLOURS 64
 /// Blood in any colour, run down a taur's body from its garment's stain: "blood#RRGGBB" (dirt_material()). Never a
 /// splat's: it's drawn from the garment's own blood (dirt_taur_blood_inputs()).
@@ -261,7 +256,7 @@
 #define DIRT_EDGE_TIDE 2
 
 // How a material draws (/datum/dirt_material/var/flags). Every flag changes pixels.
-/// One wet highlight per view, on a leg (dirt_sheen()), and one on the hair (dirt_hair_dirt()).
+/// One wet fleck per view on a leg (dirt_sheen()), and one glint on the hair (dirt_hair_dirt()).
 #define DIRT_MATERIAL_SHEEN (1<<0)
 /// Light flecks scattered in the coat.
 #define DIRT_MATERIAL_SPECKS (1<<1)
@@ -311,7 +306,7 @@
 #define DIRT_THETA_BACK 180
 
 // What a stamp (/datum/dirt_feature/stamps) does to a pixel besides drawing a role on it.
-/// Wipes it clean, for a dark hand's lit back.
+/// Wipes it clean, for a dark hand's highlight.
 #define DIRT_STAMP_CLEAN "clean"
 /// Draws film on it over whatever is there, for a solid hand's highlight.
 #define DIRT_STAMP_LIT "lit"
@@ -323,17 +318,6 @@
 #define DIRT_PORTAL_LOWER_BODY 1
 /// A portal relaying one part alone: only that part's zone is offered, while the part draws its front image.
 #define DIRT_PORTAL_PENIS 2
-
-/// Whether a mask that isn't made yet waits for SSdirt, drawn without it until it's done, rather than being made as
-/// it's drawn. Comment it out to make every mask as it's drawn.
-#define DIRT_MASKS_DEFERRED
-
-/// Whether every deposit but mess draws as the original draft drew it. The draft stream (/datum/dirt_random/draft)
-/// makes the same random draws as Python's random.Random(seed text), and the noise samples the draft's 32-bit noise
-/// hash (dirt_draft_noise()). Comment it out to draw them the portable way, as mess draws: md5 random draws and the
-/// permutation-table hash. The draft's hash reads tables of 6,144 numbers, about 48 KB. The hash builds them at its
-/// first call (dirt_draft_hash_tables()).
-#define DIRT_DRAFT_EXACT
 
 // What a mask request is drawn on.
 /// A body, from its limbs' template: its skin, its underclothes or a worn item.
@@ -360,7 +344,7 @@
 #define DIRT_REDRAW_HEAD (1<<3)
 /// The mask slot's item (update_worn_mask()).
 #define DIRT_REDRAW_MASK (1<<4)
-/// Not masks: what the body wears changed, so its skin's mess may fade at other edges.
+/// Not masks: what the body wears changed, so its skin's dirt may fade at other edges.
 #define DIRT_REDRAW_COVER (1<<5)
 /// Not masks: what draws the body's parts may have changed, so the masks they shape may be made again.
 #define DIRT_REDRAW_PARTS (1<<6)
@@ -383,13 +367,19 @@
 /// The suit storage slot's item (update_suit_storage()).
 #define DIRT_REDRAW_SUIT_STORE (1<<15)
 
-/// How many pixels skin mess fades out over before what's worn over it, rather than cut off at its edge.
+/// How many pixels skin dirt fades out over before what's worn over it, rather than cut off at its edge.
 #define DIRT_FADE_RINGS 2
 
 /// Pixels of skin a view keeps between two runs or drops, and between splats: side by side they filled into a sheet.
 #define DIRT_RUN_GAP 1
 /// The run group of level 2's carry-on from a deposit's first drop.
 #define DIRT_RUN_GROUP_EARLY "early"
+/// The run group of level 1's shot. The shots after it take the groups after it, in draw order.
+#define DIRT_RUN_GROUP_SHOT 0
+/// The run group of level 1's drop. The drops after it take the groups after it.
+#define DIRT_RUN_GROUP_DROP 10
+/// The run group of the top level's first run. Its others take the groups after it.
+#define DIRT_RUN_GROUP_COVER 20
 
 // The parts that take a share of the mess aimed at them, by what they're drawn as.
 /// The breasts organ drawn as breasts, sharing the chest's mess.
@@ -400,7 +390,7 @@
 #define DIRT_PART_PENIS "penis"
 /// The testicles, sharing the groin's mess.
 #define DIRT_PART_TESTICLES "testicles"
-/// The vulva, sharing the groin's mess; on skin it also takes the ring of visible pixels round it.
+/// The vulva, sharing the groin's mess. On skin it also takes the ring of visible pixels round it.
 #define DIRT_PART_VAGINA "vagina"
 /// The butt, sharing the butt's mess, read from its front and back images.
 #define DIRT_PART_BUTT "butt"
@@ -420,9 +410,9 @@
 /// What a taur canvas pixel shows where a taur-fitted garment's cloth is drawn (dirt_taur_drawn_stack()).
 #define DIRT_TAUR_CLOTH "cloth"
 
-/// `value` modulo `divisor` with the divisor's sign, as the reference generator takes it, where BYOND's % and %% keep
-/// the value's. Exact for whole numbers from -(2^24 - divisor) up to 2^24. It reads `value` twice, so pass it a
-/// variable, never a call such as draw().
+/// `value` modulo `divisor` with the divisor's sign, as the reference generator takes it. BYOND's % and %% keep the
+/// value's, and tg's WRAP() adds a clamp and a test it doesn't need. Exact for whole numbers from -(2^24 - divisor)
+/// up to 2^24. It reads `value` twice, so pass it a variable, never a call such as draw().
 #define DIRT_MODULO(value, divisor) ((value) - (divisor) * floor((value) / (divisor)))
 
 /// An angle in `degrees` turned into the range -180 up to 180, never 180, as the reference generator wraps one. Exact
@@ -431,9 +421,78 @@
 /// compared with, so it changes no pixel. It reads `degrees` up to three times, so pass it a variable.
 #define DIRT_WRAP_DEGREES(degrees) ((degrees) >= 180 ? (degrees) - 360 : ((degrees) < -180 ? (degrees) + 360 : (degrees)))
 
+/// The row, from 0 at the top, of a pixel index (from 1, row by row) on a view `width` pixels wide.
+#define DIRT_INDEX_ROW(index, width) floor(((index) - 1) / (width))
+/// The column, from 0 at the left, of a pixel index (from 1, row by row) on a view `width` pixels wide, from its row.
+#define DIRT_INDEX_COLUMN(index, row, width) ((index) - 1 - (row) * (width))
+/// Whether a text starts with a prefix. It reads the prefix twice, so pass it a define or a var.
+#define DIRT_HAS_PREFIX(checked, prefix) (copytext(checked, 1, length(prefix) + 1) == (prefix))
+
+// What a taur's blood below the waist is read from (dirt_taur_blood_inputs()), by index. The list stays a list.
+/// Its stains, each a list indexed by DIRT_STAIN_*, the suit's first.
+#define DIRT_BLOOD_INPUT_STAINS 1
+/// The taur-fitted garment's sprite, list(icon, icon state), or null.
+#define DIRT_BLOOD_INPUT_CLOTH 2
+/// Whether the taur body draws.
+#define DIRT_BLOOD_INPUT_BODY_DRAWS 3
+/// The taur-fitted garment's slot, or null.
+#define DIRT_BLOOD_INPUT_CLOTH_SLOT 4
+/// The slot of the outermost bloodied garment.
+#define DIRT_BLOOD_INPUT_OUTER_SLOT 5
+// One stain of that blood, by index.
+/// Its blood overlay's icon state.
+#define DIRT_STAIN_STATE 1
+/// Its material's key (dirt_blood_material_key()).
+#define DIRT_STAIN_MATERIAL 2
+/// Its variant (dirt_blood_variant()).
+#define DIRT_STAIN_VARIANT 3
+/// The icon of the suit drawn over a uniform's stain, or null.
+#define DIRT_STAIN_COVER_ICON 4
+/// That suit's icon state, or null.
+#define DIRT_STAIN_COVER_STATE 5
+/// That suit's shift off the tile (dirt_worn_shift()), or null where it has none.
+#define DIRT_STAIN_COVER_SHIFT 6
+// What a request's blood masks are made from (dirt_taur_blood_data(), /datum/dirt_mask_request/var/blood), by index.
+/// The stains, as DIRT_BLOOD_INPUT_STAINS.
+#define DIRT_BLOOD_DATA_STAINS 1
+/// The taur-fitted garment's sprite, as DIRT_BLOOD_INPUT_CLOTH.
+#define DIRT_BLOOD_DATA_CLOTH 2
+/// Whether the taur body draws.
+#define DIRT_BLOOD_DATA_BODY_DRAWS 3
+/// The seam row (dirt_blood_seam_row()).
+#define DIRT_BLOOD_DATA_SEAM_ROW 4
+/// The rows the rider and the garment show at the rider's height (dirt_height_rows()), or null.
+#define DIRT_BLOOD_DATA_ROWS 5
+// What the taur canvas holds for blood in one direction (dirt_blood_carriers()), by index.
+/// What each pixel shows (dirt_taur_owners()).
+#define DIRT_BLOOD_CANVAS_OWNERS 1
+/// The carriers' pixels: the taur body's while it draws, and the taur-fitted garment's.
+#define DIRT_BLOOD_CANVAS_CARRIERS 2
+/// Those of them that show.
+#define DIRT_BLOOD_CANVAS_SHOWN 3
+/// The rider's pixels that show off them.
+#define DIRT_BLOOD_CANVAS_RIDER 4
+/// The rider's hands, drawn over a uniform, in the rider's own rows.
+#define DIRT_BLOOD_CANVAS_HANDS 5
+// A garment as sweat's multiplier reads it (dirt_wet_look()), by index.
+/// Its icon.
+#define DIRT_WET_GARMENT_SHEET 1
+/// Its icon state.
+#define DIRT_WET_GARMENT_STATE 2
+/// Its colour, "#RRGGBB", or anything else for none.
+#define DIRT_WET_GARMENT_COLOUR 3
+/// Its greyscale colours.
+#define DIRT_WET_GARMENT_GREYSCALE 4
+/// How far its sprite lies right of the body's canvas.
+#define DIRT_WET_GARMENT_SHIFT_X 5
+/// How far its sprite lies up from the body's canvas.
+#define DIRT_WET_GARMENT_SHIFT_Y 6
+/// The sprites drawn over it that stay dry (dirt_accessory_sprites()), where there are any.
+#define DIRT_WET_GARMENT_KEPT_DRY 7
+
 /// Whether game events land general dirt (sources.dm). Comment it out to turn every source off.
 #define DIRT_SOURCES
-/// The most landings that wait for SSdirt at once (/datum/dirt_job/landing). At about 300 B each, that's about 77 KB.
+/// The most landings that wait for SSdirt at once (/datum/dirt_job/landing).
 #define DIRT_LANDINGS_WAITING 256
 
 /// Admin-only VV action using the Clear Dirt admin verb.

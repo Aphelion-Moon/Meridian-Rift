@@ -1,10 +1,8 @@
-// compiled in, since CI's test world is deployed without code/
-#define DIRT_CORPUS 'code/modules/unit_tests/~nova/dirt_corpus.json'
 /// What check_mess_bake() bakes, one MD5 per baked icon.
 #define DIRT_MESS_BAKE_DIGESTS "skin chest fd2daa4aab43b36d289b26fbbd3d00dc, skin head ee484de9840ee7476a8b79ae62896440, cloth 665142bb968ef2e94bd80c434b246333"
 /// Where wag_containers() writes a baked icon out to read its frames.
 #define DIRT_WAG_CHECK_FILE "data/dirt_drawing_wag.dmi"
-/// Where tail_along() takes a tail to join the body: the tile's middle column, and the row 13 px over its floor.
+/// Where tail_root() takes a tail to join the body: the tile's middle column, and the row 13 px over its floor.
 #define DIRT_TAIL_HIP_COLUMN 15.5
 #define DIRT_TAIL_HIP_ROW 18
 
@@ -15,7 +13,7 @@
  * bodies, taur suits, tails, wings, ears and horns carry their own, and the hair carries its own while it shows.
  */
 /datum/unit_test/dirt_drawing
-	parent_type = /datum/unit_test/dirt_genital_test
+	parent_type = /datum/unit_test/dirt_test
 	// a monkey's, a lizard's and a one-armed body's templates, and many bodies' masks made start to end
 	priority = TEST_LONGER
 	/// What a check put in SSdirt's caches under the keys real requests use, each list(cache, key), until
@@ -66,11 +64,11 @@
 	check_packed_runs()
 	check_limb_icons_kept()
 	check_stain_over_sweat()
+	check_blocker_over_glow()
 	check_raise_merge()
 	check_dropped_jobs()
 	check_waist_blood_direct()
 	check_worn_after_body_change()
-	check_one_direction_read()
 
 /**
  * Cut hair (the parity corpus's hair_c) blasted with soot below the hair's first level holds the deposit but draws
@@ -84,7 +82,7 @@
 	var/mob/living/carbon/human/consistent/body = allocate(/mob/living/carbon/human/consistent)
 	body.set_hairstyle(/datum/sprite_accessory/hair/cut::name)
 	var/datum/component/dirtiness/own = right_sided(body)
-	TEST_ASSERT(dirt_land(body, DIRT_CAUSE_BLAST, DIRT_MATERIAL_SOOT, 1, 0), "A blast of soot landed nowhere on a human with cut hair.")
+	TEST_ASSERT(dirt_land_variant(body, DIRT_CAUSE_BLAST, DIRT_MATERIAL_SOOT, 1, 0), "A blast of soot landed nowhere on a human with cut hair.")
 	var/list/held = deposits_in(own?.part_splats?[DIRT_CARRIER_HAIR])
 	TEST_ASSERT_EQUAL(length(held), 1, "The hair holds [length(held)] deposits of a blast, not one.")
 	SSdirt.finish_all()
@@ -93,7 +91,7 @@
 	TEST_ASSERT(drawing?.masks, "The hair's level 1 blast wasn't made.")
 	TEST_ASSERT(!drawing.masks.baked, "A level 1 blast, under the hair's first level, draws on the hair.")
 	TEST_ASSERT(!length(hair_containers(body)), "The hair draws dirt of a level 1 blast.")
-	dirt_land(body, DIRT_CAUSE_BLAST, DIRT_MATERIAL_SOOT, 2, 0)
+	dirt_land_variant(body, DIRT_CAUSE_BLAST, DIRT_MATERIAL_SOOT, 2, 0)
 	var/datum/dirt_splat/deposit = held[1]
 	TEST_ASSERT_EQUAL(deposit.level, 3, "A second blast didn't raise the hair's deposit to level 3.")
 	drawing = own.part_drawings?[DIRT_CARRIER_HAIR]
@@ -118,19 +116,14 @@
 	var/mutable_appearance/held_image = container.overlays[1]
 	TEST_ASSERT_EQUAL(held_image.icon, baked, "The hair's container doesn't draw the hair's masks.")
 	var/datum/sprite_accessory/hair/hairstyle = SSaccessories.hairstyles_list[body.hairstyle]
-	var/icon/baked_icon = icon(baked)
 	var/drawn = 0
-	for(var/direction in list(SOUTH, NORTH, EAST, WEST))
+	for(var/direction in four_directions())
 		var/alist/on_hair = alist()
 		for(var/index in dirt_sprite_pixels(hairstyle.icon, hairstyle.icon_state, direction))
 			on_hair[index] = TRUE
-		for(var/icon_y in 1 to ICON_SIZE_Y)
-			for(var/icon_x in 1 to ICON_SIZE_X)
-				if(!baked_icon.GetPixel(icon_x, icon_y, null, direction))
-					continue
-				drawn++
-				var/index = (ICON_SIZE_Y - icon_y) * ICON_SIZE_X + icon_x
-				TEST_ASSERT(on_hair[index], "The hair's blast draws off the hair at [icon_x],[icon_y] facing [dir2text(direction)].")
+		for(var/index in mask_pixels(baked, direction))
+			drawn++
+			TEST_ASSERT(on_hair[index], "The hair's blast draws off the hair at pixel [index] facing [dir2text(direction)].")
 	TEST_ASSERT(drawn, "The hair's level 3 blast draws no pixels.")
 
 	body.set_hairstyle(/datum/sprite_accessory/hair/bob::name)
@@ -138,7 +131,7 @@
 	var/mob/living/carbon/human/consistent/fresh = allocate(/mob/living/carbon/human/consistent)
 	fresh.set_hairstyle(/datum/sprite_accessory/hair/bob::name)
 	var/datum/component/dirtiness/fresh_own = right_sided(fresh)
-	TEST_ASSERT(dirt_land(fresh, DIRT_CAUSE_BLAST, DIRT_MATERIAL_SOOT, 3, 0), "A blast of soot landed nowhere on a human with bob hair.")
+	TEST_ASSERT(dirt_land_variant(fresh, DIRT_CAUSE_BLAST, DIRT_MATERIAL_SOOT, 3, 0), "A blast of soot landed nowhere on a human with bob hair.")
 	SSdirt.finish_all()
 	var/datum/dirt_drawing/fresh_hair = fresh_own.part_drawings?[DIRT_CARRIER_HAIR]
 	var/datum/dirt_masks/fresh_masks = fresh_hair?.masks
@@ -179,7 +172,7 @@
 	var/obj/item/clothing/head/helmet/helmet = allocate(/obj/item/clothing/head/helmet)
 	TEST_ASSERT(body.equip_to_slot_if_possible(helmet, ITEM_SLOT_HEAD), "Couldn't put a helmet on the human.")
 	TEST_ASSERT(body.obscured_slots & HIDEHAIR, "The helmet doesn't hide the hair, so a hat hiding it can't be checked.")
-	TEST_ASSERT(dirt_land(body, DIRT_CAUSE_BLAST, DIRT_MATERIAL_SOOT, 3, 0), "A blast of soot landed nowhere on a human in a helmet.")
+	TEST_ASSERT(dirt_land_variant(body, DIRT_CAUSE_BLAST, DIRT_MATERIAL_SOOT, 3, 0), "A blast of soot landed nowhere on a human in a helmet.")
 	var/datum/component/dirtiness/helmet_carrier = helmet.GetComponent(/datum/component/dirtiness)
 	TEST_ASSERT_EQUAL(length(deposits_in(helmet_carrier?.mess_splats)), 1, "The helmet hiding the hair didn't take the blast.")
 	var/datum/component/dirtiness/own = body.GetComponent(/datum/component/dirtiness)
@@ -190,7 +183,7 @@
 	SSdirt.finish_all()
 	TEST_ASSERT(length(body.overlays_standing[HAIR_LAYER]), "The hair isn't drawn with the helmet off.")
 	TEST_ASSERT(!length(hair_containers(body)), "The hair draws dirt once the helmet that hid it comes off.")
-	dirt_land(body, DIRT_CAUSE_BLAST, DIRT_MATERIAL_SOOT, 3, 0)
+	dirt_land_variant(body, DIRT_CAUSE_BLAST, DIRT_MATERIAL_SOOT, 3, 0)
 	TEST_ASSERT_EQUAL(length(deposits_in(own.part_splats?[DIRT_CARRIER_HAIR])), 1, "The hair the helmet hid doesn't take a blast once it's off.")
 
 /**
@@ -208,7 +201,7 @@
 	var/braid_state = braid?.hair_appendages_outer?[1]
 	TEST_ASSERT(braid_state, "Braid (Floorlength) draws no piece over hats, so its dirt there can't be checked.")
 	var/datum/component/dirtiness/own = right_sided(body)
-	TEST_ASSERT(dirt_land(body, DIRT_CAUSE_BLAST, DIRT_MATERIAL_SOOT, 3, 0), "A blast of soot landed nowhere on a human with braided hair.")
+	TEST_ASSERT(dirt_land_variant(body, DIRT_CAUSE_BLAST, DIRT_MATERIAL_SOOT, 3, 0), "A blast of soot landed nowhere on a human with braided hair.")
 	SSdirt.finish_all()
 	var/datum/dirt_drawing/drawing = own.part_drawings?[DIRT_CARRIER_HAIR]
 	var/datum/dirt_masks/masks = drawing?.masks
@@ -230,19 +223,15 @@
 				container_at = position
 	TEST_ASSERT(braid_at, "The braid isn't drawn over hats.")
 	TEST_ASSERT(container_at > braid_at, "The braid's dirt isn't drawn at the braid's layer, after it.")
-	var/icon/baked_icon = icon(braid_baked)
 	var/facing_north = 0
-	for(var/direction in list(SOUTH, NORTH, EAST, WEST))
+	for(var/direction in four_directions())
 		var/alist/on_braid = alist()
 		for(var/index in dirt_sprite_pixels(braid.icon, braid_state, direction))
 			on_braid[index] = TRUE
-		for(var/icon_y in 1 to ICON_SIZE_Y)
-			for(var/icon_x in 1 to ICON_SIZE_X)
-				if(!baked_icon.GetPixel(icon_x, icon_y, null, direction))
-					continue
-				TEST_ASSERT(on_braid[(ICON_SIZE_Y - icon_y) * ICON_SIZE_X + icon_x], "The braid's dirt draws off the braid at [icon_x],[icon_y] facing [dir2text(direction)].")
-				if(direction == NORTH)
-					facing_north++
+		for(var/index in mask_pixels(braid_baked, direction))
+			TEST_ASSERT(on_braid[index], "The braid's dirt draws off the braid at pixel [index] facing [dir2text(direction)].")
+			if(direction == NORTH)
+				facing_north++
 	TEST_ASSERT(facing_north, "The braid's dirt draws nothing facing north, where the braid shows.")
 
 	var/obj/item/clothing/head/helmet/helmet = allocate(/obj/item/clothing/head/helmet)
@@ -252,83 +241,26 @@
 	TEST_ASSERT(!length(hair_containers(body)), "Braided hair under a helmet that hides it draws dirt on the hair or the braid.")
 
 /**
- * Returns the images a body's hair layer draws its dirt in: those holding a baked image of dirt. That's one of `bakes`,
- * or if none are given, one from any masks SSdirt keeps or the body's drawn parts and hair draw. Only the hair's dirt
- * containers hold one, and the hair's own images never do. The search looks a few levels down into the layer's images.
- * That's because apply_overlay() nests the sprites sharing a layer in one holder, and its emissive blockers in a group
- * (prepare_bodypart_overlays()). The groups are left out, because the dirt's blockers in them are drawn from the same
- * bakes.
- *
- * Arguments:
- * - body: The body.
- * - bakes: The baked icons to look for, or null for every one held.
- */
-/datum/unit_test/dirt_drawing/proc/hair_containers(mob/living/carbon/human/body, list/bakes)
-	RETURN_TYPE(/list)
-	. = list()
-	if(isnull(bakes))
-		bakes = list()
-		var/list/held_masks = list()
-		for(var/key, kept in SSdirt.masks.entries)
-			held_masks += kept
-		var/datum/component/dirtiness/own = body.GetComponent(/datum/component/dirtiness)
-		for(var/slot, drawing in own?.part_drawings)
-			var/datum/dirt_drawing/drawn_parts = drawing
-			held_masks += drawn_parts.masks
-		for(var/datum/dirt_masks/masks in held_masks)
-			bakes += masks.baked
-			for(var/list/baked_icons as anything in list(masks.baked_by_limb, masks.baked_by_layer, masks.baked_by_part))
-				for(var/key, baked in baked_icons)
-					bakes += baked
-	var/list/looked_at = body.overlays_standing[HAIR_LAYER]
-	if(!looked_at)
-		return
-	looked_at = islist(looked_at) ? looked_at.Copy() : list(looked_at)
-	for(var/depth in 1 to 3)
-		var/list/nested = list()
-		for(var/image/drawn as anything in looked_at)
-			if(PLANE_TO_TRUE(drawn.plane) == EMISSIVE_PLANE)
-				continue
-			var/holds_bake = FALSE
-			for(var/image/held as anything in drawn.overlays)
-				if(held.icon && (held.icon in bakes))
-					holds_bake = TRUE
-				else
-					nested += held
-			if(holds_bake)
-				. += drawn
-		looked_at = nested
-
-/**
  * A bare horse taur walking through mud takes it on its taur body, which draws it in a container over each of its
- * layers' images. The rider's skin takes it only off the legs, which the rider doesn't draw. The coat, drawn a band a
- * piece by its job, is the coat drawn whole (/datum/dirt_canvas_field/taur_coat). In a taur suit, the suit takes the
- * mud, and the taur body it hides takes none. The suit's upper part asks for walking's share off the legs alone. Its
- * hem band, drawn a band a piece by its job, is the coat of the taur body it hides. Smoke reaching the rider's torso
- * lands on the suit's upper part over it, and none lands on the skin the suit hides. The suit draws its walking mud as
- * its hem band, one inset image on the taur canvas round its tile. The suit's upper part draws its dirt as clothing,
- * one inset image on the body's tile over the hem band. Each lands on the suit's sprite, and a wash clears both.
- * The suit then walks in mud again, and is taken off and worn by a biped. It draws the mud from the biped's template,
- * kept to the limbs walking reaches, the legs among them. Another taur suit walks through dust, which reaches the legs
- * alone. It draws its hem band and asks for nothing over the rider until a splash lands. Worn by a biped, it draws that
- * dust on the legs. A 64x64 hat on a taur isn't drawn as a taur suit.
+ * layers' images. The rider's skin takes it only off the legs, which the rider doesn't draw. In a taur suit, the suit
+ * takes the mud, and the taur body it hides takes none. The suit draws its walking mud as its hem band, one inset image
+ * on the taur canvas round its tile. The suit's upper part draws its dirt as clothing, one inset image on the body's
+ * tile over the hem band. A wash clears both. Worn by a biped, a taur suit draws its dirt from the biped's template,
+ * kept to the limbs its cause reaches. A 64x64 hat on a taur isn't drawn as a taur suit.
  */
 /datum/unit_test/dirt_drawing/proc/check_taur()
 	SSdirt.finish_all()
 	var/mob/living/carbon/human/consistent/rider = allocate(/mob/living/carbon/human/consistent)
 	TEST_ASSERT(give_taur(rider), "Couldn't make the human a horse taur.")
 	var/datum/component/dirtiness/own = right_sided(rider)
-	TEST_ASSERT(dirt_land(rider, DIRT_CAUSE_WALK, DIRT_MATERIAL_MUD, 3, 0), "Walking through mud landed nowhere on a bare taur.")
+	TEST_ASSERT(dirt_land_variant(rider, DIRT_CAUSE_WALK, DIRT_MATERIAL_MUD, 3, 0), "Walking through mud landed nowhere on a bare taur.")
 	var/list/held = deposits_in(own?.part_splats?[ORGAN_SLOT_EXTERNAL_TAUR])
 	TEST_ASSERT_EQUAL(length(held), 1, "A bare taur's body holds [length(held)] deposits of walking mud, not one.")
 	var/legs = DIRT_LIMB_BIT(DIRT_LIMB_R_LEG) | DIRT_LIMB_BIT(DIRT_LIMB_L_LEG)
 	for(var/datum/dirt_splat/deposit as anything in deposits_in(own.mess_splats))
 		TEST_ASSERT(!(deposit.limbs & legs), "The rider's skin took walking mud on legs it doesn't draw: limbs [deposit.limbs].")
 	var/datum/dirt_drawing/drawing = own.part_drawings?[ORGAN_SLOT_EXTERNAL_TAUR]
-	if(drawing?.request && !SSdirt.mask_jobs[drawing.key])
-		// another test made them before, so they're made again and the job makes the rasters
-		SSdirt.masks.forget(drawing.key)
-		drawing.forget(TRUE)
+	if(drawing?.request && make_again(drawing))
 		rider.update_body_parts()
 	var/datum/dirt_mask_job/job = drawing?.request && SSdirt.mask_jobs[drawing.key]
 	TEST_ASSERT(job, "The bare taur's walking mud wasn't queued.")
@@ -353,7 +285,7 @@
 	TEST_ASSERT(suited.equip_to_slot_if_possible(suit, ITEM_SLOT_OCLOTHING), "Couldn't put a taur suit on the taur.")
 	TEST_ASSERT(dirt_taur_fitted(suit, suited), "The bomb suit isn't drawn as a taur suit, so a taur suit's dirt can't be checked.")
 	var/datum/component/dirtiness/suited_own = right_sided(suited)
-	TEST_ASSERT(dirt_land(suited, DIRT_CAUSE_WALK, DIRT_MATERIAL_MUD, 3, 0), "Walking through mud landed nowhere on a taur in a taur suit.")
+	TEST_ASSERT(dirt_land_variant(suited, DIRT_CAUSE_WALK, DIRT_MATERIAL_MUD, 3, 0), "Walking through mud landed nowhere on a taur in a taur suit.")
 	var/datum/component/dirtiness/suit_carrier = suit.GetComponent(/datum/component/dirtiness)
 	held = deposits_in(suit_carrier?.mess_splats)
 	TEST_ASSERT_EQUAL(length(held), 1, "A taur suit holds [length(held)] deposits of walking mud, not one.")
@@ -368,16 +300,14 @@
 		TEST_ASSERT_EQUAL(deposit.limbs, walked.limbs & ~legs, "A taur suit's upper part asked for walking mud on limbs [deposit.limbs], not on those walking reaches off the legs.")
 	// the queued job draws the hem band a band a piece, never from rasters kept before
 	drawing = suit_carrier.taur_cloth
-	if(drawing?.request && !SSdirt.mask_jobs[drawing.key])
-		SSdirt.masks.forget(drawing.key)
-		drawing.forget(TRUE)
+	if(drawing?.request && make_again(drawing))
 		suit.update_slot_icon()
 	job = drawing?.request && SSdirt.mask_jobs[drawing.key]
 	TEST_ASSERT(job, "The taur suit's walking mud on the taur canvas wasn't queued.")
 	request = drawing.request
 	SSdirt.rasters.forget(shape_raster_key(request, walked))
 	// the suit covers the rider's torso, so smoke reaching it lands on the suit there, and on none of the skin it hides
-	dirt_land(suited, DIRT_CAUSE_SMOKE, DIRT_MATERIAL_SOOT, 3, 0)
+	dirt_land_variant(suited, DIRT_CAUSE_SMOKE, DIRT_MATERIAL_SOOT, 3, 0)
 	for(var/datum/dirt_splat/deposit as anything in deposits_in(suited_own.mess_splats))
 		TEST_ASSERT(!(deposit.limbs & DIRT_LIMB_BIT(DIRT_LIMB_TORSO)), "The skin under a taur suit's torso took smoke: limbs [deposit.limbs].")
 	var/datum/dirt_splat/smoked
@@ -391,46 +321,29 @@
 	for(var/direction in list(SOUTH, EAST))
 		TEST_ASSERT_EQUAL(job.splat_rasters[1][direction], coat_rasters[direction], "A taur suit's walking mud facing [dir2text(direction)] on the taur canvas isn't the coat of the taur body it hides.")
 	var/image/root = bulge_drawn_root(suited.overlays_standing[SUIT_LAYER])
-	var/image/sprite = bulge_drawn_leaf(root)
-	TEST_ASSERT(sprite, "The taur suit isn't drawn.")
-	var/list/shift = dirt_worn_shift(suit)
+	TEST_ASSERT(bulge_drawn_leaf(root), "The taur suit isn't drawn.")
+	TEST_ASSERT_EQUAL(describe_insets(root), "wrapper -16,0; rider 16,0; pools 0,0", "A taur suit's dirt isn't drawn on the body's tile and its hem band on the taur canvas round it.")
 	var/hem_insets = 0
 	var/hem_at = 0
 	var/top_at = 0
-	var/on_suit = 0
-	var/top_on_suit = 0
 	var/position = 0
 	for(var/image/child as anything in root.overlays)
 		position++
 		if(child.blend_mode != BLEND_INSET_OVERLAY)
 			continue
-		var/icon/inset = icon(child.icon)
 		if(get_icon_dimensions(child.icon)["width"] != DIRT_TAUR_WIDTH)
 			TEST_ASSERT(!top_at, "A taur suit's upper part draws more than one inset image on the body's tile.")
 			top_at = position
-			for(var/direction in list(SOUTH, NORTH, EAST, WEST))
-				for(var/index in dirt_sprite_pixels(sprite.icon, sprite.icon_state, direction, DIRT_TAUR_WIDTH))
-					var/row = floor((index - 1) / DIRT_TAUR_WIDTH)
-					var/column = index - row * DIRT_TAUR_WIDTH - shift[1]
-					if(column >= 1 && column <= ICON_SIZE_X && inset.GetPixel(column, ICON_SIZE_Y - row, null, direction))
-						top_on_suit++
 			continue
 		hem_insets++
 		hem_at = position
-		for(var/direction in list(SOUTH, NORTH, EAST, WEST))
-			for(var/index in dirt_sprite_pixels(sprite.icon, sprite.icon_state, direction, DIRT_TAUR_WIDTH))
-				var/row = floor((index - 1) / DIRT_TAUR_WIDTH)
-				if(inset.GetPixel(index - row * DIRT_TAUR_WIDTH, ICON_SIZE_Y - row, null, direction))
-					on_suit++
 	TEST_ASSERT_EQUAL(hem_insets, 1, "A taur suit draws [hem_insets] inset images on the taur canvas, not one.")
-	TEST_ASSERT(on_suit, "A taur suit's walking mud misses its sprite.")
 	TEST_ASSERT(top_at > hem_at, "A taur suit's upper part draws no smoke or walking mud on the hands, or draws them under its hem band.")
-	TEST_ASSERT(top_on_suit, "A taur suit's upper part's smoke and walking mud miss its sprite.")
 	suited.wash(CLEAN_WASH)
 	TEST_ASSERT(!suit_carrier.mess_count(), "A wash left dirt on the taur suit.")
 	SSdirt.finish_all()
 	TEST_ASSERT(!length(inset_images(suited, SUIT_LAYER)), "The washed taur suit still draws dirt on its hem band or its upper part.")
-	TEST_ASSERT(dirt_land(suited, DIRT_CAUSE_WALK, DIRT_MATERIAL_MUD, 3, 0), "Walking through mud again landed nowhere on the washed taur suit.")
+	TEST_ASSERT(dirt_land_variant(suited, DIRT_CAUSE_WALK, DIRT_MATERIAL_MUD, 3, 0), "Walking through mud again landed nowhere on the washed taur suit.")
 	// the wash deleted the suit's carrier, so the landing made it another
 	suit_carrier = suit.GetComponent(/datum/component/dirtiness)
 	held = deposits_in(suit_carrier.mess_splats)
@@ -445,18 +358,14 @@
 	// walking's reach, which the suit took on the taur: the legs, and the hands beside them
 	var/datum/dirt_splat/suit_deposit = held[1]
 	var/datum/dirt_template/template = dirt_build_template_now(cloth.request.zone_sources)
-	var/icon/baked_icon = icon(cloth.masks.baked)
 	var/on_legs = 0
-	for(var/direction in list(SOUTH, NORTH, EAST, WEST))
+	for(var/direction in four_directions())
 		var/datum/dirt_surface/surface = template.surfaces[direction]
-		for(var/icon_y in 1 to ICON_SIZE_Y)
-			for(var/icon_x in 1 to ICON_SIZE_X)
-				if(!baked_icon.GetPixel(icon_x, icon_y, null, direction))
-					continue
-				var/limb = DIRT_PIXEL_LIMB(surface.flags_of[(ICON_SIZE_Y - icon_y) * ICON_SIZE_X + icon_x])
-				TEST_ASSERT(limb && (suit_deposit.limbs & DIRT_LIMB_BIT(limb)), "The taur suit on a biped draws walking mud off the limbs it reaches ([suit_deposit.limbs]) at [icon_x],[icon_y] facing [dir2text(direction)].")
-				if(limb == DIRT_LIMB_R_LEG || limb == DIRT_LIMB_L_LEG)
-					on_legs++
+		for(var/index in mask_pixels(cloth.masks.baked, direction))
+			var/limb = DIRT_PIXEL_LIMB(surface.flags_of[index])
+			TEST_ASSERT(limb && (suit_deposit.limbs & DIRT_LIMB_BIT(limb)), "The taur suit on a biped draws walking mud off the limbs it reaches ([suit_deposit.limbs]) at pixel [index] facing [dir2text(direction)].")
+			if(limb == DIRT_LIMB_R_LEG || limb == DIRT_LIMB_L_LEG)
+				on_legs++
 	TEST_ASSERT(on_legs, "The taur suit on a biped draws no walking mud on the legs.")
 
 	// walking in dust reaches the legs alone, which the hem band draws, so the upper part has nothing to draw
@@ -465,7 +374,7 @@
 	suit = allocate(/obj/item/clothing/suit/utility/bomb_suit)
 	TEST_ASSERT(suited.equip_to_slot_if_possible(suit, ITEM_SLOT_OCLOTHING), "Couldn't put a second taur suit on a taur.")
 	right_sided(suited)
-	dirt_land(suited, DIRT_CAUSE_WALK, DIRT_MATERIAL_DUST, 3, 0)
+	dirt_land_variant(suited, DIRT_CAUSE_WALK, DIRT_MATERIAL_DUST, 3, 0)
 	SSdirt.finish_all()
 	suit_carrier = suit.GetComponent(/datum/component/dirtiness)
 	held = deposits_in(suit_carrier?.mess_splats)
@@ -476,7 +385,7 @@
 	var/list/worn = taur_suit_places(suited)
 	TEST_ASSERT(worn[1] && suit_carrier.taur_cloth?.masks?.baked, "A taur suit's walking dust draws no hem band on the taur canvas.")
 	TEST_ASSERT(!worn[2], "A taur suit's upper part draws an inset image on the body's tile with only walking dust on the legs to draw.")
-	dirt_land(suited, DIRT_CAUSE_SPLASH, DIRT_MATERIAL_MUD, 3, 0)
+	dirt_land_variant(suited, DIRT_CAUSE_SPLASH, DIRT_MATERIAL_MUD, 3, 0)
 	SSdirt.finish_all()
 	cloth = suit_carrier.cloth
 	worn = taur_suit_places(suited)
@@ -499,9 +408,6 @@
 /**
  * Returns where a body's taur suit draws its inset images in its worn wrapper, as list(the hem band's place on the
  * taur canvas, the upper part's on the body's tile). Each is 0 if it isn't drawn.
- *
- * Arguments:
- * - body: The taur.
  */
 /datum/unit_test/dirt_drawing/proc/taur_suit_places(mob/living/carbon/human/body)
 	RETURN_TYPE(/list)
@@ -525,13 +431,7 @@
 	SSdirt.finish_all()
 	var/mob/living/carbon/human/consistent/lizard = allocate(/mob/living/carbon/human/consistent)
 	lizard.set_species(/datum/species/lizard)
-	var/list/colours = list("#5A8A4A", "#C8D8B0", "#3A2A20")
-	lizard.dna.mutant_bodyparts[FEATURE_TAIL] = build_mutant_part(/datum/sprite_accessory/tails/lizard/short/twotone::name, colours)
-	lizard.dna.mutant_bodyparts[FEATURE_HORNS] = build_mutant_part(/datum/sprite_accessory/horns/ram::name, colours)
-	lizard.dna.mutant_bodyparts[FEATURE_WINGS] = build_mutant_part(/datum/sprite_accessory/wings/mammal/bat::name, colours)
-	lizard.dna.mutant_bodyparts[FEATURE_EARS] = build_mutant_part(/datum/sprite_accessory/ears/external/bat::name, colours)
-	lizard.dna.species.regenerate_organs(lizard)
-	lizard.update_body(is_creating = TRUE)
+	give_parts(lizard, list(FEATURE_TAIL = /datum/sprite_accessory/tails/lizard/short/twotone::name, FEATURE_HORNS = /datum/sprite_accessory/horns/ram::name, FEATURE_WINGS = /datum/sprite_accessory/wings/mammal/bat::name, FEATURE_EARS = /datum/sprite_accessory/ears/external/bat::name), list("#5A8A4A", "#C8D8B0", "#3A2A20"))
 	var/obj/item/organ/tail = lizard.get_organ_by_type(/obj/item/organ/tail)
 	var/obj/item/organ/wings = lizard.get_organ_by_type(/obj/item/organ/wings)
 	var/obj/item/organ/horns = lizard.get_organ_by_type(/obj/item/organ/horns)
@@ -540,7 +440,7 @@
 	var/list/parts = list(tail, wings, horns, ears)
 
 	var/datum/component/dirtiness/own = right_sided(lizard)
-	TEST_ASSERT(dirt_land(lizard, DIRT_CAUSE_PLUNGE, DIRT_MATERIAL_MUD, 3, 0), "A plunge into mud landed nowhere on a lizard.")
+	TEST_ASSERT(dirt_land_variant(lizard, DIRT_CAUSE_PLUNGE, DIRT_MATERIAL_MUD, 3, 0), "A plunge into mud landed nowhere on a lizard.")
 	for(var/obj/item/organ/part as anything in parts)
 		var/list/held = deposits_in(own?.part_splats?[part.slot])
 		TEST_ASSERT_EQUAL(length(held), 1, "The lizard's [part.name] holds [length(held)] deposits of a plunge, not one.")
@@ -571,23 +471,24 @@
 	TEST_ASSERT(tail_drawing.masks == tail_masks && !SSdirt.mask_jobs[tail_drawing.key], "A wag made the lizard's tail's masks again.")
 	var/datum/dirt_mask_job/stopped = tail_drawing.wag && SSdirt.mask_jobs[tail_drawing.wag.key]
 	TEST_ASSERT(stopped && own.remove_mess(own.part_splats[tail.slot][1]) == tail.slot, "The lizard's frames weren't queued, or its tail's plunge couldn't be taken off.")
+	own.mess_changed(tail.slot)
 	TEST_ASSERT(!(stopped in SSdirt.queue) && !SSdirt.mask_jobs[stopped.key], "The lizard's frames are still made after its tail's last splat was taken off.")
 
 	lizard.wash(CLEAN_WASH)
 	TEST_ASSERT(!length(own.part_splats), "A wash left dirt on the lizard's parts.")
-	TEST_ASSERT(dirt_land(lizard, DIRT_CAUSE_WALK, DIRT_MATERIAL_MUD, 3, 0), "Walking through mud landed nowhere on a lizard.")
+	TEST_ASSERT(dirt_land_variant(lizard, DIRT_CAUSE_WALK, DIRT_MATERIAL_MUD, 3, 0), "Walking through mud landed nowhere on a lizard.")
 	TEST_ASSERT(length(deposits_in(own.part_splats?[tail.slot])) == 1 && length(deposits_in(own.part_splats?[wings.slot])) == 1, "Walking through mud didn't land on the lizard's tail and wings.")
 	TEST_ASSERT(!length(own.part_splats?[ears.slot]) && !length(own.part_splats?[horns.slot]), "Walking through mud landed on the lizard's ears or horns.")
 	SSdirt.finish_all()
 	var/tail_drawn = 0
-	for(var/direction in list(SOUTH, NORTH, EAST, WEST))
+	for(var/direction in four_directions())
 		tail_drawn += part_pixels(own, tail, direction)
 		var/wing_drawn = part_pixels(own, wings, direction)
 		// two soft drips of five pixels at most
 		TEST_ASSERT(wing_drawn <= 10, "Walking through mud draws [wing_drawn] pixels on the lizard's wings facing [dir2text(direction)], more than two drips.")
 	TEST_ASSERT(tail_drawn, "Walking through mud draws nothing on the lizard's tail.")
 
-	TEST_ASSERT(dirt_land(lizard, DIRT_CAUSE_SMOKE, DIRT_MATERIAL_SOOT, 3, 0), "Smoke landed nowhere on a lizard.")
+	TEST_ASSERT(dirt_land_variant(lizard, DIRT_CAUSE_SMOKE, DIRT_MATERIAL_SOOT, 3, 0), "Smoke landed nowhere on a lizard.")
 	TEST_ASSERT(length(deposits_in(own.part_splats?[tail.slot])) == 2 && length(deposits_in(own.part_splats?[wings.slot])) == 2, "Smoke didn't land on the lizard's tail and wings.")
 	TEST_ASSERT(!length(own.part_splats?[ears.slot]), "Smoke landed on the lizard's ears, which take only the field causes.")
 
@@ -618,34 +519,13 @@
  * Arguments:
  * - carrier: Its owner's carrier.
  * - part: The part's organ.
- * - direction: The direction.
  */
 /datum/unit_test/dirt_drawing/proc/part_pixels(datum/component/dirtiness/carrier, obj/item/organ/part, direction)
 	. = 0
 	var/datum/dirt_drawing/drawing = carrier.part_drawings?[part.slot]
 	for(var/layer_key, baked in drawing?.masks?.baked_by_layer)
 		var/icon/sprite = icon(baked)
-		for(var/icon_y in 1 to sprite.Height())
-			for(var/icon_x in 1 to sprite.Width())
-				if(sprite.GetPixel(icon_x, icon_y, null, direction))
-					.++
-
-/**
- * Returns whether a limb's cached images hold a container drawing a baked icon.
- *
- * Arguments:
- * - body: The body.
- * - zone: The limb's body zone.
- * - baked: The baked icon.
- */
-/datum/unit_test/dirt_drawing/proc/holds_baked(mob/living/carbon/human/body, zone, baked)
-	for(var/image/drawn as anything in body.drawn_limb_icons(zone))
-		if(drawn.icon || !length(drawn.overlays))
-			continue
-		for(var/image/held as anything in drawn.overlays)
-			if(held.icon == baked)
-				return TRUE
-	return FALSE
+		. += length(mask_pixels(sprite, direction, sprite.Width(), sprite.Height()))
 
 /**
  * What a body's drawn parts are read from is kept between draws, and read again on every change to it. Each change
@@ -677,11 +557,12 @@
 	var/mob/living/carbon/human/consistent/rider = allocate(/mob/living/carbon/human/consistent)
 	TEST_ASSERT(give_taur(rider), "Couldn't make the human a horse taur.")
 	var/datum/component/dirtiness/rider_own = right_sided(rider)
-	rider_own.add_mess(DIRT_ZONE_BACK, ORGAN_SLOT_EXTERNAL_TAUR, 2, 0)
+	add_mess_variant(rider_own, DIRT_ZONE_BACK, ORGAN_SLOT_EXTERNAL_TAUR, 2, 0)
+	rider_own.mess_changed(ORGAN_SLOT_EXTERNAL_TAUR)
 	SSdirt.finish_all()
 	var/datum/dirt_drawing/taur_drawing = rider_own.part_drawings?[ORGAN_SLOT_EXTERNAL_TAUR]
 	TEST_ASSERT(taur_drawing?.masks, "The taur body draws no pool, so a deposit joining it can't be checked.")
-	TEST_ASSERT(dirt_land(rider, DIRT_CAUSE_WALK, DIRT_MATERIAL_MUD, 3, 0), "Walking through mud landed nowhere on a bare taur.")
+	TEST_ASSERT(dirt_land_variant(rider, DIRT_CAUSE_WALK, DIRT_MATERIAL_MUD, 3, 0), "Walking through mud landed nowhere on a bare taur.")
 	SSdirt.finish_all()
 	TEST_ASSERT_EQUAL(length(taur_drawing.request?.splats), 2, "The taur body's masks once walking mud joins its pool take [length(taur_drawing.request?.splats)] splats, not the pool and the mud.")
 	check_drawn_as(rider, shape_memo_taur(), ORGAN_SLOT_EXTERNAL_TAUR, "walking mud joining the taur body's pool")
@@ -710,8 +591,6 @@
  * part's layers holds its baked image in a container.
  *
  * Arguments:
- * - body: The body.
- * - fresh: The fresh body.
  * - organ_slot: The part's ORGAN_SLOT_* define.
  * - what: What changed on the body, for the messages.
  */
@@ -736,11 +615,9 @@
 	RETURN_TYPE(/mob/living/carbon/human/consistent)
 	var/mob/living/carbon/human/consistent/lizard = allocate(/mob/living/carbon/human/consistent)
 	lizard.set_species(/datum/species/lizard)
-	lizard.dna.mutant_bodyparts[FEATURE_TAIL] = build_mutant_part(tail_name, list("#5A8A4A", "#C8D8B0", "#3A2A20"))
-	lizard.dna.species.regenerate_organs(lizard)
-	lizard.update_body(is_creating = TRUE)
+	give_parts(lizard, list(FEATURE_TAIL = tail_name), list("#5A8A4A", "#C8D8B0", "#3A2A20"))
 	right_sided(lizard)
-	dirt_land(lizard, DIRT_CAUSE_PLUNGE, DIRT_MATERIAL_MUD, 3, 0)
+	dirt_land_variant(lizard, DIRT_CAUSE_PLUNGE, DIRT_MATERIAL_MUD, 3, 0)
 	SSdirt.finish_all()
 	return lizard
 
@@ -763,17 +640,14 @@
 		rider.update_body_parts()
 	var/datum/component/dirtiness/own = right_sided(rider)
 	// drawn by the landing after, so its masks are first asked for with both
-	own.add_mess(DIRT_ZONE_BACK, ORGAN_SLOT_EXTERNAL_TAUR, 2, 0, redraw = FALSE)
-	dirt_land(rider, DIRT_CAUSE_WALK, DIRT_MATERIAL_MUD, 3, 0)
+	add_mess_variant(own, DIRT_ZONE_BACK, ORGAN_SLOT_EXTERNAL_TAUR, 2, 0)
+	dirt_land_variant(rider, DIRT_CAUSE_WALK, DIRT_MATERIAL_MUD, 3, 0)
 	SSdirt.finish_all()
 	return rider
 
 /**
  * Swaps a body's left leg for a digitigrade one, as an attached leg would be, and returns whether it took. The leg it
  * had is left for the caller.
- *
- * Arguments:
- * - body: The body.
  */
 /datum/unit_test/dirt_drawing/proc/shape_memo_leg(mob/living/carbon/human/body)
 	var/obj/item/bodypart/leg/left/digitigrade/leg = allocate(/obj/item/bodypart/leg/left/digitigrade)
@@ -793,15 +667,13 @@
 	SSdirt.finish_all()
 	var/mob/living/carbon/human/consistent/lizard = allocate(/mob/living/carbon/human/consistent)
 	lizard.set_species(/datum/species/lizard)
-	lizard.dna.mutant_bodyparts[FEATURE_TAIL] = build_mutant_part(/datum/sprite_accessory/tails/lizard/short/twotone::name, list("#5A8A4A", "#C8D8B0", "#3A2A20"))
-	lizard.dna.species.regenerate_organs(lizard)
-	lizard.update_body(is_creating = TRUE)
+	give_parts(lizard, list(FEATURE_TAIL = /datum/sprite_accessory/tails/lizard/short/twotone::name), list("#5A8A4A", "#C8D8B0", "#3A2A20"))
 	var/obj/item/organ/tail = lizard.get_organ_by_type(/obj/item/organ/tail)
 	TEST_ASSERT(tail, "Couldn't give the lizard a tail.")
 	var/zone = tail.bodypart_owner.body_zone
 	var/datum/component/dirtiness/own = right_sided(lizard)
-	TEST_ASSERT(dirt_land(lizard, DIRT_CAUSE_PLUNGE, DIRT_MATERIAL_MUD, 3, 0), "A plunge into mud landed nowhere on a lizard.")
-	TEST_ASSERT(dirt_land(lizard, DIRT_CAUSE_DOUSE, DIRT_MATERIAL_ASH, 3, 0), "A douse of ash landed nowhere on a lizard.")
+	TEST_ASSERT(dirt_land_variant(lizard, DIRT_CAUSE_PLUNGE, DIRT_MATERIAL_MUD, 3, 0), "A plunge into mud landed nowhere on a lizard.")
+	TEST_ASSERT(dirt_land_variant(lizard, DIRT_CAUSE_DOUSE, DIRT_MATERIAL_ASH, 3, 0), "A douse of ash landed nowhere on a lizard.")
 	var/datum/dirt_drawing/drawing = own.part_drawings[tail.slot]
 	var/datum/dirt_mask_job/still_job = SSdirt.mask_jobs[drawing.key]
 	TEST_ASSERT(still_job, "The lizard's tail's plunge and douse weren't queued.")
@@ -823,6 +695,7 @@
 		if(tail_splat.cause == DIRT_CAUSE_DOUSE)
 			doused = tail_splat
 	TEST_ASSERT(doused && own.remove_mess(doused) == tail.slot, "The lizard's tail's douse couldn't be taken off.")
+	own.mess_changed(tail.slot)
 	SSdirt.finish_all()
 	TEST_ASSERT(lizard.wag_tail(), "Couldn't wag the lizard's tail.")
 	SSdirt.finish_all()
@@ -840,7 +713,7 @@
 		var/list/sprite_icons = list()
 		for(var/image/sprite as anything in layer_drawn[4])
 			sprite_icons += icon(sprite.icon, sprite.icon_state)
-		for(var/direction in list(SOUTH, NORTH, EAST, WEST))
+		for(var/direction in four_directions())
 			for(var/icon_y in 1 to ICON_SIZE_Y)
 				for(var/icon_x in 1 to ICON_SIZE_X)
 					if(!dirt_icon.GetPixel(icon_x, icon_y, null, direction, 2))
@@ -855,23 +728,23 @@
 	TEST_ASSERT(lizard.wag_tail() && !length(SSdirt.queue), "Wagging the lizard's tail again queued a job.")
 	for(var/held in baked)
 		TEST_ASSERT(holds_baked(lizard, zone, held), "The lizard's tail wagged again doesn't draw the frames it made.")
-	TEST_ASSERT(dirt_land(lizard, DIRT_CAUSE_SMOKE, DIRT_MATERIAL_SOOT, 3, 0), "Smoke landed nowhere on the lizard.")
+	TEST_ASSERT(dirt_land_variant(lizard, DIRT_CAUSE_SMOKE, DIRT_MATERIAL_SOOT, 3, 0), "Smoke landed nowhere on the lizard.")
 	TEST_ASSERT(!length(wag_containers(lizard, zone)), "The lizard's wagging tail draws dirt while its frames are made again for smoke.")
 	var/datum/dirt_mask_job/pending = drawing.wag && SSdirt.mask_jobs[drawing.wag.key]
-	TEST_ASSERT(pending && dirt_land(lizard, DIRT_CAUSE_WALK, DIRT_MATERIAL_MUD, 3, 0), "The lizard's frames for smoke weren't queued, or walking through mud landed nowhere on it.")
+	TEST_ASSERT(pending && dirt_land_variant(lizard, DIRT_CAUSE_WALK, DIRT_MATERIAL_MUD, 3, 0), "The lizard's frames for smoke weren't queued, or walking through mud landed nowhere on it.")
 	TEST_ASSERT(!(pending in SSdirt.queue) && !SSdirt.mask_jobs[pending.key], "The lizard's frames for smoke are still made after mud landed on its tail before they were.")
 	var/datum/dirt_mask_job/walked = drawing.wag && SSdirt.mask_jobs[drawing.wag.key]
-	TEST_ASSERT(walked && dirt_land(lizard, DIRT_CAUSE_WALK, DIRT_MATERIAL_MUD, 3, 0), "The lizard's frames for smoke and mud weren't queued, or walking through mud again landed nowhere on it.")
+	TEST_ASSERT(walked && dirt_land_variant(lizard, DIRT_CAUSE_WALK, DIRT_MATERIAL_MUD, 3, 0), "The lizard's frames for smoke and mud weren't queued, or walking through mud again landed nowhere on it.")
 	TEST_ASSERT((walked in SSdirt.queue) && SSdirt.mask_jobs[walked.key] == walked, "Walking through the same mud again, which changes nothing, dropped the lizard's frames being made.")
 	SSdirt.finish_all()
 	frames = wag_containers(lizard, zone)
 	TEST_ASSERT(length(frames), "The lizard's wagging tail draws no dirt once its frames are made again for smoke and mud.")
 	for(var/list/drawn as anything in frames)
 		TEST_ASSERT(!(drawn[1] in baked) && drawn[3] ~= drawn[2], "The lizard's wagging tail draws its old frames after smoke and mud, or frames not playing its wag.")
-	TEST_ASSERT(dirt_land(lizard, DIRT_CAUSE_WALK, DIRT_MATERIAL_DRIED_MUD, 3, 0), "Walking through dried mud landed nowhere on the lizard.")
+	TEST_ASSERT(dirt_land_variant(lizard, DIRT_CAUSE_WALK, DIRT_MATERIAL_DRIED_MUD, 3, 0), "Walking through dried mud landed nowhere on the lizard.")
 	var/datum/dirt_mask_job/stopped = drawing.wag && SSdirt.mask_jobs[drawing.wag.key]
 	lizard.unwag_tail()
-	TEST_ASSERT((stopped in SSdirt.queue) && dirt_land(lizard, DIRT_CAUSE_WALK, DIRT_MATERIAL_RED_CLAY, 3, 0), "The lizard's frames for dried mud weren't queued, or were dropped as it stopped wagging, or walking through red clay landed nowhere on it.")
+	TEST_ASSERT((stopped in SSdirt.queue) && dirt_land_variant(lizard, DIRT_CAUSE_WALK, DIRT_MATERIAL_RED_CLAY, 3, 0), "The lizard's frames for dried mud weren't queued, or were dropped as it stopped wagging, or walking through red clay landed nowhere on it.")
 	TEST_ASSERT(!(stopped in SSdirt.queue) && !SSdirt.mask_jobs[stopped.key] && !(drawing.wag && SSdirt.mask_jobs[drawing.wag.key]), "The lizard's frames for dried mud are still made after red clay landed on its still tail, or its still tail queued frames.")
 
 /**
@@ -883,13 +756,11 @@
 /datum/unit_test/dirt_drawing/proc/check_wag_still()
 	SSdirt.finish_all()
 	var/mob/living/carbon/human/consistent/body = allocate(/mob/living/carbon/human/consistent)
-	body.dna.mutant_bodyparts[FEATURE_TAIL] = build_mutant_part(/datum/sprite_accessory/tails/mammal/wagging/horse::name, list("#8A6A4A", "#D8C8B0", "#3A2A20"))
-	body.dna.species.regenerate_organs(body)
-	body.update_body(is_creating = TRUE)
+	give_parts(body, list(FEATURE_TAIL = /datum/sprite_accessory/tails/mammal/wagging/horse::name), list("#8A6A4A", "#D8C8B0", "#3A2A20"))
 	var/obj/item/organ/tail = body.get_organ_by_type(/obj/item/organ/tail)
 	TEST_ASSERT(tail, "Couldn't give the human a horse tail.")
 	var/datum/component/dirtiness/own = right_sided(body)
-	TEST_ASSERT(dirt_land(body, DIRT_CAUSE_PLUNGE, DIRT_MATERIAL_MUD, 3, 0), "A plunge into mud landed nowhere on a human with a horse tail.")
+	TEST_ASSERT(dirt_land_variant(body, DIRT_CAUSE_PLUNGE, DIRT_MATERIAL_MUD, 3, 0), "A plunge into mud landed nowhere on a human with a horse tail.")
 	SSdirt.finish_all()
 	var/datum/dirt_drawing/drawing = own.part_drawings?[tail.slot]
 	TEST_ASSERT(length(drawing?.masks?.baked_by_layer), "The horse tail draws no plunge.")
@@ -935,7 +806,7 @@
 	var/mob/living/carbon/human/body = fox_tailed()
 	var/obj/item/organ/tail = body.get_organ_by_type(/obj/item/organ/tail)
 	TEST_ASSERT(tail, "Couldn't give the human a fox tail.")
-	TEST_ASSERT(dirt_land(body, DIRT_CAUSE_FALL, DIRT_MATERIAL_MUD, 2, 0), "A fall of mud landed nowhere on a human with a fox tail.")
+	TEST_ASSERT(dirt_land_variant(body, DIRT_CAUSE_FALL, DIRT_MATERIAL_MUD, 2, 0), "A fall of mud landed nowhere on a human with a fox tail.")
 	var/datum/component/dirtiness/own = body.GetComponent(/datum/component/dirtiness)
 	var/datum/dirt_drawing/drawing = own.part_drawings?[tail.slot]
 	TEST_ASSERT(drawing?.request && SSdirt.mask_jobs[drawing.key], "The fox tail's fall wasn't queued.")
@@ -1001,7 +872,7 @@
 /datum/unit_test/dirt_drawing/proc/carried_far_third(mob/living/carbon/human/body, tail_name)
 	var/obj/item/organ/tail = body.get_organ_by_type(/obj/item/organ/tail)
 	TEST_ASSERT(tail, "Couldn't give the body a [tail_name].")
-	TEST_ASSERT(dirt_land(body, DIRT_CAUSE_PLUNGE, DIRT_MATERIAL_MUD, 3, 0), "A plunge into mud landed nowhere on a body with a [tail_name].")
+	TEST_ASSERT(dirt_land_variant(body, DIRT_CAUSE_PLUNGE, DIRT_MATERIAL_MUD, 3, 0), "A plunge into mud landed nowhere on a body with a [tail_name].")
 	var/datum/component/dirtiness/own = body.GetComponent(/datum/component/dirtiness)
 	var/datum/dirt_drawing/drawing = own.part_drawings?[tail.slot]
 	TEST_ASSERT(drawing?.request && SSdirt.mask_jobs[drawing.key], "The [tail_name]'s plunge wasn't queued.")
@@ -1056,12 +927,10 @@
 	for(var/list/landing as anything in list(list(DIRT_CAUSE_SPLASH, 2), list(DIRT_CAUSE_PLUNGE, 3), list(DIRT_CAUSE_PLUNGE, 3)))
 		SSdirt.finish_all()
 		var/mob/living/carbon/human/consistent/body = allocate(/mob/living/carbon/human/consistent)
-		body.dna.mutant_bodyparts[FEATURE_TAIL] = build_mutant_part(/datum/sprite_accessory/tails/mammal/wagging/wolf::name, list("#8A6A4A", "#D8C8B0", "#3A2A20"))
-		body.dna.species.regenerate_organs(body)
-		body.update_body(is_creating = TRUE)
+		give_parts(body, list(FEATURE_TAIL = /datum/sprite_accessory/tails/mammal/wagging/wolf::name), list("#8A6A4A", "#D8C8B0", "#3A2A20"))
 		var/datum/component/dirtiness/own = right_sided(body)
 		var/obj/item/organ/tail = body.get_organ_by_type(/obj/item/organ/tail)
-		TEST_ASSERT(tail && dirt_land(body, landing[1], DIRT_MATERIAL_MUD, landing[2], 0), "Couldn't land a [landing[1]] of mud on a human with a wolf tail.")
+		TEST_ASSERT(tail && dirt_land_variant(body, landing[1], DIRT_MATERIAL_MUD, landing[2], 0), "Couldn't land a [landing[1]] of mud on a human with a wolf tail.")
 		SSdirt.finish_all()
 		// drop the warm plunge's frames, kept under the same key, and the kept sprites, so the last bakes cold
 		if(length(jobs) == 2)
@@ -1098,7 +967,7 @@
 		var/splashed_baked = splashed.masks.baked_by_layer[layer_key]
 		var/icon/splashed_icon = splashed_baked ? icon(splashed_baked) : null
 		var/differ = 0
-		for(var/direction in list(SOUTH, NORTH, EAST, WEST))
+		for(var/direction in four_directions())
 			for(var/frame in 1 to frames)
 				for(var/icon_y in 1 to size[2])
 					for(var/icon_x in 1 to size[1])
@@ -1113,9 +982,7 @@
 /datum/unit_test/dirt_drawing/proc/fox_tailed()
 	RETURN_TYPE(/mob/living/carbon/human)
 	var/mob/living/carbon/human/consistent/body = allocate(/mob/living/carbon/human/consistent)
-	body.dna.mutant_bodyparts[FEATURE_TAIL] = build_mutant_part(/datum/sprite_accessory/tails/mammal/wagging/vulpkanin/fox::name, list("#8A6A4A", "#D8C8B0", "#3A2A20"))
-	body.dna.species.regenerate_organs(body)
-	body.update_body(is_creating = TRUE)
+	give_parts(body, list(FEATURE_TAIL = /datum/sprite_accessory/tails/mammal/wagging/vulpkanin/fox::name), list("#8A6A4A", "#D8C8B0", "#3A2A20"))
 	right_sided(body)
 	return body
 
@@ -1141,7 +1008,7 @@
 	var/thickness = length(packed) ? packed[1] : 0.6
 	. = shape_raster_key(drawing.request, splat)
 	planted += list(list(SSdirt.rasters, .), list(SSdirt.masks, drawing.key))
-	for(var/direction in list(SOUTH, NORTH, EAST, WEST))
+	for(var/direction in four_directions())
 		var/list/shown = new /list(width * size[2])
 		for(var/index in dirt_shape_mask(dirt_taur_owners(still, null, direction)))
 			shown[index] = TRUE
@@ -1234,7 +1101,6 @@
  * by index, the dirt's colour on them by index) per frame).
  *
  * Arguments:
- * - body: The body.
  * - zone: The limb's body zone.
  * - frames_drawing: The wag's drawing (/datum/dirt_drawing/var/wag), its masks made.
  */
@@ -1266,7 +1132,7 @@
 	for(var/count in sprite_frames)
 		frames = max(frames, count)
 	. = alist()
-	for(var/direction in list(SOUTH, NORTH, EAST, WEST))
+	for(var/direction in four_directions())
 		var/list/by_frame = list()
 		for(var/frame in 1 to frames)
 			var/list/shown = new /list(width * height)
@@ -1295,7 +1161,6 @@
  * time can't flag a rewind, and the dirt's delays are read from its icon written out.
  *
  * Arguments:
- * - body: The body.
  * - zone: The limb's body zone.
  */
 /datum/unit_test/dirt_drawing/proc/wag_containers(mob/living/carbon/human/body, zone)
@@ -1351,7 +1216,7 @@
 	TEST_ASSERT(breasts, "Couldn't give the body breasts.")
 	var/datum/component/dirtiness/own = right_sided(body)
 	// variant 2 wears the design whose soot reaches the chest below the collarbones, where the breasts lie
-	TEST_ASSERT(dirt_land(body, DIRT_CAUSE_SMOKE, DIRT_MATERIAL_SOOT, 3, 2), "Smoke's soot landed nowhere on a bare body with breasts.")
+	TEST_ASSERT(dirt_land_variant(body, DIRT_CAUSE_SMOKE, DIRT_MATERIAL_SOOT, 3, 2), "Smoke's soot landed nowhere on a bare body with breasts.")
 	TEST_ASSERT(!length(own.part_mess_splats[ORGAN_SLOT_BREASTS]), "Smoke's soot gave the breasts a share.")
 	SSdirt.finish_all()
 	var/datum/dirt_part_source/drawn = dirt_part_drawn(breasts, body)
@@ -1378,7 +1243,6 @@
  * list is empty while the part draws no container.
  *
  * Arguments:
- * - body: The body.
  * - source: The part as it draws (dirt_part_drawn()).
  */
 /datum/unit_test/dirt_drawing/proc/part_container_images(mob/living/carbon/human/body, datum/dirt_part_source/source)
@@ -1389,29 +1253,47 @@
 			. += baked
 
 /**
- * Returns list(how many of a baked image's pixels lie off a part's sprite or in a direction the part draws under the
- * skin, how many it has), over its four directions.
+ * Returns list(how many of an image's pixels lie off a part, how many it has), over its four directions. The part's
+ * pixels count only facing where it draws over the skin.
  *
  * Arguments:
- * - baked: The baked image.
- * - source: The part as it draws (dirt_part_drawn()).
+ * - part: The part as it draws (dirt_part_drawn()).
  */
-/datum/unit_test/dirt_drawing/proc/pixels_off_part(image/baked, datum/dirt_part_source/source)
+/datum/unit_test/dirt_drawing/proc/pixels_off_part(image/drawn, datum/dirt_part_source/part)
 	RETURN_TYPE(/list)
-	var/icon/sprite = icon(baked.icon)
+	var/alist/sprite_pixels = alist()
+	for(var/direction in four_directions())
+		if(!part.under(direction, DIRT_SKIN_LAYER))
+			sprite_pixels[direction] = part.pixels(direction)
+	return pixels_off(drawn, sprite_pixels)
+
+/// Returns list(how many of an image's pixels lie off a sheet's state, how many it has), over its four directions.
+/datum/unit_test/dirt_drawing/proc/pixels_off_sprite(image/drawn, sheet, state)
+	RETURN_TYPE(/list)
+	var/alist/sprite_pixels = alist()
+	for(var/direction in four_directions())
+		sprite_pixels[direction] = dirt_sprite_pixels(sheet, state, direction)
+	return pixels_off(drawn, sprite_pixels)
+
+/**
+ * Returns list(how many of an image's pixels lie off a sprite, how many it has), over its four directions, on the
+ * body's 32x32 canvas.
+ *
+ * Arguments:
+ * - sprite_pixels: alist(direction = the sprite's pixels that way). A direction without an entry has none.
+ */
+/datum/unit_test/dirt_drawing/proc/pixels_off(image/drawn, alist/sprite_pixels)
+	RETURN_TYPE(/list)
 	var/off = 0
 	var/total = 0
-	for(var/direction in list(SOUTH, NORTH, EAST, WEST))
-		var/list/on_part = new /list(ICON_SIZE_X * ICON_SIZE_Y)
-		if(!source.under(direction, DIRT_SKIN_LAYER))
-			for(var/index in source.pixels(direction))
-				on_part[index] = TRUE
-		for(var/row in 0 to ICON_SIZE_Y - 1)
-			for(var/column in 0 to ICON_SIZE_X - 1)
-				if(sprite.GetPixel(column + 1, ICON_SIZE_Y - row, null, direction))
-					total++
-					if(!on_part[row * ICON_SIZE_X + column + 1])
-						off++
+	for(var/direction in four_directions())
+		var/list/on_sprite = new /list(ICON_SIZE_X * ICON_SIZE_Y)
+		for(var/index in sprite_pixels[direction])
+			on_sprite[index] = TRUE
+		for(var/index in mask_pixels(drawn.icon, direction))
+			total++
+			if(!on_sprite[index])
+				off++
 	return list(off, total)
 
 /**
@@ -1427,7 +1309,7 @@
 	body.update_body()
 	var/datum/component/dirtiness/own = right_sided(body)
 	// variant 0, which check_wet_pending() never lands
-	TEST_ASSERT(dirt_land(body, DIRT_CAUSE_SWEAT, DIRT_MATERIAL_SWEAT, 3, 0), "Sweat landed nowhere on a body in a tank top.")
+	TEST_ASSERT(dirt_land_variant(body, DIRT_CAUSE_SWEAT, DIRT_MATERIAL_SWEAT, 3, 0), "Sweat landed nowhere on a body in a tank top.")
 	TEST_ASSERT(!length(deposits_in(own.mess_splats)), "Sweat landed on the bare skin beside a tank top.")
 	SSdirt.finish_all()
 	var/datum/dirt_drawing/tank_top = own.underclothes_drawings?[dirt_underclothes_key(DIRT_UNDERCLOTHES_UNDERSHIRT, /datum/sprite_accessory/clothing/undershirt/tank_white::name)]
@@ -1440,7 +1322,7 @@
 		if(entry[1] == DIRT_UNDERCLOTHES_UNDERSHIRT)
 			drawn_sprite = entry
 	TEST_ASSERT(drawn_sprite, "The tank top isn't drawn.")
-	var/list/counted = multiplier_pixels(multipliers[1], drawn_sprite[2], drawn_sprite[3])
+	var/list/counted = pixels_off_sprite(multipliers[1], drawn_sprite[2], drawn_sprite[3])
 	TEST_ASSERT(counted[2] && !counted[1], "The tank top's multiplier has [counted[2]] pixels, [counted[1]] of them off the tank top's own.")
 	for(var/zone in list(BODY_ZONE_L_ARM, BODY_ZONE_R_ARM))
 		TEST_ASSERT(!length(skin_images(body, zone, DIRT_SKIN_LAYER)), "The bare [zone] draws sweat.")
@@ -1450,14 +1332,14 @@
 	var/obj/item/clothing/under/jumpsuit = allocate(/obj/item/clothing/under/color/grey)
 	TEST_ASSERT(worker.equip_to_slot_if_possible(jumpsuit, ITEM_SLOT_ICLOTHING), "Couldn't dress the body in a jumpsuit.")
 	right_sided(worker)
-	TEST_ASSERT(dirt_land(worker, DIRT_CAUSE_SWEAT, DIRT_MATERIAL_SWEAT, 3, 0), "Sweat landed nowhere on a body in a jumpsuit.")
+	TEST_ASSERT(dirt_land_variant(worker, DIRT_CAUSE_SWEAT, DIRT_MATERIAL_SWEAT, 3, 0), "Sweat landed nowhere on a body in a jumpsuit.")
 	SSdirt.finish_all()
 	TEST_ASSERT(!length(inset_images(worker, UNIFORM_LAYER)), "The jumpsuit draws its sweat inset in a colour.")
 	var/image/root = bulge_drawn_root(worker.overlays_standing[UNIFORM_LAYER])
 	multipliers = multiply_images(root?.overlays)
 	TEST_ASSERT_EQUAL(length(multipliers), 1, "The jumpsuit draws [length(multipliers)] multiply images, not one.")
 	var/image/leaf = bulge_drawn_leaf(root)
-	counted = multiplier_pixels(multipliers[1], leaf.icon, leaf.icon_state)
+	counted = pixels_off_sprite(multipliers[1], leaf.icon, leaf.icon_state)
 	TEST_ASSERT(counted[2] && !counted[1], "The jumpsuit's multiplier has [counted[2]] pixels, [counted[1]] of them off the jumpsuit's own.")
 	var/datum/component/dirtiness/suit_carrier = jumpsuit.GetComponent(/datum/component/dirtiness)
 	var/held_key = suit_carrier?.cloth?.wet_key
@@ -1472,14 +1354,14 @@
 	var/obj/item/clothing/accessory/armband/armband = allocate(/obj/item/clothing/accessory/armband)
 	var/armband_state = armband.icon_state_is_worn ? armband.icon_state : armband.worn_icon_state
 	multipliers = multiply_images(root?.overlays)
-	counted = multiplier_pixels(multipliers[1], armband.worn_icon, armband_state)
+	counted = pixels_off_sprite(multipliers[1], armband.worn_icon, armband_state)
 	TEST_ASSERT(counted[2] > counted[1], "None of the jumpsuit's sweat lies where an armband goes, so an armband staying dry can't be checked.")
 	TEST_ASSERT(jumpsuit.attach_accessory(armband, null, FALSE), "Couldn't pin an armband on the jumpsuit.")
 	SSdirt.finish_all()
 	root = bulge_drawn_root(worker.overlays_standing[UNIFORM_LAYER])
 	multipliers = multiply_images(root?.overlays)
 	TEST_ASSERT_EQUAL(length(multipliers), 1, "The jumpsuit with an armband draws [length(multipliers)] multiply images, not one.")
-	counted = multiplier_pixels(multipliers[1], armband.worn_icon, armband_state)
+	counted = pixels_off_sprite(multipliers[1], armband.worn_icon, armband_state)
 	TEST_ASSERT_EQUAL(counted[2] - counted[1], 0, "The jumpsuit's sweat darkens its armband.")
 
 /**
@@ -1496,7 +1378,7 @@
 		body.update_body()
 		right_sided(body)
 		// variants check_sweat() never lands, so nothing of them is made yet
-		TEST_ASSERT(dirt_land(body, DIRT_CAUSE_SWEAT, DIRT_MATERIAL_SWEAT, 2, hide ? 2 : 1), "Sweat landed nowhere on a body in a tank top.")
+		TEST_ASSERT(dirt_land_variant(body, DIRT_CAUSE_SWEAT, DIRT_MATERIAL_SWEAT, 2, hide ? 2 : 1), "Sweat landed nowhere on a body in a tank top.")
 		SSdirt.finish_all()
 		var/list/multipliers = multiply_images(body.drawn_limb_icons(BODY_ZONE_CHEST))
 		TEST_ASSERT_EQUAL(length(multipliers), 1, "A sweaty tank top draws [length(multipliers)] multiply images, not one.")
@@ -1522,7 +1404,7 @@
 	wearer.update_body()
 	var/datum/component/dirtiness/own = right_sided(wearer)
 	// a variant no other check lands
-	TEST_ASSERT(dirt_land(wearer, DIRT_CAUSE_SWEAT, DIRT_MATERIAL_SWEAT, 1, 3), "Sweat landed nowhere on a body in a tank top.")
+	TEST_ASSERT(dirt_land_variant(wearer, DIRT_CAUSE_SWEAT, DIRT_MATERIAL_SWEAT, 1, 3), "Sweat landed nowhere on a body in a tank top.")
 	SSdirt.finish_all()
 	dirt_land(wearer, DIRT_CAUSE_SWEAT, DIRT_MATERIAL_SWEAT, 1)
 	SSdirt.finish_all(1)
@@ -1540,44 +1422,6 @@
 	TEST_ASSERT_EQUAL(tank_top?.wet_key, wet_job.key, "A tank top never asked again for the new multiplier SSdirt dropped before the tank top was drawn with it.")
 
 /**
- * Returns the images among some that draw BLEND_MULTIPLY.
- *
- * Arguments:
- * - images: The images, or null.
- */
-/datum/unit_test/dirt_drawing/proc/multiply_images(list/images)
-	RETURN_TYPE(/list)
-	. = list()
-	for(var/image/drawn as anything in images)
-		if(drawn.blend_mode == BLEND_MULTIPLY)
-			. += drawn
-
-/**
- * Returns list(how many of a multiplier's pixels lie off a sprite's, how many it has), over its four directions, on the
- * body's 32x32 canvas.
- *
- * Arguments:
- * - multiplier: The multiply image.
- * - sheet, state: The sprite.
- */
-/datum/unit_test/dirt_drawing/proc/multiplier_pixels(image/multiplier, sheet, state)
-	RETURN_TYPE(/list)
-	var/icon/factors = icon(multiplier.icon)
-	var/off = 0
-	var/total = 0
-	for(var/direction in list(SOUTH, NORTH, EAST, WEST))
-		var/list/on_sprite = new /list(ICON_SIZE_X * ICON_SIZE_Y)
-		for(var/index in dirt_sprite_pixels(sheet, state, direction))
-			on_sprite[index] = TRUE
-		for(var/row in 0 to ICON_SIZE_Y - 1)
-			for(var/column in 0 to ICON_SIZE_X - 1)
-				if(factors.GetPixel(column + 1, ICON_SIZE_Y - row, null, direction))
-					total++
-					if(!on_sprite[row * ICON_SIZE_X + column + 1])
-						off++
-	return list(off, total)
-
-/**
  * A body walks through mud in shorts and boots. The boots, the shorts and the bare shins each take the deposit on the
  * legs alone (the hands, drawn over the shorts, are the skin's). The boots draw it inset over themselves, and the skin
  * draws it on both legs.
@@ -1590,7 +1434,7 @@
 	var/obj/item/clothing/shoes/boots = allocate(/obj/item/clothing/shoes/workboots)
 	TEST_ASSERT(body.equip_to_slot_if_possible(shorts, ITEM_SLOT_ICLOTHING) && body.equip_to_slot_if_possible(boots, ITEM_SLOT_FEET), "Couldn't dress the body in shorts and boots.")
 	var/datum/component/dirtiness/own = right_sided(body)
-	TEST_ASSERT(dirt_land(body, DIRT_CAUSE_WALK, DIRT_MATERIAL_MUD, 3, 0), "Walking through mud in shorts and boots landed nowhere.")
+	TEST_ASSERT(dirt_land_variant(body, DIRT_CAUSE_WALK, DIRT_MATERIAL_MUD, 3, 0), "Walking through mud in shorts and boots landed nowhere.")
 	var/legs = DIRT_LIMB_BIT(DIRT_LIMB_R_LEG) | DIRT_LIMB_BIT(DIRT_LIMB_L_LEG)
 	for(var/obj/item/garment as anything in list(boots, shorts))
 		var/datum/component/dirtiness/garment_carrier = garment.GetComponent(/datum/component/dirtiness)
@@ -1649,16 +1493,17 @@
 	TEST_ASSERT(capped.equip_to_slot_if_possible(suit, ITEM_SLOT_OCLOTHING) && capped.equip_to_slot_if_possible(tank, ITEM_SLOT_SUITSTORE), "Couldn't put an oxygen tank in an EVA suit's storage.")
 	var/datum/component/dirtiness/tank_carrier = tank.LoadComponent(/datum/component/dirtiness)
 	tank_carrier.add_mess(DIRT_ZONE_CHEST)
+	tank_carrier.mess_changed()
 	SSdirt.finish_all()
 	TEST_ASSERT(length(inset_images(capped, SUIT_STORE_LAYER)), "An oxygen tank in an EVA suit's storage draws no mess, so its going past the cap can't be seen.")
 	var/datum/component/dirtiness/capped_own = capped.LoadComponent(/datum/component/dirtiness)
-	var/datum/dirt_splat/face = capped_own.add_mess(DIRT_ZONE_FACE, null, 1, redraw = FALSE)
+	var/datum/dirt_splat/face = capped_own.add_mess(DIRT_ZONE_FACE, null, 1)
 	var/datum/dirt_splat/first_chest
 	for(var/added in 1 to DIRT_MAX_SPLATS - 2)
-		var/datum/dirt_splat/chest = capped_own.add_mess(DIRT_ZONE_CHEST, null, DIRT_MESS_MAX_LEVEL, redraw = FALSE)
+		var/datum/dirt_splat/chest = capped_own.add_mess(DIRT_ZONE_CHEST, null, DIRT_MESS_MAX_LEVEL)
 		first_chest ||= chest
-	capped_own.add_mess(DIRT_ZONE_FACE, null, 1, redraw = FALSE)
-	capped_own.add_mess(DIRT_ZONE_CHEST, null, DIRT_MESS_MAX_LEVEL, redraw = FALSE)
+	capped_own.add_mess(DIRT_ZONE_FACE, null, 1)
+	capped_own.add_mess(DIRT_ZONE_CHEST, null, DIRT_MESS_MAX_LEVEL)
 	// the shot on the EVA suit is the second past the cap, and the landing takes the two oldest off
 	TEST_ASSERT(dirt_mess_land(capped, DIRT_ZONE_CHEST), "A chest shot landed nowhere on the EVA suit.")
 	TEST_ASSERT(!tank.GetComponent(/datum/component/dirtiness) && !length(inset_images(capped, SUIT_STORE_LAYER)), "Past the cap, the oldest splat, on an oxygen tank in suit storage, wasn't taken off, or the tank keeps a carrier holding nothing or still draws the splat.")
@@ -1678,15 +1523,12 @@
 	body.underwear = /datum/sprite_accessory/clothing/underwear/male_boxers::name
 	body.update_body()
 	var/datum/component/dirtiness/own = right_sided(body)
-	dirt_land(body, DIRT_CAUSE_SMOKE, DIRT_MATERIAL_SOOT, 2, 6)
+	dirt_land_variant(body, DIRT_CAUSE_SMOKE, DIRT_MATERIAL_SOOT, 2, 6)
 	TEST_ASSERT(own?.skin?.request?.painted, "A bare body's skin masks weren't asked for painted.")
 	var/datum/dirt_drawing/underwear = own.underclothes_drawings?[dirt_underclothes_key(DIRT_UNDERCLOTHES_UNDERWEAR, /datum/sprite_accessory/clothing/underwear/male_boxers::name)]
 	var/bare_underwear = underwear?.request?.painted && dirt_holds_deposits(underwear.request.splats)
 	var/bare_key = own.skin.key
-	if(!SSdirt.mask_jobs[bare_key])
-		// another test made them before, so they're made again and the dressing comes while they're made
-		SSdirt.masks.forget(bare_key)
-		own.skin.forget(TRUE)
+	if(make_again(own.skin))
 		body.update_body_parts()
 	TEST_ASSERT(SSdirt.mask_jobs[bare_key], "The bare skin's masks weren't queued, so dressing while they're made can't be checked.")
 	var/obj/item/clothing/under/jumpsuit = allocate(/obj/item/clothing/under/color/grey)
@@ -1715,7 +1557,7 @@
 	var/mob/living/carbon/human/consistent/monkey = allocate(/mob/living/carbon/human/consistent)
 	monkey.set_species(/datum/species/monkey)
 	var/datum/component/dirtiness/monkey_carrier = right_sided(monkey)
-	TEST_ASSERT(dirt_land(monkey, DIRT_CAUSE_PLUNGE, DIRT_MATERIAL_MUD, 3, 0), "A plunge into mud landed nowhere on a monkey.")
+	TEST_ASSERT(dirt_land_variant(monkey, DIRT_CAUSE_PLUNGE, DIRT_MATERIAL_MUD, 3, 0), "A plunge into mud landed nowhere on a monkey.")
 	SSdirt.finish_all()
 	TEST_ASSERT(length(monkey_carrier.skin?.masks?.baked_by_limb) && monkey_carrier.skin.masks.key == monkey_carrier.skin.key, "A monkey's plunge into mud draws no skin masks, or not the ones its skin asks for.")
 
@@ -1734,7 +1576,7 @@
 	var/mob/living/carbon/human/consistent/lizard = allocate(/mob/living/carbon/human/consistent)
 	lizard.set_species(/datum/species/lizard)
 	var/datum/component/dirtiness/lizard_carrier = right_sided(lizard)
-	TEST_ASSERT(dirt_land(lizard, DIRT_CAUSE_PLUNGE, DIRT_MATERIAL_MUD, 3, 0), "A plunge into mud landed nowhere on a lizard.")
+	TEST_ASSERT(dirt_land_variant(lizard, DIRT_CAUSE_PLUNGE, DIRT_MATERIAL_MUD, 3, 0), "A plunge into mud landed nowhere on a lizard.")
 	SSdirt.finish_all()
 	var/list/zone_sources = lizard_carrier.skin?.request?.zone_sources
 	TEST_ASSERT(zone_sources && !zone_sources["human_head"], "The lizard's skin masks weren't asked for, or count its head a human's.")
@@ -1745,12 +1587,10 @@
 	var/datum/dirt_template/human = dirt_build_template_now(dirt_zone_sources(one_armed), list(SOUTH))
 	TEST_ASSERT(length(stamps.pixels(human.surfaces[SOUTH])), "A level 3 plunge stamps nothing on a human face, so the lizard's can't be checked.")
 	var/datum/dirt_template/template = dirt_build_template_now(zone_sources)
-	for(var/direction in list(SOUTH, NORTH, EAST, WEST))
+	for(var/direction in four_directions())
 		TEST_ASSERT(!length(stamps.pixels(template.surfaces[direction])), "A plunge stamps the lizard's face facing [dir2text(direction)].")
 
-/**
- * A shower's wash takes general dirt off the skin, the garments nothing covers and the underclothes.
- */
+/// A shower's wash takes general dirt off the skin, the garments nothing covers and the underclothes.
 /datum/unit_test/dirt_drawing/proc/check_wash()
 	SSdirt.finish_all()
 	var/mob/living/carbon/human/consistent/body = allocate(/mob/living/carbon/human/consistent)
@@ -1787,9 +1627,9 @@
 	var/datum/component/dirtiness/own = body.LoadComponent(/datum/component/dirtiness)
 	// the left, which a carrier made afresh draws on only by chance
 	own.side = -1
-	TEST_ASSERT(dirt_land(body, DIRT_CAUSE_WALK, DIRT_MATERIAL_MUD, 3, 0), "Walking through mud landed nowhere on the body in a jumpsuit.")
+	TEST_ASSERT(dirt_land_variant(body, DIRT_CAUSE_WALK, DIRT_MATERIAL_MUD, 3, 0), "Walking through mud landed nowhere on the body in a jumpsuit.")
 	TEST_ASSERT(body.equip_to_slot_if_possible(suit, ITEM_SLOT_OCLOTHING) && (body.covered_slots & HIDEJUMPSUIT), "Couldn't put an EVA suit over the jumpsuit, or it doesn't cover the jumpsuit, so a covered garment's wash can't be checked.")
-	TEST_ASSERT(dirt_land(body, DIRT_CAUSE_WALK, DIRT_MATERIAL_MUD, 3, 0), "Walking through mud landed nowhere on the EVA suit.")
+	TEST_ASSERT(dirt_land_variant(body, DIRT_CAUSE_WALK, DIRT_MATERIAL_MUD, 3, 0), "Walking through mud landed nowhere on the EVA suit.")
 	TEST_ASSERT(suit.GetComponent(/datum/component/dirtiness), "The EVA suit holds no walking mud, so its carrier going with the wash can't be checked.")
 	body.wash(CLEAN_WASH)
 	TEST_ASSERT_NULL(suit.GetComponent(/datum/component/dirtiness), "The EVA suit's carrier, which the wash left holding nothing, wasn't deleted.")
@@ -1810,7 +1650,7 @@
 	SSdirt.finish_all()
 	var/mob/living/carbon/human/consistent/whole_body = allocate(/mob/living/carbon/human/consistent)
 	var/datum/component/dirtiness/whole_own = right_sided(whole_body)
-	TEST_ASSERT(dirt_land(whole_body, DIRT_CAUSE_DOUSE, DIRT_MATERIAL_ASH, 3, 0), "A douse of ash landed nowhere on a bare body.")
+	TEST_ASSERT(dirt_land_variant(whole_body, DIRT_CAUSE_DOUSE, DIRT_MATERIAL_ASH, 3, 0), "A douse of ash landed nowhere on a bare body.")
 	SSdirt.finish_all()
 	var/datum/dirt_masks/whole = whole_own.skin?.masks
 	var/datum/dirt_mask_request/request = whole_own.skin?.request
@@ -1822,7 +1662,7 @@
 
 	var/mob/living/carbon/human/consistent/body = allocate(/mob/living/carbon/human/consistent)
 	var/datum/component/dirtiness/own = right_sided(body)
-	TEST_ASSERT(dirt_land(body, DIRT_CAUSE_DOUSE, DIRT_MATERIAL_ASH, 3, 0), "A douse of ash landed nowhere on a second bare body.")
+	TEST_ASSERT(dirt_land_variant(body, DIRT_CAUSE_DOUSE, DIRT_MATERIAL_ASH, 3, 0), "A douse of ash landed nowhere on a second bare body.")
 	var/douse_key = own.skin?.key
 	var/datum/dirt_mask_job/job = douse_key && SSdirt.mask_jobs[douse_key]
 	TEST_ASSERT(douse_key == whole.key && job, "The second bare body's douse wasn't queued under the first's key.")
@@ -1864,7 +1704,7 @@
 	var/datum/dirt_pixels/closed_shot = dirt_rasterise(aimed, null, shot.level, shot.variant, 1, DIRT_SURFACE_SKIN, surface)
 	TEST_ASSERT_EQUAL(open_shot.drawn(), closed_shot.drawn(), "A shot of mess drawn between a field's bands draws otherwise than with no field open.")
 
-	TEST_ASSERT(dirt_land(body, DIRT_CAUSE_DOUSE, DIRT_MATERIAL_ASH, 3, 0), "The douse landed nowhere on the washed body.")
+	TEST_ASSERT(dirt_land_variant(body, DIRT_CAUSE_DOUSE, DIRT_MATERIAL_ASH, 3, 0), "The douse landed nowhere on the washed body.")
 	SSdirt.finish_all()
 	var/datum/dirt_masks/made = own.skin?.masks
 	TEST_ASSERT(made && made != whole && made.key == whole.key, "The douse landed again on the washed body wasn't made anew under the first body's key.")
@@ -1888,7 +1728,7 @@
 	for(var/datum/dirt_material/material as anything in materials)
 		var/mob/living/carbon/human/consistent/body = allocate(/mob/living/carbon/human/consistent)
 		var/datum/component/dirtiness/own = right_sided(body)
-		TEST_ASSERT(dirt_land(body, DIRT_CAUSE_MACHINE, material.id, 3, 0), "Machine work in [material.name] landed nowhere on a bare body.")
+		TEST_ASSERT(dirt_land_variant(body, DIRT_CAUSE_MACHINE, material.id, 3, 0), "Machine work in [material.name] landed nowhere on a bare body.")
 		TEST_ASSERT(own.skin?.request?.painted, "A bare body's machine work in [material.name] wasn't asked for painted.")
 		SSdirt.finish_all()
 		TEST_ASSERT(length(own.skin.masks?.baked_by_limb), "A bare body's machine work in [material.name] wasn't made.")
@@ -1903,7 +1743,7 @@
 		TEST_ASSERT(greased[zone], "Machine work in grease on a bare body bakes nothing on the [zone], where oil does.")
 		var/icon/oil_icon = icon(oil_baked)
 		var/icon/grease_icon = icon(greased[zone])
-		for(var/direction in list(SOUTH, NORTH, EAST, WEST))
+		for(var/direction in four_directions())
 			for(var/icon_y in 1 to ICON_SIZE_Y)
 				for(var/icon_x in 1 to ICON_SIZE_X)
 					var/oil_pixel = oil_icon.GetPixel(icon_x, icon_y, null, direction)
@@ -1920,18 +1760,6 @@
 							tinted = TRUE
 					TEST_ASSERT(tinted, "Machine work in grease on a bare body's [zone] bakes [grease_pixel] at [icon_x],[icon_y] facing [dir2text(direction)], not grease's tint of the role oil's [oil_pixel] is in.")
 	TEST_ASSERT(drawn, "Machine work in oil on a bare body draws nothing, so grease wearing its design can't be checked.")
-
-/**
- * Returns whether a baked pixel is a colour, its alpha aside.
- *
- * Arguments:
- * - pixel: The pixel, as GetPixel() reads it.
- * - colour: The colour, "#RRGGBB".
- */
-/datum/unit_test/dirt_drawing/proc/same_rgb(pixel, colour)
-	var/list/channels = rgb2num(pixel)
-	var/list/wanted = rgb2num(colour)
-	return channels[1] == wanted[1] && channels[2] == wanted[2] && channels[3] == wanted[3]
 
 /**
  * A deposit without a painted design draws on a bare body as on a dressed one, so it's kept as a dressed body's
@@ -1965,10 +1793,26 @@
 	TEST_ASSERT(template, "A douse of oil wasn't made painted on a bare body.")
 	var/oil_key = deposit_key(greased_own.skin.request, DIRT_CAUSE_DOUSE, oil)
 	check_deposit_kept(oil_key, template, DIRT_CAUSE_DOUSE, oil, TRUE, "A bare body's douse of oil")
-	TEST_ASSERT(dirt_land(greased, DIRT_CAUSE_DOUSE, DIRT_MATERIAL_GREASE, 3, 0), "A douse of grease landed nowhere on the bare body doused with oil.")
+	TEST_ASSERT(dirt_land_variant(greased, DIRT_CAUSE_DOUSE, DIRT_MATERIAL_GREASE, 3, 0), "A douse of grease landed nowhere on the bare body doused with oil.")
 	SSdirt.finish_all()
 	TEST_ASSERT(length(deposits_in(greased_own.mess_splats)) == 2 && greased_own.skin.masks?.key == greased_own.skin.key, "The bare body's douses of oil and grease weren't both made.")
 	check_deposit_kept(oil_key, template, DIRT_CAUSE_DOUSE, grease, TRUE, "The douse of grease a bare body takes from a douse of oil")
+
+/**
+ * Drops a drawing's masks from SSdirt's cache, where another test may have made them, and has the drawing forget its
+ * request, so its next draw asks for them again and queues their job. A job making them already is left as it is.
+ *
+ * Arguments:
+ * - drop_masks: Whether the drawing lets go of the masks it draws too (/datum/dirt_drawing/proc/forget()).
+ *
+ * Returns TRUE if it dropped them. The caller then draws again what draws them.
+ */
+/datum/unit_test/dirt_drawing/proc/make_again(datum/dirt_drawing/drawing, drop_masks = TRUE)
+	if(SSdirt.mask_jobs[drawing.key])
+		return FALSE
+	SSdirt.masks.forget(drawing.key)
+	drawing.forget(drop_masks)
+	return TRUE
 
 /**
  * Lands a deposit at level 3, variant 0, on a bare body, with its rasters forgotten so its skin's job makes them.
@@ -1982,13 +1826,10 @@
 /datum/unit_test/dirt_drawing/proc/land_bare_deposit(mob/living/carbon/human/body, cause, datum/dirt_material/material)
 	RETURN_TYPE(/datum/dirt_template)
 	var/datum/component/dirtiness/own = body.GetComponent(/datum/component/dirtiness)
-	if(!dirt_land(body, cause, material.id, 3, 0) || !own.skin?.request?.painted)
+	if(!dirt_land_variant(body, cause, material.id, 3, 0) || !own.skin?.request?.painted)
 		return null
 	SSdirt.rasters.forget(deposit_key(own.skin.request, cause, material))
-	if(!SSdirt.mask_jobs[own.skin.key])
-		// another test made them before, so they're made again and the job makes the rasters
-		SSdirt.masks.forget(own.skin.key)
-		own.skin.forget(TRUE)
+	if(make_again(own.skin))
 		body.update_body_parts()
 	SSdirt.finish_all()
 	if(own.skin.masks?.key != own.skin.key)
@@ -2004,8 +1845,6 @@
  * - request: The mask request: the skin's, or a garment's on cloth.
  * - cause: The deposit's DIRT_CAUSE_* define.
  * - material: Its /datum/dirt_material.
- * - level: Its level.
- * - variant: Its variant.
  */
 /datum/unit_test/dirt_drawing/proc/deposit_key(datum/dirt_mask_request/request, cause, datum/dirt_material/material, level = 3, variant = 0)
 	var/designed = !!(request.painted && dirt_painted_design(cause, material))
@@ -2013,8 +1852,9 @@
 
 /**
  * Returns the key a general deposit on a taur body or a drawn part is kept under in SSdirt.rasters, as
- * rasterise_shape_deposit() keys it. It's for a check that must plant or drop the deposit before the job that reads it
- * runs.
+ * rasterise_shape_deposit() keys it: the shape, the template, the surface and the deposit, on the side it draws on. A
+ * taur's height plays no part, as its rasters are drawn on its Average owners. It's for a check that must plant or drop
+ * the deposit before the job that reads it runs.
  *
  * Arguments:
  * - request: The shape's mask request.
@@ -2023,7 +1863,7 @@
 /datum/unit_test/dirt_drawing/proc/shape_raster_key(datum/dirt_mask_request/request, datum/dirt_splat/splat)
 	var/datum/dirt_material/material = dirt_material(splat.material)
 	var/surface_kind = request.surface_kind == DIRT_SURFACE_CLOTH ? DIRT_SURFACE_CLOTH : DIRT_SURFACE_FUR
-	return "shape|[request.shape_source.shape_key()]|[request.template_key]|[surface_kind]|[splat.cause]:[material.shape_class(splat.cause)]:[splat.level]:[splat.variant]:[request.side][request.rows ? "|rows:[jointext(request.rows, ",")]" : ""]"
+	return "shape|[request.shape_source.shape_key()]|[request.template_key]|[surface_kind]|[splat.cause]:[material.shape_class(splat.cause)]:[splat.level]:[splat.variant]:[request.side]"
 
 /**
  * Returns whether a tail's still masks' job took its first splat's rasters, in every direction, from what
@@ -2047,13 +1887,10 @@
  *
  * Arguments:
  * - raster_key: The key (deposit_key()).
- * - template: The body's template.
  * - cause: The deposit's DIRT_CAUSE_* define.
  * - material: Its /datum/dirt_material.
  * - bare: Whether the body is bare.
  * - what: The deposit, for the failure message.
- * - level: Its level.
- * - variant: Its variant.
  * - surface_kind: What it's rasterised on, DIRT_SURFACE_SKIN or DIRT_SURFACE_CLOTH.
  */
 /datum/unit_test/dirt_drawing/proc/check_deposit_kept(raster_key, datum/dirt_template/template, cause, datum/dirt_material/material, bare, what, level = 3, variant = 0, surface_kind = DIRT_SURFACE_SKIN)
@@ -2062,31 +1899,19 @@
 		TEST_ASSERT_EQUAL(SSdirt.rasters.fetch_direction(raster_key, direction), alone.drawn(), "[what] facing [dir2text(direction)] isn't kept under its key, or isn't the [cause] drawn for that body alone.")
 
 /**
- * A deposit drawn a band a piece by its job is kept, in every direction, as the deposit drawn whole. The deposits are a
- * plunge of mud and a blast of soot on a bare body, and a plunge of mud on a bare horse taur's body.
+ * A plunge of mud on a bare horse taur's body, drawn a band a piece by its job, is kept, in every direction, as the
+ * plunge drawn whole.
  */
 /datum/unit_test/dirt_drawing/proc/check_fields_shared()
 	SSdirt.finish_all()
-	for(var/list/landing as anything in list(list(DIRT_CAUSE_PLUNGE, DIRT_MATERIAL_MUD), list(DIRT_CAUSE_BLAST, DIRT_MATERIAL_SOOT)))
-		var/cause = landing[1]
-		var/datum/dirt_material/material = dirt_material(landing[2])
-		var/mob/living/carbon/human/consistent/body = allocate(/mob/living/carbon/human/consistent)
-		var/datum/component/dirtiness/own = right_sided(body)
-		var/datum/dirt_template/template = land_bare_deposit(body, cause, material)
-		TEST_ASSERT(template, "A [cause] of [material.name] wasn't made painted on a bare body.")
-		check_deposit_kept(deposit_key(own.skin.request, cause, material), template, cause, material, TRUE, "A bare body's [cause] of [material.name]")
-
 	var/mob/living/carbon/human/consistent/rider = allocate(/mob/living/carbon/human/consistent)
 	TEST_ASSERT(give_taur(rider), "Couldn't make the human a horse taur.")
 	var/datum/component/dirtiness/rider_own = right_sided(rider)
-	TEST_ASSERT(dirt_land(rider, DIRT_CAUSE_PLUNGE, DIRT_MATERIAL_MUD, 3, 0), "A plunge into mud landed nowhere on a bare taur.")
+	TEST_ASSERT(dirt_land_variant(rider, DIRT_CAUSE_PLUNGE, DIRT_MATERIAL_MUD, 3, 0), "A plunge into mud landed nowhere on a bare taur.")
 	var/list/held = deposits_in(rider_own.part_splats?[ORGAN_SLOT_EXTERNAL_TAUR])
 	var/datum/dirt_drawing/drawing = rider_own.part_drawings?[ORGAN_SLOT_EXTERNAL_TAUR]
 	TEST_ASSERT(length(held) == 1 && drawing?.request, "A bare taur's body didn't take the plunge into mud, or doesn't draw it.")
-	if(!SSdirt.mask_jobs[drawing.key])
-		// another test made them before, so they're made again and the job makes the rasters
-		SSdirt.masks.forget(drawing.key)
-		drawing.forget(TRUE)
+	if(make_again(drawing))
 		rider.update_body_parts()
 	var/datum/dirt_mask_request/request = drawing.request
 	TEST_ASSERT(request && SSdirt.mask_jobs[drawing.key], "The bare taur's plunge into mud wasn't queued.")
@@ -2104,11 +1929,10 @@
 /**
  * A job makes a deposit's features once, in its first direction, and binds them to each of the others in turn
  * (/datum/dirt_mask_job/var/deposit_features). A job drawing deposits one after another keeps each in every direction
- * as it's drawn whole. Together with the douse and the blast that check_bare_shares() and check_fields_shared() draw,
- * these deposits make every kind of feature a general cause makes. They're drawn on a bare body's skin, and on a
- * dressed body's skin, where walking draws its own marks rather than its design. They're drawn on its cloth too, which
- * also takes sweat. On the cloth they make both backs (the tall and the wide), smoke's mantles and patches at its top
- * level, two of a kind sampling one seed, and a plunge's coat.
+ * as it's drawn whole, fields drawn a band a piece among them. Together with the douse check_bare_shares() draws, these
+ * deposits make every kind of feature a general cause makes. They're drawn on a bare body's skin, and on a dressed
+ * body's skin, where walking draws its own marks rather than its design. They're drawn on its cloth too, which also
+ * takes sweat.
  */
 /datum/unit_test/dirt_drawing/proc/check_features_shared()
 	SSdirt.finish_all()
@@ -2123,6 +1947,8 @@
 		list(DIRT_CAUSE_CRAWL, DIRT_MATERIAL_DUST, 3, 0), // blobs, contacts, strokes, patches
 		list(DIRT_CAUSE_MACHINE, DIRT_MATERIAL_MUD, 4, 0), // stamps, cloth's wipes, a fade, patches, a fleck, a coatline
 		list(DIRT_CAUSE_DUST, DIRT_MATERIAL_DUST, 3, 0), // a coatline, patches, settled blobs
+		list(DIRT_CAUSE_PLUNGE, DIRT_MATERIAL_MUD, 3, 0), // a field, drawn a band a piece
+		list(DIRT_CAUSE_BLAST, DIRT_MATERIAL_SOOT, 3, 0), // a field, drawn a band a piece
 	)
 	var/list/dressed = list(
 		list(DIRT_CAUSE_WALK, DIRT_MATERIAL_MUD, 3, 0), // a coatline and specks
@@ -2171,12 +1997,7 @@
 		var/datum/dirt_material/material = dirt_material(deposit[2])
 		check_deposit_kept(keys[position], template, deposit[1], material, bare, "[what]'s [deposit[1]] of [material.name] at level [deposit[3]], variant [deposit[4]], drawn by one job after [position - 1] others,", deposit[3], deposit[4], surface_kind)
 
-/**
- * Returns the body field a mask job is drawing a band at a time, or null.
- *
- * Arguments:
- * - job: The job.
- */
+/// Returns the body field a mask job is drawing a band at a time, or null.
 /datum/unit_test/dirt_drawing/proc/open_field(datum/dirt_mask_job/job)
 	RETURN_TYPE(/datum/dirt_canvas_field/body)
 	for(var/field_key, held in job.canvas_fields)
@@ -2186,77 +2007,51 @@
 	return null
 
 /**
- * Returns the general deposits among splats, oldest first.
- *
- * Arguments:
- * - splats: The splats, or null.
- */
-/datum/unit_test/dirt_drawing/proc/deposits_in(list/splats)
-	RETURN_TYPE(/list)
-	. = list()
-	for(var/datum/dirt_splat/splat as anything in splats)
-		if(splat.cause)
-			. += splat
-
-/**
- * However many slime colours are asked for, SSdirt keeps DIRT_SLIME_COLOURS at most. A dropped colour is made again in
- * its own tints from the key a splat stores, as a bake asks for it.
+ * A slime colour SSdirt dropped, past the DIRT_SLIME_COLOURS it keeps, is made again in its own tints from the key a
+ * splat stores, as a bake asks for it.
  */
 /datum/unit_test/dirt_drawing/proc/check_slime_colours()
 	var/datum/dirt_material/green = dirt_material(DIRT_MATERIAL_SLIME, "#4fc94a")
 	TEST_ASSERT(istype(green), "Slime in a colour made no material.")
 	var/green_tints = json_encode(green.tints)
+	// as many new colours as it keeps, and more, so the green is dropped
 	for(var/colour_number in 1 to DIRT_SLIME_COLOURS + 6)
 		dirt_material(DIRT_MATERIAL_SLIME, rgb(colour_number * 3, 100, 200))
-	var/held = length(SSdirt.slime_materials.entries)
-	TEST_ASSERT(held <= DIRT_SLIME_COLOURS, "[held] slime materials are kept, past [DIRT_SLIME_COLOURS].")
 	// a queued bake asks by the key a splat stores (dirt_baked_frames())
 	var/datum/dirt_material/remade = dirt_material(green.key)
 	TEST_ASSERT(remade && json_encode(remade.tints) == green_tints, "Slime as a splat stores it ([green.key]), dropped past the colours kept, isn't made again in its own tints.")
 
 /**
- * Mess bakes the pixels DIRT_MESS_BAKE_DIGESTS holds, on skin and on a jumpsuit's cloth. The mess is two splats on the
- * corpus's human_m: the chest at level 2, variant 5, and the face at level 4, variant 1.
+ * Mess bakes the pixels DIRT_MESS_BAKE_DIGESTS holds, on skin and on a bare cloth surface. The mess is two splats on
+ * the corpus's human_m: the chest at level 2, variant 5, and the face at level 4, variant 1.
  */
 /datum/unit_test/dirt_drawing/proc/check_mess_bake()
-	var/list/corpus = json_decode(file2text(DIRT_CORPUS) || "{}")
+	var/list/corpus = dirt_parity_corpus()
 	var/list/templates = corpus["templates"]
-	TEST_ASSERT(length(templates), "[DIRT_CORPUS] has no templates.")
+	TEST_ASSERT(length(templates), "dirt_corpus.json has no templates.")
 	var/alist/zone_sources = dirt_parity_zone_sources(templates["human_m"])
 	var/list/splats = list(new /datum/dirt_splat(DIRT_ZONE_CHEST, 2, 5, 1), new /datum/dirt_splat(DIRT_ZONE_FACE, 4, 1, 2))
 	var/list/digests = list()
-	var/datum/dirt_masks/skin = made_masks(new /datum/dirt_mask_request(DIRT_MASKS_BODY, zone_sources, DIRT_SURFACE_SKIN, splats))
-	TEST_ASSERT(skin, "The skin's masks weren't made.")
-	for(var/zone, baked in skin.baked_by_limb)
+	var/datum/dirt_mask_job/skin_job = made_job(new /datum/dirt_mask_request(DIRT_MASKS_BODY, zone_sources, DIRT_SURFACE_SKIN, splats))
+	TEST_ASSERT(skin_job.masks, "The skin's masks weren't made.")
+	for(var/zone, baked in skin_job.masks.baked_by_limb)
 		digests += "skin [zone] [baked_digest(baked)]"
-	var/datum/dirt_masks/cloth = made_masks(new /datum/dirt_mask_request(DIRT_MASKS_BODY, zone_sources, DIRT_SURFACE_CLOTH, splats))
-	TEST_ASSERT(cloth?.baked, "The jumpsuit's masks weren't made.")
-	digests += "cloth [baked_digest(cloth.baked)]"
+	var/datum/dirt_mask_job/cloth_job = made_job(new /datum/dirt_mask_request(DIRT_MASKS_BODY, zone_sources, DIRT_SURFACE_CLOTH, splats))
+	TEST_ASSERT(cloth_job.masks?.baked, "The cloth surface's masks weren't made.")
+	digests += "cloth [baked_digest(cloth_job.masks.baked)]"
 	TEST_ASSERT_EQUAL(jointext(digests, ", "), DIRT_MESS_BAKE_DIGESTS, "Mess bakes other pixels than it did.")
 
 /**
- * Returns a request's masks, made start to end by a job of its own, outside the queue and the mask cache, or null when
- * it made none.
- *
- * Arguments:
- * - request: The request.
- */
-/datum/unit_test/dirt_drawing/proc/made_masks(datum/dirt_mask_request/request)
-	RETURN_TYPE(/datum/dirt_masks)
-	var/datum/dirt_mask_job/job = made_job(request)
-	return job.masks
-
-/**
- * A mask packed as text (/datum/dirt_pixels/proc/drawn()) and read back (dirt_pixels_from_drawn()) is the same mask.
- * It has the same drawn pixels in row-major order, their roles and thicknesses and whether it covers, and it packs
- * again as the same text. The masks built by hand are: empty, one pixel at the canvas's end, a full row, seven
+ * A raster packed as text (/datum/dirt_pixels/proc/drawn()) and read back (dirt_pixels_from_drawn()) is the same
+ * raster. It has the same drawn pixels in row-major order, their roles and thicknesses and whether it covers, and it
+ * packs again as the same text. The rasters built by hand are: empty, one pixel at the canvas's end, a full row, seven
  * thicknesses side by side, and the whole 64x32 canvas, with a run past 64 pixels and its last index among them. A
  * jumpsuit holds three deposits and two shots of mess, with a third shot at the top level, which covers. Its merge of
- * each direction from its packed texts (dirt_merge()) matches the merge of the masks read from them. Its job's merges
- * are the masks merged that way, with the parts its mess reaches (the pecs guide a plain human chest takes,
+ * each direction from its packed texts (dirt_merge()) matches the merge of the rasters read from them. Its job's merges
+ * are the rasters merged that way, with the parts its mess reaches (the pecs guide a plain human chest takes,
  * dirt_merge_with_parts()). A bare taur's body holds walking mud, slime on its back and two pools. It merges each
- * direction on the 64x32 canvas, with no limbs. Its merge from its packed texts matches the merge of the masks read
- * from them. Its second pool is read on its whole mask.
+ * direction on the 64x32 canvas, with no limbs. Its merge from its packed texts matches the merge of the rasters read
+ * from them.
  */
 /datum/unit_test/dirt_drawing/proc/check_packed_runs()
 	SSdirt.finish_all()
@@ -2300,9 +2095,9 @@
 	TEST_ASSERT(body.equip_to_slot_if_possible(jumpsuit, ITEM_SLOT_ICLOTHING), "Couldn't dress the body in a jumpsuit.")
 	right_sided(body)
 	for(var/list/deposit as anything in list(list(DIRT_CAUSE_WALK, DIRT_MATERIAL_MUD), list(DIRT_CAUSE_KNEEL, DIRT_MATERIAL_RED_CLAY), list(DIRT_CAUSE_SPLASH, DIRT_MATERIAL_GREASE)))
-		TEST_ASSERT(dirt_land(body, deposit[1], deposit[2], 3, 0), "[deposit[1]] in [deposit[2]] landed nowhere on the body in a jumpsuit.")
-	// the third covers, so it streams after the others rather than being read on its whole mask
-	TEST_ASSERT(dirt_mess_land(body, DIRT_ZONE_CHEST) && dirt_mess_land(body, DIRT_ZONE_STOMACH) && dirt_mess_place(body, DIRT_ZONE_GROIN, DIRT_MESS_MAX_LEVEL, 0), "Mess landed nowhere on the body in a jumpsuit.")
+		TEST_ASSERT(dirt_land_variant(body, deposit[1], deposit[2], 3, 0), "[deposit[1]] in [deposit[2]] landed nowhere on the body in a jumpsuit.")
+	// the third covers, so it streams after the others rather than being read on its whole raster
+	TEST_ASSERT(dirt_mess_land(body, DIRT_ZONE_CHEST) && dirt_mess_land(body, DIRT_ZONE_STOMACH) && dirt_mess_place_variant(body, DIRT_ZONE_GROIN, DIRT_MESS_MAX_LEVEL, 0), "Mess landed nowhere on the body in a jumpsuit.")
 	SSdirt.finish_all()
 	var/datum/component/dirtiness/carrier = jumpsuit.GetComponent(/datum/component/dirtiness)
 	var/datum/dirt_mask_request/request = carrier?.cloth?.request
@@ -2337,8 +2132,8 @@
 	var/mob/living/carbon/human/consistent/taur = allocate(/mob/living/carbon/human/consistent)
 	TEST_ASSERT(give_taur(taur), "Couldn't make the human a horse taur.")
 	right_sided(taur)
-	TEST_ASSERT(dirt_land(taur, DIRT_CAUSE_WALK, DIRT_MATERIAL_MUD, 3, 0) && dirt_land(taur, DIRT_CAUSE_SLIMED_BACK, DIRT_MATERIAL_SLIME, 3, 0, "#4FC94A"), "Walking mud or slime on the back landed nowhere on a bare taur.")
-	TEST_ASSERT(dirt_mess_place(taur, DIRT_ZONE_BACK, 2, 0) && dirt_mess_place(taur, DIRT_ZONE_BACK, 3, 1), "Mess on the back landed nowhere on a bare taur.")
+	TEST_ASSERT(dirt_land_variant(taur, DIRT_CAUSE_WALK, DIRT_MATERIAL_MUD, 3, 0) && dirt_land_variant(taur, DIRT_CAUSE_SLIMED_BACK, DIRT_MATERIAL_SLIME, 3, 0, "#4FC94A"), "Walking mud or slime on the back landed nowhere on a bare taur.")
+	TEST_ASSERT(dirt_mess_place_variant(taur, DIRT_ZONE_BACK, 2, 0) && dirt_mess_place_variant(taur, DIRT_ZONE_BACK, 3, 1), "Mess on the back landed nowhere on a bare taur.")
 	SSdirt.finish_all()
 	var/datum/component/dirtiness/taur_carrier = taur.GetComponent(/datum/component/dirtiness)
 	var/datum/dirt_drawing/taur_drawing = taur_carrier?.part_drawings?[ORGAN_SLOT_EXTERNAL_TAUR]
@@ -2359,7 +2154,6 @@
  *
  * Arguments:
  * - merged: One mask, from dirt_merge().
- * - other: The other.
  */
 /datum/unit_test/dirt_drawing/proc/merge_difference(datum/dirt_pixels/merged, datum/dirt_pixels/other)
 	if(merged.grid_text() != other.grid_text())
@@ -2372,16 +2166,11 @@
 		return "pixels listed drawn"
 	return null
 
-/**
- * Returns an MD5 of a baked icon's pixels: GetPixel() of each, row by row in each of its four directions.
- *
- * Arguments:
- * - baked: The baked icon.
- */
+/// Returns an MD5 of a baked icon's pixels: GetPixel() of each, row by row in each of its four directions.
 /datum/unit_test/dirt_drawing/proc/baked_digest(baked)
 	var/icon/baked_icon = icon(baked)
 	var/list/pixels = list()
-	for(var/direction in list(SOUTH, NORTH, EAST, WEST))
+	for(var/direction in four_directions())
 		for(var/icon_y in 1 to ICON_SIZE_Y)
 			for(var/icon_x in 1 to ICON_SIZE_X)
 				pixels += "[baked_icon.GetPixel(icon_x, icon_y, null, direction)]"
@@ -2396,15 +2185,13 @@
 	SSdirt.finish_all()
 	var/mob/living/carbon/human/consistent/body = allocate(/mob/living/carbon/human/consistent)
 	var/datum/component/dirtiness/own = right_sided(body)
-	TEST_ASSERT(dirt_land(body, DIRT_CAUSE_SLIMED_R_ARM, DIRT_MATERIAL_SLIME, 3, 0, "#4FC94A"), "Slime on the right arm landed nowhere on a bare body.")
+	TEST_ASSERT(dirt_land_variant(body, DIRT_CAUSE_SLIMED_R_ARM, DIRT_MATERIAL_SLIME, 3, 0, "#4FC94A"), "Slime on the right arm landed nowhere on a bare body.")
 	SSdirt.finish_all()
 	var/datum/dirt_masks/first = own.skin?.masks
 	TEST_ASSERT(first && first.key == own.skin.key, "The bare body's slimed right arm wasn't made.")
-	TEST_ASSERT(dirt_land(body, DIRT_CAUSE_SLIMED_L_LEG, DIRT_MATERIAL_SLIME, 3, 0, "#4FC94A"), "Slime on the left leg landed nowhere on the bare body.")
-	if(!SSdirt.mask_jobs[own.skin.key])
-		// another test made them before, so they're made again, the skin still drawing the first masks
-		SSdirt.masks.forget(own.skin.key)
-		own.skin.forget(FALSE)
+	TEST_ASSERT(dirt_land_variant(body, DIRT_CAUSE_SLIMED_L_LEG, DIRT_MATERIAL_SLIME, 3, 0, "#4FC94A"), "Slime on the left leg landed nowhere on the bare body.")
+	// the skin still draws the first masks while they're made again
+	if(make_again(own.skin, drop_masks = FALSE))
 		body.update_body_parts()
 	var/datum/dirt_mask_job/job = SSdirt.mask_jobs[own.skin.key]
 	TEST_ASSERT(job, "The bare body's new skin masks weren't queued.")
@@ -2443,7 +2230,7 @@
 	// an item's first blood draws nothing by itself
 	jumpsuit.update_slot_icon()
 	SSdirt.finish_all()
-	var/list/worn = uniform_places(body, carrier.cloth?.masks?.baked)
+	var/list/worn = worn_places(body, UNIFORM_LAYER, carrier.cloth?.masks?.baked)
 	TEST_ASSERT(worn[1] && worn[2] && worn[1] > worn[2], "Blood landed after a jumpsuit's soot draws its stain at [worn[1]], not over its soot at [worn[2]].")
 	var/list/emissive = uniform_glow_places(body, carrier.cloth.masks.baked)
 	TEST_ASSERT(emissive[1] && emissive[2], "A jumpsuit's glowing stain and its soot draw the stain's glow at [emissive[1]] and the soot's blocker at [emissive[2]] on the emissive plane, not both.")
@@ -2451,7 +2238,7 @@
 	carrier.add_dirt(DIRT_CAUSE_SWEAT, DIRT_MATERIAL_SWEAT, 3, torso_and_arms, 0)
 	carrier.mess_changed()
 	SSdirt.finish_all()
-	worn = uniform_places(body, carrier.cloth?.masks?.baked)
+	worn = worn_places(body, UNIFORM_LAYER, carrier.cloth?.masks?.baked)
 	TEST_ASSERT(worn[2] && worn[3], "A jumpsuit with soot and sweat draws its soot at [worn[2]] and its sweat's multiplier at [worn[3]], not both.")
 	TEST_ASSERT(worn[1] > worn[2] && worn[1] > worn[3], "Sweat landed after a jumpsuit's blood moves its stain, at [worn[1]], under its older soot at [worn[2]] or its sweat at [worn[3]].")
 	carrier.add_dirt(DIRT_CAUSE_SMOKE, DIRT_MATERIAL_SOOT, 1, torso_and_arms, 0)
@@ -2462,42 +2249,18 @@
 	TEST_ASSERT(emissive[2] > emissive[1], "Soot landed after a jumpsuit's glowing blood draws its blocker at [emissive[2]] on the emissive plane, under the stain's glow at [emissive[1]].")
 
 /**
- * Returns where a body's uniform draws its blood stain, an inset image of a baked icon and sweat's multiplier in its
- * worn wrapper, as list(the stain's place, the image's, the multiplier's). Each is 0 if it isn't drawn.
- *
- * Arguments:
- * - body: The body.
- * - baked: The baked icon, or null.
- */
-/datum/unit_test/dirt_drawing/proc/uniform_places(mob/living/carbon/human/body, baked)
-	RETURN_TYPE(/list)
-	. = list(0, 0, 0)
-	var/image/root = bulge_drawn_root(body.overlays_standing[UNIFORM_LAYER])
-	var/position = 0
-	for(var/image/child as anything in root?.overlays)
-		position++
-		if(child.icon == 'icons/effects/blood.dmi')
-			.[1] = position
-		else if(baked && child.icon == baked && child.blend_mode == BLEND_INSET_OVERLAY)
-			.[2] = position
-		else if(child.blend_mode == BLEND_MULTIPLY)
-			.[3] = position
-
-/**
  * Returns where a body's uniform draws its blood stain's glow and the emissive blocker of a baked icon, as list(the
  * glow's place, the blocker's). Each is 0 if it isn't drawn. They're read from the slot as apply_overlay() keeps it.
  * That's the worn wrapper's mirror on the emissive plane (split_worn_emissive_branches()), where the stain's own mirror
  * holds its glow.
  *
  * Arguments:
- * - body: The body.
  * - baked: The baked icon, or null.
  */
 /datum/unit_test/dirt_drawing/proc/uniform_glow_places(mob/living/carbon/human/body, baked)
 	RETURN_TYPE(/list)
 	. = list(0, 0)
-	var/list/standing = body.overlays_standing[UNIFORM_LAYER]
-	for(var/image/root as anything in (islist(standing) ? standing : list(standing)))
+	for(var/image/root as anything in standing_images(body.overlays_standing[UNIFORM_LAYER]))
 		if(PLANE_TO_TRUE(root.plane) != EMISSIVE_PLANE || !length(root.overlays))
 			continue
 		var/image/mirror = root.overlays[1]
@@ -2512,6 +2275,47 @@
 		return
 
 /**
+ * A garment's soot draws its emissive blocker only while something under it could glow (dirt_glow_under()). On a plain
+ * jumpsuit it draws none. An ethereal tunic's own glow and a hazard vest's sheen keep the blocker over them.
+ */
+/datum/unit_test/dirt_drawing/proc/check_blocker_over_glow()
+	SSdirt.finish_all()
+	// garment type -> list(its slot, its overlays_standing layer, whether its soot draws a blocker)
+	var/list/garments = list(
+		/obj/item/clothing/under/color/grey = list(ITEM_SLOT_ICLOTHING, UNIFORM_LAYER, FALSE),
+		/obj/item/clothing/under/ethereal_tunic = list(ITEM_SLOT_ICLOTHING, UNIFORM_LAYER, TRUE),
+		/obj/item/clothing/suit/hazardvest = list(ITEM_SLOT_OCLOTHING, SUIT_LAYER, TRUE),
+	)
+	for(var/garment_type, placing in garments)
+		var/mob/living/carbon/human/consistent/body = allocate(/mob/living/carbon/human/consistent)
+		var/obj/item/garment = allocate(garment_type)
+		TEST_ASSERT(body.equip_to_slot_if_possible(garment, placing[1]), "Couldn't put [garment] on.")
+		right_sided(body)
+		var/datum/component/dirtiness/carrier = garment.LoadComponent(/datum/component/dirtiness)
+		carrier.add_dirt(DIRT_CAUSE_SMOKE, DIRT_MATERIAL_SOOT, 2, DIRT_LIMB_BIT(DIRT_LIMB_TORSO), 0)
+		carrier.mess_changed()
+		SSdirt.finish_all()
+		var/icon/baked = carrier.cloth?.masks?.baked
+		TEST_ASSERT(baked, "The soot on [garment] isn't drawn.")
+		var/blocked = mirror_holds(body, placing[2], baked)
+		if(placing[3])
+			TEST_ASSERT(blocked, "The soot on [garment] draws no blocker over the garment's own glow.")
+		else
+			TEST_ASSERT(!blocked, "The soot on [garment] draws a blocker, though nothing under it glows.")
+
+/// Returns whether a worn slot's emissive mirror holds an image of a baked icon, such as its dirt's blocker
+/// (split_worn_emissive_branches()).
+/datum/unit_test/dirt_drawing/proc/mirror_holds(mob/living/carbon/human/body, layer, baked)
+	for(var/image/root as anything in standing_images(body.overlays_standing[layer]))
+		if(PLANE_TO_TRUE(root.plane) != EMISSIVE_PLANE || !length(root.overlays))
+			continue
+		var/image/mirror = root.overlays[1]
+		for(var/image/child as anything in mirror.overlays)
+			if(child.icon == baked)
+				return TRUE
+	return FALSE
+
+/**
  * A taur body holding a pool, then walking mud, merges them in the order they landed. Once it's raised, the pool keeps
  * its place in that merge.
  */
@@ -2520,13 +2324,14 @@
 	var/mob/living/carbon/human/consistent/rider = allocate(/mob/living/carbon/human/consistent)
 	TEST_ASSERT(give_taur(rider), "Couldn't make the human a horse taur.")
 	var/datum/component/dirtiness/own = right_sided(rider)
-	var/datum/dirt_splat/pool = own.add_mess(DIRT_ZONE_BACK, ORGAN_SLOT_EXTERNAL_TAUR, 1, 0, redraw = FALSE)
+	var/datum/dirt_splat/pool = add_mess_variant(own, DIRT_ZONE_BACK, ORGAN_SLOT_EXTERNAL_TAUR, 1, 0)
 	own.add_dirt(DIRT_CAUSE_WALK, DIRT_MATERIAL_MUD, 1, NONE, 0, organ_slot = ORGAN_SLOT_EXTERNAL_TAUR)
 	own.mess_changed(ORGAN_SLOT_EXTERNAL_TAUR)
 	var/datum/dirt_drawing/drawing = own.part_drawings?[ORGAN_SLOT_EXTERNAL_TAUR]
 	var/datum/dirt_splat/first = LAZYACCESS(drawing?.request?.splats, 1)
 	TEST_ASSERT(length(drawing?.request?.splats) == 2 && first.zone == DIRT_ZONE_BACK, "A taur body holding a pool, then walking mud, doesn't merge the pool first.")
 	TEST_ASSERT(own.add_mess(DIRT_ZONE_BACK, ORGAN_SLOT_EXTERNAL_TAUR, 1) == pool && pool.level == 2, "A second shot on the taur body's pool didn't raise it.")
+	own.mess_changed(ORGAN_SLOT_EXTERNAL_TAUR)
 	first = LAZYACCESS(drawing.request?.splats, 1)
 	TEST_ASSERT(first?.zone == DIRT_ZONE_BACK && first.level == 2, "A taur body's pool raised after walking mud landed moves after the mud in their merge.")
 	// nothing more is checked of them, so they aren't made
@@ -2545,11 +2350,12 @@
 	var/datum/dirt_mask_job/job = queue_pool(rider, own)
 	TEST_ASSERT(job, "The taur body's pool wasn't queued, so its job going as the pool is taken off can't be checked.")
 	own.remove_mess(own.part_mess_splats[ORGAN_SLOT_EXTERNAL_TAUR][1])
+	own.mess_changed(ORGAN_SLOT_EXTERNAL_TAUR)
 	TEST_ASSERT(!(job in SSdirt.queue) && SSdirt.mask_jobs[job.key] != job, "The taur body's pool taken off left its job queued.")
 
 	job = queue_pool(rider, own)
 	TEST_ASSERT(job, "The taur body's second pool wasn't queued, so its job going with the taur body can't be checked.")
-	own.add_mess(DIRT_ZONE_BACK, ORGAN_SLOT_EXTERNAL_TAUR, 1, redraw = FALSE)
+	own.add_mess(DIRT_ZONE_BACK, ORGAN_SLOT_EXTERNAL_TAUR, 1)
 	own.mess_changed(ORGAN_SLOT_EXTERNAL_TAUR, draw = FALSE)
 	taur_body.Remove(rider, special = TRUE)
 	TEST_ASSERT(!(job in SSdirt.queue) && SSdirt.mask_jobs[job.key] != job, "The taur body taken out left queued the job of its pool from before the pool was raised.")
@@ -2558,20 +2364,15 @@
 /**
  * Returns the job of the masks a pool landed on a taur's body asks for, or null. The pool is drawn as it lands. If
  * another check made those masks already, they're made again.
- *
- * Arguments:
- * - rider: The taur.
- * - own: Its carrier.
  */
 /datum/unit_test/dirt_drawing/proc/queue_pool(mob/living/carbon/human/rider, datum/component/dirtiness/own)
 	RETURN_TYPE(/datum/dirt_mask_job)
-	own.add_mess(DIRT_ZONE_BACK, ORGAN_SLOT_EXTERNAL_TAUR, 1, 0)
+	add_mess_variant(own, DIRT_ZONE_BACK, ORGAN_SLOT_EXTERNAL_TAUR, 1, 0)
+	own.mess_changed(ORGAN_SLOT_EXTERNAL_TAUR)
 	var/datum/dirt_drawing/drawing = own.part_drawings?[ORGAN_SLOT_EXTERNAL_TAUR]
 	if(!drawing?.request)
 		return null
-	if(!SSdirt.mask_jobs[drawing.key])
-		SSdirt.masks.forget(drawing.key)
-		drawing.forget(TRUE)
+	if(make_again(drawing))
 		rider.update_body()
 	return SSdirt.mask_jobs[drawing.key]
 
@@ -2637,32 +2438,14 @@
  * (dirt_zone_sources_match()).
  *
  * Arguments:
- * - body: The body.
  * - carrier: The uniform's carrier.
  */
 /datum/unit_test/dirt_drawing/proc/worn_drawn_for(mob/living/carbon/human/body, datum/component/dirtiness/carrier)
 	var/datum/dirt_drawing/cloth = carrier?.cloth
 	if(!cloth?.request || !cloth.masks?.baked || cloth.masks.key != cloth.key || !dirt_zone_sources_match(body, cloth.request.zone_sources))
 		return FALSE
-	var/list/worn = uniform_places(body, cloth.masks.baked)
+	var/list/worn = worn_places(body, UNIFORM_LAYER, cloth.masks.baked)
 	return !!worn[2]
-
-/**
- * A worn sprite with one direction, the cargo ribbon's, is drawn as its south view facing every way. So it shows
- * facing every way. Facing north, east and west, it reads the same pixels it reads facing south.
- */
-/datum/unit_test/dirt_drawing/proc/check_one_direction_read()
-	// a ribbon is drawn worn in its icon_state (icon_state_is_worn)
-	var/sheet = /obj/item/clothing/accessory/medal/ribbon/cargo::worn_icon
-	var/state = /obj/item/clothing/accessory/medal/ribbon/cargo::icon_state
-	TEST_ASSERT(!length(icon_states(icon(sheet, state, EAST))), "The cargo ribbon's worn sprite has a view facing east, so a sprite with one direction can't be checked. Read one that has one.")
-	TEST_ASSERT(dirt_sprite_shows(icon(sheet, state), SOUTH), "The cargo ribbon's worn sprite draws nothing facing south, so a sprite with one direction can't be checked. Read one that draws.")
-	// read its facings first, so they come from the sprite rather than from the reads below
-	TEST_ASSERT_EQUAL(dirt_sprite_facings(sheet, state), SOUTH | NORTH | EAST | WEST, "A worn sprite with one direction, drawn facing every way, doesn't show facing every way.")
-	var/south = jointext(dirt_sprite_pixels(sheet, state, SOUTH), ",")
-	TEST_ASSERT(length(south), "The cargo ribbon's worn sprite reads no pixels facing south.")
-	for(var/direction in list(NORTH, EAST, WEST))
-		TEST_ASSERT_EQUAL(jointext(dirt_sprite_pixels(sheet, state, direction), ","), south, "A worn sprite with one direction, drawn as its south view facing every way, reads otherwise facing [dir2text(direction)].")
 
 /**
  * The heaviest body. It's dressed in every slot that takes dirt but the gloves, so a hand shows. It has a tail, wings,
@@ -2673,7 +2456,7 @@
  * less 40. Where its mud and its oil meet on a garment, each pixel takes the thicker one's colour.
  */
 /datum/unit_test/dirt_budget
-	parent_type = /datum/unit_test/dirt_drawing
+	parent_type = /datum/unit_test/dirt_test
 	// the dirt of each cause it lands is made on a dressed body, many times over
 	priority = TEST_LONGER
 
@@ -2685,15 +2468,10 @@
 	SSdirt.finish_all()
 	var/mob/living/carbon/human/consistent/body = allocate(/mob/living/carbon/human/consistent)
 	body.set_hairstyle(/datum/sprite_accessory/hair/braid::name)
-	var/list/colours = list("#5A8A4A", "#C8D8B0", "#3A2A20")
-	body.dna.mutant_bodyparts[FEATURE_TAIL] = build_mutant_part(/datum/sprite_accessory/tails/lizard/short/twotone::name, colours)
-	body.dna.mutant_bodyparts[FEATURE_WINGS] = build_mutant_part(/datum/sprite_accessory/wings/mammal/bat::name, colours)
-	body.dna.mutant_bodyparts[FEATURE_HORNS] = build_mutant_part(/datum/sprite_accessory/horns/ram::name, colours)
-	body.dna.species.regenerate_organs(body)
-	body.update_body(is_creating = TRUE)
+	give_parts(body, list(FEATURE_TAIL = /datum/sprite_accessory/tails/lizard/short/twotone::name, FEATURE_WINGS = /datum/sprite_accessory/wings/mammal/bat::name, FEATURE_HORNS = /datum/sprite_accessory/horns/ram::name), list("#5A8A4A", "#C8D8B0", "#3A2A20"))
 	var/list/parts = list(body.get_organ_by_type(/obj/item/organ/tail), body.get_organ_by_type(/obj/item/organ/wings), body.get_organ_by_type(/obj/item/organ/horns))
 	TEST_ASSERT(!(null in parts), "Couldn't give the body a tail, wings and horns.")
-	var/obj/item/organ/genital/butt/butt = make_genital(body, /obj/item/organ/genital/butt, ORGAN_SLOT_BUTT, /datum/sprite_accessory/genital/butt/pair::name, list("butt_size" = 6, "butt_uses_skincolor" = FALSE, "butt_uses_skintones" = FALSE))
+	var/obj/item/organ/genital/butt/butt = make_butt(body)
 	TEST_ASSERT(butt?.apply_visibility_label("Custom") && butt.apply_layering_label("Above all clothing"), "Couldn't give the body a butt drawn above all clothing.")
 	body.underwear = /datum/sprite_accessory/clothing/underwear/male_boxers::name
 	body.undershirt = /datum/sprite_accessory/clothing/undershirt/tank_white::name
@@ -2750,7 +2528,7 @@
 		list(DIRT_CAUSE_PLUNGE, DIRT_MATERIAL_MUD),
 	)
 	for(var/list/landing as anything in landings)
-		TEST_ASSERT(dirt_land(body, landing[1], landing[2], 3, 0, LAZYACCESS(landing, 3)), "[landing[1]] in [landing[2]] landed nowhere on the dressed body.")
+		TEST_ASSERT(dirt_land_variant(body, landing[1], landing[2], 3, 0, LAZYACCESS(landing, 3)), "[landing[1]] in [landing[2]] landed nowhere on the dressed body.")
 	// nothing lands on the underclothes under the jumpsuit and labcoat, so they hold dirt from before those went on
 	var/datum/component/dirtiness/own = body.GetComponent(/datum/component/dirtiness)
 	var/torso_and_arms = DIRT_LIMB_BIT(DIRT_LIMB_TORSO) | DIRT_LIMB_BIT(DIRT_LIMB_R_ARM) | DIRT_LIMB_BIT(DIRT_LIMB_L_ARM)
@@ -2781,7 +2559,6 @@
  * each, and the butt's share draws in a container over its front image.
  *
  * Arguments:
- * - body: The body.
  * - parts: Its tail, wings and horns.
  */
 /datum/unit_test/dirt_budget/proc/check_surfaces(mob/living/carbon/human/body, list/parts)
@@ -2886,15 +2663,12 @@
 			var/datum/dirt_material/thicker = dirt_material(mud_thicker ? mud.material : oil.material)
 			// haze is baked as film at half its alpha
 			var/list/tint = thicker.tints[role == DIRT_ROLE_HAZE ? DIRT_ROLE_FILM : role]
-			var/list/wanted = rgb2num(tint[1])
 			var/row = floor((index - 1) / surface.width)
 			var/pixel = baked.GetPixel(index - row * surface.width, surface.height - row, null, direction)
-			var/list/channels = pixel ? rgb2num(pixel) : list(null, null, null)
-			TEST_ASSERT(channels[1] == wanted[1] && channels[2] == wanted[2] && channels[3] == wanted[3], "Where the [garment.name]'s mud and oil meet facing [dir2text(direction)] at pixel [index], the thicker [thicker.name] should bake [tint[1]], not [pixel || "nothing"].")
+			TEST_ASSERT(pixel && same_rgb(pixel, tint[1]), "Where the [garment.name]'s mud and oil meet facing [dir2text(direction)] at pixel [index], the thicker [thicker.name] should bake [tint[1]], not [pixel || "nothing"].")
 			checked++
 	TEST_ASSERT(checked, "The [garment.name]'s mud and oil never meet alone with one a role thicker, so their merge can't be checked.")
 
-#undef DIRT_CORPUS
 #undef DIRT_MESS_BAKE_DIGESTS
 #undef DIRT_WAG_CHECK_FILE
 #undef DIRT_TAIL_HIP_COLUMN

@@ -21,7 +21,7 @@
  * Returns both legs, the one on the dirtier side first.
  *
  * Arguments:
- * - side: The mob's dirtier side, 1 or -1.
+ * - side: The dirtier side, 1 (the body's right) or -1.
  */
 /proc/dirt_legs_by_side(side)
 	RETURN_TYPE(/list)
@@ -32,7 +32,7 @@
  * level ahead of the other until both reach 3.
  *
  * Arguments:
- * - side: The mob's dirtier side, 1 or -1.
+ * - side: The dirtier side, 1 (the body's right) or -1.
  * - level: The dominant hand's level, before `plus`.
  * - plus: Levels both hands go up by.
  */
@@ -45,22 +45,22 @@
 
 /**
  * Returns a coat up a leg from its sole, and the height its line sits at: list(/datum/dirt_feature/coatline, pixels).
- * The line varies by variant and tilts at least 1.5 px from front to back. On the dirtier leg it rises 0.5, 1.5 and
+ * The line varies by variant and tilts 1.6 to 2.2 px between front and back. On the dirtier leg it rises 0.5, 1.5 and
  * 2 px by level, so level 1 stays contact only. It carries a tongue at levels 2 and 3. It stops 2.5 px under the leg's
  * top, so the belt never cuts it into a level row. The proc makes every random draw whatever the level.
  *
  * Arguments:
- * - rng: The deposit's stream.
  * - limb: The leg.
  * - level: 1 to 3.
  * - heights: The line's height by level, in pixels over the sole.
  * - solid: The contact's height by level, in pixels.
  * - dominant: Whether it's the dirtier leg.
- * - film: The film's depth under the line by level, in pixels.
  */
-/proc/dirt_coat(datum/dirt_random/rng, limb, level, list/heights, list/solid, dominant, list/film)
+/proc/dirt_coat(datum/dirt_random/rng, limb, level, list/heights, list/solid, dominant)
 	RETURN_TYPE(/list)
 	var/static/list/rises = list(0.5, 1.5, 2)
+	// the film's depth under the line by level, in pixels
+	var/static/list/film = list(1, 2, 2)
 	var/jitter = rng.uniform(-0.5, 0.5)
 	var/tilt_sign = rng.choose(list(-1, 1))
 	var/tilt = tilt_sign * rng.uniform(1.6, 2.2)
@@ -87,7 +87,6 @@
  * after a clean pixel, and a few of them are drips. Five are drawn from the stream whatever the count.
  *
  * Arguments:
- * - rng: The deposit's stream.
  * - limb: The leg.
  * - line_px: The coat's line, in pixels over the sole.
  * - count: How many to keep, 5 at most.
@@ -105,13 +104,7 @@
 		specks += new /datum/dirt_feature/speck(limb, point[1], dirt_up_h(limb, line_px + point[2]), point[3])
 	return specks
 
-/**
- * Returns what settles from above: film clusters on the shoulder tops, none at level 1, two at level 2, four at 3.
- *
- * Arguments:
- * - rng: The deposit's stream.
- * - level: The level.
- */
+/// Returns what settles from above: film clusters on the shoulder tops, none at level 1, two at level 2, four at 3.
 /proc/dirt_settled(datum/dirt_random/rng, level)
 	RETURN_TYPE(/list)
 	var/static/list/counts = list(0, 2, 4)
@@ -123,19 +116,18 @@
 	var/list/features = list()
 	for(var/position in 1 to counts[min(level, 3)])
 		var/list/spot = spots[position]
-		var/datum/dirt_feature/blob/cluster = new(spot[1], spot[2], spot[3], 0.9, 0.55, rng.randrange(65536), 0.1, 0, 0)
+		var/datum/dirt_feature/blob/cluster = new(spot[1], spot[2], spot[3], 0.9, 0.55, rng.randrange(65536), 0.1, 0)
 		cluster.role = DIRT_ROLE_FILM
 		features += cluster
 	return features
 
 /**
- * Returns walking's features: a coat up from the soles with a jagged, tilted top and a tongue, film along its line,
- * and spaced specks kicked up over it. The dirtier leg's line sits higher.
+ * Returns walking's features: a coat up from the soles with a jagged, tilted top and a tongue, and film along its line.
+ * Spaced specks are kicked up over it. The dirtier leg's line sits higher.
  *
  * Arguments:
  * - level: 1 to 3.
- * - rng: The deposit's stream.
- * - side: The mob's dirtier side, 1 or -1.
+ * - side: The dirtier side, 1 (the body's right) or -1.
  */
 /proc/dirt_cause_walk(level, datum/dirt_random/rng, side)
 	RETURN_TYPE(/list)
@@ -145,7 +137,7 @@
 	heights += rng.uniform(5.5, 7)
 	var/list/features = list()
 	for(var/limb in list(DIRT_LIMB_R_LEG, DIRT_LIMB_L_LEG))
-		var/list/coat = dirt_coat(rng, limb, level, heights, list(0, 0.4, 0.8), dirt_limb_side(limb) == side, list(1, 2, 2))
+		var/list/coat = dirt_coat(rng, limb, level, heights, list(0, 0.4, 0.8), dirt_limb_side(limb) == side)
 		features += coat[1]
 		features += dirt_kickup(rng, limb, coat[2], kicks[level])
 	return features
@@ -156,8 +148,7 @@
  *
  * Arguments:
  * - level: 1 to 3.
- * - rng: The deposit's stream.
- * - side: The mob's dirtier side, 1 or -1.
+ * - side: The dirtier side, 1 (the body's right) or -1.
  */
 /proc/dirt_cause_dust(level, datum/dirt_random/rng, side)
 	RETURN_TYPE(/list)
@@ -166,7 +157,7 @@
 	heights += rng.uniform(5.5, 7)
 	var/list/features = list()
 	for(var/limb in list(DIRT_LIMB_R_LEG, DIRT_LIMB_L_LEG))
-		var/list/coat = dirt_coat(rng, limb, level, heights, list(0.3, 0.6, 0.9), dirt_limb_side(limb) == side, list(1, 2, 2))
+		var/list/coat = dirt_coat(rng, limb, level, heights, list(0.3, 0.6, 0.9), dirt_limb_side(limb) == side)
 		features += coat[1]
 		var/knee_theta = rng.gauss(DIRT_THETA_FRONT, 12)
 		var/knee_seed = rng.randrange(65536)
@@ -180,14 +171,13 @@
 	return features
 
 /**
- * Returns kneeling's features. The kneeling knee, on the dirtier side, takes a patch from the kneecap down the shin,
- * with a small packed core on the kneecap and film up the thigh. The other knee takes a level less, with film down its
- * shin. The kneeling boot's toe cap and the fingertips take dirt too.
+ * Returns kneeling's features. The kneeling knee, on the dirtier side, takes a patch from the kneecap down the shin and
+ * film up the thigh. Its kneecap takes a small packed core. The other knee takes a level less, with film down its shin.
+ * The kneeling boot's toe cap and the fingertips take dirt too.
  *
  * Arguments:
  * - level: 1 to 3.
- * - rng: The deposit's stream.
- * - side: The mob's dirtier side, 1 or -1.
+ * - side: The dirtier side, 1 (the body's right) or -1.
  */
 /proc/dirt_cause_kneel(level, datum/dirt_random/rng, side)
 	RETURN_TYPE(/list)
@@ -215,7 +205,7 @@
 		if(leg_level < 2)
 			continue
 		if(dominant)
-			var/datum/dirt_feature/blob/toe = new(limb, DIRT_THETA_FRONT, dirt_up_h(limb, 0.5), 1, 0.6, seed + 2, 0.1, 0, 0)
+			var/datum/dirt_feature/blob/toe = new(limb, DIRT_THETA_FRONT, dirt_up_h(limb, 0.5), 1, 0.6, seed + 2, 0.1, 0)
 			toe.role = DIRT_ROLE_FILM
 			features += toe
 		else
@@ -231,8 +221,7 @@
  *
  * Arguments:
  * - level: 1 to 3.
- * - rng: The deposit's stream.
- * - side: The mob's dirtier side, 1 or -1.
+ * - side: The dirtier side, 1 (the body's right) or -1.
  */
 /proc/dirt_cause_crawl(level, datum/dirt_random/rng, side)
 	RETURN_TYPE(/list)
@@ -257,8 +246,7 @@
  *
  * Arguments:
  * - level: 1 to 3.
- * - rng: The deposit's stream.
- * - side: The mob's dirtier side, 1 or -1.
+ * - side: The dirtier side, 1 (the body's right) or -1.
  */
 /proc/dirt_cause_wear(level, datum/dirt_random/rng, side)
 	RETURN_TYPE(/list)
@@ -313,13 +301,12 @@
 
 /**
  * Returns a fall's features, in mud or dirt. The side that hit the ground, mostly the front, takes broad patches across
- * the torso, the thighs and the knees, and from level 2 the forearms. The hands that broke the fall take dirt too.
+ * the torso, the thighs and the knees. From level 2 so do the forearms. The hands that broke the fall take dirt too.
  * Drips run down from the torso's patch, with drops thrown round it. A fall forwards smudges the face from level 2.
  *
  * Arguments:
  * - level: 1 to 3.
- * - rng: The deposit's stream.
- * - side: The mob's dirtier side, 1 or -1.
+ * - side: The dirtier side, 1 (the body's right) or -1.
  */
 /proc/dirt_cause_fall(level, datum/dirt_random/rng, side)
 	RETURN_TYPE(/list)
@@ -378,10 +365,9 @@
  *
  * Arguments:
  * - level: 1 to 3.
- * - rng: The deposit's stream.
- * - side: The mob's dirtier side, 1 or -1.
+ * - side: The dirtier side, 1 (the body's right) or -1.
  */
-/proc/dirt_cause_splash(level, datum/dirt_random/rng, side)
+/proc/dirt_cause_splash(level, datum/dirt_random/draft/rng, side)
 	RETURN_TYPE(/list)
 	var/static/list/drop_counts = list(4, 7, 12)
 	var/facing = rng.choose(list(DIRT_THETA_FRONT, side * 60))
@@ -402,5 +388,5 @@
 		features += new /datum/dirt_feature/speck(drop[1], drop[2], drop[3], drop[4], FALSE)
 	if(level >= 3)
 		for(var/list/splat as anything in splats)
-			features += new /datum/dirt_feature/blob(DIRT_LIMB_TORSO, splat[1], splat[2], 0.9, 0.8, splat[3], 0.3, 0, 0.4)
+			features += new /datum/dirt_feature/blob(DIRT_LIMB_TORSO, splat[1], splat[2], 0.9, 0.8, splat[3], 0.3, 0.4)
 	return features

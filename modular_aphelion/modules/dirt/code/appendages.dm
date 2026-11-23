@@ -1,14 +1,8 @@
 // Drawn parts as carriers of general dirt: tails, wings, ears, horns and the other mutant parts. The person holds each
 // part's splats under its organ slot (/datum/component/dirtiness/var/part_splats), and the organ takes them with it. A
-// taur body's are held the same way (taur_overlay.dm). Each part draws its dirt in a container over each of its layers'
-// images, in its own image holder. The dirt comes from the part's own sprite read (dirt_shape_source_of()). A tail's is
-// drawn by dirt_tail_rasterise() and wings' by dirt_wing_rasterise(). Any other part's comes from the field causes only
-// (dirt_shape_rasterise()). Tail spines, held by the tail rather than by an organ of their own, take none. Every mutant
-// part's get_overlay() and icon_render_key() draw and key it through dirt_shape_overlay() and dirt_shape_render_key().
-// A wagging tail draws its dirt baked on every frame of its wag (/datum/dirt_wag_source). That's its still dirt,
-// carried onto each frame along the tail and across it (/datum/dirt_tail_carry). The frames are made at its first wag
-// after the dirt changes, and it draws none until then. A one-frame wag that shows the still sprite's pixels draws the
-// still dirt. Any one-frame wag does too, while its job finds out whether it shows them.
+// taur body's are held the same way (taur_overlay.dm). Tail spines, held by the tail rather than by an organ of their
+// own, take none. Each part draws its dirt over its own images (dirt_shape_overlay()), and a wagging tail over each
+// frame of its wag (/datum/dirt_wag_source).
 
 /// How far over the floor a tail joins the body, in pixels: the hips. dirt_tail_coordinates() measures along the tail
 /// from there.
@@ -31,17 +25,6 @@
 	/// What dirt_wag_shape was read for, as dirt_shape_read_key.
 	var/dirt_wag_read_key
 
-/datum/dirt_drawing
-	/// For a wagging tail, its wag's masks (/datum/component/dirtiness/proc/ready_wag_masks()), or null. They're made
-	/// from this request's splats and dropped as those change.
-	var/datum/dirt_drawing/wag
-	/// The key of the first request forget() dropped since the drawing last asked for masks, or null. That request's
-	/// job is dropped once the next request has another key. /datum/dirt_drawing/proc/current() drops it, and so do
-	/// /datum/component/dirtiness/proc/ready_wag_masks() for a wag's masks and
-	/// /datum/component/dirtiness/proc/ready_skin_masks() for hidden skin, which skips current(). It's dropped with the
-	/// drawing's own job as the drawing is let go (/datum/dirt_drawing/proc/drop_jobs(), drop_wag()).
-	var/superseded_key
-
 /datum/dirt_masks
 	/// For a wag's masks (/datum/dirt_wag_source): whether its one frame shows the still sprite's pixels in every
 	/// direction, so the part draws its still masks while it wags.
@@ -49,8 +32,7 @@
 
 /**
  * Stops drawing the wag's masks (`wag`). Drops their job, and the job of the request before them, if no other body
- * waits for it (/datum/controller/subsystem/dirt/proc/drop_mask_job()). Frames that nothing would draw cost up to a
- * second or more.
+ * waits for it (/datum/controller/subsystem/dirt/proc/drop_mask_job()). So no frames are made that nothing would draw.
  *
  * Arguments:
  * - body: The body drawing them.
@@ -129,15 +111,14 @@
  * Returns the part as dirt reads it: each of its layers' images, as get_images() draws them (dirt_read_shape()).
  * Returns null when it takes no dirt, draws nothing, or sits on no canvas. It's read again when what get_images() reads
  * changes. A tail is read still, and separately wagging, as dirt_wag_frames() makes of it. Each read is kept until the
- * next. A still read can be given the part's own render key. Then the read is found again if the key, accessory and
- * limb's gender are as they were when it was last read or found (dirt_shape_own_read). That works because the key holds
- * the feature key, base state and sheet that the read's key is built from.
+ * next. A still read given the part's own render key is found again through it (dirt_shape_own_read). That works
+ * because the key holds the feature key, base state and sheet that the read's key is built from.
  *
  * Arguments:
  * - limb: The limb it's drawn on.
  * - wagged: Whether to read a tail wagging.
  * - own_key: For a still read of a part that isn't wagging, its own render key without its dirt, as icon_render_key()
- *   builds it; or null.
+ *   builds it, or null.
  */
 /datum/bodypart_overlay/mutant/proc/dirt_shape_source_of(obj/item/bodypart/limb, wagged = FALSE, list/own_key = null)
 	RETURN_TYPE(/datum/dirt_shape_source)
@@ -225,7 +206,6 @@
  * Returns the canvas a sheet drawn at some offsets sits on (dirt_canvases()), or null for none.
  *
  * Arguments:
- * - sheet: The sheet.
  * - pixel_w, pixel_z: Its images' offsets, as center_image() sets them.
  */
 /proc/dirt_canvas_of(sheet, pixel_w, pixel_z)
@@ -241,7 +221,6 @@
  * holds none.
  *
  * Arguments:
- * - owner: Its owner.
  * - carrier: Their carrier, or null.
  */
 /datum/bodypart_overlay/mutant/proc/dirt_shape_slot(mob/living/carbon/human/owner, datum/component/dirtiness/carrier)
@@ -258,8 +237,7 @@
  * no overlay to the mob. Its emissive blocker comes after it (dirt_emissive_blocker()), after the part's own glows and
  * blockers at that layer. A wagging tail's container holds its wag's dirt. It plays in step with the tail's wagging
  * images, because the same redraw draws them (/datum/component/dirtiness/proc/ready_wag_masks()). Every mutant part's
- * get_overlay() calls it. So a part that takes no dirt (dirt_shape_kinds()) leaves at the first check, before anything
- * else is read. A part on a person whose drawn parts hold none leaves after one lookup.
+ * get_overlay() calls it, so a part that takes no dirt (dirt_shape_kinds()) leaves at the first check.
  *
  * Arguments:
  * - images: The part's images at the layer, as get_overlay() returns them, added to.
@@ -290,12 +268,11 @@
 		images[dirt_emissive_blocker(baked, limb, container)] = LIMB_OVERLAY_META
 
 /**
- * Adds the key of a part's dirt's masks after DIRT_PRIVATE_KEY, or "pending" while they're made. Its limb's images then
- * follow the masks and stay on its own mob (limb_icons_for()). For a wagging tail, they're its wag's masks
- * (ready_wag_masks()). So the tail is drawn again as a wag starts and stops, and once its frames are made. Asking
- * queues masks not made yet. A still tail asks for no frames. It drops the job of the frames its dirt changed under,
- * unless its next wag would ask for the same. Every mutant part's icon_render_key() calls it, with
- * dirt_shape_overlay()'s first checks. A still part is read through its own render key (dirt_shape_source_of()).
+ * Adds the key of a part's dirt's masks after DIRT_PRIVATE_KEY, or "pending" while they're made, so its limb's images
+ * follow the masks. For a wagging tail, they're its wag's masks (ready_wag_masks()). So the tail is drawn again as a
+ * wag starts and stops, and once its frames are made. Asking queues masks not made yet. A still tail asks for no
+ * frames. It drops the job of the frames its dirt changed under, unless its next wag would ask for the same. A still
+ * part is read through its own render key (dirt_shape_source_of()). Every mutant part's icon_render_key() calls it.
  *
  * Arguments:
  * - key: The part's render key, as icon_render_key() returns it, added to.
@@ -338,7 +315,6 @@
  * Arguments:
  * - kind: DIRT_SHAPE_TAIL, DIRT_SHAPE_WINGS or DIRT_SHAPE_PART.
  * - cause: A DIRT_CAUSE_* define.
- * - material: Its /datum/dirt_material.
  */
 /proc/dirt_shape_takes(kind, cause, datum/dirt_material/material)
 	var/static/list/field_causes = list(DIRT_CAUSE_FALL, DIRT_CAUSE_SPLASH, DIRT_CAUSE_PLUNGE, DIRT_CAUSE_BLAST, DIRT_CAUSE_DOUSE)
@@ -362,9 +338,7 @@
  * (dirt_shape_takes()).
  *
  * Arguments:
- * - target: The person.
  * - cause: A DIRT_CAUSE_* define.
- * - material: Its /datum/dirt_material.
  * - taur_suited: Whether a taur suit takes the taur body's (dirt_taur_suit()).
  */
 /proc/dirt_shape_slots(mob/living/carbon/human/target, cause, datum/dirt_material/material, taur_suited)
@@ -384,30 +358,26 @@
 
 /**
  * Returns a general deposit on a drawn shape in one direction, by the shape's own rules, as the reference generator
- * draws each. A taur body takes a contact coat from the ground (crawling coats as walking), on its fur or on the cloth
- * of a taur suit over it. It takes slime in its own pixels and a douse along its own top edges. The rest comes from the
- * canvas field, as fur, or as a taur suit's cloth. A tail draws by dirt_tail_rasterise(), wings by
- * dirt_wing_rasterise(), and any other part from the field (dirt_shape_rasterise()). Each draws inside its own drafting.
+ * draws each. A taur body takes a contact coat from the ground (crawling coats as walking), on its fur or a taur suit's
+ * cloth. It takes slime in its own pixels and a douse along its own top edges. The rest comes from the canvas field, as
+ * fur, or as a taur suit's cloth. A tail draws by dirt_tail_rasterise(), wings by dirt_wing_rasterise(), and any other
+ * part from the field (dirt_shape_rasterise()). Each draws inside its own drafting.
  *
  * Arguments:
- * - source: The shape.
  * - owners: What each pixel of its canvas shows in that direction, from dirt_taur_owners(). The shape's pixels are
  *   those its layers show, with the rider's left out.
  * - cause: A DIRT_CAUSE_* define.
- * - material: The /datum/dirt_material it's made of.
- * - level: The deposit's level.
  * - variant: 0 to DIRT_VARIANTS - 1.
- * - direction: The direction.
  * - surface_kind: DIRT_SURFACE_FUR, or DIRT_SURFACE_CLOTH for a taur suit.
- * - side: The person's dirtier side, 1 or -1.
+ * - side: The dirtier side, 1 (the body's right) or -1.
  */
 /proc/dirt_shape_deposit(datum/dirt_shape_source/source, list/owners, cause, datum/dirt_material/material, level, variant, direction, surface_kind, side)
 	RETURN_TYPE(/datum/dirt_pixels)
 	var/alist/mask = dirt_shape_mask(owners)
 	switch(source.kind)
 		if(DIRT_SHAPE_TAUR)
-			if(copytext(cause, 1, length(DIRT_CAUSE_SLIMED) + 1) == DIRT_CAUSE_SLIMED)
-				return dirt_splat_rasterise(mask, cause, material, level, variant, DIRT_SHAPE_TAUR, direction, side)
+			if(DIRT_HAS_PREFIX(cause, DIRT_CAUSE_SLIMED))
+				return dirt_splat_rasterise(mask, cause, material, level, variant, DIRT_SHAPE_TAUR, direction)
 			if(cause == DIRT_CAUSE_DOUSE)
 				return dirt_douse_rasterise(mask, material, level, variant, source.canvas, direction)
 			var/coat_cause = dirt_taur_coat_cause(cause)
@@ -435,7 +405,7 @@
  * - direction: The direction it's seen from.
  */
 /proc/dirt_shape_field_facing(kind, cause, direction)
-	var/slime = copytext(cause, 1, length(DIRT_CAUSE_SLIMED) + 1) == DIRT_CAUSE_SLIMED
+	var/slime = DIRT_HAS_PREFIX(cause, DIRT_CAUSE_SLIMED)
 	switch(kind)
 		if(DIRT_SHAPE_HAIR)
 			return (slime || cause == DIRT_CAUSE_DOUSE) ? null : direction
@@ -559,8 +529,6 @@
  * SSdirt.sprite_reads, which holds still sprites.
  *
  * Arguments:
- * - source: The wag.
- * - direction: The direction.
  * - frame: The frame, from 1.
  * - sheets: alist(state = its sprite, every frame), the job's, added to.
  */
@@ -631,12 +599,12 @@
 	var/root_column
 	var/root_row
 	if(still_root)
-		var/still_row = floor((still_root - 1) / width)
-		var/still_column = still_root - 1 - still_row * width
+		var/still_row = DIRT_INDEX_ROW(still_root, width)
+		var/still_column = DIRT_INDEX_COLUMN(still_root, still_row, width)
 		var/root_reach = INFINITY
 		for(var/index in shape)
-			var/row = floor((index - 1) / width)
-			var/reach = (index - 1 - row * width - still_column) ** 2 + (row - still_row) ** 2
+			var/row = DIRT_INDEX_ROW(index, width)
+			var/reach = (DIRT_INDEX_COLUMN(index, row, width) - still_column) ** 2 + (row - still_row) ** 2
 			// beside it: a step across, down or diagonal
 			if(reach <= 2 && reach < root_reach)
 				root = index
@@ -647,8 +615,8 @@
 		if(!start)
 			var/start_reach = INFINITY
 			for(var/index in shape)
-				var/row = floor((index - 1) / width)
-				var/reach = (index - 1 - row * width - join_column) ** 2 + (row - join_row) ** 2
+				var/row = DIRT_INDEX_ROW(index, width)
+				var/reach = (DIRT_INDEX_COLUMN(index, row, width) - join_column) ** 2 + (row - join_row) ** 2
 				if(!pieces[index] && reach < start_reach)
 					start = index
 					start_reach = reach
@@ -657,8 +625,8 @@
 		piece++
 		var/list/seeds = list(start)
 		var/base = 0
-		var/start_row = floor((start - 1) / width)
-		var/start_column = start - 1 - start_row * width
+		var/start_row = DIRT_INDEX_ROW(start, width)
+		var/start_column = DIRT_INDEX_COLUMN(start, start_row, width)
 		if(piece > 1)
 			base = round(2 * sqrt((start_column - root_column) ** 2 + (start_row - root_row) ** 2), 1)
 		else
@@ -686,8 +654,8 @@
 	for(var/index in shape)
 		var/band = (pieces[index] - 1) * band_count + round(distances[index] / 2, 1) + 1
 		band_of[index] = band
-		var/row = floor((index - 1) / width)
-		band_columns[band] += index - 1 - row * width
+		var/row = DIRT_INDEX_ROW(index, width)
+		band_columns[band] += DIRT_INDEX_COLUMN(index, row, width)
 		band_rows[band] += row
 		band_sizes[band] += 1
 	// across each band is the way along the tail there, from two bands before to two after, turned a quarter
@@ -712,8 +680,8 @@
 	var/list/widest = new /list(length(band_sizes))
 	for(var/index in shape)
 		var/band = band_of[index]
-		var/row = floor((index - 1) / width)
-		var/offset = (index - 1 - row * width - band_columns[band] / band_sizes[band]) * across_columns[band] + (row - band_rows[band] / band_sizes[band]) * across_rows[band]
+		var/row = DIRT_INDEX_ROW(index, width)
+		var/offset = (DIRT_INDEX_COLUMN(index, row, width) - band_columns[band] / band_sizes[band]) * across_columns[band] + (row - band_rows[band] / band_sizes[band]) * across_rows[band]
 		across[index] = offset
 		widest[band] = max(widest[band] || 0, abs(offset))
 	for(var/index in shape)
@@ -754,8 +722,8 @@
 			if(pieces[index] || distances[index] != distance)
 				continue
 			pieces[index] = piece
-			var/row = floor((index - 1) / width)
-			var/column = index - 1 - row * width
+			var/row = DIRT_INDEX_ROW(index, width)
+			var/column = DIRT_INDEX_COLUMN(index, row, width)
 			for(var/near_row in max(0, row - 1) to min(height - 1, row + 1))
 				for(var/near_column in max(0, column - 1) to min(width - 1, column + 1))
 					var/near = near_row * width + near_column + 1
@@ -768,10 +736,7 @@
 					distances[near] = further
 					if(length(reached) <= further)
 						reached.len = further + 1
-					var/list/later = reached[further + 1]
-					if(!later)
-						later = list()
-						reached[further + 1] = later
+					var/list/later = (reached[further + 1] ||= list())
 					later += near
 
 /**
@@ -802,10 +767,7 @@
 /**
  * Arguments:
  * - frame_owners: What each pixel of the canvas shows at the frame.
- * - still_coordinates: dirt_tail_coordinates() of the still sprite in that direction.
- * - still_merged: The still's dirt in that direction.
  * - canvas: The DIRT_CANVAS_* define.
- * - direction: The direction.
  */
 /datum/dirt_tail_carry/New(list/frame_owners, list/still_coordinates, datum/dirt_pixels/still_merged, canvas, direction)
 	. = ..()
@@ -822,10 +784,7 @@
 		if(isnull(still_along[index]))
 			continue
 		var/band = round(still_along[index] * steps, 1) + 1
-		var/list/at_band = bands[band]
-		if(!at_band)
-			at_band = list()
-			bands[band] = at_band
+		var/list/at_band = (bands[band] ||= list())
 		at_band += index
 	frame_coordinates = dirt_tail_coordinates(frame_owners, canvas, direction, still_coordinates[4])
 
@@ -926,7 +885,6 @@
  * dirt_frame_owners() or dirt_taur_owners() read them.
  *
  * Arguments:
- * - packed: The packed pixels.
  * - stack: The layer keys it shows, its source's stack.
  * - count: How many pixels the canvas has.
  * - carried: Whether it's a frame's, packed with its carry.
@@ -941,8 +899,8 @@
 	return owners
 
 /**
- * Returns a wag frame's dirt carried from the still sprite's in one direction, as /datum/dirt_tail_carry carried it, by
- * the still pixel each of the frame's pixels takes (dirt_wag_pack()).
+ * Returns a wag frame's dirt carried from the still sprite's in one direction, as /datum/dirt_tail_carry carried it. It
+ * goes by the still pixel each of the frame's pixels takes (dirt_wag_pack()).
  *
  * Arguments:
  * - packed: The frame's pixels packed with its carry.

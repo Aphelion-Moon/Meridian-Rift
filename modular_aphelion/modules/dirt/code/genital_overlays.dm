@@ -1,5 +1,5 @@
 /datum/bodypart_overlay/mutant/genital
-	/// Set while mess reads the genital's own images (dirt_part_images()): get_overlay() draws it without its mess.
+	/// Set while mess reads the genital's own images (dirt_part_images()), so get_overlay() draws it without its mess.
 	var/dirt_bare = FALSE
 	/// The genital's own render key when dirt_source was read, joined.
 	var/dirt_source_key
@@ -11,10 +11,9 @@
 
 /**
  * Draws a genital's own mess (its owner's part_mess_splats) with its front layer. One container just over that layer's
- * images, at their layer and offsets, holds the baked image of its share (dirt_container_over()). So the container
- * draws wherever the genital does, over clothing or through a portal (penis_only(), lower_body_only()).
- * apply_height() moves it as it moves the genital's images, by a filter or a pixel offset as the genital's
- * offset_location says. A butt's back image draws under every surface, so its share is drawn in that surface's
+ * images holds the baked image of its share (dirt_container_over()). So the container draws wherever the genital
+ * does, over clothing or through a portal (penis_only(), lower_body_only()). apply_height() moves it with the
+ * genital's images. A butt's back image draws under every surface, so its share is drawn in that surface's
  * masks. The container holds only the directions its front image shows over what it lies on. A genital drawn over the
  * skin takes the skin's general dirt on its own pixels too, from the skin's masks
  * (/datum/dirt_masks/var/baked_by_part). That goes in the same container, under its share. Each baked image draws its
@@ -30,8 +29,7 @@
 	if(!sharing && !body_baked)
 		return
 	var/kind = dirt_part_kind(limb.owner.get_organ_slot(organ_slot))
-	// part_keys holds body_baked's keys, and the render key asks about the same list
-	if(body_baked && !dirt_keys_of_kind(carrier.skin.masks.part_keys, kind))
+	if(body_baked && !carrier.skin.masks.part_kinds["[kind]"])
 		if(!sharing)
 			return
 		body_baked = null
@@ -84,7 +82,7 @@
 	var/alist/body_keys = carrier?.skin?.masks?.part_keys
 	// a key starts with its part's kind (/datum/dirt_part_source/proc/part_key()), so without a key of this kind the
 	// part source needn't be read for it. The organ is read from the slot list itself, as get_organ_slot() reads it.
-	if(body_keys && !dirt_keys_of_kind(body_keys, dirt_part_kind(limb.owner.organs_slot[organ_slot])))
+	if(body_keys && !carrier.skin.masks.part_kinds["[dirt_part_kind(limb.owner.organs_slot[organ_slot])]"])
 		body_keys = null
 	if(!sharing && !body_keys)
 		return null
@@ -107,53 +105,22 @@
 	var/datum/dirt_masks/masks = carrier.ready_part_masks(organ_slot, source)
 	return "[DIRT_PRIVATE_KEY][body_key ? "dirt=[body_key]|" : ""]mess=[masks ? masks.key : "pending"]"
 
-/**
- * Returns whether some keys of part sources include one of a kind (/datum/dirt_part_source/proc/part_key()). The kinds
- * a list's keys start with are read once and kept with that list, by reference, until another list is asked about.
- * The lists asked about are skin masks' part keys (/datum/dirt_masks/var/part_keys). Those are written only while
- * their masks are made and never changed after, so a body's genitals, each asking of its own kind, read them once a
- * redraw. It keeps one list and its kinds' names, no datums.
- *
- * Arguments:
- * - keys: alist(placed or part key = anything), never changed once asked about, or null.
- * - kind: A DIRT_PART_* define.
- */
-/proc/dirt_keys_of_kind(alist/keys, kind)
-	var/static/alist/read_keys
-	var/static/alist/kinds = alist()
-	if(keys != read_keys)
-		read_keys = keys
-		kinds.Cut()
-		for(var/key in keys)
-			// a key starts with its kind and a bar
-			var/kind_end = findtextEx(key, "|")
-			if(kind_end)
-				kinds[copytext(key, 1, kind_end)] = TRUE
-	return !!kinds["[kind]"]
-
-/**
- * Returns what the genital draws now as a part source (dirt_part_source_of()), or null.
- *
- * Arguments:
- * - limb: The limb it's drawn on.
- */
+/// Returns what the genital draws now as a part source (dirt_part_source_of()), or null.
 /datum/bodypart_overlay/mutant/genital/proc/dirt_share_source(obj/item/bodypart/limb)
 	RETURN_TYPE(/datum/dirt_part_source)
 	var/kind = dirt_part_kind(limb.owner.get_organ_slot(organ_slot))
 	return dirt_part_source_of(kind, dirt_part_images(limb, kind))
 
-/**
- * Returns the carrier of the genital's owner's dirt while the genital draws as itself, or null. While it does, its own
- * mess and the skin's general dirt can go on it.
- *
- * Arguments:
- * - limb: The limb it's drawn on.
- */
+/// Returns the carrier of the genital's owner's dirt while the genital draws as itself, or null. While it does, its own
+/// mess and the skin's general dirt can go on it.
 /datum/bodypart_overlay/mutant/genital/proc/dirt_drawn_carrier(obj/item/bodypart/limb)
 	var/mob/living/carbon/human/owner = limb?.owner
-	if(!istype(owner) || device_state || !dirt_draws_itself())
+	if(!istype(owner) || device_state)
 		return null
-	return owner.GetComponent(/datum/component/dirtiness)
+	var/datum/component/dirtiness/own = owner.GetComponent(/datum/component/dirtiness)
+	if(!own || !dirt_draws_itself())
+		return null
+	return own
 
 /// Returns whether the genital draws its own sprites, so mess can go on them.
 /datum/bodypart_overlay/mutant/genital/proc/dirt_draws_itself()
@@ -169,7 +136,6 @@
  *
  * Arguments:
  * - limb: The limb it's drawn on.
- * - owner: Its owner.
  */
 /datum/bodypart_overlay/mutant/genital/proc/dirt_shown(obj/item/bodypart/limb, mob/living/carbon/human/owner)
 	if((limb.is_husked && draw_on_husks == HUSK_OVERLAY_NONE) || hidden_by_device || isnull(sprite_datum))
@@ -205,7 +171,7 @@
 		throw error
 	dirt_bare = FALSE
 
-/// A genital joining a body carrying mess may shape it: SSdirt looks again once the change settles.
+/// A genital joining a body carrying mess may shape it, so SSdirt looks again once the change settles.
 /obj/item/organ/genital/on_mob_insert(mob/living/carbon/organ_owner, special, movement_flags)
 	. = ..()
 	if(organ_owner.GetComponent(/datum/component/dirtiness))

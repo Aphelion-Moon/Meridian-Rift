@@ -417,6 +417,7 @@
 #include "~nova\dirt_mess_drawing.dm"
 #include "~nova\dirt_sources.dm"
 #include "~nova\dirt_taur_blood.dm"
+#include "~nova\dirt_test_helpers.dm"
 #include "~nova\fitness.dm"
 #include "~nova\language_understanding.dm"
 #include "~nova\limb_marking_cache.dm"

@@ -423,7 +423,6 @@ taur-naga-human_legless-back-3-1 abb246d778eebc6c9fde687529e3163c
 taur-naga-human_legless-back-3-5 ec0651a33df77fe1061cbb53a3b9933f
 taur-horse-human_legless-back-4-0 9850c2a4edc8d93cf0c9b8d1022aa6cb
 taur-naga-human_legless-back-4-1 1408948bd0234111c07978ad926d71bd
-random-choices e0e37e5ce37a55a857a8a35a86f3dda8
 material-mud 33ef86ca0a1e9b0c7553bb9107f3163f
 material-dried_mud f32f96845fd38fdad2bc9fb29d2669ae
 material-red_clay 8272b42b818d23fb559e1668eacd3aac

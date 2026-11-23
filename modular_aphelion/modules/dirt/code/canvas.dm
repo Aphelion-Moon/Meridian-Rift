@@ -5,13 +5,9 @@
 // Facing south the viewer sees the front end, and facing north the back end.
 
 /// How many pixels a piece of a mask job draws of a canvas field (dirt_canvas_field_band()): 8 rows of a tile, or 4
-/// of the taur canvas. A plunge on the 64x32 canvas takes up to a measured 15.6 ms a piece (about 61 us a pixel a
-/// level). A douse draws that many of its shape's pixels a piece, at up to a measured 17.9 ms (about 70 us a pixel a
-/// level). A taur's coat draws that many of its body's pixels a piece (/datum/dirt_canvas_field/taur_coat).
-/// A plunge, a blast or a douse on a body's template binds 8 of its rows a piece (/datum/dirt_canvas_field/body).
-/// That takes up to a measured 16.4 ms for a level 3 douse. A painted plunge's last band at level 1 or 2 takes up to
-/// about 35 ms (27.4-35.3 measured) in the first direction its job draws. That band builds its design's shown points
-/// (dirt_painted_near()) and draws the design (dirt_finish_deposit()). Later directions read the points back.
+/// of the taur canvas. A douse draws that many of its shape's pixels a piece, and a taur's coat that many of its
+/// body's pixels (/datum/dirt_canvas_field/taur_coat). A plunge, a blast or a douse on a body's template binds 8 of its
+/// rows a piece (/datum/dirt_canvas_field/body).
 #define DIRT_FIELD_BAND_PIXELS 256
 
 /**
@@ -50,8 +46,6 @@
  */
 /datum/dirt_canvas_view
 	parent_type = /datum/dirt_surface
-	/// The DIRT_CANVAS_* define it shows.
-	var/canvas
 	/// How far the canvas's left edge sits from the tile's, in pixels: negative to its left.
 	var/pixel_w = 0
 	/// How far its bottom edge sits over the tile's floor.
@@ -62,10 +56,8 @@
  *
  * Arguments:
  * - canvas: A DIRT_CANVAS_* define.
- * - direction: The direction it's seen from.
  */
 /datum/dirt_canvas_view/New(canvas, direction)
-	src.canvas = canvas
 	src.direction = direction
 	var/list/size = dirt_canvases()[canvas]
 	width = size[1]
@@ -148,7 +140,6 @@
  *
  * Arguments:
  * - canvas: A DIRT_CANVAS_* define.
- * - direction: The direction.
  */
 /proc/dirt_canvas_view(canvas, direction)
 	RETURN_TYPE(/datum/dirt_canvas_view)
@@ -160,16 +151,13 @@
 		views[key] = view
 	return view
 
-/**
- * One mark of a canvas cause. It gives how thick it lies at a point of mob space, from 0 (nothing) to 1.
- */
+/// One mark of a canvas cause. It gives how thick it lies at a point of mob space, from 0 (nothing) to 1.
 /datum/dirt_canvas_feature
 
 /**
  * Returns how thick the mark lies at a point.
  *
  * Arguments:
- * - view: The canvas's view.
  * - mob_x: Pixels across from the tile's middle.
  * - up: Pixels up from the floor.
  * - samples: Its field's samples (/datum/dirt_canvas_field/var/samples), or null for a mark that samples no noise.
@@ -200,10 +188,6 @@
 	/// made for one level of one field, so the list belongs to one view.
 	var/alist/line_at
 
-/**
- * Arguments:
- * - top, solid, tilt, tongue, film, windows: Its vars of the same names.
- */
 /datum/dirt_canvas_feature/ground_coat/New(top, solid, tilt, list/tongue, film, list/windows)
 	. = ..()
 	src.top = top
@@ -215,17 +199,16 @@
 
 /**
  * Returns the line's height over the floor at a point of the body. Facing south or north, the tilt along the body is
- * the same everywhere, so the line tilts sideways and jags instead. The jag depends only on the point's cell across,
- * so its field samples it once a cell.
+ * the same everywhere, so the line tilts sideways and jags instead.
  *
  * Arguments:
  * - along: How far along the body, front +.
  * - lateral: How far across it.
  * - samples: Its field's samples (/datum/dirt_canvas_field/var/samples).
  */
-/datum/dirt_canvas_feature/ground_coat/proc/line(along, lateral, alist/samples)
+/datum/dirt_canvas_feature/ground_coat/proc/line(along, lateral, direction, alist/samples)
 	var/height = top + tilt * along / 16
-	if(abs(along) == 12)
+	if(direction == SOUTH || direction == NORTH)
 		height += tilt * lateral / 10
 		var/run = floor((lateral + 32) / 2.5)
 		height += (dirt_field_noise_hash(samples, "ground line", run, run, 0, 577) - 0.5) * 2.6
@@ -244,7 +227,7 @@
 	line_at ||= alist()
 	var/height = line_at[mob_x]
 	if(isnull(height))
-		height = line(view.along(mob_x), view.lateral(mob_x), samples)
+		height = line(view.along(mob_x), view.lateral(mob_x), view.direction, samples)
 		line_at[mob_x] = height
 	var/depth = height - up
 	if(depth < -1.6)
@@ -274,10 +257,6 @@
 	/// Whether it's a drip.
 	var/drip
 
-/**
- * Arguments:
- * - along, lateral, up_at, drip: Its vars of the same names.
- */
 /datum/dirt_canvas_feature/ground_speck/New(along, lateral, up_at, drip)
 	. = ..()
 	src.along = along
@@ -288,9 +267,6 @@
 /**
  * Returns where across the view the speck lies, in pixels across from the tile's middle, or null where the view
  * doesn't show it.
- *
- * Arguments:
- * - direction: The view's direction.
  */
 /datum/dirt_canvas_feature/ground_speck/proc/place(direction)
 	switch(direction)
@@ -317,9 +293,6 @@
 /**
  * Returns the first pixel, in row-major order, where the speck lies thick enough for film, or null. It lies within
  * 0.6 px across and from 1.05 px under to 0.6 px over its height. So only the rows and columns round there are tried.
- *
- * Arguments:
- * - view: The canvas's view.
  */
 /datum/dirt_canvas_feature/ground_speck/proc/first_pixel(datum/dirt_canvas_view/view)
 	var/across_at = place(view.direction)
@@ -346,18 +319,13 @@
 	/// The noise's scale, in pixels.
 	var/scale
 
-/**
- * Arguments:
- * - density, seed, scale: Its vars of the same names.
- */
 /datum/dirt_canvas_feature/patches/New(density, seed, scale = 3)
 	. = ..()
 	src.density = density
 	src.seed = seed
 	src.scale = scale
 
-/// Returns film where the noise passes its density, and the body tone where it's densest. The noise doesn't depend on
-/// the level, so its field samples it once.
+/// Returns film where the noise passes its density, and the body tone where it's densest.
 /datum/dirt_canvas_feature/patches/thickness(datum/dirt_canvas_view/view, mob_x, up, alist/samples, index)
 	var/noise = dirt_field_spread_noise(samples, "patches", index, mob_x, up, seed, scale)
 	if(noise > 1 - density)
@@ -383,10 +351,6 @@
 	/// column asks. A feature is made for one level of one field, so the list belongs to one view.
 	var/alist/facing_at
 
-/**
- * Arguments:
- * - cause, level, draws: Its vars of the same names.
- */
 /datum/dirt_canvas_feature/cover_field/New(cause, level, datum/dirt_cover_draws/draws)
 	. = ..()
 	src.cause = cause
@@ -394,7 +358,7 @@
 	src.draws = draws
 
 /// Returns the plunge's or the blast's own thickness at the point, clumped for a light material where its noise marks
-/// it as facing up. That noise doesn't depend on the level, so its field samples it once.
+/// it as facing up.
 /datum/dirt_canvas_feature/cover_field/thickness(datum/dirt_canvas_view/view, mob_x, up, alist/samples, index)
 	var/thickness
 	if(cause == DIRT_CAUSE_PLUNGE)
@@ -427,10 +391,6 @@
 	/// made for one level of one field, so the list belongs to one view.
 	var/alist/faced_at
 
-/**
- * Arguments:
- * - facing, density, seed, scale: Its vars of the same names.
- */
 /datum/dirt_canvas_feature/facing_patches/New(facing, density, seed, scale = 3)
 	. = ..()
 	src.facing = facing
@@ -439,7 +399,7 @@
 	src.scale = scale
 
 /// Returns film where the noise passes its density, scaled by how squarely the point faced the impact, and the body
-/// tone where it's densest. The noise doesn't depend on the level, so its field samples it once.
+/// tone where it's densest.
 /datum/dirt_canvas_feature/facing_patches/thickness(datum/dirt_canvas_view/view, mob_x, up, alist/samples, index)
 	faced_at ||= alist()
 	var/faced = faced_at[mob_x]
@@ -456,15 +416,15 @@
  * the levels nest.
  *
  * Arguments:
- * - rng: The cause's random stream.
  * - level: 1 to 3.
  * - heights: The line's height at each level.
  * - solid: How high it lies solid at each level.
  * - speck_counts: How many specks show at each level.
- * - films: How many pixels of film follow the line at each level.
  */
-/proc/dirt_canvas_ground(datum/dirt_random/rng, level, list/heights, list/solid, list/speck_counts, list/films = list(1, 2, 2))
+/proc/dirt_canvas_ground(datum/dirt_random/rng, level, list/heights, list/solid, list/speck_counts)
 	RETURN_TYPE(/list)
+	// how many pixels of film follow the line at each level
+	var/static/list/films = list(1, 2, 2)
 	var/tilt_sign = rng.choose(list(-1, 1))
 	var/tilt = tilt_sign * rng.uniform(1.6, 2.4)
 	var/tongue_along = rng.uniform(-14, 14)
@@ -500,7 +460,7 @@
  * - cause: A DIRT_CAUSE_* define.
  * - level: 1 to 3, or to 4 for smoke.
  * - rng: Its random stream. A plunge, a blast and a fall use the body's own, so the canvas meets the body.
- * - side: The mob's dirtier side, 1 or -1. A fall onto the side lands on it.
+ * - side: The dirtier side, 1 (the body's right) or -1. A fall onto the side lands on it.
  */
 /proc/dirt_canvas_features(cause, level, datum/dirt_random/rng, side)
 	RETURN_TYPE(/list)
@@ -533,19 +493,6 @@
 	return null
 
 /**
- * Returns a thickness's role: haze for exactly DIRT_HAZE_T, else core or body by their thresholds, and film below.
- *
- * Arguments:
- * - thickness: At least DIRT_THRESHOLD_FILM, or DIRT_HAZE_T.
- */
-/proc/dirt_thickness_role(thickness)
-	if(thickness == DIRT_HAZE_T)
-		return DIRT_ROLE_HAZE
-	if(thickness >= DIRT_THRESHOLD_CORE)
-		return DIRT_ROLE_CORE
-	return thickness >= DIRT_THRESHOLD_BODY ? DIRT_ROLE_BODY : DIRT_ROLE_FILM
-
-/**
  * Returns a speck that doesn't read as a hard pixel, as alist(index = DIRT_ROLE_* define), on the canvas pixels it may
  * draw on. It's a film centre with a haze ring, or a drip that fades from film to haze as it runs down.
  *
@@ -557,11 +504,8 @@
  */
 /proc/dirt_soft_speck(column, row, drip, width, height, alist/inside = null)
 	RETURN_TYPE(/alist)
-	// each list(columns right, rows down, DIRT_ROLE_* define)
-	var/static/list/drip_shape = list(list(0, 0, DIRT_ROLE_FILM), list(0, 1, DIRT_ROLE_FILM), list(0, 2, DIRT_ROLE_HAZE), list(-1, 0, DIRT_ROLE_HAZE), list(1, 0, DIRT_ROLE_HAZE))
-	var/static/list/dot_shape = list(list(0, 0, DIRT_ROLE_FILM), list(1, 0, DIRT_ROLE_HAZE), list(-1, 0, DIRT_ROLE_HAZE), list(0, 1, DIRT_ROLE_HAZE), list(0, -1, DIRT_ROLE_HAZE))
 	var/alist/shape = alist()
-	for(var/list/spot as anything in drip ? drip_shape : dot_shape)
+	for(var/list/spot as anything in dirt_speck_shape(drip))
 		var/spot_column = column + spot[1]
 		var/spot_row = row + spot[2]
 		if(spot_column < 0 || spot_row < 0 || spot_column >= width || spot_row >= height)
@@ -572,11 +516,11 @@
 	return shape
 
 /**
- * Places a speck on a mask, changing it, and returns whether it went. It goes only where no pixel drawn so far touches
- * it outside its own pixels. Its rows and columns also have to be free of earlier specks, and it then takes them.
+ * Places a speck on a level's pixels and returns whether it went. It goes only where no pixel drawn so far touches it
+ * outside its own pixels. Its rows and columns also have to be free of earlier specks, and it then takes them.
  *
  * Arguments:
- * - drawn: The mask, which it changes.
+ * - drawn: The level's pixels, which it changes.
  * - shape: The speck, alist(index = DIRT_ROLE_* define), from dirt_soft_speck().
  * - used_rows: TRUE on each row a speck took, indexed by row + 1, which it changes.
  * - used_columns: TRUE on each column a speck took, indexed by column + 1, which it changes.
@@ -588,7 +532,7 @@
 	var/list/roles = drawn.roles
 	var/list/table = dirt_neighbour_table(width, drawn.height)
 	for(var/index, role in shape)
-		var/row = floor((index - 1) / width)
+		var/row = DIRT_INDEX_ROW(index, width)
 		if(used_rows[row + 1] || used_columns[index - row * width])
 			return FALSE
 		for(var/neighbour in table[index])
@@ -596,7 +540,7 @@
 				return FALSE
 	for(var/index, role in shape)
 		drawn.put_index(index, role, 0.5)
-		var/row = floor((index - 1) / width)
+		var/row = DIRT_INDEX_ROW(index, width)
 		used_rows[row + 1] = TRUE
 		used_columns[index - row * width] = TRUE
 	return TRUE
@@ -628,7 +572,6 @@
  * Arguments:
  * - drawn: The level's pixels, which it draws on.
  * - coats: Its coats (dirt_canvas_coats()).
- * - view: The canvas's view.
  * - first_row, last_row: The first and last rows to draw, from 0 at the top.
  * - samples: The field's samples (/datum/dirt_canvas_field/var/samples), the noise its levels share.
  */
@@ -651,20 +594,19 @@
 					var/value = coat.thickness(view, mob_x, up, samples, index)
 					if(value > thickness)
 						thickness = value
-			if(thickness == DIRT_HAZE_T || thickness >= DIRT_THRESHOLD_FILM)
-				drawn.put_index(index, dirt_thickness_role(thickness), thickness)
+			if(thickness >= DIRT_THRESHOLD_FILM)
+				drawn.put_index(index, DIRT_THICKNESS_ROLE(thickness), thickness)
 
 /**
- * Returns one level of a canvas cause on a whole canvas, once its coats' rows are drawn (dirt_canvas_coat_rows()): lone
- * pixels go (dirt_cleanup()), then the material's edge, halo or tide, and the kick-up specks (dirt_place_speck()). A
- * material's sheen draws nothing on a canvas, as it looks for a leg. Hair takes film unless a whole-body coat covers
+ * Returns one level of a canvas cause on a whole canvas, once its coats' rows are drawn (dirt_canvas_coat_rows()). Lone
+ * pixels go (dirt_cleanup()). Then come the material's edge, halo or tide, and the kick-up specks (dirt_place_speck()).
+ * A material's sheen draws nothing on a canvas, as it looks for a leg. Hair takes film unless a whole-body coat covers
  * it, and never core.
  *
  * Arguments:
  * - drawn: The level's pixels.
  * - features: The level's features (dirt_canvas_features()).
  * - material: The /datum/dirt_material it's made of.
- * - view: The canvas's view.
  * - surface_kind: DIRT_SURFACE_FUR, DIRT_SURFACE_CLOTH or DIRT_SURFACE_HAIR.
  */
 /proc/dirt_canvas_finish_level(datum/dirt_pixels/drawn, list/features, datum/dirt_material/material, datum/dirt_canvas_view/view, surface_kind)
@@ -688,8 +630,8 @@
 	for(var/datum/dirt_canvas_feature/ground_speck/speck as anything in specks)
 		var/start = speck.first_pixel(view)
 		if(start)
-			var/start_row = floor((start - 1) / width)
-			dirt_place_speck(drawn, dirt_soft_speck(start - 1 - start_row * width, start_row, speck.drip, width, view.height), used_rows, used_columns)
+			var/start_row = DIRT_INDEX_ROW(start, width)
+			dirt_place_speck(drawn, dirt_soft_speck(DIRT_INDEX_COLUMN(start, start_row, width), start_row, speck.drip, width, view.height), used_rows, used_columns)
 	if(surface_kind == DIRT_SURFACE_HAIR)
 		var/list/roles = drawn.roles
 		for(var/index in 1 to length(roles))
@@ -765,29 +707,26 @@
 	SSdirt.lattice_points = 0
 
 /**
- * Returns a general deposit on a whole canvas in one direction, before a sprite clips it: levels 1 to `level`, each
- * from the cause's same draws, merged by role rank with the later level winning a tie. A plunge, a blast and a fall draw
- * from the body's own stream ("<cause>:<variant>"), so the canvas meets the body; other causes from
- * "canvas:<cause>:<variant>". Hair keeps to its crown (dirt_hair_crown()). Nothing for a cause the canvas doesn't draw.
- * Drawn drafting (dirt_drafted()), a level at a time by /datum/dirt_canvas_field, which a mask job draws a band at a
- * time.
+ * Returns a general deposit on a whole canvas in one direction, before a sprite clips it. It merges levels 1 to
+ * `level`, each from the cause's same draws, by role rank, and the later level wins a tie. A plunge, a blast and a fall
+ * draw from the body's own stream ("<cause>:<variant>"), so the canvas meets the body. Other causes draw from
+ * "canvas:<cause>:<variant>". Hair keeps to its crown (dirt_hair_crown()). A cause the canvas doesn't draw gives
+ * nothing. It's drawn while drafting (dirt_drafted()), a level at a time by /datum/dirt_canvas_field, which a mask job
+ * draws a band at a time.
  *
  * Arguments:
  * - cause: A DIRT_CAUSE_* define.
  * - material: The /datum/dirt_material it's made of.
- * - level: 1 to 3, smoke to 4; past it, its top level.
+ * - level: 1 to 3, or to 4 for smoke. Past that, it draws the top level.
  * - variant: 0 to DIRT_VARIANTS - 1.
  * - canvas: A DIRT_CANVAS_* define.
- * - direction: The direction.
  * - surface_kind: DIRT_SURFACE_FUR, DIRT_SURFACE_CLOTH (a taur suit's) or DIRT_SURFACE_HAIR.
- * - side: The mob's dirtier side, 1 or -1.
+ * - side: The dirtier side, 1 (the body's right) or -1.
  */
 /proc/dirt_canvas_rasterise(cause, datum/dirt_material/material, level, variant, canvas, direction, surface_kind = DIRT_SURFACE_FUR, side = 1)
 	RETURN_TYPE(/datum/dirt_pixels)
-#ifdef DIRT_DRAFT_EXACT
 	if(!SSdirt.drafting)
 		return dirt_drafted(GLOBAL_PROC_REF(dirt_canvas_rasterise), args.Copy())
-#endif
 	var/datum/dirt_canvas_field/field = new(cause, material, level, variant, canvas, direction, surface_kind, side)
 	// a whole level each call
 	for(var/each_level in 1 to field.level)
@@ -800,9 +739,6 @@
  * over 25 px above the floor, because an even film reads as a new hair colour. From level 3 it breaks them up with
  * noise. It changes the field's levels (/datum/dirt_canvas_field/var/merged) and returns them. Done twice, it changes
  * nothing more. Call it while drafting.
- *
- * Arguments:
- * - field: The field.
  */
 /proc/dirt_hair_crown(datum/dirt_canvas_field/field)
 	RETURN_TYPE(/datum/dirt_pixels)
@@ -813,8 +749,8 @@
 	for(var/index in 1 to length(roles))
 		if(!roles[index])
 			continue
-		var/row = floor((index - 1) / width)
-		if(field.level <= 2 ? view.up(row) <= 25 : dirt_spread_noise(index - 1 - row * width, row, 53, 2.5) <= 0.35)
+		var/row = DIRT_INDEX_ROW(index, width)
+		if(field.level <= 2 ? view.up(row) <= 25 : dirt_spread_noise(DIRT_INDEX_COLUMN(index, row, width), row, 53, 2.5) <= 0.35)
 			merged.put_index(index, null, null)
 	return merged
 
@@ -822,10 +758,8 @@
  * A general deposit's levels on a whole canvas in one direction, as dirt_canvas_rasterise() draws them before keeping
  * hair to its crown. It's drawn some rows at a time (draw_rows()). A mask job draws a field once, for all the
  * directions it serves (/datum/dirt_mask_job/proc/field_for()), a band a piece (dirt_canvas_field_band()). In each of
- * those directions the field is clipped to its shape, except on a taur body. Every field keeps the noise lattice its
- * bands sample until it's done (dirt_drafted()). A job's field goes on from its job's lattice and gives it back. It
- * also keeps the noise its levels share (samples), one table for a job's deposit in every direction. A field lives no
- * longer than the job drawing it.
+ * those directions the field is clipped to its shape, except on a taur body. It keeps the noise its levels share
+ * (samples) and the lattice its bands sample (dirt_drafted()). A field lives no longer than the job drawing it.
  */
 /datum/dirt_canvas_field
 	/// A DIRT_CAUSE_* define.
@@ -840,7 +774,7 @@
 	var/datum/dirt_canvas_view/view
 	/// DIRT_SURFACE_FUR, DIRT_SURFACE_CLOTH, DIRT_SURFACE_SKIN or DIRT_SURFACE_HAIR.
 	var/surface_kind
-	/// The mob's dirtier side, 1 or -1.
+	/// The dirtier side, 1 (the body's right) or -1.
 	var/side
 	/// The level being drawn, from 1, or 0 before the first.
 	var/drawing_level = 0
@@ -859,9 +793,7 @@
 	/// How many rows a band draws (dirt_field_band_rows()).
 	var/band_rows
 	/// The draft's noise lattice its bands sampled, as SSdirt.lattice holds it, DIRT_LATTICE_POINTS at most, or null
-	/// before the first band and once it's done. It's put back for each band and taken back after (dirt_drafted()). A
-	/// mask job's field takes its job's lattice at its first band, and gives it back once done
-	/// (/datum/dirt_mask_job/var/lattice).
+	/// before the first band and once it's done (dirt_drafted()).
 	var/alist/lattice
 	/// How many points `lattice` holds.
 	var/lattice_points = 0
@@ -871,8 +803,7 @@
 	/// Every band of a field is drawn in one drafting state. So a kept value is what sampling again returns. A mask
 	/// job's fields for one deposit share one table in every direction (/datum/dirt_mask_job/var/field_samples).
 	/// They can share it, because a term's point and seed come from its position and the deposit's random draws,
-	/// whichever way the field faces. It holds at most 5 values a pixel of its canvas, 10,240 for a taur's coat
-	/// (about 0.7-1.0 MB, estimated). The field drops its reference once it's done.
+	/// whichever way the field faces. The field drops its reference once it's done.
 	var/alist/samples
 
 /**
@@ -938,7 +869,6 @@
  * (dirt_drafted()).
  *
  * Arguments:
- * - field: The field.
  * - holder: The mask job drawing it, or null. The first band goes on from its lattice, and the last gives it back.
  *
  * Returns whether every level is drawn.
@@ -946,23 +876,13 @@
 /proc/dirt_canvas_field_band(datum/dirt_canvas_field/field, datum/dirt_mask_job/holder = null)
 	return dirt_drafted(GLOBAL_PROC_REF(dirt_draw_field_band), list(field), field, holder)
 
-/**
- * Draws a band of a field's rows inside dirt_canvas_field_band()'s drafting.
- *
- * Arguments:
- * - field: The field.
- *
- * Returns whether every level is drawn.
- */
+/// Draws a band of a field's rows in dirt_canvas_field_band()'s drafting, and returns whether every level is drawn.
 /proc/dirt_draw_field_band(datum/dirt_canvas_field/field)
 	return field.draw_rows(field.band_rows)
 
 /**
  * Returns how many rows of a canvas a band of its field draws (dirt_canvas_field_band()): as many as hold
  * DIRT_FIELD_BAND_PIXELS pixels, and one row at least.
- *
- * Arguments:
- * - width: The canvas's width.
  */
 /proc/dirt_field_band_rows(width)
 	return max(1, floor(DIRT_FIELD_BAND_PIXELS / width))
@@ -974,15 +894,11 @@
  *
  * Arguments:
  * - samples: The field's samples (/datum/dirt_canvas_field/var/samples).
- * - term: The term's name.
  * - position: The pixel's index, or the one coordinate the term takes.
  * - sample_x, sample_y, seed, scale: As in dirt_spread_noise().
  */
 /proc/dirt_field_spread_noise(alist/samples, term, position, sample_x, sample_y, seed, scale)
-	var/alist/kept = samples[term]
-	if(!kept)
-		kept = alist()
-		samples[term] = kept
+	var/alist/kept = (samples[term] ||= alist())
 	. = kept[position]
 	if(isnull(.))
 		. = dirt_spread_noise(sample_x, sample_y, seed, scale)
@@ -994,15 +910,11 @@
  *
  * Arguments:
  * - samples: The field's samples (/datum/dirt_canvas_field/var/samples).
- * - term: The term's name.
  * - position: The pixel's index, or the one coordinate the term takes.
  * - cell_x, cell_y, seed: As in dirt_noise_hash().
  */
 /proc/dirt_field_noise_hash(alist/samples, term, position, cell_x, cell_y, seed)
-	var/alist/kept = samples[term]
-	if(!kept)
-		kept = alist()
-		samples[term] = kept
+	var/alist/kept = (samples[term] ||= alist())
 	. = kept[position]
 	if(isnull(.))
 		. = dirt_noise_hash(cell_x, cell_y, seed)
@@ -1024,16 +936,16 @@
 	return length(dirt_mask_directions()) * dirt_cause_max_level(DIRT_CAUSE_SMOKE) * ceil(size[2] / dirt_field_band_rows(size[1]))
 
 /**
- * Keeps a mask to a shape's pixels, changing it, and returns it.
+ * Keeps a raster to a shape's pixels, changing it, and returns it.
  *
  * Arguments:
- * - drawn: The mask, which it changes.
+ * - drawn: The raster, which it changes.
  * - mask: alist(index = TRUE) on the shape's pixels.
  */
 /proc/dirt_clip_to_shape(datum/dirt_pixels/drawn, alist/mask)
 	RETURN_TYPE(/datum/dirt_pixels)
 	var/list/roles = drawn.roles
-	for(var/index in drawn.drawn_indexes || dirt_index_range(length(roles)))
+	for(var/index in drawn.walk_indexes())
 		if(roles[index] && !mask[index])
 			drawn.put_index(index, null, null)
 	return drawn
@@ -1043,14 +955,13 @@
  *
  * Arguments:
  * - mask: alist(index = TRUE) on the shape's pixels.
- * - width: The canvas's width.
  * - lowest: Whether to take each column's bottom row rather than its top.
  */
 /proc/dirt_shape_edges(alist/mask, width, lowest = FALSE)
 	RETURN_TYPE(/list)
 	var/list/edges = new /list(width)
 	for(var/index in mask)
-		var/row = floor((index - 1) / width)
+		var/row = DIRT_INDEX_ROW(index, width)
 		var/column = index - row * width
 		if(isnull(edges[column]) || (lowest ? row > edges[column] : row < edges[column]))
 			edges[column] = row
@@ -1079,15 +990,15 @@
 	var/seed = rng.randrange(65536)
 	var/density = densities[min(level, 4) + 1]
 	for(var/index in mask)
-		var/row = floor((index - 1) / width)
-		if(dirt_spread_noise(index - 1 - row * width, row, seed, 6) > 1 - density)
+		var/row = DIRT_INDEX_ROW(index, width)
+		if(dirt_spread_noise(DIRT_INDEX_COLUMN(index, row, width), row, seed, 6) > 1 - density)
 			drawn.put_index(index, DIRT_ROLE_FILM, 0.4)
 	if(!top_band)
 		return drawn
 	var/list/tops = dirt_shape_edges(mask, width)
 	for(var/index in mask)
-		var/row = floor((index - 1) / width)
-		var/column = index - 1 - row * width
+		var/row = DIRT_INDEX_ROW(index, width)
+		var/column = DIRT_INDEX_COLUMN(index, row, width)
 		if(row - tops[column + 1] <= 1 && !drawn.roles[index] && dirt_noise_hash(column, row, seed) < 0.6)
 			drawn.put_index(index, DIRT_ROLE_FILM, 0.4)
 	return drawn
@@ -1105,17 +1016,14 @@
  * - material: The /datum/dirt_material it's made of.
  * - level: 1 to 3, or to 4 for smoke and machine work.
  * - variant: 0 to DIRT_VARIANTS - 1.
- * - direction: The direction.
  * - floor_up: How many pixels over the floor the canvas's top row lies, 31 on a tile standing on the floor. A row's
  *   height over the floor is floor_up less the row.
- * - side: The mob's dirtier side, 1 or -1.
+ * - side: The dirtier side, 1 (the body's right) or -1.
  */
 /proc/dirt_tail_rasterise(alist/mask, cause, datum/dirt_material/material, level, variant, direction, floor_up = ICON_SIZE_Y - 1, side = 1)
 	RETURN_TYPE(/datum/dirt_pixels)
-#ifdef DIRT_DRAFT_EXACT
 	if(!SSdirt.drafting)
 		return dirt_drafted(GLOBAL_PROC_REF(dirt_tail_rasterise), args.Copy())
-#endif
 	switch(cause)
 		if(DIRT_CAUSE_SMOKE, DIRT_CAUSE_WEAR, DIRT_CAUSE_MACHINE, DIRT_CAUSE_KNEEL)
 			return dirt_sparse_film(mask, cause, level, variant, cause == DIRT_CAUSE_SMOKE && level >= 3, DIRT_CANVAS_TILE)
@@ -1132,8 +1040,8 @@
 	var/datum/dirt_pixels/drawn = new(ICON_SIZE_X, ICON_SIZE_Y)
 	for(var/each_level in 1 to min(level, DIRT_DEPOSIT_MAX_LEVEL))
 		for(var/index in mask)
-			var/row = floor((index - 1) / ICON_SIZE_X)
-			var/column = index - 1 - row * ICON_SIZE_X
+			var/row = DIRT_INDEX_ROW(index, ICON_SIZE_X)
+			var/column = DIRT_INDEX_COLUMN(index, row, ICON_SIZE_X)
 			var/bottom = bottoms[column + 1]
 			// pixels up from the column's underside, and how high it's held, because a tail held high catches less
 			var/depth = bottom - row
@@ -1165,22 +1073,19 @@
  * - material: The /datum/dirt_material it's made of.
  * - level: 1 to 3, or to 4 for smoke and machine work.
  * - variant: 0 to DIRT_VARIANTS - 1.
- * - direction: The direction.
- * - side: The mob's dirtier side, 1 or -1.
+ * - side: The dirtier side, 1 (the body's right) or -1.
  */
 /proc/dirt_wing_rasterise(alist/mask, cause, datum/dirt_material/material, level, variant, direction, side = 1)
 	RETURN_TYPE(/datum/dirt_pixels)
-#ifdef DIRT_DRAFT_EXACT
 	if(!SSdirt.drafting)
 		return dirt_drafted(GLOBAL_PROC_REF(dirt_wing_rasterise), args.Copy())
-#endif
 	var/list/size = dirt_canvases()[DIRT_CANVAS_WINGS]
 	var/width = size[1]
 	var/height = size[2]
 	if(cause == DIRT_CAUSE_DOUSE)
 		return dirt_douse_rasterise(mask, material, level, variant, DIRT_CANVAS_WINGS, direction)
-	if(copytext(cause, 1, length(DIRT_CAUSE_SLIMED) + 1) == DIRT_CAUSE_SLIMED)
-		return dirt_splat_rasterise(mask, cause, material, level, variant, DIRT_SHAPE_WINGS, direction, side)
+	if(DIRT_HAS_PREFIX(cause, DIRT_CAUSE_SLIMED))
+		return dirt_splat_rasterise(mask, cause, material, level, variant, DIRT_SHAPE_WINGS, direction)
 	switch(cause)
 		if(DIRT_CAUSE_PLUNGE, DIRT_CAUSE_BLAST, DIRT_CAUSE_FALL, DIRT_CAUSE_SPLASH)
 			return dirt_clip_to_shape(dirt_canvas_rasterise(cause, material, level, variant, DIRT_CANVAS_WINGS, direction, DIRT_SURFACE_FUR, side), mask)
@@ -1201,8 +1106,8 @@
 	if(!length(lowest))
 		return drawn
 	for(var/index in list(lowest[1], lowest[floor(length(lowest) / 2) + 1]))
-		var/row = floor((index - 1) / width)
-		for(var/spot, role in dirt_soft_speck(index - 1 - row * width, row - 2, TRUE, width, height, mask))
+		var/row = DIRT_INDEX_ROW(index, width)
+		for(var/spot, role in dirt_soft_speck(DIRT_INDEX_COLUMN(index, row, width), row - 2, TRUE, width, height, mask))
 			drawn.put_index(spot, role, 0.5)
 	return drawn
 
@@ -1210,8 +1115,8 @@
  * Returns a douse on a shape in one direction. Each column's own top edge takes the cap, and streams run down from it,
  * from the body's random draws ("douse:<variant>", dirt_douse_draws()). So a stream down a rider meets the one down
  * the taur under it. Levels 1 to `level` are merged, each cleaned up on its own. A light material clumps. Hair is
- * soaked first, never core. It's drawn while drafting by /datum/dirt_canvas_field/douse, which a mask job draws a band
- * at a time.
+ * soaked first, and never takes core. It's drawn while drafting by /datum/dirt_canvas_field/douse, which a mask job
+ * draws a band at a time.
  *
  * Arguments:
  * - mask: alist(index = TRUE) on the shape's pixels on its canvas.
@@ -1219,15 +1124,12 @@
  * - level: 1 to 3.
  * - variant: 0 to DIRT_VARIANTS - 1.
  * - canvas: The shape's DIRT_CANVAS_* define.
- * - direction: The direction.
  * - surface_kind: DIRT_SURFACE_FUR or DIRT_SURFACE_HAIR.
  */
 /proc/dirt_douse_rasterise(alist/mask, datum/dirt_material/material, level, variant, canvas, direction, surface_kind = DIRT_SURFACE_FUR)
 	RETURN_TYPE(/datum/dirt_pixels)
-#ifdef DIRT_DRAFT_EXACT
 	if(!SSdirt.drafting)
 		return dirt_drafted(GLOBAL_PROC_REF(dirt_douse_rasterise), args.Copy())
-#endif
 	var/datum/dirt_canvas_field/douse/douse = new(mask, material, level, variant, canvas, direction, surface_kind)
 	// at least a whole level each call
 	for(var/each_level in 1 to douse.level)
@@ -1273,7 +1175,7 @@
 /**
  * Draws the douse's next pixels, as many as `rows` of the canvas hold, level by level. It makes its random draws as it
  * begins. Once a level's last pixel is drawn, it cleans the level up (dirt_cleanup()) and stacks it on the levels
- * before. The next level goes on with what's left. Once the last level is stacked, the hair soaked, never core.
+ * before. The next level goes on with what's left. Once the last level is stacked, hair's core turns to the body tone.
  * Call it while drafting.
  *
  * Arguments:
@@ -1297,15 +1199,15 @@
 		left -= last_pixel - next_pixel + 1
 		for(var/position in next_pixel to last_pixel)
 			var/index = pixels[position]
-			var/row = floor((index - 1) / width)
-			var/column = index - 1 - row * width
+			var/row = DIRT_INDEX_ROW(index, width)
+			var/column = DIRT_INDEX_COLUMN(index, row, width)
 			var/mob_x = view.mob_x(column)
 			var/up = view.up(row)
 			var/thickness = dirt_douse_thickness(mob_x, row - tops[column + 1], up, drawing_level, draws, light, samples, index)
 			if(light && thickness > 0)
 				thickness = dirt_light_cover(thickness, mob_x, up, draws.seed, dirt_field_spread_noise(samples, "light top", index, mob_x, up, draws.seed + 43, 3) > 0.72, samples, index)
 			if(thickness > 0)
-				drawn.put_index(index, dirt_thickness_role(thickness), thickness)
+				drawn.put_index(index, DIRT_THICKNESS_ROLE(thickness), thickness)
 		next_pixel = last_pixel + 1
 		if(next_pixel <= length(pixels))
 			return FALSE
@@ -1340,16 +1242,13 @@
  * - level: 1 to 3, or to 4 for smoke.
  * - variant: 0 to DIRT_VARIANTS - 1.
  * - canvas: The shape's DIRT_CANVAS_* define.
- * - direction: The direction.
  * - surface_kind: DIRT_SURFACE_FUR or DIRT_SURFACE_HAIR.
- * - side: The mob's dirtier side, 1 or -1.
+ * - side: The dirtier side, 1 (the body's right) or -1.
  */
 /proc/dirt_shape_rasterise(alist/mask, cause, datum/dirt_material/material, level, variant, canvas, direction, surface_kind = DIRT_SURFACE_FUR, side = 1)
 	RETURN_TYPE(/datum/dirt_pixels)
-#ifdef DIRT_DRAFT_EXACT
 	if(!SSdirt.drafting)
 		return dirt_drafted(GLOBAL_PROC_REF(dirt_shape_rasterise), args.Copy())
-#endif
 	switch(cause)
 		if(DIRT_CAUSE_DOUSE)
 			return dirt_douse_rasterise(mask, material, level, variant, canvas, direction, surface_kind)
@@ -1361,8 +1260,8 @@
 			for(var/index in 1 to length(roles))
 				if(!roles[index] || roles[index] == DIRT_ROLE_GLINT)
 					continue
-				var/row = floor((index - 1) / width)
-				if(dirt_spread_noise(index - 1 - row * width, row, variant + 51, 1.6) <= 0.62)
+				var/row = DIRT_INDEX_ROW(index, width)
+				if(dirt_spread_noise(DIRT_INDEX_COLUMN(index, row, width), row, variant + 51, 1.6) <= 0.62)
 					cap.put_index(index, null, null)
 			return cap
 	return dirt_clip_to_shape(dirt_canvas_rasterise(cause, material, level, variant, canvas, direction, surface_kind, side), mask)
@@ -1378,9 +1277,7 @@
  * - mask: alist(index = TRUE) on the shape's pixels.
  * - cause: A slime DIRT_CAUSE_* define.
  * - kind: A DIRT_SHAPE_* define.
- * - direction: The direction.
  * - level: The splat's level.
- * - width: The canvas's width.
  */
 /proc/dirt_splat_region(alist/mask, cause, kind, direction, level, width)
 	RETURN_TYPE(/alist)
@@ -1397,7 +1294,7 @@
 		depth = (on_back && level >= 3) ? 5 : 3
 	if(depth)
 		for(var/index in mask)
-			var/row = floor((index - 1) / width)
+			var/row = DIRT_INDEX_ROW(index, width)
 			if(row - tops[index - row * width] < depth)
 				region[index] = TRUE
 		return region
@@ -1408,8 +1305,8 @@
 	var/first_row
 	var/last_row
 	for(var/index in mask)
-		var/row = floor((index - 1) / width)
-		var/column = index - 1 - row * width
+		var/row = DIRT_INDEX_ROW(index, width)
+		var/column = DIRT_INDEX_COLUMN(index, row, width)
 		first_column = isnull(first_column) ? column : min(first_column, column)
 		last_column = isnull(last_column) ? column : max(last_column, column)
 		first_row = isnull(first_row) ? row : min(first_row, row)
@@ -1426,7 +1323,7 @@
 		if(DIRT_CAUSE_SLIMED_R_LEG, DIRT_CAUSE_SLIMED_L_LEG)
 			var/cut = first_row + (last_row - first_row) * 2 / 3
 			for(var/index in mask)
-				if(floor((index - 1) / width) >= cut)
+				if(DIRT_INDEX_ROW(index, width) >= cut)
 					region[index] = TRUE
 	return region
 

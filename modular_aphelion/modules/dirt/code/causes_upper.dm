@@ -7,8 +7,7 @@
  *
  * Arguments:
  * - level: 1 to 4.
- * - rng: The deposit's stream.
- * - side: The mob's dirtier side, 1 or -1.
+ * - side: The dirtier side, 1 (the body's right) or -1.
  */
 /proc/dirt_cause_machine(level, datum/dirt_random/rng, side)
 	RETURN_TYPE(/list)
@@ -110,7 +109,7 @@
 		var/datum/dirt_feature/stroke/second_wipe = new(DIRT_LIMB_TORSO, list(second_belly_theta, second_belly_along), list(second_belly_theta - side * second_belly_turn, second_belly_along + 0.03), 1.2, 0.5, TRUE, -1)
 		second_wipe.cloth_only = TRUE
 		features += second_wipe
-		var/datum/dirt_feature/blob/fleck = new(DIRT_LIMB_TORSO, belly_theta, belly_along, 0.5, 0.5, 7, 0, 0, 0)
+		var/datum/dirt_feature/blob/fleck = new(DIRT_LIMB_TORSO, belly_theta, belly_along, 0.5, 0.5, 7, 0, 0)
 		fleck.role = DIRT_ROLE_FLECK
 		fleck.cloth_only = TRUE
 		features += fleck
@@ -143,21 +142,20 @@
  * Returns smoke's features, in soot or ash: the face and fingertips, and what settles on the shoulder tops, which bare
  * skin takes as film. From level 2 the collar front and back darken, and bare skin there takes it as film. On cloth
  * the cuffs at the sleeve ends also darken from level 2, and a diagonal wipe runs off the placket, two from level 3.
- * At level 3 soot settles from above, down the chest from the collar and shoulders (coal miners, firefighters), the
+ * At level 3 soot settles from above, down the chest from the collar and shoulders (coal miners, firefighters). The
  * whole head greys, the dirtier shoulder blade and shoulder take patches, and sometimes both cheeks smudge. Level 4 goes
- * harder, from draws made after every other: on bare skin the whole coat from above, unbroken.
+ * harder, from draws made after every other. Bare skin then takes the whole coat from above, unbroken.
  *
  * Arguments:
  * - level: 1 to 4.
- * - rng: The deposit's stream.
- * - side: The mob's dirtier side, 1 or -1.
+ * - side: The dirtier side, 1 (the body's right) or -1.
  */
 /proc/dirt_cause_smoke(level, datum/dirt_random/rng, side)
 	RETURN_TYPE(/list)
 	var/both_cheeks = rng.random() < 0.5
 	var/alist/hands = dirt_hands_levels(side, min(level, 3))
 	if(level >= 4)
-		// the dominant hand goes to 4, its lit back wiped clean, and the other to 3, the fingertips' top level
+		// the dominant hand goes to 4, its highlight wiped clean, and the other to 3, the fingertips' top level
 		var/alist/heavy_hands = alist()
 		for(var/zone, hand_level in hands)
 			heavy_hands[zone] = hand_level == 3 ? 4 : 3
@@ -225,7 +223,7 @@
 			features += broken_mantle
 		// bare skin keeps a little body tone at the neck, or soot reads as ash
 		for(var/list/neck as anything in necks)
-			features += new /datum/dirt_feature/blob(DIRT_LIMB_TORSO, neck[1], neck[2], 0.8, 0.6, neck[3], 0.2, 0, 0.4)
+			features += new /datum/dirt_feature/blob(DIRT_LIMB_TORSO, neck[1], neck[2], 0.8, 0.6, neck[3], 0.2, 0.4)
 		for(var/list/sleeve as anything in sleeves)
 			var/datum/dirt_feature/patch/cuff_patch = new(sleeve[1], sleeve[2], 0.42, 2, 2.4, sleeve[3], 0.8, 0.5, 4)
 			cuff_patch.skin_role = DIRT_ROLE_FILM
@@ -269,8 +267,7 @@
  *
  * Arguments:
  * - level: 1 to 3.
- * - rng: The deposit's stream.
- * - side: The mob's dirtier side, 1 or -1.
+ * - side: The dirtier side, 1 (the body's right) or -1.
  */
 /proc/dirt_cause_sweat(level, datum/dirt_random/rng, side)
 	RETURN_TYPE(/list)
@@ -348,17 +345,16 @@
 
 /**
  * Returns a slime's attack from above. It latches on, so ooze sits where it clung, from the shoulders down. A big lump
- * sits on the side it grabbed from, a narrow one on that arm and one on the upper back, with smaller ones on the other
- * shoulder and the chest. Each is darkest underneath with a highlight on top. Drips run down from them in strands that
- * end in bulbs, and spatter lies round them, with bare cloth between. It's never a coat, because an even one reads as a
- * dyed shirt and a band over both shoulders as a shawl.
+ * sits on the side it grabbed from, with a narrow one on that arm and one on the upper back. Smaller ones sit on the
+ * other shoulder and the chest. Each is darkest underneath with a glint on top. Drips run down from them in strands
+ * that end in bulbs, and spatter lies round them, with bare cloth between. It's never a coat, because an even one reads
+ * as a dyed shirt and a band over both shoulders as a shawl.
  *
  * Arguments:
  * - level: 1 to 3.
- * - rng: The deposit's stream.
- * - side: The mob's dirtier side, 1 or -1.
+ * - side: The dirtier side, 1 (the body's right) or -1.
  */
-/proc/dirt_cause_slimed(level, datum/dirt_random/rng, side)
+/proc/dirt_cause_slimed(level, datum/dirt_random/draft/rng, side)
 	RETURN_TYPE(/list)
 	var/static/list/grows = list(0.8, 1, 1.25)
 	var/static/list/lump_counts = list(2, 4, 5)
@@ -420,9 +416,7 @@
  * theta, and this proc draws the rest from the stream, in that order.
  *
  * Arguments:
- * - rng: The deposit's stream.
  * - limb: The DIRT_LIMB_* define it lies on.
- * - theta: Its theta.
  * - along_low, along_high: The range its h is drawn from.
  * - across_low, across_high: The range its radius round the limb is drawn from, in pixels.
  * - up_low, up_high: The range its radius up the limb is drawn from, in pixels.
@@ -436,15 +430,14 @@
 
 /**
  * Returns where slime touches for a contact on a zone, the struck spot first: each list(limb, theta, h, radius round,
- * radius up), the radii in pixels. The chest takes a whole front, as for a fall on your face, and the back a whole
+ * radius up). The radii are in pixels. The chest takes a whole front, as for a fall on your face, and the back a whole
  * back, as for lying on your back. The head takes the face's sides and the neck. An arm takes its front and its outer
- * side, with the torso beside it. A leg takes its front and back. They never go round a whole arm (a sleeve, a glove)
- * or a whole leg at the boot (socks, gaiters). The chest's and back's never go down the legs (overalls).
+ * side, with the torso beside it. A leg takes its front and back. The areas never go round a whole arm (a sleeve, a
+ * glove) or a whole leg at the boot (socks, gaiters). The chest's and the back's never go down the legs (overalls).
  *
  * Arguments:
  * - zone: BODY_ZONE_HEAD, BODY_ZONE_CHEST, DIRT_ZONE_BACK, or an arm's or a leg's BODY_ZONE_* define.
- * - rng: The deposit's stream.
- * - side: The mob's dirtier side, 1 or -1.
+ * - side: The dirtier side, 1 (the body's right) or -1.
  */
 /proc/dirt_slime_areas(zone, datum/dirt_random/rng, side)
 	RETURN_TYPE(/list)
@@ -495,14 +488,13 @@
 /**
  * Returns slime on one part of the body, for a hit or contact there, or a fall or lying down in it. Level 1 leaves a
  * lump where it struck, level 2 a bigger lumpy patch, and level 3 the part's whole contact surface
- * (dirt_slime_areas()). Each area is lumps with gaps between, darkest underneath with a highlight on top. It's never an
+ * (dirt_slime_areas()). Each area is lumps with gaps between, darkest underneath with a glint on top. It's never an
  * even coat, which reads as dye. Drips run down off the lumps, and spatter lies round the struck spot. Drips from the
  * head run off the jaw and down the neck.
  *
  * Arguments:
  * - level: 1 to 3.
- * - rng: The deposit's stream.
- * - side: The mob's dirtier side, 1 or -1.
+ * - side: The dirtier side, 1 (the body's right) or -1.
  * - zone: Where it touched, as dirt_slime_areas() takes it.
  */
 /proc/dirt_cause_slime_contact(level, datum/dirt_random/rng, side, zone)

@@ -8,7 +8,7 @@
  * - "transform": list(a, b, c, d, e, f), the mob's matrix about its tile's centre with y upwards.
  *
  * The page applies both to the drawing it already has, so a new height or body size needs no new drawing. The rows are
- * a body's that stretches in one piece; one that stretches each image, as a taur does to keep its body its size, has
+ * a body's that stretches in one piece. One that stretches each image, as a taur does to keep its body its size, has
  * its height drawn in by the flatten (character_preview_flat_height()).
  */
 /proc/character_preview_effects(mob/living/carbon/human/body, frame_height, tile_y)
@@ -32,7 +32,7 @@
  * on the tile and then moved by its own offset. The page moves the tile's columns, so each map must cover them.
  */
 /proc/character_preview_rows(atom/movable/body, frame_height, tile_y)
-	// A body's maps are a height's shared ones, and frames come in a few sizes: each set is worked out once.
+	// A body's maps are a height's shared ones, and frames come in a few sizes, so each set is worked out once.
 	var/key = "[frame_height]|[tile_y]"
 	for (var/list/filter_info as anything in body.filter_data)
 		if (filter_info["type"] == "displace")
@@ -155,12 +155,12 @@
  * stretches each of its images: each row its maps move shows the row they take it from, across the columns they cover.
  * get_flat_uni_icon() calls it, when the preview asks (character_preview_flatten()), for an image below the one it
  * flattens, with the image's own icon, or with all of it when it keeps its overlays together, as far as BYOND's filters
- * reach. The look's own filters are the page's; see character_preview_rows().
+ * reach. The look's own filters are the page's (character_preview_rows()).
  *
  * Returns `flat` as it was when the image has no height filters, or one moves more than whole rows.
  *
  * Arguments:
- * - flat: The image's flat icon, its canvas from the image's own lower left pixel; see character_preview_flat_box().
+ * - flat: The image's flat icon, its canvas from the image's own lower left pixel (character_preview_flat_box()).
  * - drawn: The image, its filters read from it.
  * - drawn_icon: The icon it draws, which its maps are centred on. Null for a tile's.
  */
@@ -170,7 +170,7 @@
 		return flat
 	var/list/box = character_preview_flat_box(flat)
 	var/list/icon_size = drawn_icon ? get_icon_dimensions(drawn_icon) : null
-	// A body's images share a height's maps, and mostly their size: what to move is worked out once for each.
+	// A body's images share a height's maps, and mostly their size, so what to move is worked out once for each.
 	var/key = "[box[1]],[box[2]],[box[3]],[box[4]]|[icon_size?["width"] || ICON_SIZE_X],[icon_size?["height"] || ICON_SIZE_Y]"
 	var/list/height_filters
 	for (var/dm_filter/height_filter as anything in filters)
@@ -198,7 +198,7 @@
 	if (colours)
 		stretched = new /datum/universal_icon(flat.icon_file, flat.icon_state, flat.dir, flat.frame)
 
-	// The bands that move are copies taken first; the flat itself, grown to the new rows, keeps the rows that don't.
+	// The bands that move are copies taken first, and the flat, grown to the new rows, keeps the rows that don't.
 	var/lowest = plan[1]
 	var/highest = plan[2]
 	var/left = plan[3] - box[1] + 1
@@ -224,8 +224,8 @@
 
 /**
  * A flat icon's own transforms, when they are all colours that leave a clear pixel clear (a multiply, or a colour
- * matrix with no alpha of its own), so it can be stretched bare and coloured after: the rows a stretch adds and clears
- * stay clear either way. An empty list for a bare sprite; null for anything else, like a flat with overlays drawn in.
+ * matrix with no alpha of its own), so it can be stretched bare and coloured after. The rows a stretch adds and clears
+ * stay clear either way. An empty list for a bare sprite, null for anything else, like a flat with overlays drawn in.
  */
 /proc/character_preview_clear_colours(datum/universal_icon/flat)
 	var/list/transforms = flat.transform?.transforms

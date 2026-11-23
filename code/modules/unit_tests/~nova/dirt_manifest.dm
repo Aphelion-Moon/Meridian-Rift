@@ -9,17 +9,18 @@
  * with the reference generator's.
  */
 // compiled in, since CI's test world is deployed without code/
-#define DIRT_CORPUS 'code/modules/unit_tests/~nova/dirt_corpus.json'
 #define DIRT_MANIFEST 'code/modules/unit_tests/~nova/dirt_manifest.txt'
 #define DIRT_MASKS_CURRENT "data/dirt_masks.txt"
+/// The directions a case is drawn in, each under the letter its text gives it.
+#define DIRT_PARITY_DIRECTIONS list("S" = SOUTH, "N" = NORTH, "E" = EAST, "W" = WEST)
 
 /datum/unit_test/dirt_manifest
 	// every case is generated, and the body cases rasterise mess at every level up to their own
 	priority = TEST_LONGER
 
 /datum/unit_test/dirt_manifest/Run()
-	var/list/corpus = json_decode(file2text(DIRT_CORPUS) || "{}")
-	TEST_ASSERT(length(corpus["cases"]), "[DIRT_CORPUS] has no cases.")
+	var/list/corpus = dirt_parity_corpus()
+	TEST_ASSERT(length(corpus["cases"]), "dirt_corpus.json has no cases.")
 	var/list/digests = list()
 	for(var/line in splittext(file2text(DIRT_MANIFEST) || "", regex(@"\r?\n")))
 		if(length(line) && copytext(line, 1, 2) != "#")
@@ -27,7 +28,7 @@
 			digests[fields[1]] = fields[2]
 	var/list/blocks = list()
 	var/list/changes = list()
-	// a template takes about 90 ms to build, and every body case reuses one of four
+	// every body case reuses one of four templates, so each is built once
 	var/alist/templates = alist()
 	// painted designs are drawn from the plain human template the game keeps, and the corpus's human_m stands in for it
 	var/datum/dirt_template/human = dirt_parity_template("human_m", corpus, templates)
@@ -58,7 +59,7 @@
 /**
  * Returns a corpus case as the text the reference generator writes for it: "case <id>", then the case's lines, each
  * ending in a newline, the last one too.
- * - random: one /datum/dirt_random stream per case, and one line per integer call (choices writes the option it picks).
+ * - random: one /datum/dirt_random stream per case, and one line per integer call.
  *   shuffle and sample write the list joined by single spaces. random, uniform and gauss spend their draws and write
  *   nothing.
  * - noise: round(hash * 255) per lattice point, list(x, y, seed).
@@ -104,11 +105,11 @@
  * - canvas: a general deposit on a whole canvas (dirt_canvas_rasterise()): its "cause" in its "material" at its
  *   "level", "variant" and "side", on its "canvas" as its "surface". For each direction, "dir <letter>" and one grid of
  *   roles, the canvas's size.
- * - tail, wing, shape, splat: its "cause" in its "material" at its "level", "variant" and "side", on a shape in the
- *   corpus's "shapes" (dirt_parity_shape_mask()). A tail is drawn by dirt_tail_rasterise(), with the floor its "floor"
- *   pixels under the canvas's top row. A wing is drawn by dirt_wing_rasterise(), a shape by dirt_shape_rasterise() on
- *   its "surface", and a splat by dirt_splat_rasterise() as the kind of shape its "on" names. For each direction,
- *   "dir <letter>" and one grid of roles on the shape's canvas.
+ * - tail, wing, shape, splat: its "cause" in its "material" at its "level", "variant" and, but for a splat, "side",
+ *   on a shape in the corpus's "shapes" (dirt_parity_shape_mask()). A tail is drawn by dirt_tail_rasterise(), with
+ *   the floor its "floor" pixels under the canvas's top row. A wing is drawn by dirt_wing_rasterise(), a shape by
+ *   dirt_shape_rasterise() on its "surface", and a splat by dirt_splat_rasterise() as the kind of shape its "on" names.
+ *   For each direction, "dir <letter>" and one grid of roles on the shape's canvas.
  * - taur_coat: a contact coat (dirt_taur_coat()) of its "cause" in its "material" at its "level" and "variant" on a taur
  *   kind in the corpus's "taurs". For each direction, "dir <letter>" and one grid of roles, 64 across.
  * - blood_seeds: where a worn blood stain's "state" meets the taur waist crop (dirt_blood_seeds()). For each direction,
@@ -152,7 +153,7 @@
 				lines += dirt_parity_number_text(dirt_draft_hash_bits(point[1], point[2], point[3]))
 		if("surface")
 			var/datum/dirt_template/template = dirt_parity_template(case_data["template"], corpus, templates)
-			for(var/letter, direction in list("S" = SOUTH, "N" = NORTH, "E" = EAST, "W" = WEST))
+			for(var/letter, direction in DIRT_PARITY_DIRECTIONS)
 				lines += "dir [letter]"
 				lines += dirt_parity_surface_lines(template.surfaces[direction])
 		if("body")
@@ -169,7 +170,7 @@
 			var/list/splats = list()
 			for(var/list/splat_data as anything in case_data["splats"])
 				splats += new /datum/dirt_splat(splat_data[1], splat_data[2], splat_data[3], 0)
-			for(var/letter, direction in list("S" = SOUTH, "N" = NORTH, "E" = EAST, "W" = WEST))
+			for(var/letter, direction in DIRT_PARITY_DIRECTIONS)
 				var/list/under = dirt_parity_facing_parts(case_data["under_parts"], letter, by_name)
 				var/list/over = dirt_parity_facing_parts(case_data["over_parts"], letter, by_name)
 				var/list/sources = under + over
@@ -188,7 +189,7 @@
 			var/datum/dirt_template/template = dirt_parity_template(case_data["template"], corpus, templates)
 			var/list/named = dirt_parity_parts(list(case_data["part"]), corpus)
 			var/datum/dirt_part_source/source = named[1]
-			for(var/letter, direction in list("S" = SOUTH, "N" = NORTH, "E" = EAST, "W" = WEST))
+			for(var/letter, direction in DIRT_PARITY_DIRECTIONS)
 				var/list/own = dirt_part_own(source, direction, template, list(source), case_data["surface"])
 				var/datum/dirt_pixels/field = dirt_part_field(source.kind, own, dirt_part_zone(source.kind), case_data["level"], case_data["variant"], direction)
 				lines += "dir [letter]"
@@ -196,13 +197,13 @@
 		if("taur_surface")
 			var/datum/dirt_template/rider = dirt_parity_template(case_data["rider"], corpus, templates)
 			var/datum/dirt_taur_source/taur_source = dirt_parity_taur(corpus["taurs"][case_data["taur"]])
-			for(var/letter, direction in list("S" = SOUTH, "N" = NORTH, "E" = EAST, "W" = WEST))
+			for(var/letter, direction in DIRT_PARITY_DIRECTIONS)
 				lines += "dir [letter]"
 				lines += dirt_parity_taur_lines(dirt_taur_owners(taur_source, rider.surfaces[direction], direction))
 		if("taur")
 			var/datum/dirt_template/rider = dirt_parity_template(case_data["rider"], corpus, templates)
 			var/datum/dirt_taur_source/taur_source = dirt_parity_taur(corpus["taurs"][case_data["taur"]])
-			for(var/letter, direction in list("S" = SOUTH, "N" = NORTH, "E" = EAST, "W" = WEST))
+			for(var/letter, direction in DIRT_PARITY_DIRECTIONS)
 				var/list/rider_mess = list()
 				for(var/surface_kind in list(DIRT_SURFACE_CLOTH, DIRT_SURFACE_SKIN))
 					var/datum/dirt_pixels/rider_drawn = dirt_rasterise_aimed(DIRT_ZONE_BACK, case_data["level"], case_data["variant"], surface_kind, rider.surfaces[direction])
@@ -223,7 +224,7 @@
 		if("deposit")
 			var/datum/dirt_template/template = dirt_parity_template(case_data["template"], corpus, templates)
 			var/datum/dirt_material/material = dirt_material(case_data["material"], case_data["colour"])
-			for(var/letter, direction in list("S" = SOUTH, "N" = NORTH, "E" = EAST, "W" = WEST))
+			for(var/letter, direction in DIRT_PARITY_DIRECTIONS)
 				var/datum/dirt_pixels/raster = dirt_rasterise(case_data["cause"], material, case_data["level"], case_data["variant"], case_data["side"], case_data["surface"], template.surfaces[direction], !!case_data["painted"])
 				raster = dirt_pixels_from_drawn(raster.drawn(), raster.width, raster.height)
 				lines += "dir [letter]"
@@ -241,7 +242,7 @@
 				keys += material.key
 				if(isnull(glyphs[material.key]))
 					glyphs[material.key] = "[length(keys) - 1]"
-			for(var/letter, direction in list("S" = SOUTH, "N" = NORTH, "E" = EAST, "W" = WEST))
+			for(var/letter, direction in DIRT_PARITY_DIRECTIONS)
 				var/list/pixel_maps = list()
 				for(var/position in 1 to length(deposits))
 					var/list/deposit = deposits[position]
@@ -264,7 +265,7 @@
 			// kept as cloth masks keep their wet pixels, then made into a garment's multiplier as its job makes it
 			var/alist/wet = dirt_wet_drawn(merged, null)
 			var/list/directions = dirt_mask_directions()
-			for(var/letter, direction in list("S" = SOUTH, "N" = NORTH, "E" = EAST, "W" = WEST))
+			for(var/letter, direction in DIRT_PARITY_DIRECTIONS)
 				var/alist/alphas = wet ? dirt_wet_alphas(wet, directions.Find(direction)) : alist()
 				var/alist/factors = dirt_wet_factors(dirt_garment_pixels(sheet, garment[2], colour, direction, alphas), alphas, ICON_SIZE_X, ICON_SIZE_Y)
 				lines += "dir [letter]"
@@ -278,14 +279,14 @@
 			lines += "limbs [glyphs || "none"]"
 		if("canvas")
 			var/datum/dirt_material/material = dirt_material(case_data["material"], case_data["colour"])
-			for(var/letter, direction in list("S" = SOUTH, "N" = NORTH, "E" = EAST, "W" = WEST))
+			for(var/letter, direction in DIRT_PARITY_DIRECTIONS)
 				var/datum/dirt_pixels/raster = dirt_canvas_rasterise(case_data["cause"], material, case_data["level"], case_data["variant"], case_data["canvas"], direction, case_data["surface"], case_data["side"])
 				lines += "dir [letter]"
 				lines += raster.grid_text()
 		if("tail", "wing", "shape", "splat")
 			var/datum/dirt_material/material = dirt_material(case_data["material"], case_data["colour"])
 			var/list/shape = corpus["shapes"][case_data["shape"]]
-			for(var/letter, direction in list("S" = SOUTH, "N" = NORTH, "E" = EAST, "W" = WEST))
+			for(var/letter, direction in DIRT_PARITY_DIRECTIONS)
 				var/alist/mask = dirt_parity_shape_mask(case_data["shape"], shape, direction)
 				var/datum/dirt_pixels/raster
 				switch(case_data["kind"])
@@ -296,11 +297,11 @@
 					if("shape")
 						raster = dirt_shape_rasterise(mask, case_data["cause"], material, case_data["level"], case_data["variant"], shape["canvas"], direction, case_data["surface"], case_data["side"])
 					else
-						raster = dirt_splat_rasterise(mask, case_data["cause"], material, case_data["level"], case_data["variant"], case_data["on"], direction, case_data["side"])
+						raster = dirt_splat_rasterise(mask, case_data["cause"], material, case_data["level"], case_data["variant"], case_data["on"], direction)
 				lines += "dir [letter]"
 				lines += raster.grid_text()
 		if("blood_seeds")
-			for(var/letter, direction in list("S" = SOUTH, "N" = NORTH, "E" = EAST, "W" = WEST))
+			for(var/letter, direction in DIRT_PARITY_DIRECTIONS)
 				var/list/seeds = dirt_blood_seeds(case_data["state"], direction)
 				var/list/alphas = seeds[1]
 				var/list/near = seeds[2]
@@ -319,7 +320,7 @@
 			var/datum/dirt_taur_source/taur_source = dirt_parity_taur(corpus["taurs"][case_data["taur"]])
 			var/list/cloth = case_data["cloth"]
 			var/list/blood = list(list(), cloth && list(file(cloth[1]), cloth[2]), isnull(case_data["body"]) || case_data["body"], case_data["seam"], case_data["rows"])
-			for(var/letter, direction in list("S" = SOUTH, "N" = NORTH, "E" = EAST, "W" = WEST))
+			for(var/letter, direction in DIRT_PARITY_DIRECTIONS)
 				var/list/carriers = dirt_blood_carriers(taur_source, rider.surfaces[direction], direction, blood)
 				var/list/mass = dirt_blood_mass(case_data["state"], direction, case_data["seam"], case_data["rows"], case_data["state"] == "uniformblood" ? carriers[5] : null)
 				var/datum/dirt_pixels/drawn = dirt_blood_continuation(carriers[2], carriers[3], case_data["state"], direction, case_data["seam"], case_data["variant"], mass, carriers[4])
@@ -328,7 +329,7 @@
 		if("taur_coat")
 			var/datum/dirt_material/material = dirt_material(case_data["material"], case_data["colour"])
 			var/datum/dirt_taur_source/taur_source = dirt_parity_taur(corpus["taurs"][case_data["taur"]])
-			for(var/letter, direction in list("S" = SOUTH, "N" = NORTH, "E" = EAST, "W" = WEST))
+			for(var/letter, direction in DIRT_PARITY_DIRECTIONS)
 				var/datum/dirt_pixels/raster = dirt_taur_coat(taur_source, case_data["cause"], material, case_data["level"], case_data["variant"], direction)
 				lines += "dir [letter]"
 				lines += raster.grid_text()
@@ -362,7 +363,7 @@
 				materials += material
 				if(isnull(glyphs[material.key]))
 					glyphs[material.key] = "[position - 1]"
-			for(var/letter, direction in list("S" = SOUTH, "N" = NORTH, "E" = EAST, "W" = WEST))
+			for(var/letter, direction in DIRT_PARITY_DIRECTIONS)
 				var/alist/mask = dirt_parity_shape_mask(case_data["shape"], shape, direction)
 				var/list/pixel_maps = list()
 				var/list/keys = list()
@@ -404,7 +405,7 @@
  * where nothing is drawn.
  *
  * Arguments:
- * - merged: The mask, from dirt_merge() given its masks' materials.
+ * - merged: The mask, from dirt_merge() given its rasters' materials.
  * - glyphs: alist(material key = its glyph).
  */
 /proc/dirt_parity_material_lines(datum/dirt_pixels/merged, alist/glyphs)
@@ -435,13 +436,7 @@
 			cells += bytes ? LOWER_TEXT(copytext(rgb(bytes[1], bytes[2], bytes[3]), 2)) : "......"
 		. += jointext(cells, "")
 
-/**
- * Returns whether two sets of a painted design's points (dirt_painted_points()) are the same, entry for entry.
- *
- * Arguments:
- * - kept: One set.
- * - stand_in: The other.
- */
+/// Returns whether two sets of a painted design's points (dirt_painted_points()) are the same, entry for entry.
 /proc/dirt_parity_same_points(list/kept, list/stand_in)
 	for(var/column in 1 to length(kept))
 		var/list/kept_column = kept[column]
@@ -508,7 +503,6 @@
  * Arguments:
  * - name: The shape's name in the corpus's "shapes".
  * - shape: Its entry: its "icon", "states" and "canvas", and a hairstyle's "outer" states, if any.
- * - direction: The direction.
  */
 /proc/dirt_parity_shape_mask(name, list/shape, direction)
 	RETURN_TYPE(/alist)
@@ -572,9 +566,6 @@
  *   l left leg, or "." for none.
  * - rim: "#" the rim, "o" the interior (the body's pixels off the rim), "." neither.
  * - guards: "E" an eye or its sides, "m" the mouth, "e" an eye's diagonal, "." none.
- *
- * Arguments:
- * - surface: The surface.
  */
 /proc/dirt_parity_surface_lines(datum/dirt_surface/surface)
 	var/list/lines = list()
@@ -624,8 +615,6 @@
 				lines += dirt_parity_number_text(stream.randint(call_data[2], call_data[3]))
 			if("choose")
 				lines += dirt_parity_number_text(stream.choose(call_data[2]))
-			if("choices")
-				lines += dirt_parity_number_text(stream.choices(call_data[2], call_data[3]))
 			if("shuffle")
 				var/list/items = call_data[2]
 				lines += dirt_parity_number_text(stream.shuffle(items.Copy()))
@@ -641,7 +630,7 @@
  * - random, uniform: the float32 exactly (dirt_parity_float_text()).
  * - gauss: round(value * 1024), halves up.
  * - index: draw_index().
- * - randrange, randint, choose, choices, shuffle: as a random case writes them.
+ * - randrange, randint, choose, choices, shuffle: as dirt_parity_number_text() writes them.
  *
  * Arguments:
  * - case_data: One draft_random entry of the corpus's "cases": its "seed", and its "calls", each a list of the call's
@@ -685,9 +674,6 @@
 /**
  * Returns a float32 exactly, as the reference writes one: "<mantissa> <exponent>", where the value is mantissa *
  * 2^exponent. The mantissa is a whole number from 2^23 up to 2^24, with the value's sign. 0 is written "0".
- *
- * Arguments:
- * - value: The number.
  */
 /proc/dirt_parity_float_text(value)
 	if(!value)
@@ -710,7 +696,6 @@
  * Returns a number from 0 up to 10 with `places` decimals, as Python's "%.<places>f" writes it, halves rounded up.
  *
  * Arguments:
- * - value: The number.
  * - places: How many decimals, 1 to 5.
  */
 /proc/dirt_parity_decimal_text(value, places)
@@ -723,9 +708,6 @@
 /**
  * Returns a number, or a list of numbers joined by single spaces, as the reference writes them: whole numbers in full,
  * never in scientific notation.
- *
- * Arguments:
- * - value: A number, or a list of numbers.
  */
 /proc/dirt_parity_number_text(value)
 	if(!islist(value))
@@ -735,6 +717,6 @@
 		numbers += num2text(number, 12)
 	return jointext(numbers, " ")
 
-#undef DIRT_CORPUS
 #undef DIRT_MANIFEST
 #undef DIRT_MASKS_CURRENT
+#undef DIRT_PARITY_DIRECTIONS

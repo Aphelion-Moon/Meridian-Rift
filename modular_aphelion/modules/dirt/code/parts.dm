@@ -1,4 +1,4 @@
-/// How many parts' fields dirt_part_field() keeps, packed: a few hundred bytes each, so under 128 KB.
+/// How many parts' fields dirt_part_field() keeps, packed.
 #define DIRT_PART_FIELDS 256
 
 /**
@@ -14,8 +14,8 @@
 	var/icon
 	/// The states drawn, every layer's colour layers together.
 	var/list/states
-	/// The layer each state draws at, in step with `states`, as get_overlay() works it out, custom layering included; or
-	/// null where no layer is read (the guide, never drawn, lies under everything).
+	/// The layer each state draws at, in step with `states`, as get_overlay() works it out, custom layering included,
+	/// or null where no layer is read (the guide, never drawn, lies under everything).
 	var/list/state_layers
 	/// Pixels across the sheet.
 	var/width
@@ -32,14 +32,6 @@
 	/// top_layer(), worked out with them.
 	var/topmost_layer
 
-/**
- * Arguments:
- * - kind: A DIRT_PART_* define.
- * - icon: The sheet.
- * - states: The states drawn.
- * - guide: Whether it's the pecs guide.
- * - state_layers: The layer each state draws at, in step with `states`, or null.
- */
 /datum/dirt_part_source/New(kind, icon, list/states, guide = FALSE, list/state_layers)
 	. = ..()
 	src.kind = kind
@@ -58,10 +50,7 @@
 
 /**
  * Returns the source's pixels in one direction, any opacity counting, every state's together, as indexes in row-major
- * order (dirt_sprite_pixels()): none on a sheet that isn't 32x32. You should NEVER modify the list it returns.
- *
- * Arguments:
- * - direction: The direction.
+ * order (dirt_sprite_pixels()). It's empty for a sheet that isn't 32x32. You should NEVER modify the list it returns.
  */
 /datum/dirt_part_source/proc/pixels(direction)
 	RETURN_TYPE(/list)
@@ -78,12 +67,8 @@
 
 /**
  * Returns the layer of the topmost image that shows the source in one direction: the least layer number of its states
- * with pixels there (dirt_sprite_facings()). INFINITY when none has (the guide lies under everything). A butt shows its
- * front image facing north and its back image, under the body's skin, the other ways. Worked out once for every
- * direction.
- *
- * Arguments:
- * - direction: The direction.
+ * with pixels there (dirt_sprite_facings()). It's INFINITY when none has, and for the guide, which lies under
+ * everything. A butt shows its front image facing north and its back image, under the body's skin, the other ways.
  */
 /datum/dirt_part_source/proc/layer_at(direction)
 	if(!facing_layers)
@@ -117,11 +102,10 @@
 	return FALSE
 
 /**
- * Returns whether the source draws under a surface in one direction, as its topmost image there does (layer_at()), so
+ * Returns whether the source draws under a surface in one direction, as its topmost image there does (layer_at()). Then
  * its share is drawn in that surface's masks rather than on itself.
  *
  * Arguments:
- * - direction: The direction.
  * - surface_layer: The surface's layer: a garment's, DIRT_UNDERCLOTHES_LAYER or DIRT_SKIN_LAYER.
  */
 /datum/dirt_part_source/proc/under(direction, surface_layer)
@@ -156,7 +140,7 @@
 	return jointext(keys, ";")
 
 /**
- * Returns a body's parts as one line of text, with what they're drawn for and at what layers, to tell when a change to
+ * Returns a body's parts as one line of text, with what they're drawn for and at what layers. It tells when a change to
  * them may shape its mess otherwise.
  *
  * Arguments:
@@ -184,9 +168,6 @@
 /**
  * Returns what a genital is drawn as for mess: a DIRT_PART_* define, or null for one that takes no share (the anus,
  * the womb). The breasts organ is pecs when it's built from a pecs accessory.
- *
- * Arguments:
- * - part: The genital.
  */
 /proc/dirt_part_kind(obj/item/organ/genital/part)
 	switch(part?.slot)
@@ -203,13 +184,7 @@
 			return DIRT_PART_BUTT
 	return null
 
-/**
- * Returns the zone whose shots a kind of part takes a share of: the chest for breasts and pecs, the butt for the butt,
- * the groin for the rest.
- *
- * Arguments:
- * - kind: A DIRT_PART_* define.
- */
+/// Returns the zone (DIRT_ZONE_*) whose shots a kind of part (DIRT_PART_*) takes a share of.
 /proc/dirt_part_zone(kind)
 	switch(kind)
 		if(DIRT_PART_BREASTS, DIRT_PART_PECS)
@@ -219,8 +194,8 @@
 	return DIRT_ZONE_GROIN
 
 /**
- * Returns whether a kind of part is rounded, so its mess follows its form in lobes (dirt_lobe_rasterise()) and the
- * body's own mess leaves its pixels out: every kind but the penis, which takes a bead behind its tip.
+ * Returns whether a kind of part is rounded. Then its mess follows its form in lobes (dirt_lobe_rasterise()), and the
+ * body's own mess leaves its pixels out. The penis isn't, and takes a bead behind its tip instead.
  *
  * Arguments:
  * - kind: A DIRT_PART_* define.
@@ -229,13 +204,12 @@
 	return kind != DIRT_PART_PENIS
 
 /**
- * Returns the level of a splat's mess on the body where parts take a share of it: down by 2 where a penis, testicles
- * or vulva does, else by 1 where any part does, never under 1. A part takes a share in a direction where it has pixels.
- * The top level stays: the body keeps its glaze, still off the rounded parts' pixels, and the parts draw theirs at
- * DIRT_PART_MAX_LEVEL.
+ * Returns the level of a splat's mess on the body where parts take a share of it: down by 2 where a penis, testicles or
+ * vulva does, else by 1 where any part does, never under 1. A part takes a share in a direction where it has pixels.
+ * The top level stays, so the body keeps its glaze there, still off the rounded parts' pixels, and the parts draw
+ * theirs at DIRT_PART_MAX_LEVEL.
  *
  * Arguments:
- * - splat: The splat.
  * - sources: The parts, each a /datum/dirt_part_source.
  * - owns: alist(source = its pixels in this direction, from dirt_part_own()).
  */
@@ -252,12 +226,10 @@
 
 /**
  * Returns the pixels a part takes its share on in one direction, as indexes in row-major order: its own. The pecs guide
- * keeps to where the chest shows. The vulva, too small for a lobe of its own, also takes the ring of visible pixels
- * round them (the body's, and the parts') when it lies on skin, but never on cloth.
+ * keeps to where the chest shows. The vulva is too small for a lobe of its own. So on skin it also takes the ring of
+ * visible pixels round its own (the body's, and the parts'). It never does on cloth.
  *
  * Arguments:
- * - source: The part.
- * - direction: The direction.
  * - template: The body's template, or null when the part needs none: neither the guide nor the vulva on skin.
  * - sources: Every part drawn with it, itself included, whose pixels count as visible round the vulva.
  * - surface_kind: DIRT_SURFACE_SKIN or DIRT_SURFACE_CLOTH, what the part's share lies on.
@@ -288,8 +260,8 @@
 			part_pixels[index] = TRUE
 	var/list/ringed = new /list(pixel_count)
 	for(var/index in own)
-		var/row = floor((index - 1) / ICON_SIZE_X)
-		var/column = index - 1 - row * ICON_SIZE_X
+		var/row = DIRT_INDEX_ROW(index, ICON_SIZE_X)
+		var/column = DIRT_INDEX_COLUMN(index, row, ICON_SIZE_X)
 		for(var/near_row in max(0, row - 1) to min(ICON_SIZE_Y - 1, row + 1))
 			for(var/near_column in max(0, column - 1) to min(ICON_SIZE_X - 1, column + 1))
 				var/near = near_row * ICON_SIZE_X + near_column + 1
@@ -310,9 +282,6 @@
  * - kind: The part's DIRT_PART_* define.
  * - own: Its pixels in this direction, from dirt_part_own().
  * - zone: The splat's DIRT_ZONE_* define.
- * - level: The splat's level.
- * - variant: The splat's variant.
- * - direction: The direction.
  */
 /proc/dirt_part_field(kind, list/own, zone, level, variant, direction)
 	RETURN_TYPE(/datum/dirt_pixels)
@@ -330,14 +299,14 @@
 	return field
 
 /**
- * Returns mess on a part too small to round, the penis: a bead just behind its tip (its pixel farthest from where it
- * joins the body) with a highlight and a grey underside, the tip itself translucent (over the whole end it read as a
- * white cap); at levels 2 and 3 a run back from the tip and a drop or two along the part; a translucent fringe inside
- * it. Drawn from the "part:aimed_<zone>:<variant>" stream, on its pixels only.
+ * Returns mess on a part too small to round, the penis. A bead sits just behind its tip, with a glint and a grey
+ * underside. The tip itself is translucent, as a bead over the whole end reads as a white cap. At levels 2 and 3 a run
+ * goes back from the tip, with a drop or two along the part. A translucent fringe edges the mess inside the part. It's
+ * drawn from the "part:aimed_<zone>:<variant>" stream, on its pixels only.
  *
  * Arguments:
- * - own: The part's pixels, as indexes in row-major order. Fewer than three take nothing: clothing can leave a part all
- *   but hidden.
+ * - own: The part's pixels, as indexes in row-major order. Fewer than three take nothing, as clothing can leave a part
+ *   all but hidden.
  * - zone: The splat's DIRT_ZONE_* define.
  * - level: 1 to DIRT_PART_MAX_LEVEL.
  * - variant: 0 to DIRT_VARIANTS - 1.
@@ -358,8 +327,8 @@
 	var/base_y
 	var/best
 	for(var/index in own)
-		var/row = floor((index - 1) / ICON_SIZE_X)
-		var/column = index - 1 - row * ICON_SIZE_X
+		var/row = DIRT_INDEX_ROW(index, ICON_SIZE_X)
+		var/column = DIRT_INDEX_COLUMN(index, row, ICON_SIZE_X)
 		var/across = column - 15.5
 		var/down = row - 19.5
 		var/distance = across * across + down * down
@@ -372,8 +341,8 @@
 	var/tip_y
 	best = null
 	for(var/index in own)
-		var/row = floor((index - 1) / ICON_SIZE_X)
-		var/column = index - 1 - row * ICON_SIZE_X
+		var/row = DIRT_INDEX_ROW(index, ICON_SIZE_X)
+		var/column = DIRT_INDEX_COLUMN(index, row, ICON_SIZE_X)
 		var/distance = (column - base_x) ** 2 + (row - base_y) ** 2
 		if(isnull(best) || distance > best || (distance == best && (row > tip_y || (row == tip_y && column < tip_x))))
 			best = distance
@@ -383,7 +352,7 @@
 	var/step_x = (base_x - tip_x) / max(part_length, 1)
 	var/step_y = (base_y - tip_y) / max(part_length, 1)
 	var/tip = tip_y * ICON_SIZE_X + tip_x + 1
-	// the drop hangs on the pixel nearest the spot just behind the tip, in thousandths so equal distances tie: then the
+	// the drop hangs on the pixel nearest the spot just behind the tip, in thousandths so equal distances tie, then the
 	// lower, then the left
 	var/anchor
 	var/anchor_x
@@ -392,8 +361,8 @@
 	for(var/index in own)
 		if(index == tip)
 			continue
-		var/row = floor((index - 1) / ICON_SIZE_X)
-		var/column = index - 1 - row * ICON_SIZE_X
+		var/row = DIRT_INDEX_ROW(index, ICON_SIZE_X)
+		var/column = DIRT_INDEX_COLUMN(index, row, ICON_SIZE_X)
 		var/nearness = floor((abs(column - (tip_x + step_x)) + abs(row - (tip_y + step_y))) * 1000 + 0.5)
 		if(isnull(best) || nearness < best || (nearness == best && (row > anchor_y || (row == anchor_y && column < anchor_x))))
 			best = nearness
@@ -437,8 +406,8 @@
 			var/nearest_y
 			best = null
 			for(var/index in own)
-				var/row = floor((index - 1) / ICON_SIZE_X)
-				var/column = index - 1 - row * ICON_SIZE_X
+				var/row = DIRT_INDEX_ROW(index, ICON_SIZE_X)
+				var/column = DIRT_INDEX_COLUMN(index, row, ICON_SIZE_X)
 				var/score = abs(column - spot_x) + abs(row - spot_y) + 0.5 * (row - spot_y)
 				if(isnull(best) || score < best || (score == best && (column < nearest_x || (column == nearest_x && row < nearest_y))))
 					best = score
@@ -486,26 +455,11 @@
 	return row * ICON_SIZE_X + column + 1
 
 /**
- * Draws a role on a pixel of the mask by its index. If the mask keeps drawn_indexes, a blank pixel joins the list.
- *
- * Arguments:
- * - index: The pixel's index.
- * - role: A DIRT_ROLE_* define, or null to clear it.
- * - thickness: How thick it lies, from 0 to 1.
- */
-/datum/dirt_pixels/proc/put_index(index, role, thickness)
-	if(role && drawn_indexes && !roles[index])
-		drawn_indexes += index
-	roles[index] = role
-	thicknesses[index] = thickness
-
-/**
  * Returns a rounded part's lobes, each a list of indexes in row-major order: each side of DIRT_PART_MIDLINE where the
  * view shows both (front or back, the vulva excepted), else the whole part. A lobe under 4 px holds none.
  *
  * Arguments:
  * - own: The part's pixels.
- * - direction: The direction.
  * - kind: A DIRT_PART_* define.
  */
 /proc/dirt_lobes(list/own, direction, kind)
@@ -529,11 +483,11 @@
 
 /**
  * Returns mess following a rounded part's form (breasts, pecs, the butt, testicles, the vulva), from the
- * "lobe:aimed_<zone>:<kind>:<variant>" stream. A ragged blob lands on a lobe's upper slope, and at levels 2 and 3 its
- * drip runs down the lobe keeping its place across each row as the lobe widens and narrows, to a bead at the
- * under-curve. Level 3 adds a smaller blob with a short drip, and breaks the drips into beads. A pair's other lobe
- * takes a smaller blob, clear of the first lobe's rows (level with it, the pair read as a bra). Opaque cores, a
- * highlight per drop, a grey underside, a translucent fringe, all on the part's own pixels.
+ * "lobe:aimed_<zone>:<kind>:<variant>" stream. A ragged blob lands on a lobe's upper slope. At levels 2 and 3 its drip
+ * runs down the lobe to a bead at the under-curve. The drip keeps its place across each row as the lobe widens and
+ * narrows. Level 3 adds a smaller blob with a short drip, and breaks the drips into beads. A pair's other lobe takes a
+ * smaller blob, clear of the first lobe's rows, as level with it the pair reads as a bra. Each drop is opaque, with a
+ * glint on top and a grey underside. A translucent fringe edges the mess, all on the part's own pixels.
  *
  * Arguments:
  * - own: The part's pixels, as indexes in row-major order.
@@ -541,7 +495,6 @@
  * - kind: A DIRT_PART_* define.
  * - level: 1 to DIRT_PART_MAX_LEVEL.
  * - variant: 0 to DIRT_VARIANTS - 1.
- * - direction: The direction.
  */
 /proc/dirt_lobe_rasterise(list/own, zone, kind, level, variant, direction)
 	RETURN_TYPE(/datum/dirt_pixels)
@@ -559,7 +512,7 @@
 	var/list/first_lobe = dirt_lobe_shape(lobes[1])
 	var/across = stream.uniform(-0.55, 0.55)
 	var/down = stream.uniform(0.15, 0.35)
-	// every draw at every level: the other lobe's blob holds its place as the level rises
+	// every draw at every level, so the other lobe's blob holds its place as the level rises
 	var/second_down = stream.uniform(0.3, 0.5)
 	var/other_across = stream.uniform(-0.4, 0.4)
 	var/other_down = stream.uniform(0.35, 0.6)
@@ -593,8 +546,8 @@
 	var/list/rows = list()
 	for(var/index in indexes)
 		lookup[index] = TRUE
-		var/row = floor((index - 1) / ICON_SIZE_X)
-		var/column = index - 1 - row * ICON_SIZE_X
+		var/row = DIRT_INDEX_ROW(index, ICON_SIZE_X)
+		var/column = DIRT_INDEX_COLUMN(index, row, ICON_SIZE_X)
 		var/list/span = spans[row]
 		if(span)
 			span[1] = min(span[1], column)
@@ -610,15 +563,12 @@
  *
  * Arguments:
  * - shape: The lobe's shape, from dirt_lobe_shape().
- * - fraction: How far down.
  */
 /proc/dirt_lobe_row_at(list/shape, fraction)
 	var/list/rows = shape[4]
 	return rows[1] + fraction * (rows[length(rows)] - rows[1])
 
-/**
- * One rounded part's mess while dirt_lobe_rasterise() lays it: each pixel's role so far and the highlights.
- */
+/// One rounded part's mess while dirt_lobe_rasterise() lays it: each pixel's role so far and the glints.
 /datum/dirt_lobe_raster
 	/// TRUE on each of the part's pixels.
 	var/list/inside
@@ -630,16 +580,9 @@
 	var/level
 	/// Each pixel's role so far, a DIRT_ROLE_* define, or null.
 	var/list/solid
-	/// The highlights' pixels, in the order they were laid.
+	/// The glints' pixels, in the order they were laid.
 	var/list/glints = list()
 
-/**
- * Arguments:
- * - inside: TRUE on each of the part's pixels.
- * - seed: The noise seed of the blobs' ragged edges.
- * - kind: A DIRT_PART_* define.
- * - level: 1 to DIRT_PART_MAX_LEVEL.
- */
 /datum/dirt_lobe_raster/New(list/inside, seed, kind, level)
 	. = ..()
 	src.inside = inside
@@ -650,21 +593,21 @@
 
 /**
  * Lays a ragged drop on a lobe: an ellipse round a spot a fraction across and down it, its edge broken by noise, kept
- * to the lobe. Its lowest pixels with no drop pixel under them are core, the rest body, and its topmost pixel a
- * highlight.
+ * to the lobe. Its lowest pixels with no drop pixel under them are core, the rest body, and its topmost pixel a glint.
  *
  * Arguments:
  * - shape: The lobe's shape, from dirt_lobe_shape().
  * - across: Where across the nearest row, -1 its left end and 1 its right.
  * - down: How far down the lobe, 0 its top and 1 its bottom.
- * - radius: The drop's radius across, in pixels; it's 0.85 of that tall.
- * - noise_offset: Added to the noise seed: each drop on a part breaks its edge differently.
+ * - radius: The drop's radius across, in pixels. It's 0.85 of that tall.
+ * - noise_offset: Added to the noise seed, so each drop on a part breaks its edge differently.
  * - away_from: Rows the drop keeps 2 px clear of, moved below them or else above them, or null.
  * - most: The most pixels it may cover, shrinking until it covers no more, or null for no limit.
- * - centred: Whether it's held within a pixel of the lobe's centroid: on the hip crease the vulva's read as off target.
+ * - centred: Whether it's held within a pixel of the lobe's centroid, as on the hip crease the vulva's drop reads as
+ *   off target.
  *
- * Returns list(its lowest pixel, ties to the side away from the midline, or null when it covers none; the row it's
- * centred on; how many pixels it covers).
+ * Returns list(its lowest pixel or null, the row it's centred on, how many pixels it covers). The lowest pixel's ties
+ * go to the side away from the midline, and it's null when the drop covers none.
  */
 /datum/dirt_lobe_raster/proc/blob(list/shape, across, down, radius, noise_offset, list/away_from, most, centred = FALSE)
 	RETURN_TYPE(/list)
@@ -695,15 +638,15 @@
 		var/sum_y = 0
 		var/list/indexes = shape[1]
 		for(var/index in indexes)
-			var/row = floor((index - 1) / ICON_SIZE_X)
-			sum_x += index - 1 - row * ICON_SIZE_X
+			var/row = DIRT_INDEX_ROW(index, ICON_SIZE_X)
+			sum_x += DIRT_INDEX_COLUMN(index, row, ICON_SIZE_X)
 			sum_y += row
 		var/mean_x = sum_x / length(indexes)
 		var/mean_y = sum_y / length(indexes)
 		centre_x = max(mean_x - 1, min(mean_x + 1, centre_x))
 		centre_y = max(mean_y - 1, min(mean_y + 1, centre_y))
 	var/list/points = blob_points(lobe, centre_x, centre_y, radius, noise_offset)
-	// clearly the smaller: a near twin of the first read as a bra
+	// clearly the smaller, as a near twin of the first reads as a bra
 	for(var/shrink in 1 to 20)
 		if(isnull(most) || length(points) <= most || radius <= 0.45)
 			break
@@ -717,11 +660,11 @@
 	var/lowest
 	var/lowest_row
 	var/lowest_column
-	// the drip leaves from the outer side: a teardrop, not a T
+	// the drip leaves from the outer side, so it's a teardrop, not a T
 	var/outward = centre_x >= DIRT_PART_MIDLINE ? 1 : -1
 	for(var/index in points)
-		var/row = floor((index - 1) / ICON_SIZE_X)
-		var/column = index - 1 - row * ICON_SIZE_X
+		var/row = DIRT_INDEX_ROW(index, ICON_SIZE_X)
+		var/column = DIRT_INDEX_COLUMN(index, row, ICON_SIZE_X)
 		var/under = row + 1 < ICON_SIZE_Y ? index + ICON_SIZE_X : null
 		solid[index] = (row > centre_y && !covered[under]) ? DIRT_ROLE_CORE : DIRT_ROLE_BODY
 		if(isnull(lowest) || row > lowest_row || (row == lowest_row && column * outward > lowest_column * outward))
@@ -757,10 +700,10 @@
 				. += index
 
 /**
- * Lays a drip down a lobe from a drop: on each row below it, as far as `drip_length`, at the place across the row the
- * drop started from, stepping out from the midline every few rows (every other on a flat chest, where the form gives a
- * drip no bend and a straight column under a blob spelt T). Level 3 breaks it into beads with skin between them. It
- * ends in a bead with a highlight and a grey underside.
+ * Lays a drip down a lobe from a drop, on each row below it as far as `drip_length`. It keeps the place across the row
+ * the drop started from, stepping out from the midline every few rows. On a flat chest it steps every other row. The
+ * form gives a drip no bend there, and a straight column under a blob spells T. Level 3 breaks it into beads with skin
+ * between them. It ends in a bead with a glint and a grey underside.
  *
  * Arguments:
  * - shape: The lobe's shape, from dirt_lobe_shape().
@@ -771,8 +714,8 @@
 /datum/dirt_lobe_raster/proc/drip(list/shape, start, across, drip_length)
 	var/list/lobe = shape[2]
 	var/alist/spans = shape[3]
-	var/start_row = floor((start - 1) / ICON_SIZE_X)
-	var/column = start - 1 - start_row * ICON_SIZE_X
+	var/start_row = DIRT_INDEX_ROW(start, ICON_SIZE_X)
+	var/column = DIRT_INDEX_COLUMN(start, start_row, ICON_SIZE_X)
 	var/list/drip_rows = list()
 	for(var/row in shape[4])
 		if(length(drip_rows) >= drip_length)
@@ -802,10 +745,10 @@
 		solid[under] = DIRT_ROLE_CORE
 
 /**
- * Draws what was laid onto a mask: the solid roles and the highlights on the part's pixels, then the fringe.
+ * Draws what was laid onto the raster: the solid roles and the glints on the part's pixels, then the fringe.
  *
  * Arguments:
- * - drawn: The mask, added to.
+ * - drawn: The raster, added to.
  */
 /datum/dirt_lobe_raster/proc/draw(datum/dirt_pixels/drawn)
 	for(var/index in 1 to length(solid))
@@ -817,11 +760,8 @@
 	dirt_part_fringe(drawn, solid, inside)
 
 /**
- * Returns the source of the plain pecs' shape a human chest without breasts takes mess in, an undrawn guide (Muscular
- * pecs and breasts are the breasts organ, drawn), or null for any other chest. You should NEVER modify it.
- *
- * Arguments:
- * - body: The body.
+ * Returns the source of the plain pecs' shape a human chest without breasts takes mess in, or null for any other chest.
+ * It's an undrawn guide (Muscular pecs and breasts are the breasts organ, drawn). You should NEVER modify it.
  */
 /proc/dirt_pecs_guide(mob/living/carbon/human/body)
 	RETURN_TYPE(/datum/dirt_part_source)
@@ -833,13 +773,10 @@
 	return guide
 
 /**
- * Returns the source a genital is drawn as now, its organ slot filled in and each state's layer read from its image, or
- * null while it draws none: hidden (dirt_shown()), a device drawn in its place, a bulge look drawn for it, no sprite in
- * the layers mess reads it from (a taur's penis draws only behind the body), or a kind that takes no share.
- *
- * Arguments:
- * - part: The genital.
- * - owner: Its owner.
+ * Returns the source a genital is drawn as now, its organ slot filled in and each state's layer read from its image. It
+ * returns null while the genital draws none: hidden (dirt_shown()), a device drawn in its place, a bulge look drawn for
+ * it, no sprite in the layers mess reads it from (a taur's penis draws only behind the body), or a kind that takes no
+ * share.
  */
 /proc/dirt_part_drawn(obj/item/organ/genital/part, mob/living/carbon/human/owner)
 	RETURN_TYPE(/datum/dirt_part_source)
@@ -857,9 +794,6 @@
  * Returns the parts a body draws that take mess, lowest drawn first: the pecs guide if its chest takes one, then each
  * genital drawn (dirt_part_drawn()). A gloryhole's occupant draws their penis only through its relay, as
  * can_draw_on_bodypart() decides (portal_relays_penis()). So the penis doesn't shape the body's mess.
- *
- * Arguments:
- * - body: The body.
  */
 /proc/dirt_body_parts(mob/living/carbon/human/body)
 	RETURN_TYPE(/list)
@@ -905,7 +839,6 @@
  * Arguments:
  * - parts: /datum/dirt_part_source, lowest drawn first.
  * - surface_layer: The surface's layer.
- * - direction: The direction.
  */
 /proc/dirt_split_parts(list/parts, surface_layer, direction)
 	RETURN_TYPE(/list)
@@ -941,7 +874,7 @@
 
 /**
  * Returns a genital's images as a part source, every layer's colour layers' states together with the layer each draws
- * at, or null when none draws a sprite. Emissives and texture holders are left out.
+ * at. It returns null when none draws a sprite. Emissives and texture holders are left out.
  *
  * Arguments:
  * - kind: The genital's DIRT_PART_* define.
@@ -978,9 +911,9 @@
 	return upper | DIRT_LIMB_BIT(DIRT_LIMB_R_LEG) | DIRT_LIMB_BIT(DIRT_LIMB_L_LEG)
 
 /**
- * Returns a container of baked dirt images just over a genital's or a taur body's images, at the layer and offsets of
- * the last sprite among them, the one drawn over the others, kept together. It isn't nested in that sprite: the sprite
- * is coloured, which its overlays would take, and a filter on it doesn't reach them.
+ * Returns a container of baked dirt images, kept together, just over a genital's or a taur body's images. It takes the
+ * layer and offsets of the last sprite among them, the one drawn over the others. It isn't nested in that sprite, as
+ * the sprite is coloured, which its overlays would take, and a filter on it doesn't reach them.
  *
  * Arguments:
  * - images: The images, as get_overlay() returns them.
@@ -1002,9 +935,9 @@
 		container.pixel_w = front.pixel_w
 		container.pixel_z = front.pixel_z
 		if(beneath)
-			container.overlays += dirt_mess_baked_image(beneath)
+			container.overlays += mutable_appearance(beneath)
 		if(baked)
-			container.overlays += dirt_mess_baked_image(baked)
+			container.overlays += mutable_appearance(baked)
 		return container
 	return null
 

@@ -141,8 +141,8 @@
  * as it's made, and keeps it. It stores the cooldowns that the gate (dirt_source_land()) holds those events to.
  */
 /datum/component/dirt_sources
-	/// The world.time when each source with a cooldown can next roll its chance on this person, by its key
-	/// (cooldown_key()). It's null until the first cooldown starts.
+	/// The world.time each source with a cooldown can next roll its chance on this person, by cooldown_key(), or null
+	/// before any. An end time is cheaper than tg's TIMER_COOLDOWN_START(), which adds a timer for each start.
 	var/alist/cooldown_ends
 	/// The world.time when check_floor() next looks at the floor under this person. Every step reads it, so it's a
 	/// var of its own, not a key in cooldown_ends.
@@ -222,8 +222,7 @@
  * - cooldown_per: What splits the source's cooldown, such as a material, or null for one cooldown.
  * - chance: The chance, in percent, that it lands.
  *
- * Returns how many carriers it landed on, as dirt_land() does. A carrier is what holds a person's dirt, such as the
- * skin or a worn item. A landing that waits returns 0.
+ * Returns how many carriers it landed on, as dirt_land() does. A landing that waits returns 0.
  */
 /proc/dirt_source_land(mob/living/carbon/human/target, datum/dirt_source/source_type, cause, material, level, colour, cooldown_per, chance)
 	SHOULD_NOT_SLEEP(TRUE)
@@ -296,13 +295,9 @@
  * floor_check_interval, whether it finds dirt or not, because every step asks it to. Nothing lands on someone
  * buckled, thrown or off the ground.
  *
- * Arguments:
- * - walk_chance: The chance, in percent, that it lands on someone walking, or null for the floor decal source's.
- * - crawl_chance: The chance, in percent, that it lands on someone lying down, or null for the floor decal source's.
- *
  * Returns how many carriers it landed on.
  */
-/datum/component/dirt_sources/proc/check_floor(walk_chance, crawl_chance)
+/datum/component/dirt_sources/proc/check_floor()
 	if(world.time < next_floor_check)
 		return 0
 	next_floor_check = world.time + /datum/dirt_source/floor_decal::floor_check_interval
@@ -313,10 +308,8 @@
 	if(!material)
 		return 0
 	if(walker.body_position != LYING_DOWN)
-		return dirt_source_land(walker, /datum/dirt_source/floor_decal, DIRT_CAUSE_WALK, material, chance = walk_chance)
-	if(isnull(crawl_chance))
-		crawl_chance = /datum/dirt_source/floor_decal::crawl_chance
-	return dirt_source_land(walker, /datum/dirt_source/floor_decal, DIRT_CAUSE_CRAWL, material, chance = crawl_chance)
+		return dirt_source_land(walker, /datum/dirt_source/floor_decal, DIRT_CAUSE_WALK, material)
+	return dirt_source_land(walker, /datum/dirt_source/floor_decal, DIRT_CAUSE_CRAWL, material, chance = /datum/dirt_source/floor_decal::crawl_chance)
 
 /// Lands a wet oil pool's oil on the person stepping or crawling into it. Other blood leaves nothing.
 /datum/component/dirt_sources/proc/on_stepped_in_pool(mob/living/carbon/human/source, obj/effect/decal/cleanable/blood/pool)
@@ -410,7 +403,7 @@
 		return
 	var/wading_depth = ((methods & TOUCH) && source_holder && isnull(source_holder.my_atom)) ? dirt_wading_depth(source) : 0
 	var/datum/dirt_source/reagents/source_type = wading_depth ? /datum/dirt_source/reagents/wading : /datum/dirt_source/reagents/splash
-	var/alist/materials = dirt_reagent_materials()
+	var/list/materials = dirt_reagent_materials()
 	var/alist/volumes
 	var/slime_colour
 	for(var/datum/reagent/reagent as anything in reagents)
@@ -444,7 +437,7 @@
 /// Works up a sweat on a body whose core is overheating (dirt_work_up_sweat()).
 /datum/component/dirt_sources/proc/on_core_temperature_changed(mob/living/carbon/human/source, old_temperature, new_temperature)
 	SIGNAL_HANDLER
-	if(new_temperature > source.get_body_temp_normal(apply_change = FALSE) + /datum/dirt_source/sweat/worked_up::overheating_margin && source.stat != DEAD && !cooling_down(/datum/dirt_source/sweat/worked_up))
+	if(new_temperature > source.get_body_temp_normal(FALSE) + /datum/dirt_source/sweat/worked_up::overheating_margin && source.stat != DEAD && !cooling_down(/datum/dirt_source/sweat/worked_up))
 		dirt_work_up_sweat(source)
 
 /// Returns whether a person touches the floor they're on.
@@ -453,30 +446,28 @@
 
 /**
  * Returns what each dirty floor decal leaves on someone moving over it, by its type and each of its subtypes:
- * alist(decal type = DIRT_MATERIAL_* define). Glitter, vomit and every blood but oil leave nothing. You should NEVER
+ * list(decal type = DIRT_MATERIAL_* define). Glitter, vomit and every blood but oil leave nothing. You should NEVER
  * modify it.
  */
 /proc/dirt_decal_materials()
-	RETURN_TYPE(/alist)
-	var/static/alist/materials
-	if(!materials)
-		// a subtype after its parent, so it keeps its own
-		materials = dirt_with_subtypes(list(
-			/obj/effect/decal/cleanable/dirt = DIRT_MATERIAL_GRIME,
-			/obj/effect/decal/cleanable/dirt/dust = DIRT_MATERIAL_DUST,
-			/obj/effect/decal/cleanable/ash = DIRT_MATERIAL_ASH,
-			/obj/effect/decal/cleanable/food/flour = DIRT_MATERIAL_PLASTER,
-			/obj/effect/decal/cleanable/concrete_dust = DIRT_MATERIAL_PLASTER,
-			/obj/effect/decal/cleanable/garbage = DIRT_MATERIAL_GRIME,
-			/obj/effect/decal/cleanable/rubble = DIRT_MATERIAL_DUST,
-			/obj/effect/decal/cleanable/blood/oil = DIRT_MATERIAL_OIL,
-		))
+	RETURN_TYPE(/list)
+	// a subtype after its parent, so it keeps its own
+	var/static/list/materials = zebra_typecacheof(list(
+		/obj/effect/decal/cleanable/dirt = DIRT_MATERIAL_GRIME,
+		/obj/effect/decal/cleanable/dirt/dust = DIRT_MATERIAL_DUST,
+		/obj/effect/decal/cleanable/ash = DIRT_MATERIAL_ASH,
+		/obj/effect/decal/cleanable/food/flour = DIRT_MATERIAL_PLASTER,
+		/obj/effect/decal/cleanable/concrete_dust = DIRT_MATERIAL_PLASTER,
+		/obj/effect/decal/cleanable/garbage = DIRT_MATERIAL_GRIME,
+		/obj/effect/decal/cleanable/rubble = DIRT_MATERIAL_DUST,
+		/obj/effect/decal/cleanable/blood/oil = DIRT_MATERIAL_OIL,
+	))
 	return materials
 
 /// Returns what the first dirty decal on a floor leaves (dirt_decal_materials()), or null. Blood is left out, because a
 /// wet oil pool lands its oil as it's stepped in (/datum/component/dirt_sources/proc/on_stepped_in_pool()).
 /proc/dirt_underfoot_material(turf/floor)
-	var/alist/materials = dirt_decal_materials()
+	var/list/materials = dirt_decal_materials()
 	for(var/obj/effect/decal/cleanable/decal in floor)
 		if(!istype(decal, /obj/effect/decal/cleanable/blood) && materials[decal.type])
 			return materials[decal.type]
@@ -553,52 +544,37 @@
  *
  * Arguments:
  * - tool_behaviour: The tool's TOOL_* behaviour, as tool_act() reads it.
- * - chance: The chance, in percent, that it lands on someone outside engineering, or null for the tool work source's.
- * - engineer_chance: The chance, in percent, that it lands on an engineer, or null for the tool work source's.
  *
  * Returns how many carriers it landed on.
  */
-/proc/dirt_tool_work(mob/living/worker, atom/worked, tool_behaviour, chance, engineer_chance)
+/proc/dirt_tool_work(mob/living/worker, atom/worked, tool_behaviour)
 	var/static/list/dirty_tools = list(TOOL_WRENCH, TOOL_SCREWDRIVER, TOOL_CROWBAR, TOOL_WELDER, TOOL_WIRECUTTER)
 	if(!(tool_behaviour in dirty_tools))
 		return 0
 	// TODO: ask the skill system in place of the department
+	var/chance
 	if(worker.mind?.assigned_role?.departments_bitflags & DEPARTMENT_BITFLAG_ENGINEERING)
-		chance = engineer_chance
-		if(isnull(chance))
-			chance = /datum/dirt_source/tool_work::engineer_chance
+		chance = /datum/dirt_source/tool_work::engineer_chance
 	return dirt_source_land(worker, /datum/dirt_source/tool_work, material = ismachinery(worked) ? DIRT_MATERIAL_GREASE : DIRT_MATERIAL_OIL, chance = chance)
 
-/// Returns alist(type = value) for each type listed and each of its subtypes. A subtype listed after its parent keeps
-/// its own value.
-/proc/dirt_with_subtypes(list/by_type)
-	RETURN_TYPE(/alist)
-	var/alist/expanded = alist()
-	for(var/listed_type, value in by_type)
-		for(var/subtype in typesof(listed_type))
-			expanded[subtype] = value
-	return expanded
-
-/// Returns what falling on the ground itself leaves, by turf type: alist(type = DIRT_MATERIAL_* define, or null for
+/// Returns what falling on the ground itself leaves, by turf type: list(type = DIRT_MATERIAL_* define, or null for
 /// nothing). You should NEVER modify it.
 /proc/dirt_ground_materials()
-	RETURN_TYPE(/alist)
-	var/static/alist/materials
-	if(!materials)
-		materials = dirt_with_subtypes(list(
-			/turf/open/misc/dirt = DIRT_MATERIAL_DUST,
-			/turf/open/misc/sandy_dirt = DIRT_MATERIAL_DUST,
-			/turf/open/misc/beach = DIRT_MATERIAL_DUST,
-			/turf/open/misc/beach/coast = null,
-			/turf/open/misc/ironsand = DIRT_MATERIAL_DUST,
-			/turf/open/misc/ironsand/ocean = null,
-			/turf/open/misc/asteroid = DIRT_MATERIAL_DUST,
-			/turf/open/misc/asteroid/basalt = null,
-			/turf/open/misc/asteroid/forest = null,
-			/turf/open/misc/asteroid/snow = null,
-			/turf/open/misc/ashplanet = DIRT_MATERIAL_ASH,
-			/turf/open/misc/ashplanet/wateryrock = null,
-		))
+	RETURN_TYPE(/list)
+	var/static/list/materials = zebra_typecacheof(list(
+		/turf/open/misc/dirt = DIRT_MATERIAL_DUST,
+		/turf/open/misc/sandy_dirt = DIRT_MATERIAL_DUST,
+		/turf/open/misc/beach = DIRT_MATERIAL_DUST,
+		/turf/open/misc/beach/coast = null,
+		/turf/open/misc/ironsand = DIRT_MATERIAL_DUST,
+		/turf/open/misc/ironsand/ocean = null,
+		/turf/open/misc/asteroid = DIRT_MATERIAL_DUST,
+		/turf/open/misc/asteroid/basalt = null,
+		/turf/open/misc/asteroid/forest = null,
+		/turf/open/misc/asteroid/snow = null,
+		/turf/open/misc/ashplanet = DIRT_MATERIAL_ASH,
+		/turf/open/misc/ashplanet/wateryrock = null,
+	))
 	return materials
 
 /// Returns what a fall onto a floor lands: a dirty decal's, else a wet oil pool's, else the ground's own, or null.
@@ -606,7 +582,7 @@
 	var/material = dirt_underfoot_material(floor)
 	if(material)
 		return material
-	var/alist/decal_materials = dirt_decal_materials()
+	var/list/decal_materials = dirt_decal_materials()
 	for(var/obj/effect/decal/cleanable/blood/pool in floor)
 		if(!pool.dried && decal_materials[pool.type])
 			return decal_materials[pool.type]
@@ -622,24 +598,22 @@
 		dirt_source_land(person, source_type, material = material)
 
 /// Returns what each reagent that dirties leaves on someone it touches, by its type and each of its subtypes:
-/// alist(reagent type = DIRT_MATERIAL_* define). You should NEVER modify it.
+/// list(reagent type = DIRT_MATERIAL_* define). You should NEVER modify it.
 /proc/dirt_reagent_materials()
-	RETURN_TYPE(/alist)
-	var/static/alist/materials
-	if(!materials)
-		materials = dirt_with_subtypes(list(
-			/datum/reagent/fuel/oil = DIRT_MATERIAL_OIL,
-			/datum/reagent/drug/maint/tar = DIRT_MATERIAL_OIL,
-			/datum/reagent/consumable/nutriment/fat/oil = DIRT_MATERIAL_GREASE,
-			/datum/reagent/lube = DIRT_MATERIAL_GREASE,
-			/datum/reagent/carbon = DIRT_MATERIAL_SOOT,
-			/datum/reagent/ash = DIRT_MATERIAL_ASH,
-			/datum/reagent/cement = DIRT_MATERIAL_PLASTER,
-			/datum/reagent/concrete = DIRT_MATERIAL_PLASTER,
-			/datum/reagent/concrete_mix = DIRT_MATERIAL_PLASTER,
-			/datum/reagent/consumable/flour = DIRT_MATERIAL_PLASTER,
-			/datum/reagent/toxin/slimejelly = DIRT_MATERIAL_SLIME,
-		))
+	RETURN_TYPE(/list)
+	var/static/list/materials = zebra_typecacheof(list(
+		/datum/reagent/fuel/oil = DIRT_MATERIAL_OIL,
+		/datum/reagent/drug/maint/tar = DIRT_MATERIAL_OIL,
+		/datum/reagent/consumable/nutriment/fat/oil = DIRT_MATERIAL_GREASE,
+		/datum/reagent/lube = DIRT_MATERIAL_GREASE,
+		/datum/reagent/carbon = DIRT_MATERIAL_SOOT,
+		/datum/reagent/ash = DIRT_MATERIAL_ASH,
+		/datum/reagent/cement = DIRT_MATERIAL_PLASTER,
+		/datum/reagent/concrete = DIRT_MATERIAL_PLASTER,
+		/datum/reagent/concrete_mix = DIRT_MATERIAL_PLASTER,
+		/datum/reagent/consumable/flour = DIRT_MATERIAL_PLASTER,
+		/datum/reagent/toxin/slimejelly = DIRT_MATERIAL_SLIME,
+	))
 	return materials
 
 /// Returns a reagent's colour as "#RRGGBB", its alpha left off, or null if it isn't one.

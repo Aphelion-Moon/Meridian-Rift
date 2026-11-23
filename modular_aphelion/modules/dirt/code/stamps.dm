@@ -1,12 +1,10 @@
 /**
- * Marks put on the screen rather than on a limb, because a face and hands are too small to wrap dirt round. On a human
- * head only, the face takes a smudge on its dirtier cheek, and some causes smudge the other cheek a level lighter. At
- * level 4 both cheeks draw level 3, the smudges' top level. The fingertips take dirt. The dominant hand is a level
- * ahead (dirt_hands_levels()) unless both reach the same level. They do in a level 3 fall or machine work from level
- * 3. These marks are drawn over the deposit's other marks (dirt_overlay_stamps()), never on an eye or a mouth.
+ * Marks put on the screen rather than on a limb, because a face and hands are too small to wrap dirt round. The face
+ * takes them on a human head only. A cause picks each cheek's and each hand's level, which needn't be the deposit's.
+ * dirt_overlay_stamps() lays them over the deposit's other marks, never on an eye or a mouth.
  */
 /datum/dirt_feature/stamps
-	/// The mob's dirtier side, 1 or -1. The cheek on that side takes face_level.
+	/// The dirtier side, 1 (the body's right) or -1.
 	var/side
 	/// The dirtier cheek's level, 0 for none.
 	var/face_level
@@ -14,18 +12,14 @@
 	var/alist/hand_levels
 	/// The other cheek's level, 0 for none.
 	var/other_face_level
-	/// Whether the face is covered, which runs the dirtier cheek's smudge on down to the jaw.
+	/// Whether the deposit covers the face, which runs the dirtier cheek's smudge on down to the jaw.
 	var/covered
 
 /**
  * Starts the marks.
  *
  * Arguments:
- * - side: The mob's dirtier side, 1 or -1.
- * - face_level: The dirtier cheek's level, 0 for none.
  * - hand_levels: alist(hand zone = level), or null for none.
- * - other_face_level: The other cheek's level, 0 for none.
- * - covered: Whether the face is covered.
  */
 /datum/dirt_feature/stamps/New(side, face_level = 0, alist/hand_levels = null, other_face_level = 0, covered = FALSE)
 	. = ..(null)
@@ -37,11 +31,9 @@
 
 /**
  * Returns the marks in one view: alist(index = DIRT_ROLE_* define, DIRT_STAMP_CLEAN or DIRT_STAMP_LIT). The other
- * cheek's marks never replace the dirtier cheek's body, and a hand's marks replace body only to wipe it clean. Facing
- * north the backs of the hands show, a level lighter, except at level 5 and up.
- *
- * Arguments:
- * - surface: The view's surface.
+ * cheek's marks never replace the dirtier cheek's body tone, and a hand's marks replace body tone only to wipe it
+ * clean. Facing north the backs of the hands show, a level lighter. From level 5 they keep their level. Drawn at
+ * level 4, a solid hand would have its highlight wiped clean, which leaves a bright hole.
  */
 /datum/dirt_feature/stamps/proc/pixels(datum/dirt_surface/surface)
 	RETURN_TYPE(/alist)
@@ -91,7 +83,7 @@
 /**
  * Returns a covered face's darker parts by direction, for a body whose right side is the dirtier: alist(direction =
  * list of list(x, y, DIRT_ROLE_* define)). The dirtier cheek's smudge runs on down to the jaw, off the eyes' rows and
- * the hair's edge: dark under clean eyes reads as a beard. You should NEVER modify it.
+ * the hair's edge. It stays small because more dark under clean eyes reads as a beard. You should NEVER modify it.
  */
 /proc/dirt_cover_face()
 	RETURN_TYPE(/alist)
@@ -109,7 +101,6 @@
  * Returns a dirty face's smudges in one direction at a level: alist(index = DIRT_ROLE_* define), on a 32x32 canvas.
  *
  * Arguments:
- * - direction: The direction.
  * - level: The level, 0 or less for none. A level past 3 draws as 3.
  * - side: The dirtier side, 1 (the body's right) or -1.
  */
@@ -124,20 +115,13 @@
  * Returns a covered face's darker parts in one direction: alist(index = DIRT_ROLE_* define), on a 32x32 canvas.
  *
  * Arguments:
- * - direction: The direction.
  * - side: The dirtier side, 1 (the body's right) or -1.
  */
 /proc/dirt_cover_face_stamp(direction, side)
 	RETURN_TYPE(/alist)
 	return dirt_stamp_marks(dirt_cover_face()[side > 0 ? direction : dirt_mirror_direction(direction)], side, direction)
 
-/**
- * Returns the direction a face's marks are mirrored from for the body's left side: east and west swap, south and north
- * mirror themselves.
- *
- * Arguments:
- * - direction: The direction.
- */
+/// Returns the direction a face's marks are mirrored from for the body's left side.
 /proc/dirt_mirror_direction(direction)
 	switch(direction)
 		if(EAST)
@@ -167,15 +151,13 @@
 /**
  * Returns a dirty hand's marks in one view: alist(index = DIRT_ROLE_* define, DIRT_STAMP_CLEAN or DIRT_STAMP_LIT).
  * A hand under 6 px takes none. By level:
- * - 1 to 3: darkest at the fingertips and ragged up the palm edge. The marks sit at offsets from the hand's outer
- *   column and its bottom row, and never fill a full row at the wrist.
- * - 4: a mechanic's hand. Film covers all of it, with body on the outer fingertip and its knuckle, and its lit back
- *   is wiped clean, so it never reads as a glove.
- * - 5 and up: solid to the wrist. The bottom row takes core, and its lit back takes film over whatever is there.
+ * - 1 to 3: darkest at the fingertips and ragged up the palm edge. The marks never fill a full row at the wrist.
+ * - 4: a mechanic's hand. Film covers all of it, with the body tone on the outer fingertip and its knuckle. Its
+ *   highlight is wiped clean, so it never reads as a glove.
+ * - 5 and up: solid to the wrist. The bottom row takes core, and its highlight takes film over whatever is there.
  *
  * Arguments:
  * - level: The level, 0 or less for none.
- * - surface: The view's surface.
  * - zone: BODY_ZONE_PRECISE_R_HAND or BODY_ZONE_PRECISE_L_HAND.
  */
 /proc/dirt_hand_stamp(level, datum/dirt_surface/surface, zone)
@@ -195,15 +177,15 @@
 	var/leftmost = width
 	var/rightmost = -1
 	for(var/index in points)
-		var/row = floor((index - 1) / width)
-		var/column = index - 1 - row * width
+		var/row = DIRT_INDEX_ROW(index, width)
+		var/column = DIRT_INDEX_COLUMN(index, row, width)
 		bottom = max(bottom, row)
 		leftmost = min(leftmost, column)
 		rightmost = max(rightmost, column)
 	var/lit = surface.hand_lit[zone]
 	if(level >= 5)
 		for(var/index in points)
-			marks[index] = index == lit ? DIRT_STAMP_LIT : (floor((index - 1) / width) == bottom ? DIRT_ROLE_CORE : DIRT_ROLE_BODY)
+			marks[index] = index == lit ? DIRT_STAMP_LIT : (DIRT_INDEX_ROW(index, width) == bottom ? DIRT_ROLE_CORE : DIRT_ROLE_BODY)
 		return marks
 	// a hand on the screen's right has its outer side on the right
 	var/right = (leftmost + rightmost) / 2 > 15.5
@@ -211,7 +193,7 @@
 		var/tip
 		for(var/index in points)
 			marks[index] = DIRT_ROLE_FILM
-			if(floor((index - 1) / width) == bottom && (isnull(tip) || (right ? index > tip : index < tip)))
+			if(DIRT_INDEX_ROW(index, width) == bottom && (isnull(tip) || (right ? index > tip : index < tip)))
 				tip = index
 		marks[tip] = DIRT_ROLE_BODY
 		if((tip - width) in points)

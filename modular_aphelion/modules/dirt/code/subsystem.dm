@@ -1,40 +1,29 @@
 /// The most rounds finish_all() goes: the bodies a round draws again can ask for masks, which the next round makes.
 #define DIRT_MAX_FINISH_ROUNDS 10
-/// How many templates SSdirt keeps built, besides SSdirt.human_template: about 220 KB each, so about 3.5 MB, and one
-/// a queued job holds lives until that job is done. One built again costs about 30 ms, spread over four fires.
+/// How many templates SSdirt keeps built, besides SSdirt.human_template. One a queued job holds lives until that job
+/// is done.
 #define DIRT_TEMPLATE_CACHE_SIZE 16
-/// How many masks SSdirt keeps: 0.1-2.1 KB each with its place here, icons aside (measured, the most for a skin's set
-/// with its parts), so 0.1-0.5 MB. Masks dropped and made again reuse their cached rasters and icons' resource cache
-/// entries.
+/// How many masks SSdirt keeps. Masks dropped and made again reuse their cached rasters and their icons' resource
+/// cache entries.
 #define DIRT_MASK_CACHE_SIZE 256
-/// How many splats' rasters SSdirt keeps. Each is one text under its key, with four characters for each run of pixels
-/// in one role and thickness (/datum/dirt_pixels/proc/drawn()). A run averages about 2.1 pixels. So the text is about
-/// 37% shorter than at three characters a pixel, where it measures 1.3-2.0 KB with scratch. That makes about
-/// 0.85-1.4 KB each, scratch included, so under 2.9 MB in all. At about 200 players the live keys (about 6400)
-/// outnumber it. So an idle player's old splats are rasterised again when that body's masks are made again.
+/// How many splats' rasters SSdirt keeps, each one text under its key (/datum/dirt_pixels/proc/drawn()). A splat
+/// dropped is rasterised again when its body's masks are next made.
 #define DIRT_RASTER_CACHE_SIZE 2048
-/// How many whole sprite directions dirt_sprite_pixels() keeps, the ones read most lately: about 1.1 KB each, so under
-/// 300 KB. Only SSdirt's pieces read them: a template up to 40, a body's masks a few dozen.
+/// How many whole sprite directions dirt_sprite_pixels() keeps, the ones read most lately. Only SSdirt's pieces read
+/// them.
 #define DIRT_SPRITE_READS 256
-/// How many sprites' facings dirt_sprite_facings() keeps, about 180 bytes each, so under 400 KB. The genital sheets
-/// hold about 1200 states that parts are read from. SSdirt.sprite_one_way keeps as many sprites.
+/// How many sprites' facings dirt_sprite_facings() keeps. SSdirt.sprite_one_way keeps as many sprites.
 #define DIRT_SPRITE_FACINGS 2048
 /// What a cached raster's directions are joined by: drawn() writes only "0" to "o" (ASCII 48 to 111).
 #define DIRT_RASTER_SEPARATOR ","
-/// How many seed texts' draft-stream words SSdirt keeps (/datum/dirt_draft_words). A general deposit's stream draws up
-/// to about 250 words, three packed in four numbers. That's about 3 KB a text at most and 0.8 KB at the median (67
-/// words), so 0.2-0.77 MB. The open text's twister state adds 10 KB. Seeding a text again costs about 1,250 32-bit
-/// products (2.8 ms). The general causes use 223 seed texts between them (measured), so at 256 each text is seeded only
-/// once.
+/// How many seed texts' draft-stream words SSdirt keeps (/datum/dirt_draft_words). It's more than the general causes
+/// use between them, so each text is seeded only once.
 #define DIRT_DRAFT_TEXTS 256
 /// How many sweat multipliers SSdirt keeps (/datum/dirt_mask_request/wet), the ones asked for most lately. Each is one
-/// baked icon under its key, one for each garment look and the masks sweat lies on. It's the smallest power of two that
-/// holds 80 looks asked for again in turn, so none is made again. A multiplier's set takes 281-434 B and its icon
-/// 142-250 B (measured), so about 55-90 KB.
+/// baked icon under its key, one for each garment look and the masks sweat lies on.
 #define DIRT_WET_CACHE_SIZE 128
 /// How many wags' sprites SSdirt keeps (/datum/dirt_mask_job/var/sprite_frames), the ones baked most lately. Each holds
-/// every frame's pixels and where each pixel takes the still tail's dirt from. A tile tail's take 2.7-14 KB and a taur
-/// tail's 34-91 KB (measured), so about 1.5 MB at 16.
+/// every frame's pixels and where each pixel takes the still tail's dirt from.
 #define DIRT_WAG_SPRITE_CACHE_SIZE 16
 
 /**
@@ -57,15 +46,11 @@
 /datum/dirt_job/proc/next_piece()
 	return TRUE
 
-/**
- * Returns the most pieces it can take, across every fire. One that takes more is dropped as failed.
- */
+/// Returns the most pieces it can take, across every fire. One that takes more is dropped as failed.
 /datum/dirt_job/proc/most_pieces()
 	return 1
 
-/**
- * Caches what it made, or that it failed, once it's out of the queue.
- */
+/// Caches what it made, or that it failed, once it's done.
 /datum/dirt_job/proc/finished()
 	return
 
@@ -88,110 +73,89 @@
  *
  * The same queue lands the general dirt a source defers (/datum/dirt_job/landing). When one event reaches a crowd,
  * their dirt lands over the ticks that have room.
- *
- * DIRT_MASKS_DEFERRED turns the mask queue on. Without it, every mask is made as it's asked for.
  */
 SUBSYSTEM_DEF(dirt)
 	name = "Dirt"
-	// Every tick at 20 FPS.
+	// every tick at 20 FPS
 	wait = 0.5
 	priority = FIRE_PRIORITY_ASSETS
 	ss_flags = SS_BACKGROUND
 	runlevels = RUNLEVEL_LOBBY | RUNLEVELS_DEFAULT
 	can_fire = FALSE
 	/// Jobs waiting, oldest first, except that an animated wag's job waits behind every other job (add()). The first
-	/// may be part made. Admins can't edit it (vv_edit_var()).
+	/// may be part made.
 	var/list/queue = list()
-	/// How many of the jobs waiting are landings (/datum/dirt_job/landing), DIRT_LANDINGS_WAITING at most. Admins can't
-	/// edit it (vv_edit_var()).
+	/// How many of the jobs waiting are landings (/datum/dirt_job/landing), DIRT_LANDINGS_WAITING at most.
 	var/landings_waiting = 0
-	/// Bodies to draw again for finished masks, by weak reference -> DIRT_REDRAW_* flags. Admins can't edit it
-	/// (vv_edit_var()).
+	/// Bodies to draw again at the next fire, by weak reference -> DIRT_REDRAW_* flags: for finished masks, or for what
+	/// redraw_later() queues.
 	var/list/redraws = list()
 	/// The weak reference of the body redraw_next() is drawing again, else null. That body's own carrier ignores the
 	/// slot changes the redraw makes (/datum/component/dirtiness/proc/on_overlay_changed()), as nothing worn changed.
-	/// Admins can't edit it (vv_edit_var()).
 	var/datum/weakref/redrawing
 	/// Masks by request key: /datum/dirt_masks, or FALSE when they can't be made. The newest DIRT_MASK_CACHE_SIZE are
-	/// kept. Admins can't edit it (vv_edit_var()).
+	/// kept.
 	var/datum/bulge_bounded_cache/dirt_masks/masks = new
-	/// Mask jobs waiting, by request key: kept apart from `masks`, so newer asks can't drop one while it waits. Admins
-	/// can't edit it (vv_edit_var()).
+	/// Mask jobs waiting, by request key: kept apart from `masks`, so newer asks can't drop one while it waits.
 	var/alist/mask_jobs = alist()
-	/// Built templates by key, or FALSE when one can't be. About 220 KB each, so only the DIRT_TEMPLATE_CACHE_SIZE asked
-	/// for most lately are kept; one dropped is built again when masks on it are next asked for. A job holds its own
-	/// template, so one dropped while the job waits is still drawn on, and taken back from the job when asked for
-	/// meanwhile (held_template()). Admins can't edit it (vv_edit_var()).
+	/// Built templates by key, or FALSE when one can't be. Only the DIRT_TEMPLATE_CACHE_SIZE asked for most lately are
+	/// kept, and one dropped is built again when masks on it are next asked for. A job holds its own template, so one
+	/// dropped while the job waits is still drawn on, and taken back from the job when asked for meanwhile
+	/// (held_template()).
 	var/datum/bulge_bounded_cache/dirt_recent/templates/templates = new
-	/// Template jobs waiting, by template key. Admins can't edit it (vv_edit_var()).
+	/// Template jobs waiting, by template key.
 	var/alist/template_jobs = alist()
 	/// Each splat's rasters: one text of its /datum/dirt_pixels/proc/drawn() in each direction (fetch_direction()).
 	/// Mess on a body is kept by "template key|surface kind|zone:level:variant". A general deposit, a taur body's
 	/// pools, a drawn part's or the hair's deposit, and each stain's blood below a taur's waist have key forms of their
 	/// own. Their keys are built where they're rasterised. Masks asked for again with one more splat rasterise only
-	/// that one. Admins can't edit it (vv_edit_var()).
+	/// that one.
 	var/datum/bulge_bounded_cache/dirt_rasters/rasters = new
-	/// Whole sprite directions read (dirt_sprite_pixels()), the DIRT_SPRITE_READS read most lately. Admins can't edit it
-	/// (vv_edit_var()).
+	/// Whole sprite directions read (dirt_sprite_pixels()), the DIRT_SPRITE_READS read most lately.
 	var/datum/bulge_bounded_cache/dirt_recent/sprite_reads/sprite_reads = new
 	/// The directions sprites show pixels in as they're drawn (dirt_sprite_facings()), the newest DIRT_SPRITE_FACINGS.
-	/// Admins can't edit it (vv_edit_var()).
 	var/datum/bulge_bounded_cache/dirt_facings/sprite_facings = new
 	/// Whether sprites have one direction, so they're read as their south view facing every way
-	/// (dirt_sprite_read_facing()), the newest DIRT_SPRITE_FACINGS. Admins can't edit it (vv_edit_var()).
+	/// (dirt_sprite_read_facing()), the newest DIRT_SPRITE_FACINGS.
 	var/datum/bulge_bounded_cache/dirt_facings/sprite_one_way = new
-	/// What dirt_metric() returns, once measured. Admins can't edit it (vv_edit_var()).
+	/// What dirt_metric() returns, once measured.
 	var/alist/metrics
 	/// The job building human_template and measuring `metrics`, while it waits.
 	var/datum/dirt_template_job/metric/metric_job
 	/// The plain human template, kept for the round once built, or FALSE if it couldn't be and won't be built again.
-	/// Underclothes coverage is judged on it (dirt_underclothes_on()). Admins can't edit it (vv_edit_var()).
+	/// Underclothes coverage is judged on it (dirt_underclothes_on()).
 	var/datum/dirt_template/human_template
-	/// Every material except slime and blood, by id (dirt_material()), all made together at its first call. Admins
-	/// can't edit it (vv_edit_var()).
+	/// Every material except slime and blood, by id (dirt_material()), all made together at its first call.
 	var/alist/materials
-	/// Slime's materials by "slime#RRGGBB", the newest DIRT_SLIME_COLOURS made. Admins can't edit it (vv_edit_var()).
+	/// Slime's materials by "slime#RRGGBB", the newest DIRT_SLIME_COLOURS made.
 	var/datum/bulge_bounded_cache/dirt_slimes/slime_materials = new
-	/// Blood's materials by "blood#RRGGBB", the newest DIRT_BLOOD_COLOURS made. Admins can't edit it (vv_edit_var()).
+	/// Blood's materials by "blood#RRGGBB", the newest DIRT_BLOOD_COLOURS made.
 	var/datum/bulge_bounded_cache/dirt_bloods/blood_materials = new
 	/// The last serial next_serial() gave.
 	var/serial = 0
 	/// The longest a fire has taken this round, in ms: one piece can't be split.
 	var/max_fire_cost = 0
 	/// Each seed text's draft-stream words (/datum/dirt_draft_words), the DIRT_DRAFT_TEXTS used most lately, so a text is
-	/// seeded once while it's kept. Admins can't edit it (vv_edit_var()).
+	/// seeded once while it's kept.
 	var/datum/bulge_bounded_cache/dirt_recent/draft_words/draft_words = new
-	/// The one entry of draft_words holding its twister's state, so it makes more words without seeding again. Admins
-	/// can't edit it (vv_edit_var()).
+	/// The one entry of draft_words holding its twister's state, so it makes more words without seeding again.
 	var/datum/dirt_draft_words/draft_open
-	/// Whether a general deposit is being drawn under DIRT_DRAFT_EXACT (dirt_rasterise()), so its noise samples the
-	/// draft's hash. Admins can't edit it (vv_edit_var()).
+	/// Whether a general deposit is being drawn (dirt_rasterise()), so its noise samples the draft's hash.
 	var/drafting = FALSE
 	/// The points of the draft's noise lattice that the general deposit being drawn has sampled: alist(seed =
-	/// alist(point key = value)). It's emptied as each deposit begins and ends (dirt_drafted()), and once it's past
-	/// DIRT_LATTICE_POINTS (dirt_draft_noise()). A field's band swaps in the lattice the field kept from its earlier
-	/// bands (/datum/dirt_canvas_field/var/lattice). A mask job's direction swaps in the one the job kept from the
-	/// deposit's other directions (/datum/dirt_mask_job/var/lattice). Each takes its lattice back as it ends, and
-	/// between pieces this holds an empty one. Admins can't edit it (vv_edit_var()).
+	/// alist(point key = value)). It's emptied as each deposit begins and ends, and once it's past DIRT_LATTICE_POINTS
+	/// (dirt_draft_noise()). Fields and mask jobs swap their own in and out (dirt_drafted()), and between pieces this
+	/// holds an empty one.
 	var/alist/lattice = alist()
 	/// How many points `lattice` holds.
 	var/lattice_points = 0
 	/// Sweat's multipliers by key (dirt_wet_key()): /datum/dirt_masks holding the icon, or FALSE when one can't be
-	/// made. The DIRT_WET_CACHE_SIZE asked for most lately are kept. Admins can't edit it (vv_edit_var()).
+	/// made. The DIRT_WET_CACHE_SIZE asked for most lately are kept.
 	var/datum/bulge_bounded_cache/dirt_recent/wet_icons/wet_icons = new
 	/// What wags' frames show, keyed by their sprites (/datum/dirt_wag_source/proc/sprite_key()), as a wag's job noted
 	/// them (/datum/dirt_mask_job/var/sprite_frames). The DIRT_WAG_SPRITE_CACHE_SIZE baked most lately are kept. A wag
-	/// baked again, for other dirt or another body, reads no sprite. Admins can't edit it (vv_edit_var()).
+	/// baked again, for other dirt or another body, reads no sprite.
 	var/datum/bulge_bounded_cache/dirt_recent/wag_sprites/wag_sprites = new
-
-/// Drops the jobs still waiting, so nothing waits on them forever.
-/datum/controller/subsystem/dirt/Shutdown()
-	mask_jobs.Cut()
-	queue.Cut()
-	landings_waiting = 0
-	redraws.Cut()
-	template_jobs.Cut()
-	metric_job = null
 
 /// Takes over the queue, the bodies waiting to be drawn again and the caches from the subsystem it replaces, and fires
 /// while any wait.
@@ -222,20 +186,43 @@ SUBSYSTEM_DEF(dirt)
 	wag_sprites = SSdirt.wag_sprites
 
 /**
- * Refuses admin edits of the caches, the jobs waiting and the bodies waiting or being drawn again. A mask, template,
- * measure, material, draft-stream word, sweat multiplier or wag's sprites edited by hand would be drawn for the rest of
- * the round. A list of jobs replaced would break masks_for() for the round. A queue or list of bodies replaced would
- * lose what waits in it. A body set by hand as the one being drawn again would have its own slot changes ignored.
- *
- * Arguments:
- * - var_name: The var.
- * - var_value: Its new value.
+ * Refuses admin edits of the caches, the jobs waiting, the bodies waiting or being drawn again, and the drafting state.
+ * A mask, template, measure, material, draft-stream word, sweat multiplier or wag's sprites edited by hand would be
+ * drawn for the rest of the round. A list of jobs replaced would break masks_for() for the round. A queue or list of
+ * bodies replaced would lose what waits in it. A body set by hand as the one being drawn again would have its own slot
+ * changes ignored. The drafting flag or the lattice edited by hand would give a deposit the wrong noise.
  *
  * Returns:
  * - TRUE/FALSE: Whether the var was edited.
  */
 /datum/controller/subsystem/dirt/vv_edit_var(var_name, var_value)
-	if(var_name == NAMEOF(src, queue) || var_name == NAMEOF(src, landings_waiting) || var_name == NAMEOF(src, redraws) || var_name == NAMEOF(src, redrawing) || var_name == NAMEOF(src, masks) || var_name == NAMEOF(src, mask_jobs) || var_name == NAMEOF(src, templates) || var_name == NAMEOF(src, template_jobs) || var_name == NAMEOF(src, rasters) || var_name == NAMEOF(src, sprite_reads) || var_name == NAMEOF(src, sprite_facings) || var_name == NAMEOF(src, sprite_one_way) || var_name == NAMEOF(src, metrics) || var_name == NAMEOF(src, human_template) || var_name == NAMEOF(src, materials) || var_name == NAMEOF(src, slime_materials) || var_name == NAMEOF(src, blood_materials) || var_name == NAMEOF(src, draft_words) || var_name == NAMEOF(src, draft_open) || var_name == NAMEOF(src, drafting) || var_name == NAMEOF(src, lattice) || var_name == NAMEOF(src, lattice_points) || var_name == NAMEOF(src, wet_icons) || var_name == NAMEOF(src, wag_sprites))
+	var/static/list/banned_edits = list(
+		NAMEOF_STATIC(src, queue),
+		NAMEOF_STATIC(src, landings_waiting),
+		NAMEOF_STATIC(src, redraws),
+		NAMEOF_STATIC(src, redrawing),
+		NAMEOF_STATIC(src, masks),
+		NAMEOF_STATIC(src, mask_jobs),
+		NAMEOF_STATIC(src, templates),
+		NAMEOF_STATIC(src, template_jobs),
+		NAMEOF_STATIC(src, rasters),
+		NAMEOF_STATIC(src, sprite_reads),
+		NAMEOF_STATIC(src, sprite_facings),
+		NAMEOF_STATIC(src, sprite_one_way),
+		NAMEOF_STATIC(src, metrics),
+		NAMEOF_STATIC(src, human_template),
+		NAMEOF_STATIC(src, materials),
+		NAMEOF_STATIC(src, slime_materials),
+		NAMEOF_STATIC(src, blood_materials),
+		NAMEOF_STATIC(src, draft_words),
+		NAMEOF_STATIC(src, draft_open),
+		NAMEOF_STATIC(src, drafting),
+		NAMEOF_STATIC(src, lattice),
+		NAMEOF_STATIC(src, lattice_points),
+		NAMEOF_STATIC(src, wet_icons),
+		NAMEOF_STATIC(src, wag_sprites),
+	)
+	if(var_name in banned_edits)
 		return FALSE
 	return ..()
 
@@ -253,12 +240,7 @@ SUBSYSTEM_DEF(dirt)
 	metric_job = new(dirt_metric_sources(), list(SOUTH, NORTH, EAST))
 	add(metric_job)
 
-/**
- * Returns one direction of the plain human template, or null until that direction is built.
- *
- * Arguments:
- * - direction: The direction.
- */
+/// Returns one direction of the plain human template, or null until that direction is built.
 /datum/controller/subsystem/dirt/proc/human_surface(direction)
 	RETURN_TYPE(/datum/dirt_surface)
 	var/datum/dirt_template/human = human_template || metric_job?.template
@@ -287,7 +269,7 @@ SUBSYSTEM_DEF(dirt)
  * began, so none can go round forever. The queue's loop ends early if a landing's redraw drops the jobs left. A job
  * queued meanwhile is made in this fire only if a turn is left when it reaches the front. That can happen when jobs
  * ahead of it were dropped, or when it goes ahead of the animated wags waiting (add()). A wag it pushed back can then
- * wait instead. Stops firing while there's nothing to do (add()).
+ * wait instead. It stops firing once there's nothing to do, and add() starts it again.
  */
 /datum/controller/subsystem/dirt/fire(resumed)
 	var/started = TICK_USAGE
@@ -331,9 +313,6 @@ SUBSYSTEM_DEF(dirt)
  * Queues a job. An animated wag's frames (/datum/dirt_wag_source) go last. Any other job, a one-frame wag's too, goes
  * ahead of the animated wags waiting, each of which takes up to a second or more. It never goes ahead of the first job,
  * which may be part made. Other jobs keep their order.
- *
- * Arguments:
- * - job: The job.
  */
 /datum/controller/subsystem/dirt/proc/add(datum/dirt_job/job)
 	var/position = length(queue) + 1
@@ -346,17 +325,14 @@ SUBSYSTEM_DEF(dirt)
 	queue.Insert(position, job)
 	can_fire = TRUE
 
-/**
- * Returns the next serial, which orders every splat landing or raise and every blood landing, on any body or item.
- */
+/// Returns the next serial, which orders every splat landing or raise and every blood landing, on any body or item.
 /datum/controller/subsystem/dirt/proc/next_serial()
 	return ++serial
 
 /**
- * Draws again on a body at the next fire, once whatever changed it this tick is done: several changes draw it once.
+ * Draws a body again at the next fire, once whatever changed it this tick is done, so several changes draw it once.
  *
  * Arguments:
- * - body: The body.
  * - redraw_flags: DIRT_REDRAW_* flags, what to draw again.
  */
 /datum/controller/subsystem/dirt/proc/redraw_later(mob/living/carbon/human/body, redraw_flags)
@@ -368,8 +344,8 @@ SUBSYSTEM_DEF(dirt)
 
 /**
  * Returns a request's masks, or null while they're made or when they can't be. Masks not made yet are queued, behind
- * their template and the measure if those aren't made either, and `redraw_body` is drawn again once they are; without
- * DIRT_MASKS_DEFERRED they're made now. Sweat's multipliers are kept in wet_icons, every other mask in `masks`.
+ * their template and the measure if those aren't made either, and `redraw_body` is drawn again once they are. Sweat's
+ * multipliers are kept in wet_icons, every other mask in `masks`.
  *
  * Arguments:
  * - request: What the masks are made from.
@@ -393,7 +369,6 @@ SUBSYSTEM_DEF(dirt)
 	var/datum/dirt_mask_job/job = new(request, key)
 	if(request.kind == DIRT_MASKS_BODY && request.surface_kind == DIRT_SURFACE_SKIN)
 		job.previous = previous
-#ifdef DIRT_MASKS_DEFERRED
 	// a failed human template is FALSE, not null, so it isn't queued again
 	if(!metrics && !metric_job && isnull(human_template))
 		queue_human_template()
@@ -404,13 +379,6 @@ SUBSYSTEM_DEF(dirt)
 	add(job)
 	job.wait(redraw_body, redraw_flags)
 	return null
-#else
-	if(request.zone_sources)
-		job.template_source = template_for(request.zone_sources, request.template_key)
-	mask_jobs[key] = job
-	run_now(job)
-	return kept.fetch(key) || null
-#endif
 
 /**
  * Stops a body waiting for the masks queued under a key. Once no other body still around waits for them, it drops their
@@ -440,9 +408,8 @@ SUBSYSTEM_DEF(dirt)
 	mask_jobs -= key
 
 /**
- * Returns the template built from a body's sprites, queueing it if it isn't built or queued yet; without
- * DIRT_MASKS_DEFERRED it's built now. One the cache dropped that a queued job still holds goes back in the cache rather
- * than being built a second time.
+ * Returns the template built from a body's sprites, queueing it if it isn't built or queued yet. One the cache dropped
+ * that a queued job still holds goes back in the cache rather than being built a second time.
  *
  * Arguments:
  * - zone_sources: The body's sprites, as dirt_zone_sources() returns them.
@@ -465,21 +432,11 @@ SUBSYSTEM_DEF(dirt)
 	if(held)
 		return templates.store_value(key, held)
 	var/datum/dirt_template_job/job = new(zone_sources)
-#ifdef DIRT_MASKS_DEFERRED
 	template_jobs[key] = job
 	add(job)
 	return job
-#else
-	run_now(job)
-	return job.built() || FALSE
-#endif
 
-/**
- * Returns a built template a queued mask job holds, or null.
- *
- * Arguments:
- * - key: The template's key.
- */
+/// Returns a built template a queued mask job holds, or null.
 /datum/controller/subsystem/dirt/proc/held_template(key)
 	RETURN_TYPE(/datum/dirt_template)
 	for(var/datum/dirt_mask_job/mask_job in queue)
@@ -493,7 +450,6 @@ SUBSYSTEM_DEF(dirt)
  * most_pieces(), counted across every fire, is dropped as failed.
  *
  * Arguments:
- * - job: The job.
  * - yielding: Whether to stop when the tick runs short, as a fire does.
  *
  * Returns whether the job is done.
@@ -514,9 +470,6 @@ SUBSYSTEM_DEF(dirt)
  * Makes the next piece of a job. A piece that runtimes fails its job, so it can't hold up the jobs queued after it. It
  * also stops drafting, in case the runtime came in the middle of drawing a general deposit.
  *
- * Arguments:
- * - job: The job.
- *
  * Returns whether the job is done.
  */
 /datum/controller/subsystem/dirt/proc/make_piece(datum/dirt_job/job)
@@ -528,18 +481,13 @@ SUBSYSTEM_DEF(dirt)
 		stack_trace("A dirt job failed and its masks are left undrawn: [error] at [error.file]:[error.line]")
 		return TRUE
 
-/**
- * Makes a job now, start to end, as finish_all() does.
- *
- * Arguments:
- * - job: The job.
- */
+/// Makes a job now, start to end, as finish_all() does.
 /datum/controller/subsystem/dirt/proc/run_now(datum/dirt_job/job)
 	work_on(job, FALSE)
 	job.finished()
 
 /**
- * Draws again the bodies waiting for finished masks, longest waiting first, until the tick runs short.
+ * Draws again the bodies waiting in `redraws`, longest waiting first, until the tick runs short.
  *
  * Returns TRUE if the tick ran short.
  */
@@ -550,9 +498,7 @@ SUBSYSTEM_DEF(dirt)
 			return TRUE
 	return FALSE
 
-/**
- * Draws again the body that has waited longest for its masks, if it's still around.
- */
+/// Draws again the body that has waited longest in `redraws`, if it's still around.
 /datum/controller/subsystem/dirt/proc/redraw_next()
 	var/datum/weakref/body_ref = redraws[1]
 	var/redraw_flags = redraws[body_ref]
@@ -568,8 +514,8 @@ SUBSYSTEM_DEF(dirt)
 	redrawing = null
 
 /**
- * Makes every queued job now and draws the bodies waiting for them again, as masks made as they're asked for would
- * have. It's for whatever has to see dirt drawn at once. In a round the queue's own pace keeps ticks short instead.
+ * Makes every queued job now and draws the bodies waiting for them again. It's for whatever has to see dirt drawn at
+ * once. In a round the queue's own pace keeps ticks short instead.
  *
  * Arguments:
  * - rounds: The most rounds to go, each making what's queued and drawing again what waited for it. If it stops after
@@ -617,19 +563,15 @@ SUBSYSTEM_DEF(dirt)
 	SSdirt.mask_jobs -= key
 	var/datum/bulge_bounded_cache/kept = request.kind == DIRT_MASKS_WET ? SSdirt.wet_icons : SSdirt.masks
 	var/made = (failed || !masks) ? FALSE : masks
-	// in its place if the key is kept, else as the newest
-	if(isnull(LAZYACCESS(kept.entries, key)))
-		kept.store_value(key, made)
-	else
-		kept.entries[key] = made
+	kept.store_value(key, made)
 	if(masks && !failed && sprite_frames && !sprite_frames_kept)
 		var/datum/dirt_wag_source/wag = request.shape_source
 		SSdirt.wag_sprites.store_value(wag.sprite_key(), sprite_frames)
 	for(var/datum/weakref/body_ref, redraw_flags in waiters)
 		SSdirt.redraws[body_ref] |= redraw_flags
 
-/// Keeps the entries asked for most lately: one asked for again goes to the back of the line, so what's most in play
-/// stays.
+/// Keeps the entries asked for most lately. One asked for again goes to the back of the line, so what's most in play
+/// stays. It builds on bulge's cache, as tg has no bounded cache to build on.
 /datum/bulge_bounded_cache/dirt_recent
 
 /datum/bulge_bounded_cache/dirt_recent/fetch(key)
@@ -690,7 +632,6 @@ SUBSYSTEM_DEF(dirt)
  *
  * Arguments:
  * - key: The raster key.
- * - direction: The direction.
  */
 /datum/bulge_bounded_cache/dirt_rasters/proc/fetch_direction(key, direction)
 	var/packed = LAZYACCESS(entries, key)
@@ -708,7 +649,6 @@ SUBSYSTEM_DEF(dirt)
  *
  * Arguments:
  * - key: The raster key.
- * - direction: The direction.
  * - drawn: /datum/dirt_pixels/proc/drawn() of the raster.
  *
  * Returns `drawn`.

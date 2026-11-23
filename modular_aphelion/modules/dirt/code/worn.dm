@@ -1,17 +1,15 @@
-/// How many sprites' coverage of a zone dirt_sprite_zone_pixels() keeps. Each takes about 1.86 KB with its key
-/// (measured), so about 0.9 MB in all.
+/// How many sprites' coverage of a zone dirt_sprite_zone_pixels() keeps.
 #define DIRT_COVERAGE_READS 512
 
 /**
- * Returns the worn item a shot at a zone lands on, or null for the skin: the outermost of the head, mask, suit and
- * uniform slots whose body_parts_covered includes the zone's part (the chest for the chest, stomach and back; the groin
- * for the groin and butt; the legs for the thighs). The face is covered when the mouth is, by the item covering it.
- * Underclothes never count: they aren't items. Through a wall portal only the uniform counts, while it's drawn: the
- * relay copies it and no suit (lower_body_only()), so a coat over the lower body leaves the shot to what the relay
- * shows under it. A skirt the relay leaves out (wall_relay_skips_uniform()) leaves it to the underclothes or the skin.
+ * Returns the worn item a shot at a zone lands on, or null for none: the outermost of the head, mask, suit and uniform
+ * slots whose body_parts_covered includes the zone's flag (dirt_zone_cover_flags()). The face is covered when the mouth
+ * is, by the item covering it. Underclothes never count, as they aren't items. Through a wall portal only the uniform
+ * counts, while it's drawn, as the relay copies it and no suit (lower_body_only()). So a coat over the lower body
+ * leaves the shot to what the relay shows under it. A skirt the relay leaves out (wall_relay_skips_uniform()) leaves it
+ * to the underclothes or the skin.
  *
  * Arguments:
- * - target: The person.
  * - zone: A DIRT_ZONE_* define.
  * - portal_view: A DIRT_PORTAL_* define, what a portal shows of the target.
  */
@@ -54,7 +52,6 @@
  * underclothes that cover it, held by the person, else the skin.
  *
  * Arguments:
- * - target: The person.
  * - zone: A DIRT_ZONE_* define.
  * - portal_view: A DIRT_PORTAL_* define, what a portal shows of the target.
  */
@@ -78,20 +75,51 @@
  */
 /proc/dirt_mess_inset_image(icon/baked, shift_x = 0, shift_y = 0)
 	RETURN_TYPE(/mutable_appearance)
-	var/mutable_appearance/inset = dirt_mess_baked_image(baked)
+	var/mutable_appearance/inset = mutable_appearance(baked)
 	inset.blend_mode = BLEND_INSET_OVERLAY
 	inset.pixel_w = shift_x
 	inset.pixel_z = shift_y
 	return inset
 
 /**
- * Returns where a worn garment's wrapper has its wearer's own tile, as list(pixels right, pixels up):
- * build_worn_icon() centres the wrapper on the garment's worn dimensions, then moves it by its worn offsets, so masks
- * drawn on the body go back by both. list(0, 0) for a 32x32 garment without offsets; list(16, 0) for a 64x32 taur
- * suit, moved 16 px left.
+ * Returns whether anything drawn before a garment's dirt on the emissive plane could glow, so that the dirt's blockers
+ * dim it. A blocker is black and inset, and an inset keeps the alpha of what it's drawn over. Over the garment's own
+ * blocker, or over nothing, a blocker changes no pixel, and it never makes the garment's emissive mirror bigger. Any
+ * blood counts, as a stain can glow and dirt_order_worn() can move it under the dirt.
  *
  * Arguments:
- * - garment: The worn item.
+ * - draw_target: The garment's sprite as worn, with its worn overlays.
+ * - overlays: build_worn_icon()'s separate overlays so far.
+ */
+/proc/dirt_glow_under(obj/item/garment, mutable_appearance/draw_target, list/overlays)
+	return GET_ATOM_BLOOD_DNA_LENGTH(garment) || dirt_holds_glow(draw_target?.overlays) || dirt_holds_glow(draw_target?.underlays) || dirt_holds_glow(overlays)
+
+/// Returns whether any image in a list, or under one, glows. A glow is anything on the emissive plane that isn't
+/// black.
+/proc/dirt_holds_glow(list/images)
+	for(var/image/drawn as anything in images)
+		if(PLANE_TO_TRUE(drawn.plane) == EMISSIVE_PLANE && !dirt_blacks_out(drawn.color))
+			return TRUE
+		if(dirt_holds_glow(drawn.overlays) || dirt_holds_glow(drawn.underlays))
+			return TRUE
+	return FALSE
+
+/// Returns whether a colour matrix draws every pixel black and keeps its alpha, as an emissive blocker's does
+/// (EM_BLOCK_COLOR).
+/proc/dirt_blacks_out(list/matrix)
+	if(!islist(matrix) || length(matrix) != 20)
+		return FALSE
+	for(var/index in 1 to 19)
+		// every 4th entry feeds alpha
+		if(index % 4 && matrix[index])
+			return FALSE
+	return TRUE
+
+/**
+ * Returns where a worn garment's wrapper has its wearer's own tile, as list(pixels right, pixels up). build_worn_icon()
+ * centres the wrapper on the garment's worn dimensions, then moves it by its worn offsets. So masks drawn on the body
+ * go back by both. A 32x32 garment without offsets gives list(0, 0), and a 64x32 taur suit, moved 16 px left, gives
+ * list(16, 0).
  */
 /proc/dirt_worn_shift(obj/item/garment)
 	RETURN_TYPE(/list)
@@ -122,7 +150,6 @@
  * wrapper doesn't move, which is read on the tile, where it lies.
  *
  * Arguments:
- * - garment: The worn item.
  * - sprite_icon: Its sprite's icon, as drawn.
  */
 /proc/dirt_worn_read_shift(obj/item/garment, sprite_icon)
@@ -134,9 +161,9 @@
 	return (size["width"] != ICON_SIZE_X || size["height"] != ICON_SIZE_Y) ? shift : null
 
 /**
- * Moves this item's blood stain to the place its dirt kept for it in its separate worn overlays (dirt_stain_slot), so
- * that its dirt draws over the stain. It also lets go of that place. Its sweat's multiplier goes just under the stain,
- * as sweat never draws over it. The stain is the last image after that place whose state names blood, as every
+ * Moves this item's blood stain to the place its dirt kept for it in its separate worn overlays (dirt_stain_slot). So
+ * its dirt draws over the stain. It also lets go of that place. Its sweat's multiplier goes just under the stain, as
+ * sweat never draws over it. The stain is the last image after that place whose state names blood, as every
  * get_blood_overlay() names it, whatever sheet it's drawn from. Without a stain, nothing moves.
  *
  * Arguments:
@@ -162,10 +189,6 @@
 /**
  * Returns whether a garment is drawn on its wearer's taur body as a taur suit, as its slot draws it now
  * (dirt_taur_suit_sprite()). A taur suit takes the taur body's dirt.
- *
- * Arguments:
- * - garment: The worn item.
- * - wearer: Who wears it.
  */
 /proc/dirt_taur_fitted(obj/item/garment, mob/living/carbon/human/wearer)
 	var/image/sprite = bulge_drawn_leaf(bulge_drawn_root(wearer.overlays_standing[dirt_slot_layer(wearer.get_slot_by_item(garment))]))
@@ -177,7 +200,6 @@
  *
  * Arguments:
  * - sprite_icon: The sprite's icon, or null.
- * - wearer: Who wears it.
  */
 /proc/dirt_taur_suit_sprite(sprite_icon, mob/living/carbon/human/wearer)
 	if(!sprite_icon || !istype(wearer.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAUR), /obj/item/organ/taur_body))
@@ -186,7 +208,7 @@
 	return size["width"] == DIRT_TAUR_WIDTH && size["height"] == ICON_SIZE_Y
 
 /**
- * Returns the overlays_standing slots whose sprites cover skin mess, so it fades out beside them: the underclothes and
+ * Returns the overlays_standing slots whose sprites cover skin dirt, so it fades out beside them: the underclothes and
  * the garments. You should NEVER modify it.
  */
 /proc/dirt_cover_layers()
@@ -201,21 +223,23 @@
  * where it lies. dirt_shown_carriers() reads worn sprites the same way.
  *
  * Arguments:
- * - body: The body.
  * - layers: The overlays_standing slots to read, or null for every one of dirt_cover_layers().
  */
 /proc/dirt_cover_sprites(mob/living/carbon/human/body, list/layers = null)
 	RETURN_TYPE(/list)
+	// each carrier slot by the layer it's drawn at (dirt_slot_layer()), one to one
+	var/static/alist/slots_by_layer
+	if(!slots_by_layer)
+		slots_by_layer = alist()
+		for(var/slot in dirt_carrier_slots())
+			slots_by_layer[dirt_slot_layer(slot)] = slot
 	. = list()
 	for(var/layer in layers || dirt_cover_layers())
 		var/standing = body.overlays_standing[layer]
 		if(!standing)
 			continue
-		var/obj/item/worn
-		for(var/slot in dirt_carrier_slots())
-			worn = dirt_slot_layer(slot) == layer && body.get_item_by_slot(slot)
-			if(worn)
-				break
+		var/slot = slots_by_layer[layer]
+		var/obj/item/worn = slot && body.get_item_by_slot(slot)
 		for(var/image/root as anything in (islist(standing) ? standing : list(standing)))
 			if(root.plane != FLOAT_PLANE)
 				continue
@@ -245,9 +269,6 @@
 /**
  * Returns the underclothes a body draws, each its own surface: alist(DIRT_UNDERCLOTHES_* define = its
  * /datum/sprite_accessory/clothing), as get_underwear_overlays() picks them.
- *
- * Arguments:
- * - body: The body.
  */
 /proc/dirt_underclothes_worn(mob/living/carbon/human/body)
 	RETURN_TYPE(/alist)
@@ -270,12 +291,9 @@
 
 /**
  * Returns a body's underclothes as drawn, lowest first: list(list(DIRT_UNDERCLOTHES_* define, icon, icon state,
- * accessory name), ...). Each is drawn as get_underwear_overlays() draws it, fitted to the body, a revealing loincloth
- * with its flap cut away while the bulge cuts it (bulge_cut_worn()), and they stack by their accessories' layers, then
- * in that proc's order.
- *
- * Arguments:
- * - body: The body.
+ * accessory name), ...). Each is drawn as get_underwear_overlays() draws it, fitted to the body. A revealing loincloth
+ * has its flap cut away while the bulge cuts it (bulge_cut_worn()). They stack by their accessories' layers, then in
+ * that proc's order.
  */
 /proc/dirt_underclothes_sprites(mob/living/carbon/human/body)
 	RETURN_TYPE(/list)
@@ -318,7 +336,6 @@
  * colour, and sweat's multiplier reads the piece in it too.
  *
  * Arguments:
- * - body: The body.
  * - piece: A DIRT_UNDERCLOTHES_* define.
  */
 /proc/dirt_underclothes_colour(mob/living/carbon/human/body, piece)
@@ -334,7 +351,7 @@
 	return null
 
 /**
- * Returns the key a person's mess on one piece of underclothes is kept under: the slot and the accessory, so it stays
+ * Returns the key a person's dirt on one piece of underclothes is kept under: the slot and the accessory, so it stays
  * with that piece while it's off.
  *
  * Arguments:
@@ -344,20 +361,14 @@
 /proc/dirt_underclothes_key(piece, name)
 	return "[piece]|[name]"
 
-/**
- * Returns the piece of underclothes an underclothes key (dirt_underclothes_key()) names, as its
- * DIRT_UNDERCLOTHES_* define.
- *
- * Arguments:
- * - key: The key.
- */
+/// Returns the DIRT_UNDERCLOTHES_* define of the piece an underclothes key (dirt_underclothes_key()) names.
 /proc/dirt_underclothes_piece(key)
 	return copytext(key, 1, findtextEx(key, "|"))
 
 /**
  * Returns which underclothes a shot at a zone lands on, or null for the skin. Each piece is judged by its sprite
- * against the zone's pixels on the plain human template (dirt_human_zone_pixels()), so every body is judged on the
- * human shape and nothing waits on its own template.
+ * against the zone's pixels on the plain human template (dirt_human_zone_pixels()). So every body is judged on the
+ * human shape, and nothing waits on its own template.
  * - The pieces with a pixel in the zone take the shot when together they cover at least half of it.
  * - The one that shows the most of the zone takes it: its pixels there less those the pieces above it draw over. Ties
  *   go to the kind that belongs on the zone (dirt_zone_underclothes()), then to the topmost. So a shirt hem over the
@@ -365,7 +376,6 @@
  * - Until the human template is built that far, the rules judge instead (dirt_underclothes_by_rules()).
  *
  * Arguments:
- * - target: The person.
  * - zone: A DIRT_ZONE_* define.
  */
 /proc/dirt_underclothes_on(mob/living/carbon/human/target, zone)
@@ -405,7 +415,6 @@
  * chest, and an undershirt the stomach and back too. A piece also covers what it hides (dirt_underclothes_hides()).
  *
  * Arguments:
- * - target: The person.
  * - drawn: Their underclothes, from dirt_underclothes_sprites().
  * - zone: A DIRT_ZONE_* define.
  */
@@ -424,12 +433,11 @@
 	return null
 
 /**
- * Returns whether the underclothes rules say a piece hides a zone outright: an undershirt that hides the groin
- * (a corset, a leotard) the groin and butt, underwear that hides the breasts (a one-piece swimsuit) the chest.
+ * Returns whether the underclothes rules say a piece hides a zone outright. An undershirt that hides the groin (a
+ * corset, a leotard) hides the groin and butt. Underwear that hides the breasts (a one-piece swimsuit) hides the chest.
  *
  * Arguments:
- * - accessory: The piece's accessory.
- * - piece: Its DIRT_UNDERCLOTHES_* define.
+ * - piece: The piece's DIRT_UNDERCLOTHES_* define.
  * - zone: A DIRT_ZONE_* define.
  */
 /proc/dirt_underclothes_hides(datum/sprite_accessory/clothing/accessory, piece, zone)
@@ -460,14 +468,13 @@
 	return kinds
 
 /**
- * Returns which of a zone's pixels a sprite covers, read at those pixels only, facing the way given or else the way
- * that shows the zone. It keeps a result for each sprite, zone, direction and placement, and drops the oldest past
- * DIRT_COVERAGE_READS. A sprite given a shift is read where the shift puts it over the body's tile, whatever its size.
- * One given none covers nothing unless it's 32x32. You should NEVER modify the list it returns.
+ * Returns which of a zone's pixels a sprite covers, read at those pixels only. It keeps a result for each sprite, zone,
+ * direction and placement, and drops the oldest past DIRT_COVERAGE_READS. A sprite given a shift is read where the
+ * shift puts it over the body's tile, whatever its size. One given none covers nothing unless it's 32x32. You should
+ * NEVER modify the list it returns.
  *
  * Arguments:
  * - sheet: The sprite's icon file, or an icon made at run time.
- * - state: Its icon state.
  * - zone: A DIRT_ZONE_* define, or a name for other pixels read: "body" for dirt_human_body_pixels(), "tile" for every
  *   pixel of the tile.
  * - zone_pixels: The zone's pixels, from dirt_human_zone_pixels().
@@ -496,19 +503,14 @@
 		direction ||= dirt_zone_facing(zone)
 		direction = dirt_sprite_read_facing(sheet, state, direction, sprite)
 		for(var/index in zone_pixels)
-			var/row = floor((index - 1) / ICON_SIZE_X)
+			var/row = DIRT_INDEX_ROW(index, ICON_SIZE_X)
 			var/sprite_x = index - row * ICON_SIZE_X + shift_x
 			var/sprite_y = ICON_SIZE_Y - row + shift_y
 			if(sprite_x >= 1 && sprite_y >= 1 && sprite_x <= width && sprite_y <= height && sprite.GetPixel(sprite_x, sprite_y, null, direction))
 				covered += index
 	return reads.store_value(key, covered)
 
-/**
- * Returns the direction a zone is judged from, the one that shows it: north for the back and butt, south for the rest.
- *
- * Arguments:
- * - zone: A DIRT_ZONE_* define.
- */
+/// Returns the direction a zone (DIRT_ZONE_*) is judged from, the one that shows it.
 /proc/dirt_zone_facing(zone)
 	return (zone == DIRT_ZONE_BACK || zone == DIRT_ZONE_BUTT) ? NORTH : SOUTH
 
@@ -555,7 +557,6 @@
  * list it returns.
  *
  * Arguments:
- * - direction: The direction.
  * - zone: A body zone, or null for the whole body.
  */
 /proc/dirt_human_body_pixels(direction, zone = null)
@@ -587,7 +588,7 @@
 	return slots
 
 /**
- * Returns what shows on each limb of a person, as general dirt lands on it: DIRT_CARRIERS_LIST(carrier = the limbs it
+ * Returns what shows on each limb of a person, as general dirt lands on it: list(carrier = the limbs it
  * shows on, DIRT_LIMB_BIT() of each). Each carrier is a worn item (dirt_carrier_slots()), an underclothes key
  * (dirt_underclothes_key()) or DIRT_CARRIER_SKIN. Each is judged as dirt_underclothes_on() judges a piece, on the plain
  * human template's body facing south and north. Every carrier that shows counts, not only the one that shows most. A
@@ -600,13 +601,11 @@
  * - The underclothes go under every worn item. The skin takes what's left, under everything.
  * Drawn parts and a taur body take their dirt by their own rules (dirt_shape_slots()).
  * The template is built now if SSdirt hasn't built it yet.
- *
- * Arguments:
- * - target: The person.
  */
 /proc/dirt_shown_carriers(mob/living/carbon/human/target)
-	RETURN_TYPE(/DIRT_CARRIERS_LIST)
-	. = DIRT_CARRIERS_LIST()
+	RETURN_TYPE(/list)
+	// a list, as on older BYOND builds a dropped alist never lets go of an item among its keys
+	. = list()
 	if(!SSdirt.human_template_now())
 		return
 	// topmost first: list(carrier, icon, icon state, the layer it's drawn at, where a worn item's wrapper puts it)
@@ -650,14 +649,11 @@
 
 /**
  * Returns whether a body is bare, so its skin and underwear take the painted designs where a cause has one. A body is
- * bare when more than DIRT_BARE_SHARE of the chest's pixels on the plain human template, facing south, show skin past
- * its garments (dirt_cover_layers()) and its undershirt, bra and socks. Underwear takes the skin's dirt, so it covers
- * nothing here. This judges by what the skin's masks fade beside (dirt_cover_sprites()), so a change to those sprites
- * has the masks made again (/datum/component/dirtiness/proc/check_cover()). Returns FALSE until SSdirt has built the
- * template, and while the body is hidden (dirt_body_hidden()).
- *
- * Arguments:
- * - body: The body.
+ * bare when more than DIRT_BARE_SHARE of the chest's pixels on the plain human template, facing south, show skin. A
+ * pixel shows skin when none of its garments (dirt_cover_layers()), undershirt, bra or socks covers it. Underwear takes
+ * the skin's dirt, so it covers nothing here. This judges by what the skin's masks fade beside (dirt_cover_sprites()),
+ * so a change to those sprites has the masks made again (/datum/component/dirtiness/proc/check_cover()). Returns FALSE
+ * until SSdirt has built the template, and while the body is hidden (dirt_body_hidden()).
  */
 /proc/dirt_bare_bodied(mob/living/carbon/human/body)
 	var/list/chest = dirt_human_body_pixels(SOUTH, BODY_ZONE_CHEST)
@@ -683,9 +679,6 @@
  * uniform's or suit's sprite as drawn isn't 32x32 and isn't a taur suit (dirt_taur_suit_sprite()). Its skin then draws
  * no dirt, and keeps it. Putting such a sprite on or off changes what the skin fades beside, so check_cover() redraws
  * the body.
- *
- * Arguments:
- * - body: The body.
  */
 /proc/dirt_body_hidden(mob/living/carbon/human/body)
 	for(var/layer in list(UNIFORM_LAYER, SUIT_LAYER))
@@ -702,7 +695,6 @@
  * underclothes take it, else DIRT_SKIN_LAYER.
  *
  * Arguments:
- * - body: The body.
  * - zone: A DIRT_ZONE_* define.
  */
 /proc/dirt_zone_layer(mob/living/carbon/human/body, zone)
@@ -714,7 +706,7 @@
 	return DIRT_SKIN_LAYER
 
 /**
- * Returns the layer a worn slot's garment draws at, which its mess lies on, against which parts draw over or under it.
+ * Returns the layer a worn slot's garment draws at, which its dirt lies on, against which parts draw over or under it.
  *
  * Arguments:
  * - slot: An ITEM_SLOT_* flag.
@@ -763,17 +755,31 @@
 	var/absent = FALSE
 	/// What the request's parts were made from, as its owner writes it, where its owner checks it.
 	var/parts_key
+	/// For a part drawn at more than one layer, or the vulva, its carrier's worn_changes when its masks were last
+	/// matched to what's worn over its zone (/datum/component/dirtiness/proc/ready_part_masks()).
+	var/worn_seen
 	/// The icon of sweat's multiplier drawn with the masks (current_wet()), or null for none. It's held while a new one
 	/// is made, and after SSdirt.wet_icons drops it.
 	var/wet
 	/// The key of the multiplier held (dirt_wet_key()), or of the one asked for if it couldn't be made, else null.
 	var/wet_key
+	/// The key of the multiplier last asked for and what it was worked out from (current_wet()): list(the key, the
+	/// masks' key, the garment as current_wet() took it, the garment's look), or null.
+	var/list/wet_read
+	/// For a wagging tail, its wag's masks (/datum/component/dirtiness/proc/ready_wag_masks()), or null. They're made
+	/// from this request's splats and dropped as those change.
+	var/datum/dirt_drawing/wag
+	/// The key of the first request forget() dropped since the drawing last asked for masks, or null. That request's
+	/// job is dropped once the next request has another key. /datum/dirt_drawing/proc/current() drops it, and so do
+	/// /datum/component/dirtiness/proc/ready_wag_masks() for a wag's masks and
+	/// /datum/component/dirtiness/proc/ready_skin_masks() for hidden skin, which skips current(). It's dropped with the
+	/// drawing's own job as the drawing is let go (/datum/dirt_drawing/proc/drop_jobs(), drop_wag()).
+	var/superseded_key
 
 /**
  * Starts drawing from a new request. The masks before it are drawn until its own are made.
  *
  * Arguments:
- * - new_request: The request.
  * - parts_key: What its parts were made from, for its owner to check, or null.
  */
 /datum/dirt_drawing/proc/start(datum/dirt_mask_request/new_request, parts_key)
@@ -835,12 +841,7 @@
 	masks = SSdirt.masks_for(request, body, redraw_flags, masks, key) || masks
 	return masks
 
-/**
- * Returns what to draw again on a body for an item in a slot: a DIRT_REDRAW_* flag, or NONE.
- *
- * Arguments:
- * - slot: An ITEM_SLOT_* flag.
- */
+/// Returns what to draw again on a body for an item in a slot (ITEM_SLOT_*): a DIRT_REDRAW_* flag, or NONE.
 /proc/dirt_slot_redraw(slot)
 	switch(slot)
 		if(ITEM_SLOT_ICLOTHING)

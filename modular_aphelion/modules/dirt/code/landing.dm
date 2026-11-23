@@ -2,9 +2,8 @@
  * Puts a mess on a person where a shot was aimed (dirt_mess_place()), when the portal shows a zone that lands.
  *
  * Arguments:
- * - target: The person.
  * - zone: A DIRT_ZONE_* define, from dirt_mess_zones() or DIRT_ZONE_COCK.
- * - portal_view: A DIRT_PORTAL_* define, what a portal shows of the target: a zone it doesn't show takes nothing, and
+ * - portal_view: A DIRT_PORTAL_* define, what a portal shows of the target. A zone it doesn't show takes nothing, and
  *   through a wall only what the relay draws takes the shot.
  * - levels: How many levels it adds, from dirt_mess_amount_levels().
  *
@@ -41,9 +40,7 @@
 			return zone == DIRT_ZONE_GROIN || zone == DIRT_ZONE_BUTT
 	return TRUE
 
-/**
- * Returns the zones below the waist: the groin, the thighs and the butt. You should NEVER modify it.
- */
+/// Returns the zones below the waist: the groin, the thighs and the butt. You should NEVER modify it.
 /proc/dirt_lower_zones()
 	RETURN_TYPE(/list)
 	var/static/list/zones = list(DIRT_ZONE_GROIN, DIRT_ZONE_THIGHS, DIRT_ZONE_BUTT)
@@ -62,25 +59,21 @@
 	return amount >= DIRT_MESS_AMOUNT_HEAVY ? 2 : 1
 
 /**
- * Puts a mess where a shot at a zone lands on a person (dirt_mess_surface()) as
- * /datum/component/dirtiness/proc/add_mess() does, and on each part drawn over that surface which the zone reaches
- * (dirt_body_parts()), a splat of the same variant in its own slot. A back shot on a taur also puts one in its taur
- * body's slot (dirt_taur_takes_pools()), unless a taur suit takes it, whose own splat draws the pools.
- * DIRT_ZONE_COCK lands on the penis alone, while it draws its front image. Then it takes the oldest splats off past
- * DIRT_MAX_SPLATS, and only then draws each garment that changed and the person, once, so the masks asked for are
- * the ones kept.
+ * Puts a mess where a shot at a zone lands on a person (dirt_mess_surface()), as
+ * /datum/component/dirtiness/proc/add_mess() does. Each part drawn over that surface which the zone reaches
+ * (dirt_body_parts()) takes a splat of the same variant in its own slot. A back shot on a taur also puts one in its
+ * taur body's slot (dirt_taur_takes_pools()), unless a taur suit's own splat draws the pools. DIRT_ZONE_COCK lands on
+ * the penis alone, while it draws its front image. Then it draws the landing once (dirt_draw_landing()).
  *
  * Arguments:
- * - target: The person.
  * - zone: A DIRT_ZONE_* define.
- * - levels: How many levels it adds, or the level of a new splat when a variant is given.
- * - variant: 0 to DIRT_VARIANTS - 1 for a new splat with that variant, or null to land as a shot does.
- * - portal_view: A DIRT_PORTAL_* define, what a portal shows of the target: through a wall only what its relay draws
+ * - levels: How many levels it adds.
+ * - portal_view: A DIRT_PORTAL_* define, what a portal shows of the target. Through a wall only what its relay draws
  *   takes the shot (dirt_mess_garment()).
  *
  * Returns the splat it started, or the one it raised when it started none, or null when it landed nowhere.
  */
-/proc/dirt_mess_place(mob/living/carbon/human/target, zone, levels = 1, variant = null, portal_view = DIRT_PORTAL_NONE)
+/proc/dirt_mess_place(mob/living/carbon/human/target, zone, levels = 1, portal_view = DIRT_PORTAL_NONE)
 	RETURN_TYPE(/datum/dirt_splat)
 	// carrier -> what of it changed: ORGAN_SLOT_* defines, null for its own surface
 	var/list/changed = list()
@@ -90,13 +83,13 @@
 		if(!dirt_part_drawn(target.get_organ_slot(ORGAN_SLOT_PENIS), target))
 			return null
 		var/datum/component/dirtiness/own = target.LoadComponent(/datum/component/dirtiness)
-		splat = own.add_mess(dirt_part_zone(DIRT_PART_PENIS), ORGAN_SLOT_PENIS, levels, variant, redraw = FALSE)
+		splat = own.add_mess(dirt_part_zone(DIRT_PART_PENIS), ORGAN_SLOT_PENIS, levels)
 		changed[own] = list(ORGAN_SLOT_PENIS)
 	else
 		var/list/surface = dirt_mess_surface(target, zone, portal_view)
 		var/datum/component/dirtiness/carrier = surface[1]
 		var/piece = surface[2]
-		splat = piece ? carrier.add_underclothes_mess(zone, piece, levels, variant, redraw = FALSE) : carrier.add_mess(zone, null, levels, variant, redraw = FALSE)
+		splat = piece ? carrier.add_underclothes_mess(zone, piece, levels) : carrier.add_mess(zone, null, levels)
 		if(!splat)
 			return null
 		changed[carrier] = list(null)
@@ -105,23 +98,22 @@
 			if(!part.organ_slot || dirt_part_zone(part.kind) != zone || part.top_layer() >= surface_layer)
 				continue
 			var/datum/component/dirtiness/own = target.LoadComponent(/datum/component/dirtiness)
-			own.add_mess(zone, part.organ_slot, levels, variant, redraw = FALSE, new_variant = splat.variant)
+			own.add_mess(zone, part.organ_slot, levels, new_variant = splat.variant)
 			LAZYOR(changed[own], part.organ_slot)
 		// the taur body's back takes broken pools beside the rider's
 		if(zone == DIRT_ZONE_BACK && dirt_taur_takes_pools(target, carrier))
 			var/datum/component/dirtiness/own = target.LoadComponent(/datum/component/dirtiness)
-			own.add_mess(zone, ORGAN_SLOT_EXTERNAL_TAUR, levels, variant, redraw = FALSE, new_variant = splat.variant)
+			own.add_mess(zone, ORGAN_SLOT_EXTERNAL_TAUR, levels, new_variant = splat.variant)
 			LAZYOR(changed[own], ORGAN_SLOT_EXTERNAL_TAUR)
 	dirt_draw_landing(target, changed)
 	return splat
 
 /**
- * Takes the oldest splats off a person past the cap (dirt_evict()), then draws each carrier a landing changed and the
- * person once, so the masks asked for are the ones kept. The person is drawn whole if a part's share changed, as
+ * Takes the oldest splats off a person past the cap (dirt_evict()). Then it draws each carrier a landing changed and
+ * the person once, so the masks asked for are the ones kept. The person is drawn whole if a part's share changed, as
  * mess_changed() draws a part, and else only their limbs.
  *
  * Arguments:
- * - target: The person.
  * - changed: list(carrier = list of what of it changed, ORGAN_SLOT_* defines or null for its own surface), added to.
  */
 /proc/dirt_draw_landing(mob/living/carbon/human/target, list/changed)
@@ -141,12 +133,9 @@
 		target.update_body_parts()
 
 /**
- * Takes a person's oldest splats off until they carry DIRT_MAX_SPLATS at most, mess and general deposits together,
- * counting their skin, their underclothes, their parts and their worn items. It draws nothing. The caller draws each
+ * Takes a person's oldest splats off until they carry DIRT_MAX_SPLATS at most, mess and general deposits together. It
+ * counts their skin, their underclothes, their parts and their worn items. It draws nothing. The caller draws each
  * carrier it returns, and each part.
- *
- * Arguments:
- * - target: The person.
  *
  * Returns what it took splats off: list(carrier = list of what of it changed, ORGAN_SLOT_* defines or null for its own
  * surface).
@@ -168,15 +157,10 @@
 				oldest_carrier = carrier
 		if(!oldest_carrier)
 			break
-		var/organ_slot = oldest_carrier.remove_mess(oldest, redraw = FALSE)
+		var/organ_slot = oldest_carrier.remove_mess(oldest)
 		LAZYOR(.[oldest_carrier], list(organ_slot))
 
-/**
- * Returns the carriers of a person's splats: their own, then each worn item's, suit storage's included.
- *
- * Arguments:
- * - target: The person.
- */
+/// Returns the carriers of a person's splats: their own, then each worn item's, suit storage's included.
 /proc/dirt_carriers(mob/living/carbon/human/target)
 	RETURN_TYPE(/list)
 	var/list/carriers = list()
@@ -204,14 +188,13 @@
 
 /**
  * Returns the zones a shot on a person can aim at, in dirt_mess_zones() order.
- * - A zone is offered when a limb its shots land on (dirt_aim_zones()) is drawn. A monkey gets none: the zones are laid
- *   out on a human's. Kobolds, a monkey's kin in shape, get theirs: mess draws on them.
- * - A taur gets none below the waist: its legs are hidden, and its groin is the join with the taur body.
- * - Through a portal, only what it shows (dirt_portal_shows()): the groin and the butt, or DIRT_ZONE_COCK alone while
- *   the person's penis draws its front image (dirt_part_drawn()).
+ * - A zone is offered when a limb its shots land on (dirt_aim_zones()) is drawn. A monkey gets none, as the
+ *   zones are laid out on a human's. Kobolds, a monkey's kin in shape, get theirs, as mess draws on them.
+ * - A taur gets none below the waist, because its legs are hidden and its groin is the join with the taur body.
+ * - Through a portal, only what it shows (dirt_portal_shows()): the groin and the butt, or DIRT_ZONE_COCK alone
+ *   while the person's penis draws its front image (dirt_part_drawn()).
  *
  * Arguments:
- * - target: The person.
  * - portal_view: A DIRT_PORTAL_* define, what a portal shows of the target.
  */
 /proc/dirt_mess_regions(mob/living/carbon/human/target, portal_view = DIRT_PORTAL_NONE)
@@ -252,34 +235,30 @@
  * so the deposit's lines meet across them. The sweat cause and a wet material never land on bare skin or underwear. A
  * taur's lower half takes what reaches the legs it stands in place of. If it wears a taur suit, the suit takes that,
  * else its taur body does. The suit takes it on every limb the cause reaches, so a biped wearing it draws them all. On
- * the taur, its hem band draws it. Its upper part draws it over the rider too, all but the legs' share of walking,
- * crawling and dust. The hem band draws that share as the taur body's coat. That upper part also takes what reaches
- * the rider alone, as any garment does. The person's tail, wings, ears, horns and other drawn parts take what their own
- * rules take, each while it's drawn (dirt_shape_slots()). Their hair takes what reaches the hair while it shows
- * (dirt_hair_takes()), and a hat that hides it takes that as a worn item. A carrier holding the same cause and material
- * raises that deposit instead (/datum/component/dirtiness/proc/add_dirt()). Then it takes the oldest splats off past
- * DIRT_MAX_SPLATS and draws what changed, once.
+ * a taur it draws as the hem band (ready_taur_cloth_masks()). The suit also takes what reaches the rider alone, as any
+ * garment does. The person's tail, wings, ears, horns and other drawn parts take what their own rules take, each while
+ * it's drawn (dirt_shape_slots()). Their hair takes what reaches the hair while it shows (dirt_hair_takes()), and a hat
+ * that hides it takes that as a worn item. A carrier holding the same cause and material raises that deposit instead
+ * (/datum/component/dirtiness/proc/add_dirt()). Then it takes the oldest splats off past DIRT_MAX_SPLATS and draws what
+ * changed, once (dirt_draw_landing()).
  *
  * Arguments:
- * - target: The person.
  * - cause: A DIRT_CAUSE_* define, but not mess's, because mess lands where it's aimed (dirt_mess_land()).
  * - material: A DIRT_MATERIAL_* define other than DIRT_MATERIAL_MESS and DIRT_MATERIAL_BLOOD, or a splat's material
  *   ("slime#RRGGBB").
  * - level: The deposit's level, kept to 1 up to the cause's top (dirt_cause_max_level()).
- * - variant: 0 to DIRT_VARIANTS - 1, or null for one at random.
  * - colour: Slime's colour, "#RRGGBB", with DIRT_MATERIAL_SLIME.
  *
  * Returns how many carriers it landed on.
  */
-/proc/dirt_land(mob/living/carbon/human/target, cause, material, level = 1, variant = null, colour = null)
+/proc/dirt_land(mob/living/carbon/human/target, cause, material, level = 1, colour = null)
 	if(!ishuman(target) || QDELETED(target) || !istext(cause) || !dirt_cause_procs()[cause] || !isnum(level))
 		return 0
 	// validated and keyed as a splat stores it, so one material never splits by its colour's case
 	var/datum/dirt_material/made = dirt_material(material, colour)
 	if(!made || made.id == DIRT_MATERIAL_MESS || made.id == DIRT_MATERIAL_BLOOD)
 		return 0
-	level = clamp(floor(level), 1, dirt_cause_max_level(cause))
-	variant = isnum(variant) ? clamp(floor(variant), 0, DIRT_VARIANTS - 1) : rand(0, DIRT_VARIANTS - 1)
+	var/variant = rand(0, DIRT_VARIANTS - 1)
 	var/reach = dirt_cause_reach(cause, made)
 	// sweat and wet materials keep off bare skin and underwear, which draws general dirt as skin does
 	var/cloth_only = (made.flags & DIRT_MATERIAL_WET) || cause == DIRT_CAUSE_SWEAT
@@ -332,9 +311,6 @@
 /**
  * Returns the limbs a person draws, DIRT_LIMB_BIT() of each: those with a sprite of their own (drawn_sheet()), so a
  * missing arm or a taur's hidden legs take no skin dirt.
- *
- * Arguments:
- * - target: The person.
  */
 /proc/dirt_drawn_limbs(mob/living/carbon/human/target)
 	. = NONE
@@ -348,12 +324,10 @@
  * isn't one. They're the union of what the reference generator's deposits of the cause draw on the plain human
  * template. The union takes in every general material of the material's shape class
  * (/datum/dirt_material/proc/shape_class()). It covers every level, variant and side, on cloth, skin and a bare body's
- * painted designs. Materials alike in shape reach the same limbs, and a halo reaches further. Wear and sweat reach the
- * head only in a material with a halo. The two tables below are written from the reference generator.
+ * painted designs. A material with a halo reaches further, and wear and sweat reach the head only in one.
  *
  * Arguments:
  * - cause: A DIRT_CAUSE_* define.
- * - material: Its material.
  */
 /proc/dirt_cause_reach(cause, datum/dirt_material/material)
 	// each cause's commonest reach over its materials' shape classes

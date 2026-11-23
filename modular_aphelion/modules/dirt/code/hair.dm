@@ -1,16 +1,12 @@
 // The hairstyle as a carrier of general dirt. The person holds its splats under DIRT_CARRIER_HAIR, with their drawn
 // parts' (/datum/component/dirtiness/var/part_splats). While the hair shows, it takes what reaches it
-// (dirt_hair_levels()). Its dirt is drawn in one container over the hair
-// (/obj/item/bodypart/head/proc/dirt_hair_overlay()), and in one more over its pieces drawn over hats, where it has
-// them. Its masks lie on the hair's own pixels, less its darkest strands. Those pixels are read from the icon the head
-// draws and those pieces together (dirt_hair_source()). The masks are merged, despeckled and given a glint where a
-// material with a sheen lies (dirt_hair_dirt()).
+// (dirt_hair_levels()). Its dirt draws over the hair (/obj/item/bodypart/head/proc/dirt_hair_overlay()), and keeps off
+// its darkest strands (dirt_hair_kept()).
 
 /**
  * Returns the causes that reach the hair, each with the first level at which it reaches it, as the reference
- * generator's HAIR_CAUSES. Full coverage reaches it from level 2. A douse and slime on the head reach it from level 1,
- * and smoke and slime lain in with the back from level 3. A deposit of another cause, or under its level, draws nothing
- * on the hair. You should NEVER modify it.
+ * generator's HAIR_CAUSES. A deposit of another cause, or under its level, draws nothing on the hair. You should NEVER
+ * modify it.
  */
 /proc/dirt_hair_levels()
 	RETURN_TYPE(/alist)
@@ -28,13 +24,11 @@
 /**
  * Returns whether a person's hair takes a general cause's dirt in a material. It takes a cause that reaches the hair at
  * some level (dirt_hair_levels()) while the hair shows (dirt_hair_source()). It never takes dirt in a material that
- * wets cloth. A deposit under the cause's first hair level is taken all the same and draws nothing. Once another raises
- * it, it draws as the body's does.
+ * wets cloth. A deposit under the cause's first hair level is taken all the same and draws nothing. Once another
+ * deposit raises it, it draws as the body's does.
  *
  * Arguments:
- * - target: The person.
  * - cause: A DIRT_CAUSE_* define.
- * - material: Its /datum/dirt_material.
  */
 /proc/dirt_hair_takes(mob/living/carbon/human/target, cause, datum/dirt_material/material)
 	if((material.flags & DIRT_MATERIAL_WET) || !dirt_hair_levels()[cause])
@@ -46,9 +40,8 @@
  * Returns the hair as dirt reads it while the head draws it, as get_hair_overlays() does. One layer is the icon its
  * hairstyle draws from (getCachedIcon()), on the canvas it fits. That icon has the hairstyle's inner appendages blended
  * in, and the hair masks of what's worn cut out. Another layer over it holds its pieces drawn over hats that show
- * (dirt_hair_outer_states()), from the hairstyle's sheet. Returns null while the hair isn't drawn (hidden by what's
- * worn, husked, a head without hair, debrained, bald) or sits on no canvas. A source is made once for each such icon
- * and the pieces shown, and kept, as the hairstyles keep those icons.
+ * (dirt_hair_outer_states()), from the hairstyle's sheet. Returns null while the hair isn't drawn or fits no canvas. A
+ * source is made once for each such icon and the pieces shown, and kept, as the hairstyles keep those icons.
  */
 /obj/item/bodypart/head/proc/dirt_hair_source()
 	RETURN_TYPE(/datum/dirt_shape_source)
@@ -83,10 +76,9 @@
 
 /**
  * Returns the states of a hairstyle's pieces drawn over hats that show, in its order, as get_base_hair_overlays() draws
- * them. A piece doesn't show in a zone that a hair mask of what's worn strictly covers. Null for none.
+ * them, or null for none. A piece doesn't show in a zone that a hair mask of what's worn strictly covers.
  *
  * Arguments:
- * - style: The hairstyle.
  * - hair_masks: The hair masks of what's worn, or null.
  */
 /proc/dirt_hair_outer_states(datum/sprite_accessory/hair/style, list/hair_masks)
@@ -126,12 +118,11 @@
 		dirt_hair_overlay(.)
 
 /**
- * Adds the hair's dirt to the hair's images while the hair shows. One container at the hair's layer, offsets and alpha,
- * as get_base_hair_overlays() draws the hair, holds its baked image, kept to the hair's own pixels. It's drawn after
- * the hair, its gradient and paint. Where its pieces drawn over hats show, one more container holds the dirt on their
- * pixels, at their layer and drawn after them. Each container's emissive blocker comes just after it
- * (dirt_emissive_blocker()). The blocker takes the container's alpha, as tg's hair blocker takes the hair's. This proc
- * asks for the masks as the head's render key does (generate_icon_key()).
+ * Adds the hair's dirt to the hair's images while the hair shows, after the hair, its gradient and paint. One container
+ * holds its baked image, kept to the hair's own pixels (dirt_hair_container()). Where its pieces drawn over hats show,
+ * one more container holds the dirt on their pixels, at their layer and drawn after them. Each container's emissive
+ * blocker comes just after it (dirt_emissive_blocker()). The blocker takes the container's alpha, as tg's hair blocker
+ * takes the hair's. This proc asks for the masks as the head's render key does (generate_icon_key()).
  *
  * Arguments:
  * - images: The hair's images, as get_hair_overlays() returns them, added to.
@@ -166,13 +157,12 @@
  * Arguments:
  * - baked: The baked image it holds.
  * - drawn_layer: Its layer: -HAIR_LAYER, or -OUTER_HAIR_LAYER for the pieces drawn over hats.
- * - style: The hairstyle.
  * - body: The head's owner.
  */
 /obj/item/bodypart/head/proc/dirt_hair_container(baked, drawn_layer, datum/sprite_accessory/hair/style, mob/living/carbon/human/body)
 	RETURN_TYPE(/mutable_appearance)
 	var/mutable_appearance/container = mutable_appearance(layer = drawn_layer, appearance_flags = KEEP_TOGETHER, alpha = hair_alpha)
-	container.overlays += dirt_mess_baked_image(baked)
+	container.overlays += mutable_appearance(baked)
 	container.pixel_z = style.y_offset
 	if(LAZYFIND(body.dna?.species?.offset_features, OFFSET_HAIR))
 		container.pixel_x += body.dna.species.offset_features[OFFSET_HAIR][INDEX_W]
@@ -184,9 +174,6 @@
  * Merges one direction of the hair's deposits into its dirt (dirt_hair_dirt()). It reads the rasters of the deposits
  * that reach the hair at their level (rasterise_shape_deposit()), in the request's order. It merges them on the hair
  * and its pieces drawn over hats together (dirt_hair_layers_brightness()).
- *
- * Arguments:
- * - direction: The direction.
  */
 /datum/dirt_mask_job/proc/hair_merge(direction)
 	var/datum/dirt_shape_source/shape = request.shape_source
@@ -204,16 +191,16 @@
 
 /**
  * Returns the hair's dirt in one direction, as the reference generator draws it on a hairstyle. The deposits that reach
- * the hair are merged (dirt_merge()) on its pixels less its darkest quarter (dirt_hair_kept()), so dirty hair keeps its
- * strands. They're then despeckled on those pixels (dirt_despeckle()). A pixel the despeckle adds takes the material of
- * the first deposit with a pixel on them. The body or core of a material with a sheen (DIRT_MATERIAL_SHEEN) on the
- * hair's top three rows glints at the brightest of them. On a tie, the first in row-major order glints. Every pixel
- * names its material.
+ * the hair are merged (dirt_merge()) on its pixels less its darkest quarter (dirt_hair_kept()). They're then despeckled
+ * on those pixels (dirt_despeckle()). A pixel the despeckle adds takes the material of the first deposit with a pixel
+ * on them. A glint goes on the top three rows of those pixels, where a material with a sheen (DIRT_MATERIAL_SHEEN) lies
+ * as the body tone or core. It goes on the brightest such pixel of the hair, the first in row-major order on a tie.
+ * Every pixel names its material.
  *
  * Arguments:
  * - brightness: The hair's pixels in that direction, from dirt_hair_layers_brightness().
- * - pixel_maps: Each deposit's raster on the hair, dirt_shape_rasterise() as hair, in deposit order: those that reach
- *   it at their level alone. Each its own copy.
+ * - pixel_maps: The rasters of the deposits that reach the hair at their level, in deposit order
+ *   (dirt_shape_rasterise() as hair). Each is its own copy.
  * - materials: Their materials, as a splat stores them, in the same order.
  * - width, height: The canvas's size.
  */
@@ -243,7 +230,7 @@
 	for(var/index in kept)
 		if(softened.roles[index] && !roles[index])
 			softened_materials[index] = fallback
-		var/row = floor((index - 1) / width)
+		var/row = DIRT_INDEX_ROW(index, width)
 		top_row = isnull(top_row) ? row : top_row
 		var/role = roles[index]
 		if(row > top_row + 2 || (role != DIRT_ROLE_BODY && role != DIRT_ROLE_CORE) || brightness[index] <= brightest)
@@ -257,9 +244,9 @@
 	return softened
 
 /**
- * Returns the hair's pixels less its darkest quarter, which stay clean so dirty hair keeps its strands, as
- * alist(index = TRUE) in row-major order: the quarter, rounded down, ranked by brightness, a tie to the first in
- * row-major order.
+ * Returns the hair's pixels less its darkest quarter, as alist(index = TRUE) in row-major order. The darkest quarter
+ * stays clean, so dirty hair keeps its strands. It's rounded down and ranked by brightness, and on a tie the first in
+ * row-major order is the darker.
  *
  * Arguments:
  * - brightness: The hair's pixels, from dirt_hair_layers_brightness().
@@ -290,7 +277,6 @@
  * Arguments:
  * - sheet: The hairstyle's icon file, or the icon it draws from (getCachedIcon()).
  * - state: Its icon state, or null for the icon it draws from, of one state.
- * - direction: The direction.
  * - width, height: The canvas's size.
  */
 /proc/dirt_hair_brightness(sheet, state, direction, width, height)
@@ -321,7 +307,6 @@
  * - sheet, state: The hairstyle's, as dirt_hair_brightness() takes them.
  * - outer_sheet: The sheet its pieces are drawn from.
  * - outer_states: Their states, in the order they're drawn, or null.
- * - direction: The direction.
  * - width, height: The canvas's size.
  */
 /proc/dirt_hair_layers_brightness(sheet, state, outer_sheet, list/outer_states, direction, width, height)

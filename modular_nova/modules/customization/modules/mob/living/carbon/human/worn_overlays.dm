@@ -32,12 +32,12 @@
  * sprite shaped to this body's species. Clears the offset for any other sprite, which the worn offsets already place,
  * and for an item with no blood or rips to place.
  *
- * * worn_item - the item about to be drawn
- * * species_icon - the sheet the species gave for it (generate_custom_worn_icon()), or null when it's drawn from a human one
- * * loadout_slot - one of LOADOUT_ITEM_*, the slot the species shaped it for
- * * zone - the body zone holding the offset
- * * offset_key - one of OFFSET_*, the zone's offset to take
- * * vertical_only - take only the offset's height, for an item drawn over both sides of the body, as gloves are
+ * Arguments:
+ * - species_icon: The sheet the species gave for it (generate_custom_worn_icon()), or null for a human one.
+ * - loadout_slot: One of LOADOUT_ITEM_*, the slot the species shaped it for.
+ * - zone: The body zone holding the offset.
+ * - offset_key: One of OFFSET_*, the zone's offset to take.
+ * - vertical_only: Take only the offset's height, for an item drawn over both sides of the body, as gloves are.
  */
 /mob/living/carbon/human/proc/fit_worn_effects(obj/item/worn_item, species_icon, loadout_slot, zone, offset_key, vertical_only = FALSE)
 	worn_item.worn_effect_offset = null
