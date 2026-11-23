@@ -158,11 +158,6 @@ export class IFrameIndexedDbBackend implements StorageBackend { // APHELION EDIT
     return value;
   }
 
-  /** Whether we asked for `key` and never got an answer */
-  isUnread(key: string): boolean {
-    return this.unreadKeys.has(key);
-  }
-
   /** Lets `key` be saved even though it couldn't be read */
   markRead(key: string): void {
     this.unreadKeys.delete(key);
@@ -257,21 +252,12 @@ export class StorageProxy { // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: 
           this.log('info', `Using iframe storage (${Byond.storageCdn})`);
 
           if (await iframe.get('byondstorage-migrated')) return iframe;
-          // APHELION EDIT ADDITION START - CHAT_SETTINGS
-          // only import into a store that answered, since one that didn't can still hold the player's settings
-          if (iframe.isUnread('byondstorage-migrated')) return iframe;
-          // APHELION EDIT ADDITION END
 
           const iframeHasPersistedStorage = (
             await Promise.all(
               persistedStorageKeys.map((setting) => iframe.get(setting)),
             )
           ).some((settings) => settings !== undefined);
-          // APHELION EDIT ADDITION START - CHAT_SETTINGS
-          if (persistedStorageKeys.some((key) => iframe.isUnread(key))) {
-            return iframe;
-          }
-          // APHELION EDIT ADDITION END
 
           if (!iframeHasPersistedStorage) {
             this.log(
