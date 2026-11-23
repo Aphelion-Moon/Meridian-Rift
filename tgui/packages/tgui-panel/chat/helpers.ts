@@ -5,6 +5,7 @@ import {
   chatLoadedAtom,
   chatPagesAtom,
   chatPagesRecordAtom,
+  chatReadAtom, // APHELION EDIT ADDITION - CHAT_SETTINGS
   currentPageAtom,
   scrollTrackingAtom,
 } from './atom';
@@ -64,6 +65,10 @@ function updateMessageCount(countByType: Record<string, number>): void {
 }
 
 export function saveChatToStorage(): void {
+  // APHELION EDIT ADDITION START - CHAT_SETTINGS
+  // Only once the saved chat is read. See chatReadAtom.
+  if (!store.get(chatReadAtom)) return;
+  // APHELION EDIT ADDITION END
   saveChatMessages();
   const allChat = store.get(allChatAtom);
   saveChatState(allChat);
