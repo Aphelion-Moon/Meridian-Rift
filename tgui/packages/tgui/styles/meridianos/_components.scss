@@ -871,3 +871,15 @@
     min-height: 24px;
   }
 }
+
+// An icon alone is as tall as its 1.333em cell is wide, in the console skins
+// and Classic alike, so a larger one, like the character tab's 22px toolbar,
+// grows a square box instead of touching the edges of the text line's.
+.theme-console,
+.theme-meridian_classic {
+  .Button--empty.Button--hasIcon:not(.Button--compact)
+    > .Button__content
+    > .Button--icon {
+    padding: calc(0.333em / 2) 0;
+  }
+}

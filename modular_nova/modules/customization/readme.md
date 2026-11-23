@@ -49,6 +49,15 @@ changes. The upstream sheets remain available to their non-accessory consumers.
 `.\code\modules\mob\living\carbon\human\emote.dm` > \datum\emote\living\carbon\human\wag\run_emote(), \datum\emote\living\carbon\human\wag\can_run_emote()
 `.\code\modules\mob\living\carbon\human\examine.dm` > \mob\living\carbon\human\examine()
 `.\code\modules\mob\living\carbon\human\human_update_icons.dm` > \mob\living\carbon\human\update_inv_w_uniform(), \mob\living\carbon\human\update_inv_glasses(), \mob\living\carbon\human\update_inv_shoes(), `\mob\living\carbon\human\update_inv_wear_suit()`, \obj\item\proc\build_worn_icon(), \mob\living\carbon\human\generate_icon_render_key()
+`.\code\modules\mob\living\carbon\human\human_update_icons.dm` > \mob\living\carbon\human\update_worn_undersuit(), \mob\living\carbon\human\update_worn_gloves(), \mob\living\carbon\human\update_worn_head(), \mob\living\carbon\human\update_worn_oversuit(), \mob\living\carbon\human\update_worn_mask() > call `fit_worn_effects()`, which places blood and rips drawn for a human body on a species-shaped sprite
+`.\code\modules\mob\living\carbon\human\dummy.dm` > \mob\living\carbon\human\dummy\apply_height() > asks `stretches_each_image()`, so a dummy with a taur body stretches each image for its height and keeps the taur body its size. A Big Legs taur body stretches with the rider, so that dummy stretches in one piece
+`.\code\modules\clothing\clothing.dm` > \obj\item\clothing\proc\get_blood_overlay() > returns the stain through `fit_worn_effect()`, which lines it up with the worn sprite and cuts it at a taur's waist
+`.\code\modules\clothing\gloves\_gloves.dm` > \obj\item\clothing\gloves\worn_overlays() > the rip goes through `fit_worn_effect()`
+`.\code\modules\clothing\head\_head.dm` > \obj\item\clothing\head\worn_overlays() > the rip goes through `fit_worn_effect()`
+`.\code\modules\clothing\masks\_masks.dm` > \obj\item\clothing\mask\worn_overlays() > the rip goes through `fit_worn_effect()`
+`.\code\modules\clothing\suits\_suits.dm` > \obj\item\clothing\suit\worn_overlays() > the rip goes through `fit_worn_effect()`, and each uniform accessory drawn above the suit through `fit_rider_overlay()`, which keeps it on a taur's rider
+`.\code\modules\clothing\under\_under.dm` > \obj\item\clothing\under\worn_overlays() > the rip goes through `fit_worn_effect()`, and the accessories through `fit_rider_overlays()`
+`.\code\modules\unit_tests\_unit_tests.dm` > includes `taur_height_stretch.dm` and `worn_stain_fit.dm`
 `.\code\modules\mob\living\carbon\human\species.dm` > \datum\species\proc\on_species_gain(), \datum\species\proc\handle_body(), \datum\species\proc\handle_mutant_bodyparts(), \datum\species\proc\can_equip(), `\datum\species\proc\handle_hair()`
 `.\code\modules\mob\living\carbon\human\species_types\felinid.dm` > the 5 procs related to wagging tail
 `.\code\modules\mob\living\carbon\human\species_types\lizardpeople.dm` the 5 procs related to wagging tail and - \datum\species\lizard\on_species_gain()
@@ -108,7 +117,8 @@ changes. The upstream sheets remain available to their non-accessory consumers.
 
 ### Included files that are not contained in this module:
 
-- N/A
+- `code/modules/unit_tests/~nova/taur_height_stretch.dm`: height stretches a taur-fitted suit, never the taur body under it or the paint on that body
+- `code/modules/unit_tests/~nova/worn_stain_fit.dm`: blood and rips follow a taur-fitted suit and a species-shaped uniform
 
 ### Credits:
 

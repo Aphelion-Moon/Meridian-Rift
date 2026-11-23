@@ -133,3 +133,20 @@ GLOBAL_LIST_INIT(fitness_zones, list(BODY_ZONE_R_ARM, BODY_ZONE_L_ARM, BODY_ZONE
 		if(GLOB.fitness_limb_families[limb_types[zone]])
 			return TRUE
 	return FALSE
+
+/**
+ * Returns a height map tiled three wide, as tg tiles its texture filters over wide images. A map is centred on what it
+ * stretches, so one 32 px wide stretched only the middle of a taur suit, wings or a big tail and left a step at each edge.
+ * Its rows are each one colour, so the tiles join exactly.
+ *
+ * Arguments:
+ * - file: The map's icon file.
+ * - state: The map's icon state.
+ */
+/proc/wide_height_map(file, state)
+	var/icon/map = icon(file, state)
+	var/icon/wide = icon(map)
+	wide.Crop(1, 1, ICON_SIZE_X * 3, ICON_SIZE_Y)
+	wide.Blend(map, ICON_OVERLAY, ICON_SIZE_X + 1, 1)
+	wide.Blend(map, ICON_OVERLAY, ICON_SIZE_X * 2 + 1, 1)
+	return wide
