@@ -41,6 +41,10 @@ const testHubStorage = testGeneric(
 const STORAGE_CDN_TIMEOUT = 5000;
 const persistedStorageKeys = ['panel-settings', 'chat-state', 'chat-messages'];
 const legacyHubMigrationKeys = ['panel-settings'];
+// APHELION EDIT ADDITION START - CHAT_SETTINGS
+/** What one try at a read returns if the iframe errored or didn't answer in time */
+const NO_ANSWER = Symbol('no answer');
+// APHELION EDIT ADDITION END
 
 class HubStorageBackend implements StorageBackend {
   public impl: StorageImplementation;
@@ -70,7 +74,7 @@ class HubStorageBackend implements StorageBackend {
   }
 }
 
-class IFrameIndexedDbBackend implements StorageBackend {
+export class IFrameIndexedDbBackend implements StorageBackend { // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: class IFrameIndexedDbBackend implements StorageBackend {
   public impl: StorageImplementation;
 
   private documentElement: HTMLIFrameElement;
@@ -78,6 +82,10 @@ class IFrameIndexedDbBackend implements StorageBackend {
   private onReadTimeout: (key: string) => void;
   // keys we asked for but never heard back about. this is like, so we can differientate them from "keys that just had no value at all"
   private unreadKeys = new Set<string>();
+  // APHELION EDIT ADDITION START - CHAT_SETTINGS
+  /** Whether a failed read gets a second try. Turned off after a read fails twice, since the store's likely down */
+  private retryReads = true;
+  // APHELION EDIT ADDITION END
 
   constructor(onReadTimeout: (key: string) => void) {
     this.impl = IMPL_IFRAME_INDEXED_DB;
@@ -132,7 +140,36 @@ class IFrameIndexedDbBackend implements StorageBackend {
     return completePromise;
   }
 
+  // APHELION EDIT ADDITION START - CHAT_SETTINGS
+  /** Returns the saved value, or undefined if nothing's saved or the store didn't answer */
   async get(key: string): Promise<any> {
+    // the key counts as unread until we get an answer, so nothing saves over it while we wait
+    this.unreadKeys.add(key);
+    let value = await this.ask(key);
+    // a store that was only slow usually answers the second time
+    if (value === NO_ANSWER && this.retryReads) value = await this.ask(key);
+    if (value === NO_ANSWER) {
+      // warn only the first time a read fails both tries
+      if (this.retryReads) this.onReadTimeout(key);
+      this.retryReads = false;
+      return undefined;
+    }
+    this.unreadKeys.delete(key);
+    return value;
+  }
+
+  /** Whether we asked for `key` and never got an answer */
+  isUnread(key: string): boolean {
+    return this.unreadKeys.has(key);
+  }
+
+  /** Lets `key` be saved even though it couldn't be read */
+  markRead(key: string): void {
+    this.unreadKeys.delete(key);
+  }
+
+  // APHELION EDIT ADDITION END
+  private async ask(key: string): Promise<any> { // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: async get(key: string): Promise<any> {
     const promise = new Promise((resolve) => {
       const listener = (message: MessageEvent) => {
         if (
@@ -142,15 +179,17 @@ class IFrameIndexedDbBackend implements StorageBackend {
         ) {
           clearTimeout(timeout);
           window.removeEventListener('message', listener);
-          this.unreadKeys.delete(key);
-          resolve(message.data.value);
+          // this.unreadKeys.delete(key); // APHELION EDIT REMOVAL - CHAT_SETTINGS
+          resolve('error' in message.data ? NO_ANSWER : message.data.value); // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: resolve(message.data.value);
         }
       };
       const timeout = setTimeout(() => {
         window.removeEventListener('message', listener);
+        /* // APHELION EDIT REMOVAL START - CHAT_SETTINGS
         this.unreadKeys.add(key);
         this.onReadTimeout(key);
-        resolve(undefined);
+        */ // APHELION EDIT REMOVAL END
+        resolve(NO_ANSWER); // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: resolve(undefined);
       }, STORAGE_CDN_TIMEOUT);
 
       window.addEventListener('message', listener);
@@ -182,7 +221,7 @@ class IFrameIndexedDbBackend implements StorageBackend {
  * Web Storage Proxy object, which selects the best backend available
  * depending on the environment.
  */
-class StorageProxy {
+export class StorageProxy { // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: class StorageProxy {
   private backendPromise: Promise<StorageBackend>;
   private diagnostics: StorageDiagnostic[] = [];
   private listener?: (diagnostic: StorageDiagnostic) => void;
@@ -207,10 +246,10 @@ class StorageProxy {
       // already be enabled by another window/server, but the iframe origin is
       // the server-configured storage boundary.
       if (Byond.storageCdn) {
-        const iframe = new IFrameIndexedDbBackend((key) =>
+        const iframe = new IFrameIndexedDbBackend(() => // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: const iframe = new IFrameIndexedDbBackend((key) =>
           this.log(
             'warn',
-            `Timed out reading '${key}'. Using defaults for now, and not saving over what you had.`,
+            "Some of your saved chat data didn't load in time. Using defaults for now, and not saving over what you had.", // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: `Timed out reading '${key}'. Using defaults for now, and not saving over what you had.`,
           ),
         );
 
@@ -218,12 +257,21 @@ class StorageProxy {
           this.log('info', `Using iframe storage (${Byond.storageCdn})`);
 
           if (await iframe.get('byondstorage-migrated')) return iframe;
+          // APHELION EDIT ADDITION START - CHAT_SETTINGS
+          // only import into a store that answered, since one that didn't can still hold the player's settings
+          if (iframe.isUnread('byondstorage-migrated')) return iframe;
+          // APHELION EDIT ADDITION END
 
           const iframeHasPersistedStorage = (
             await Promise.all(
               persistedStorageKeys.map((setting) => iframe.get(setting)),
             )
           ).some((settings) => settings !== undefined);
+          // APHELION EDIT ADDITION START - CHAT_SETTINGS
+          if (persistedStorageKeys.some((key) => iframe.isUnread(key))) {
+            return iframe;
+          }
+          // APHELION EDIT ADDITION END
 
           if (!iframeHasPersistedStorage) {
             this.log(
@@ -329,6 +377,15 @@ class StorageProxy {
     }
   }
 
+  // APHELION EDIT ADDITION START - CHAT_SETTINGS
+  /** Lets `keys` be saved even if they couldn't be read, like when the player imports a settings file */
+  async allowSaving(...keys: string[]): Promise<void> {
+    const backend = await this.backendPromise;
+    if (!(backend instanceof IFrameIndexedDbBackend)) return;
+    for (const key of keys) backend.markRead(key);
+  }
+
+  // APHELION EDIT ADDITION END
   async set(key: string, value: any): Promise<void> {
     const backend = await this.backendPromise;
     return backend.set(key, value);

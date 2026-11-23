@@ -41,7 +41,7 @@ export function exportChatSettings(): void {
     });
 }
 
-export function importChatSettings(settings: string | string[]): void {
+export async function importChatSettings(settings: string | string[]): Promise<void> { // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: export function importChatSettings(settings: string | string[]): void {
   if (Array.isArray(settings)) return;
 
   let ourImport: ExportedSettings;
@@ -57,10 +57,15 @@ export function importChatSettings(settings: string | string[]): void {
   if ('chatPages' in ourImport && ourImport.chatPages) {
     const chatPart = rebuildChatState(ourImport.chatPages);
     if (chatPart) {
+      // APHELION EDIT ADDITION START - CHAT_SETTINGS
+      // the player picked these tabs, so we save them even if their saved tabs didn't load
+      await storage.allowSaving('chat-state');
+      // APHELION EDIT ADDITION END
       startChatStateMigration(chatPart);
     }
   }
 
+  await storage.allowSaving('panel-settings'); // APHELION EDIT ADDITION - CHAT_SETTINGS
   startSettingsMigration(settingsPart);
   storage.set('panel-settings', store.get(storedSettingsAtom));
 }
