@@ -4672,10 +4672,10 @@
 /obj/item/petri_dish,
 /obj/item/petri_dish,
 /obj/item/petri_dish,
-/obj/item/organ/tongue/rat,
+/obj/item/organ/tongue/mouse,
 /obj/effect/decal/cleanable/dirt,
 /obj/effect/decal/cleanable/glass,
-/obj/item/organ/stomach/rat,
+/obj/item/organ/stomach/mouse,
 /obj/item/fish/ratfish,
 /obj/structure/closet/crate/freezer,
 /obj/effect/spawner/random/medical/surgery_tool,
@@ -8077,7 +8077,7 @@
 "Bi" = (
 /obj/effect/decal/cleanable/dirt/dust,
 /obj/item/food/deadmouse,
-/obj/item/organ/heart/rat,
+/obj/item/organ/heart/mouse,
 /obj/structure/trash_pile,
 /turf/open/floor/plating/rust,
 /area/awaymission/caves/maintsroom)
