@@ -1,5 +1,0 @@
-author: "vinylspiders"
-delete-after: True
-changes:
-  - server: "BYOND version bumped to 516.1689"
-  - code_imp: "tgui-core bumped to 6.1.5 and tgui packages updated"

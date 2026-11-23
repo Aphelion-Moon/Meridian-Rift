@@ -1,6 +1,0 @@
-author: "vinylspiders"
-delete-after: True
-changes:
-  - rscadd: "subtler can target the person on the other end of a portal device"
-  - rscadd: "portal subtlers show the other person as Unknown unless you can see them and their end is not anonymous"
-  - rscadd: "the person on the other end sees the subtler marked as coming through the portal"

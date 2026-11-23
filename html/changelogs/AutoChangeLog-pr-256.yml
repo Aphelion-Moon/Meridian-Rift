@@ -1,8 +1,0 @@
-author: "vinylspiders"
-delete-after: True
-changes:
-  - rscadd: "cockroaches that die whole leave a dead roach you can eat"
-  - bugfix: "held mobs deleted in your hand no longer break their holder"
-  - bugfix: "bees no longer die when you drop or throw them"
-  - bugfix: "shapeshifters turning back while held no longer end up in nullspace"
-  - bugfix: "letting go of a held mob quietly no longer says it uncurls"

@@ -23,3 +23,19 @@
   - sound: Tennis balls, slime extracts and slimeperson cores make bounce sounds.
   - code_imp: Added a configurable bouncy element for giving any object bounce physics.
   - code_imp: Item throws now respect a requested custom throw type.
+2026-11-23:
+  IsBannedFromArgo:
+  - qol: Catnip/Catnip Tea auto-emotes are a bit less common, and a lot more cat-like
+  vinylspiders:
+  - rscadd: cockroaches that die whole leave a dead roach you can eat
+  - bugfix: held mobs deleted in your hand no longer break their holder
+  - bugfix: bees no longer die when you drop or throw them
+  - bugfix: shapeshifters turning back while held no longer end up in nullspace
+  - bugfix: letting go of a held mob quietly no longer says it uncurls
+  - rscadd: subtler can target the person on the other end of a portal device
+  - rscadd: portal subtlers show the other person as Unknown unless you can see them
+      and their end is not anonymous
+  - rscadd: the person on the other end sees the subtler marked as coming through
+      the portal
+  - server: BYOND version bumped to 516.1689
+  - code_imp: tgui-core bumped to 6.1.5 and tgui packages updated
