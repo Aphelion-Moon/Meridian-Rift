@@ -212,7 +212,7 @@
 		base_mult *= WOUND_DETERMINATION_BLEED_MOD
 
 	if (HAS_TRAIT(victim, TRAIT_SHOCKIMMUNE)) // it'd be a bit cheesy to just become immune to this, so it only makes it a lot lot better
-		base_mult *= shock_immunity_self_damage_reduction
+		base_mult *= (100 - shock_immunity_self_damage_reduction) / 100
 
 	base_mult *= limb.get_splint_factor()
 
