@@ -259,7 +259,7 @@
 		//Found our victims, now lets shock them all
 		for(var/victim in shocking_queue)
 			var/mob/living/carbon/C = victim
-			C.electrocute_act(shock_damage*0.75, src, 1, flags, jitter_time, stutter_time, stun_duration)
+			C.electrocute_act(shock_damage*0.75, src, 1, flags & ~(SHOCK_NOGLOVES|SHOCK_IGNORE_IMMUNITY), jitter_time, stutter_time, stun_duration) // APHELION EDIT CHANGE - SYNTH_WOUNDS - ORIGINAL: C.electrocute_act(shock_damage*0.75, src, 1, flags, jitter_time, stutter_time, stun_duration)
 	//Stun
 	var/should_stun = (!(flags & SHOCK_TESLA) || siemens_coeff > 0.5) && !(flags & SHOCK_NOSTUN)
 	var/stun = !(flags & SHOCK_KNOCKDOWN)
