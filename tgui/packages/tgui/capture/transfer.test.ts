@@ -1,15 +1,11 @@
 // THIS IS AN APHELION UI FILE
 
-import { afterEach, beforeEach, expect, jest, test } from 'bun:test';
+import { afterEach, expect, jest, test } from 'bun:test';
 import { SnapshotTransfer } from './transfer';
 
 const timings = { chunk: 4, limit: 64, spacing: 40, ackTimeout: 120, tries: 2 };
 
-// Fake timers also move performance.now(), so the spacing checks don't depend on how busy the machine is
-beforeEach(() => {
-  jest.useFakeTimers();
-});
-
+// Only tests that run their fake timers use them, since one left unrun breaks the timing of later test files
 afterEach(() => {
   jest.useRealTimers();
 });
@@ -23,6 +19,8 @@ function recorder() {
 }
 
 test('chunks go out in order, each after its acknowledgement and the spacing', () => {
+  // Fake timers move performance.now() too, so how busy the machine is can't change the spacing
+  jest.useFakeTimers();
   const { sent, send } = recorder();
   const outcome: boolean[] = [];
   const transfer = new SnapshotTransfer(send, {
@@ -56,6 +54,7 @@ test('chunks go out in order, each after its acknowledgement and the spacing', (
 });
 
 test('a lost acknowledgement sends the same chunk again, then the transfer gives up', () => {
+  jest.useFakeTimers();
   const { sent, send } = recorder();
   const outcome: boolean[] = [];
   const transfer = new SnapshotTransfer(send, {
