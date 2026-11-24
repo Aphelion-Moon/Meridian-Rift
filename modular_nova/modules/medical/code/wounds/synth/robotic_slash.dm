@@ -6,11 +6,39 @@
 #define ELECTRICAL_DAMAGE_LYING_DOWN_MULT 0.7
 /// How much progress is reduced when our victim is dead.
 #define ELECTRICAL_DAMAGE_DEAD_PROGRESS_MULT 0.2 // they'll be resting to, so this is more like 0.1
+/// How much progress is reduced when someone aggrograbs the limb.
+#define ELECTRICAL_DAMAGE_AGGROGRABBED_PROGRESS_MULT 0.5
 
 /// Base time for a wirecutter being used.
 #define ELECTRICAL_DAMAGE_WIRECUTTER_BASE_DELAY 8 SECONDS
 /// Base time for a cable coil being used.
 #define ELECTRICAL_DAMAGE_SUTURE_WIRE_BASE_DELAY 0.8 SECONDS
+/// Delay mult for repairing your own wiring with cable or sutures.
+#define ELECTRICAL_DAMAGE_SUTURE_WIRE_SELF_DELAY_MULT 1.4
+/// Delay mult for repairing your own wiring with wirecutters or a retractor.
+#define ELECTRICAL_DAMAGE_WIRECUTTER_SELF_DELAY_MULT 2
+/// Delay mult for using sutures instead of cable.
+#define ELECTRICAL_DAMAGE_MEDICAL_SUTURE_DELAY_MULT 1.5
+/// Delay mult for using a retractor instead of wirecutters.
+#define ELECTRICAL_DAMAGE_RETRACTOR_DELAY_MULT 2
+/// Cable or suture delay mult for knowing robotic wiring.
+#define ELECTRICAL_DAMAGE_SUTURE_WIRE_ROBO_WIRES_DELAY_MULT 0.8
+/// Wirecutter or retractor delay mult for knowing robotic wiring.
+#define ELECTRICAL_DAMAGE_WIRECUTTER_ROBO_WIRES_DELAY_MULT 0.3
+/// Cable or suture delay mult for knowing engineering wiring.
+#define ELECTRICAL_DAMAGE_SUTURE_WIRE_ENGI_WIRES_DELAY_MULT 0.9
+/// Wirecutter or retractor delay mult for knowing engineering wiring.
+#define ELECTRICAL_DAMAGE_WIRECUTTER_ENGI_WIRES_DELAY_MULT 0.6
+/// Cable or suture delay mult for a diagnostic HUD.
+#define ELECTRICAL_DAMAGE_SUTURE_WIRE_HUD_DELAY_MULT 0.8
+/// Wirecutter or retractor delay mult for a diagnostic HUD.
+#define ELECTRICAL_DAMAGE_WIRECUTTER_HUD_DELAY_MULT 0.75
+/// Wirecutter delay mult for a diagnostic HUD when the user also knows the wiring.
+#define ELECTRICAL_DAMAGE_WIRECUTTER_HUD_AND_WIRES_DELAY_MULT 0.9
+/// Repair mult once the wound is scanned.
+#define ELECTRICAL_DAMAGE_SCANNED_REPAIR_MULT 1.5
+/// How much worse a helper in combat mode makes the wound, as a multiple of what the cycle would have repaired.
+#define ELECTRICAL_DAMAGE_MANGLE_MULT 2
 /// Global damage multiplier for the power a given electrical damage wound will add per tick.
 #define ELECTRICAL_DAMAGE_POWER_PER_TICK_MULT 1
 /// Global damage multiplier for how much repairing wiring will reduce intensity. Higher is more.
@@ -117,18 +145,39 @@
 	. = ..()
 
 	var/base_mult = get_base_mult()
+	var/limb_unimportant = !limb_essential()
 
-	var/seconds_per_tick_for_intensity = seconds_per_tick * get_progress_mult(base_mult)
-	seconds_per_tick_for_intensity = modify_progress_after_progress_mult(seconds_per_tick_for_intensity, seconds_per_tick)
+	var/progress_mult = base_mult * seconds_per_intensity_mult
+	if (limb_unimportant)
+		progress_mult *= limb_unimportant_progress_mult
+	if (isliving(victim.pulledby))
+		var/mob/living/living_puller = victim.pulledby
+		if (living_puller.grab_state >= GRAB_AGGRESSIVE && living_puller.zone_selected == limb.body_zone)
+			progress_mult *= ELECTRICAL_DAMAGE_AGGROGRABBED_PROGRESS_MULT // they're holding it down
+	if (victim.stat == DEAD)
+		progress_mult *= ELECTRICAL_DAMAGE_DEAD_PROGRESS_MULT // doesnt totally stop it but slows it down a lot
 
-	adjust_intensity(seconds_per_tick_for_intensity SECONDS)
+	var/seconds_for_intensity = seconds_per_tick * progress_mult
+	var/heat_healing = max((victim.bodytemperature - heat_thresh_to_heal), 0) * heat_differential_healing_mult
+	if (heat_healing)
+		seconds_for_intensity -= (heat_healing * seconds_per_tick)
+		if (prob(heat_heal_message_chance))
+			to_chat(victim, span_notice("You feel the solder within your [limb.plaintext_zone] reform and repair your [name]..."))
+	if (seconds_for_intensity > 0 && HAS_TRAIT(victim, TRAIT_COAGULATING))
+		seconds_for_intensity *= ELECTRICAL_DAMAGE_CLOTTING_PROGRESS_MULT
+	if (HAS_TRAIT(src, TRAIT_ELECTRICAL_DAMAGE_REPAIRING))
+		seconds_for_intensity = min(seconds_for_intensity, 0) // it cant get any worse
+
+	adjust_intensity(seconds_for_intensity SECONDS)
 
 	if (!victim || victim.stat == DEAD)
 		return
 
-	var/damage_mult = get_damage_mult(base_mult)
 	var/intensity_mult = get_intensity_mult()
-
+	var/damage_mult = base_mult
+	if (limb_unimportant)
+		damage_mult *= limb_unimportant_damage_mult
+	damage_mult *= ELECTRICAL_DAMAGE_POWER_PER_TICK_MULT
 	damage_mult *= seconds_per_tick
 	damage_mult *= intensity_mult
 
@@ -159,47 +208,14 @@
 	)
 	processing_shock_power_this_tick = 0
 
-/// If someone is aggrograbbing us and targetting our limb, intensity progress is multiplied against this.
-#define LIMB_AGGROGRABBED_PROGRESS_MULT 0.5
-
-/// Returns the multiplier used by our intensity progress. Intensity increment is multiplied against this.
-/datum/wound/electrical_damage/proc/get_progress_mult(base_mult)
-	var/progress_mult = base_mult * seconds_per_intensity_mult
-
-	if (!limb_essential())
-		progress_mult *= limb_unimportant_progress_mult
-
-	if (isliving(victim.pulledby))
-		var/mob/living/living_puller = victim.pulledby
-		if (living_puller.grab_state >= GRAB_AGGRESSIVE && living_puller.zone_selected == limb.body_zone)
-			progress_mult *= LIMB_AGGROGRABBED_PROGRESS_MULT // they're holding it down
-
-	if (victim.stat == DEAD)
-		progress_mult *= ELECTRICAL_DAMAGE_DEAD_PROGRESS_MULT // doesnt totally stop it but slows it down a lot
-
-	return progress_mult
-#undef LIMB_AGGROGRABBED_PROGRESS_MULT
-
-/// Returns the multiplier used by the damage we deal.
-/datum/wound/electrical_damage/proc/get_damage_mult(base_mult)
-	SHOULD_BE_PURE(TRUE)
-
-	var/damage_mult = base_mult
-
-	if (!limb_essential())
-		damage_mult *= limb_unimportant_damage_mult
-
-	return damage_mult * ELECTRICAL_DAMAGE_POWER_PER_TICK_MULT
-
-/// Returns the global multiplier used by both progress and damage.
+/// Returns the multiplier shared by intensity progress, shock power and the stun and spark chances.
 /datum/wound/electrical_damage/proc/get_base_mult()
 	var/base_mult = 1
 
-	if (victim)
-		if (HAS_TRAIT(victim, TRAIT_STASIS))
-			base_mult *= ELECTRICAL_DAMAGE_ON_STASIS_MULT
-		if (victim.body_position == LYING_DOWN)
-			base_mult *= ELECTRICAL_DAMAGE_LYING_DOWN_MULT
+	if (HAS_TRAIT(victim, TRAIT_STASIS))
+		base_mult *= ELECTRICAL_DAMAGE_ON_STASIS_MULT
+	if (victim.body_position == LYING_DOWN)
+		base_mult *= ELECTRICAL_DAMAGE_LYING_DOWN_MULT
 	if (limb.grasped_by)
 		base_mult *= ELECTRICAL_DAMAGE_GRASPED_MULT
 
@@ -212,29 +228,6 @@
 	base_mult *= limb.get_splint_factor()
 
 	return overall_effect_mult * base_mult
-
-/// Is called after seconds_for_intensity is modified by get_progress_mult().
-/datum/wound/electrical_damage/proc/modify_progress_after_progress_mult(seconds_for_intensity, seconds_per_tick)
-	if (!victim)
-		return seconds_for_intensity
-
-	seconds_for_intensity -= (get_heat_healing() * seconds_per_tick)
-
-	if (seconds_for_intensity > 0 && HAS_TRAIT(victim, TRAIT_COAGULATING))
-		seconds_for_intensity *= ELECTRICAL_DAMAGE_CLOTTING_PROGRESS_MULT
-
-	if (HAS_TRAIT(src, TRAIT_ELECTRICAL_DAMAGE_REPAIRING))
-		seconds_for_intensity = min(seconds_for_intensity, 0) // it cant get any worse
-
-	return seconds_for_intensity
-
-/// Returns how many deciseconds progress should be reduced by, based on the current heat of our victim's body.
-/datum/wound/electrical_damage/proc/get_heat_healing()
-	var/healing_amount = max((victim.bodytemperature - heat_thresh_to_heal), 0) * heat_differential_healing_mult
-	if (healing_amount && prob(heat_heal_message_chance))
-		to_chat(victim, span_notice("You feel the solder within your [limb.plaintext_zone] reform and repair your [name]..."))
-
-	return healing_amount
 
 /// Changes intensity by the given amount, and then updates our status, removing ourselves if fixed.
 /datum/wound/electrical_damage/proc/adjust_intensity(to_adjust)
@@ -328,9 +321,9 @@
 	var/change = (processing_full_shock_threshold * wire_repair_percent) * ELECTRICAL_DAMAGE_SUTURE_WIRE_HEALING_AMOUNT_MULT
 	var/delay_mult = 1
 	if (user == victim)
-		delay_mult *= 1.4
+		delay_mult *= ELECTRICAL_DAMAGE_SUTURE_WIRE_SELF_DELAY_MULT
 	if (is_suture)
-		delay_mult *= 1.5
+		delay_mult *= ELECTRICAL_DAMAGE_MEDICAL_SUTURE_DELAY_MULT
 		var/obj/item/stack/medical/suture/suture_item = suturing_item
 		var/obj/item/stack/medical/suture/base_suture = /obj/item/stack/medical/suture
 		change = max(change + (suture_item.heal_brute - initial(base_suture.heal_brute)), 0.00001)
@@ -338,46 +331,18 @@
 	// as this is the trauma treatment, there are less bonuses
 	// if youre doing this, youre probably doing this on-the-spot
 	if (HAS_TRAIT(user, TRAIT_KNOW_ROBO_WIRES))
-		delay_mult *= 0.8
+		delay_mult *= ELECTRICAL_DAMAGE_SUTURE_WIRE_ROBO_WIRES_DELAY_MULT
 	else if (HAS_TRAIT(user, TRAIT_KNOW_ENGI_WIRES))
-		delay_mult *= 0.9
+		delay_mult *= ELECTRICAL_DAMAGE_SUTURE_WIRE_ENGI_WIRES_DELAY_MULT
 	if (HAS_TRAIT(user, TRAIT_DIAGNOSTIC_HUD))
-		delay_mult *= 0.8
+		delay_mult *= ELECTRICAL_DAMAGE_SUTURE_WIRE_HUD_DELAY_MULT
 	if (HAS_TRAIT(src, TRAIT_WOUND_SCANNED))
-		change *= 1.5
+		change *= ELECTRICAL_DAMAGE_SCANNED_REPAIR_MULT
 
 	ADD_TRAIT(src, TRAIT_ELECTRICAL_DAMAGE_REPAIRING, REF(user))
-	do_suture_repairs(suturing_item, user, change, delay_mult)
+	do_wire_repairs(suturing_item, user, change, ELECTRICAL_DAMAGE_SUTURE_WIRE_BASE_DELAY * delay_mult, (is_suture ? "repairing some wiring" : "replacing wiring"), (is_suture ? "repair" : "replace"))
 	REMOVE_TRAIT(src, TRAIT_ELECTRICAL_DAMAGE_REPAIRING, REF(user))
 	return TRUE
-
-/// Does a while loop that repairs us with cables. A proc for containing runtimes and allowing trait removal at all times.
-/datum/wound/electrical_damage/proc/do_suture_repairs(obj/item/stack/suturing_item, mob/living/carbon/human/user, change, delay_mult)
-	var/is_suture = (istype(suturing_item, /obj/item/stack/medical/suture))
-	var/their_or_other = (user == victim ? "[user.p_their()]" : "[victim]'s")
-	var/your_or_other = (user == victim ? "your" : "[victim]'s")
-	var/replacing_or_suturing = (is_suture ? "repairing some" : "replacing")
-	while (suturing_item.tool_start_check())
-		user?.visible_message(span_danger("[user] begins [replacing_or_suturing] wiring within [their_or_other] [limb.plaintext_zone] with [suturing_item]..."), \
-			span_notice("You begin [replacing_or_suturing] wiring within [your_or_other] [limb.plaintext_zone] with [suturing_item]..."))
-		if (!suturing_item.use_tool(target = victim, user = user, delay = ELECTRICAL_DAMAGE_SUTURE_WIRE_BASE_DELAY * delay_mult, amount = 1, volume = 50, extra_checks = CALLBACK(src, PROC_REF(still_exists))))
-			return
-
-		if (user != victim && user.combat_mode)
-			user?.visible_message(span_danger("[user] mangles some of [their_or_other] [limb.plaintext_zone]'s wiring!"), \
-				span_danger("You mangle some of [your_or_other] [limb.plaintext_zone]'s wiring!"), ignored_mobs = victim)
-			to_chat(victim, span_userdanger("[capitalize(your_or_other)] mangles some of your [limb.plaintext_zone]'s wiring!"))
-			adjust_intensity(change * 2)
-		else
-			var/repairs_or_replaces = (is_suture ? "repairs" : "replaces")
-			var/repair_or_replace = (is_suture ? "repair" : "replace")
-			user?.visible_message(span_notice("[user] [repairs_or_replaces] some of [their_or_other] [limb.plaintext_zone]'s wiring!"), \
-				span_notice("You [repair_or_replace] some of [your_or_other] [limb.plaintext_zone]'s wiring!"))
-			adjust_intensity(-change)
-			victim?.balloon_alert(user, "intensity reduced to [CEILING(get_intensity_mult() * 100, 1)]%")
-
-		if (fixed())
-			return
 
 /**
  * The "proper" treatment, done with wirecutters/retractors. Retractors get a debuff.
@@ -389,52 +354,62 @@
 	if (!wirecutting_tool.tool_start_check())
 		return TRUE
 
-	var/is_retractor = (wirecutting_tool.tool_behaviour == TOOL_RETRACTOR)
-
 	var/change = (processing_full_shock_threshold * wirecut_repair_percent)
 	var/delay_mult = 1
 	if (user == victim)
-		delay_mult *= 2
-	if (is_retractor)
-		delay_mult *= 2
+		delay_mult *= ELECTRICAL_DAMAGE_WIRECUTTER_SELF_DELAY_MULT
+	if (wirecutting_tool.tool_behaviour == TOOL_RETRACTOR)
+		delay_mult *= ELECTRICAL_DAMAGE_RETRACTOR_DELAY_MULT
 	var/knows_wires = FALSE
 	if (HAS_TRAIT(user, TRAIT_KNOW_ROBO_WIRES))
-		delay_mult *= 0.3
+		delay_mult *= ELECTRICAL_DAMAGE_WIRECUTTER_ROBO_WIRES_DELAY_MULT
 		knows_wires = TRUE
 	else if (HAS_TRAIT(user, TRAIT_KNOW_ENGI_WIRES))
-		delay_mult *= 0.6
+		delay_mult *= ELECTRICAL_DAMAGE_WIRECUTTER_ENGI_WIRES_DELAY_MULT
 		knows_wires = TRUE
 	if (HAS_TRAIT(user, TRAIT_DIAGNOSTIC_HUD))
-		if (knows_wires)
-			delay_mult *= 0.9
-		else
-			delay_mult *= 0.75
+		delay_mult *= (knows_wires ? ELECTRICAL_DAMAGE_WIRECUTTER_HUD_AND_WIRES_DELAY_MULT : ELECTRICAL_DAMAGE_WIRECUTTER_HUD_DELAY_MULT)
 	if (HAS_TRAIT(src, TRAIT_WOUND_SCANNED))
-		change *= 1.5
+		change *= ELECTRICAL_DAMAGE_SCANNED_REPAIR_MULT
 
 	ADD_TRAIT(src, TRAIT_ELECTRICAL_DAMAGE_REPAIRING, REF(user))
-	do_wirecutter_repairs(wirecutting_tool, user, change, delay_mult)
+	do_wire_repairs(wirecutting_tool, user, change, ELECTRICAL_DAMAGE_WIRECUTTER_BASE_DELAY * delay_mult, "resetting misplaced wiring", "reset")
 	REMOVE_TRAIT(src, TRAIT_ELECTRICAL_DAMAGE_REPAIRING, REF(user))
 	return TRUE
 
-/// Does a while loop that repairs us with a wirecutter. A proc for containing runtimes and allowing trait removal at all times.
-/datum/wound/electrical_damage/proc/do_wirecutter_repairs(obj/item/wirecutting_tool, mob/living/carbon/human/user, change, delay_mult)
+/**
+ * Repairs the wiring a cycle at a time, until the item can't go on, a cycle is interrupted or we're fixed.
+ *
+ * This is its own proc so the callers still remove TRAIT_ELECTRICAL_DAMAGE_REPAIRING if it runtimes. A helper in
+ * combat mode mangles the wiring instead, which raises intensity by ELECTRICAL_DAMAGE_MANGLE_MULT times the change.
+ *
+ * Arguments:
+ * - repairing_item: Cable, sutures, wirecutters or a retractor. A stack spends one unit a cycle.
+ * - user: Whoever is repairing.
+ * - change: Deciseconds of intensity each cycle removes.
+ * - delay: How long each cycle takes.
+ * - action_text: What the repair is, for the start message. "replacing wiring", for example.
+ * - action_verb: The verb for the finish message. "replace", for example.
+ */
+/datum/wound/electrical_damage/proc/do_wire_repairs(obj/item/repairing_item, mob/living/carbon/human/user, change, delay, action_text, action_verb)
 	var/their_or_other = (user == victim ? "[user.p_their()]" : "[victim]'s")
 	var/your_or_other = (user == victim ? "your" : "[victim]'s")
-	while (wirecutting_tool.tool_start_check())
-		user?.visible_message(span_danger("[user] begins resetting misplaced wiring within [their_or_other] [limb.plaintext_zone]..."), \
-			span_notice("You begin resetting misplaced wiring within [your_or_other] [limb.plaintext_zone]..."))
-		if (!wirecutting_tool.use_tool(target = victim, user = user, delay = ELECTRICAL_DAMAGE_WIRECUTTER_BASE_DELAY * delay_mult, volume = 50, extra_checks = CALLBACK(src, PROC_REF(still_exists))))
+	var/is_stack = isstack(repairing_item)
+	while (repairing_item.tool_start_check())
+		var/with_item = (is_stack ? " with [repairing_item]" : "")
+		user?.visible_message(span_danger("[user] begins [action_text] within [their_or_other] [limb.plaintext_zone][with_item]..."), \
+			span_notice("You begin [action_text] within [your_or_other] [limb.plaintext_zone][with_item]..."))
+		if (!repairing_item.use_tool(target = victim, user = user, delay = delay, amount = (is_stack ? 1 : 0), volume = 50, extra_checks = CALLBACK(src, PROC_REF(still_exists))))
 			return
 
 		if (user != victim && user.combat_mode)
 			user?.visible_message(span_danger("[user] mangles some of [their_or_other] [limb.plaintext_zone]'s wiring!"), \
 				span_danger("You mangle some of [your_or_other] [limb.plaintext_zone]'s wiring!"), ignored_mobs = victim)
 			to_chat(victim, span_userdanger("[capitalize(your_or_other)] mangles some of your [limb.plaintext_zone]'s wiring!"))
-			adjust_intensity(change * 2)
+			adjust_intensity(change * ELECTRICAL_DAMAGE_MANGLE_MULT)
 		else
-			user?.visible_message(span_notice("[user] resets some of [their_or_other] [limb.plaintext_zone]'s wiring!"), \
-				span_notice("You reset some of [your_or_other] [limb.plaintext_zone]'s wiring!"))
+			user?.visible_message(span_notice("[user] [action_verb]s some of [their_or_other] [limb.plaintext_zone]'s wiring!"), \
+				span_notice("You [action_verb] some of [your_or_other] [limb.plaintext_zone]'s wiring!"))
 			adjust_intensity(-change)
 			victim?.balloon_alert(user, "intensity reduced to [CEILING(get_intensity_mult() * 100, 1)]%")
 
@@ -520,21 +495,12 @@
 	threshold_penalty = 20
 
 	intensity = 10 SECONDS
-	processing_full_shock_threshold = 3 MINUTES
 
 	processing_shock_power_per_second_max = 0.5
 	processing_shock_power_per_second_min = 0.4
 
-	processing_shock_stun_chance = 0
-	processing_shock_spark_chance = 30
-
-	process_shock_spark_count_max = 1
-	process_shock_spark_count_min = 1
-
 	wirecut_repair_percent = 0.1
 	wire_repair_percent = 0.023
-
-	initial_sparks_amount = 1
 
 	status_effect_type = /datum/status_effect/wound/electrical_damage/slash/moderate
 
@@ -568,11 +534,9 @@
 	processing_shock_power_per_second_max = 0.7
 	processing_shock_power_per_second_min = 0.6
 
-	processing_shock_stun_chance = 0
 	processing_shock_spark_chance = 60
 
 	process_shock_spark_count_max = 2
-	process_shock_spark_count_min = 1
 
 	wirecut_repair_percent = 0.09
 	wire_repair_percent = 0.015
@@ -626,8 +590,6 @@
 
 	status_effect_type = /datum/status_effect/wound/electrical_damage/slash/critical
 
-	a_or_from = "a"
-
 	scar_keyword = "slashcritical"
 
 /datum/wound_pregen_data/electrical_damage/slash/critical
@@ -639,9 +601,23 @@
 #undef ELECTRICAL_DAMAGE_GRASPED_MULT
 #undef ELECTRICAL_DAMAGE_LYING_DOWN_MULT
 #undef ELECTRICAL_DAMAGE_DEAD_PROGRESS_MULT
+#undef ELECTRICAL_DAMAGE_AGGROGRABBED_PROGRESS_MULT
 
 #undef ELECTRICAL_DAMAGE_WIRECUTTER_BASE_DELAY
 #undef ELECTRICAL_DAMAGE_SUTURE_WIRE_BASE_DELAY
+#undef ELECTRICAL_DAMAGE_SUTURE_WIRE_SELF_DELAY_MULT
+#undef ELECTRICAL_DAMAGE_WIRECUTTER_SELF_DELAY_MULT
+#undef ELECTRICAL_DAMAGE_MEDICAL_SUTURE_DELAY_MULT
+#undef ELECTRICAL_DAMAGE_RETRACTOR_DELAY_MULT
+#undef ELECTRICAL_DAMAGE_SUTURE_WIRE_ROBO_WIRES_DELAY_MULT
+#undef ELECTRICAL_DAMAGE_WIRECUTTER_ROBO_WIRES_DELAY_MULT
+#undef ELECTRICAL_DAMAGE_SUTURE_WIRE_ENGI_WIRES_DELAY_MULT
+#undef ELECTRICAL_DAMAGE_WIRECUTTER_ENGI_WIRES_DELAY_MULT
+#undef ELECTRICAL_DAMAGE_SUTURE_WIRE_HUD_DELAY_MULT
+#undef ELECTRICAL_DAMAGE_WIRECUTTER_HUD_DELAY_MULT
+#undef ELECTRICAL_DAMAGE_WIRECUTTER_HUD_AND_WIRES_DELAY_MULT
+#undef ELECTRICAL_DAMAGE_SCANNED_REPAIR_MULT
+#undef ELECTRICAL_DAMAGE_MANGLE_MULT
 
 #undef ELECTRICAL_DAMAGE_MINIMUM_SHOCK_POWER_PER_ZAP
 #undef ELECTRICAL_DAMAGE_MAX_BURN_DAMAGE_TO_LET_WIRES_REPAIR
