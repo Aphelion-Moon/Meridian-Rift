@@ -20,3 +20,19 @@
 	TEST_ASSERT_EQUAL(shocked.pulledby, plain_helper, "The plain helper didn't start pulling, so the shock has no one to jump to.")
 	shocked.electrocute_act(20, src, flags = SHOCK_NOGLOVES)
 	TEST_ASSERT(plain_helper.get_fire_loss() > 0, "A SHOCK_NOGLOVES shock didn't jump to a helper without gloves.")
+
+/// System Shock reboots a synth on a shock that gets through, but not on one their insulated gloves stop.
+/datum/unit_test/system_shock_gloves
+
+/datum/unit_test/system_shock_gloves/Run()
+	var/mob/living/carbon/human/species/synth/shocked_synth = allocate(/mob/living/carbon/human/species/synth)
+	var/obj/item/clothing/gloves/insulated_gloves = allocate(/obj/item/clothing/gloves/color/yellow)
+	shocked_synth.equip_to_slot(insulated_gloves, ITEM_SLOT_GLOVES)
+	shocked_synth.add_quirk(/datum/quirk/system_shock)
+
+	shocked_synth.electrocute_act(20, src)
+	TEST_ASSERT(!shocked_synth.has_status_effect(/datum/status_effect/static_vision), "System Shock rebooted a synth on a shock their insulated gloves stopped.")
+
+	shocked_synth.dropItemToGround(insulated_gloves, force = TRUE)
+	shocked_synth.electrocute_act(20, src)
+	TEST_ASSERT(shocked_synth.has_status_effect(/datum/status_effect/static_vision), "System Shock didn't reboot a synth on a shock that got through.")
