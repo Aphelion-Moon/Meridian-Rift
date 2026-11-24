@@ -110,20 +110,15 @@
 /datum/wound_pregen_data/electrical_damage/generate_scar_priorities()
 	return list("[BIO_METAL]") // wire scars dont exist so we can just use metal
 
-/datum/wound/burn/electrical_damage/slash/get_limb_examine_description()
+/datum/wound/electrical_damage/slash/get_limb_examine_description()
 	return span_warning("The wiring on this limb is slashed open.")
-
-/datum/wound/burn/electrical_damage/check_grab_treatments(obj/item/tool, mob/user)
-	if(istype(tool, /obj/item/stack/cable_coil))
-		return TRUE
-	return FALSE
 
 /datum/wound/electrical_damage/handle_process(seconds_per_tick)
 	. = ..()
 
 	var/base_mult = get_base_mult()
 
-	var/seconds_per_tick_for_intensity = seconds_per_tick * get_progress_mult()
+	var/seconds_per_tick_for_intensity = seconds_per_tick * get_progress_mult(base_mult)
 	seconds_per_tick_for_intensity = modify_progress_after_progress_mult(seconds_per_tick_for_intensity, seconds_per_tick)
 
 	adjust_intensity(seconds_per_tick_for_intensity SECONDS)
@@ -131,7 +126,7 @@
 	if (!victim || victim.stat == DEAD)
 		return
 
-	var/damage_mult = get_damage_mult(victim)
+	var/damage_mult = get_damage_mult(base_mult)
 	var/intensity_mult = get_intensity_mult()
 
 	damage_mult *= seconds_per_tick
@@ -145,14 +140,14 @@
 	var/stun_chance = (processing_shock_stun_chance * intensity_mult) * base_mult
 	var/spark_chance = (processing_shock_spark_chance * intensity_mult) * base_mult
 
-	var/should_stun = SPT_PROB(stun_chance, seconds_per_tick)
+	var/should_stun = stun_chance && SPT_PROB(stun_chance, seconds_per_tick)
 	var/should_message = SPT_PROB(process_shock_message_chance, seconds_per_tick)
 
 	zap(victim,
 		processing_shock_power_this_tick,
 		stun = should_stun,
 		spark = SPT_PROB(spark_chance, seconds_per_tick),
-		animation = should_stun, message = FALSE,
+		animation = should_stun,
 		message = should_stun,
 		tell_victim_if_no_message = should_message,
 		ignore_immunity = TRUE,
@@ -168,8 +163,8 @@
 #define LIMB_AGGROGRABBED_PROGRESS_MULT 0.5
 
 /// Returns the multiplier used by our intensity progress. Intensity increment is multiplied against this.
-/datum/wound/electrical_damage/proc/get_progress_mult()
-	var/progress_mult = get_base_mult() * seconds_per_intensity_mult
+/datum/wound/electrical_damage/proc/get_progress_mult(base_mult)
+	var/progress_mult = base_mult * seconds_per_intensity_mult
 
 	if (!limb_essential())
 		progress_mult *= limb_unimportant_progress_mult
@@ -186,10 +181,10 @@
 #undef LIMB_AGGROGRABBED_PROGRESS_MULT
 
 /// Returns the multiplier used by the damage we deal.
-/datum/wound/electrical_damage/proc/get_damage_mult(mob/living/target)
+/datum/wound/electrical_damage/proc/get_damage_mult(base_mult)
 	SHOULD_BE_PURE(TRUE)
 
-	var/damage_mult = get_base_mult()
+	var/damage_mult = base_mult
 
 	if (!limb_essential())
 		damage_mult *= limb_unimportant_damage_mult
@@ -234,9 +229,9 @@
 	return seconds_for_intensity
 
 /// Returns how many deciseconds progress should be reduced by, based on the current heat of our victim's body.
-/datum/wound/electrical_damage/proc/get_heat_healing(do_message = prob(heat_heal_message_chance))
+/datum/wound/electrical_damage/proc/get_heat_healing()
 	var/healing_amount = max((victim.bodytemperature - heat_thresh_to_heal), 0) * heat_differential_healing_mult
-	if (do_message && healing_amount)
+	if (healing_amount && prob(heat_heal_message_chance))
 		to_chat(victim, span_notice("You feel the solder within your [limb.plaintext_zone] reform and repair your [name]..."))
 
 	return healing_amount
@@ -297,7 +292,7 @@
 
 /// Returns a string with our fault intensity and threshold to removal for use in health analyzers.
 /datum/wound/electrical_damage/proc/get_wound_status_info()
-	return "Fault intensity is currently at [span_bold("[get_intensity_mult() * 100]")]%. It must be reduced to [span_blue("<b>[minimum_intensity]</b>")]% to remove the wound."
+	return "Fault intensity is currently at [span_bold("[CEILING(get_intensity_mult() * 100, 1)]")]%. It must be reduced to [span_blue("<b>[round(minimum_intensity / processing_full_shock_threshold * 100, 1)]</b>")]% to remove the wound."
 
 // this wound is unaffected by cryoxadone and pyroxadone
 /datum/wound/electrical_damage/on_xadone(power)
@@ -338,7 +333,7 @@
 		delay_mult *= 1.5
 		var/obj/item/stack/medical/suture/suture_item = suturing_item
 		var/obj/item/stack/medical/suture/base_suture = /obj/item/stack/medical/suture
-		change = max(change - (suture_item.heal_brute - initial(base_suture.heal_brute)), 0.00001)
+		change = max(change + (suture_item.heal_brute - initial(base_suture.heal_brute)), 0.00001)
 
 	// as this is the trauma treatment, there are less bonuses
 	// if youre doing this, youre probably doing this on-the-spot
@@ -379,7 +374,7 @@
 			user?.visible_message(span_notice("[user] [repairs_or_replaces] some of [their_or_other] [limb.plaintext_zone]'s wiring!"), \
 				span_notice("You [repair_or_replace] some of [your_or_other] [limb.plaintext_zone]'s wiring!"))
 			adjust_intensity(-change)
-			victim?.balloon_alert(user, "intensity reduced to [get_intensity_mult() * 100]%")
+			victim?.balloon_alert(user, "intensity reduced to [CEILING(get_intensity_mult() * 100, 1)]%")
 
 		if (fixed())
 			return
@@ -441,7 +436,7 @@
 			user?.visible_message(span_notice("[user] resets some of [their_or_other] [limb.plaintext_zone]'s wiring!"), \
 				span_notice("You reset some of [your_or_other] [limb.plaintext_zone]'s wiring!"))
 			adjust_intensity(-change)
-			victim?.balloon_alert(user, "intensity reduced to [get_intensity_mult() * 100]%")
+			victim?.balloon_alert(user, "intensity reduced to [CEILING(get_intensity_mult() * 100, 1)]%")
 
 		if (fixed())
 			return

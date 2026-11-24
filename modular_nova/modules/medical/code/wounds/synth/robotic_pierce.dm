@@ -10,7 +10,7 @@
 	wound_series = WOUND_SERIES_WIRE_PIERCE_ELECTRICAL_DAMAGE
 	required_wounding_type = WOUND_PIERCE
 
-/datum/wound/burn/electrical_damage/pierce/get_limb_examine_description()
+/datum/wound/electrical_damage/pierce/get_limb_examine_description()
 	return span_warning("The metal on this limb is pierced open.")
 
 /datum/wound/electrical_damage/pierce/moderate
@@ -89,11 +89,11 @@
 
 	initial_sparks_amount = 3
 
-	status_effect_type = /datum/status_effect/wound/electrical_damage/pierce/moderate
+	status_effect_type = /datum/status_effect/wound/electrical_damage/pierce/severe
 
 	a_or_from = "a"
 
-	scar_keyword = "piercemoderate"
+	scar_keyword = "piercesevere"
 
 /datum/wound_pregen_data/electrical_damage/pierce/severe
 	abstract = FALSE
@@ -105,7 +105,7 @@
 	desc = "The local PSU of this limb has suffered a core rupture, causing a progressive power failure that will slowly intensify into massive electrical damage."
 	occur_text = "flashes with radiant blue, emitting a noise not unlike a Jacob's Ladder"
 	examine_desc = "'s PSU is visible, with a sizable hole in the center"
-	treat_text = "Immediate securing via gauze, followed by emergency cable replacement and securing via wirecutters or hemostat. \
+	treat_text = "Immediate securing via gauze, followed by emergency cable replacement and securing via wirecutters or retractor. \
 		If the fault has become uncontrollable, extreme heat therapy is recommended."
 
 	severity = WOUND_SEVERITY_CRITICAL
@@ -134,7 +134,7 @@
 
 	initial_sparks_amount = 8
 
-	status_effect_type = /datum/status_effect/wound/electrical_damage/pierce/moderate
+	status_effect_type = /datum/status_effect/wound/electrical_damage/pierce/critical
 
 	a_or_from = "a"
 

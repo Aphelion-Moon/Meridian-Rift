@@ -24,7 +24,7 @@
 		if (!was_working_synth)
 			to_chat(affected_mob, span_warning("Your damaged circuitry is encased in a insulative substance!"))
 			was_working_synth = TRUE
-		zappiest_wound.adjust_intensity(-clot_rate * CLOT_RATE_INTENSITY_MULT * seconds_per_tick)
+		zappiest_wound.adjust_intensity(-METABOLIZE_FREE_CONSTANT(CLOT_RATE_INTENSITY_MULT) * clot_rate * metabolization_ratio * seconds_per_tick)
 	else
 		was_working_synth = FALSE
 
