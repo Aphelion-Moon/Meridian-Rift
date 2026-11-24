@@ -64,7 +64,7 @@
 	if(passive_cooling)
 		chassis_temperature -= 0.2 * passive_cooling
 	if(victim.stat != DEAD) // So we don't husk anyone with a burn
-		victim.adjust_bodytemperature((chassis_temperature + overheat_bonus) * 0.4)
+		victim.adjust_bodytemperature((chassis_temperature + overheat_bonus) * 0.4, max_temp = BODYTEMP_HEAT_WOUND_LIMIT - 1) // APHELION EDIT CHANGE - SYNTH_WOUNDS - ORIGINAL: victim.adjust_bodytemperature((chassis_temperature + overheat_bonus) * 0.4)
 	try_downgrade()
 	return
 

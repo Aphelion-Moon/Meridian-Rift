@@ -112,7 +112,7 @@ GLOBAL_LIST_INIT(bio_state_anatomy, list(
 #define WOUND_SERIES_CRANIAL_FISSURE "wound_series_cranial_fissure"
 /// Robotic wounds.
 
-/// T1-T3 Basic metal blunt wounds. T1 requires jointed and metal, T2-3 require only metal. From: robotic_blunt.dm
+/// T1-T3 Basic metal blunt wounds. They only require metal, and T1 can't roll on the head. From: robotic_blunt.dm // APHELION EDIT CHANGE - SYNTH_WOUNDS - ORIGINAL: /// T1-T3 Basic metal blunt wounds. T1 requires jointed and metal, T2-3 require only metal. From: robotic_blunt.dm
 #define WOUND_SERIES_METAL_BLUNT_BASIC "wound_series_metal_blunt_basic"
 /// T1-T3 Basic metal burn wounds. Requires metal. From: robotic_burn.dm
 #define WOUND_SERIES_METAL_BURN_OVERHEAT "wound_series_metal_burn_basic"
@@ -291,7 +291,7 @@ GLOBAL_LIST_INIT(wounding_types_to_series, list(
 GLOBAL_LIST_INIT(biotypes_to_scar_file, list(
 	"[BIO_FLESH]" = FLESH_SCAR_FILE,
 	"[BIO_BONE]" = BONE_SCAR_FILE,
-	"[BIO_METAL]" = METAL_SCAR_FILE // NOVA EDIT ADDITION - METAL SCARS (see robotic_slash.dm)
+	"[BIO_METAL]" = METAL_SCAR_FILE // NOVA EDIT ADDITION - METAL SCARS (used by electrical damage and robotic blunt and burn wounds)
 ))
 
 // ~burn wound infection defines

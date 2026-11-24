@@ -15,21 +15,21 @@
 	new /obj/item/wirecutters(src)
 	// Blunt/Brute tools
 	new /obj/item/weldingtool/largetank(src) // Used for repairing blunt damage or heating metal at T3 blunt
-	new /obj/item/screwdriver(src) // Used for fixing T1 blunt or securing internals of T2/3 blunt
+	new /obj/item/screwdriver(src) // Used for fixing T1 blunt or securing internals of T2 blunt
 	new /obj/item/bonesetter(src)
 	// Clothing items
 	new /obj/item/clothing/head/utility/welding(src)
-	new /obj/item/clothing/gloves/color/black(src) // Protects from T3 mold metal step
+	new /obj/item/clothing/gloves/color/black(src)
 	new /obj/item/clothing/glasses/hud/diagnostic(src) // When worn, generally improves wound treatment quality
 	// Reagent containers
-	new /obj/item/reagent_containers/spray/hercuri/chilled(src) // Highly effective (specifically coded to be) against burn wounds
+	new /obj/item/reagent_containers/spray/hercuri/chilled(src) // Pre-chilled, so it cools robotic burns fast
 	new /obj/item/reagent_containers/spray/dinitrogen_plasmide(src) // same
 	// Generic medical items
 	new /obj/item/stack/medical/wrap/gauze/twelve(src)
 	new /obj/item/healthanalyzer(src)
 	new /obj/item/healthanalyzer/simple(src) // Buffs wound treatment and gives details of wounds it scans
 	// "Ghetto" tools, things you shouldnt ideally use but you might have to
-	new /obj/item/stack/medical/bone_gel(src) // Ghetto T2/3 option for securing internals
+	new /obj/item/stack/medical/bone_gel(src) // Ghetto T2 option for securing internals
 	new /obj/item/plunger(src) // Can be used to mold heated metal at T3
 
 // a treatment kit with extra space and more tools/upgraded tools, like a crowbar, insuls, a reinforced plunger, a crowbar and wrench
@@ -69,7 +69,7 @@
 			/obj/item/retractor,
 			/obj/item/cautery,
 			/obj/item/plunger,
-			// RCD stuff - RCDs can easily treat the 1st step of T3 blunt
+			// RCD stuff, because RCDs can reform T3 blunt into T2
 			/obj/item/construction/rcd,
 			/obj/item/rcd_ammo,
 			// Clothing items
@@ -100,24 +100,24 @@
 	new /obj/item/wirecutters(src)
 	// Blunt/Brute tools
 	new /obj/item/weldingtool/hugetank(src) // Used for repairing blunt damage or heating metal at T3 blunt
-	new /obj/item/screwdriver(src) // Used for fixing T1 blunt or securing internals of T2/3 blunt
-	new /obj/item/wrench(src) // Same as screwdriver for T2/3
+	new /obj/item/screwdriver(src) // Used for fixing T1 blunt or securing internals of T2 blunt
+	new /obj/item/wrench(src) // Same as screwdriver for T2
 	new /obj/item/crowbar(src) // Ghetto fixing option for T2/3 blunt
 	new /obj/item/bonesetter(src)
 	// Clothing items
 	new /obj/item/clothing/head/utility/welding(src)
-	new /obj/item/clothing/gloves/color/black(src) // Protects from T3 mold metal step
+	new /obj/item/clothing/gloves/color/black(src)
 	new /obj/item/clothing/gloves/color/yellow(src) // Protects from electrical damage and crowbarring a blunt wound
 	new /obj/item/clothing/glasses/hud/diagnostic(src) // When worn, generally improves wound treatment quality
 	// Reagent containers
-	new /obj/item/reagent_containers/spray/hercuri/chilled(src) // Highly effective (specifically coded to be) against burn wounds
+	new /obj/item/reagent_containers/spray/hercuri/chilled(src) // Pre-chilled, so it cools robotic burns fast
 	new /obj/item/reagent_containers/spray/dinitrogen_plasmide(src) // same
 	// Generic medical items
 	new /obj/item/stack/medical/wrap/gauze/twelve(src)
 	new /obj/item/healthanalyzer(src)
 	new /obj/item/healthanalyzer/simple(src) // Buffs wound treatment and gives details of wounds it scans
 	// "Ghetto" tools, things you shouldnt ideally use but you might have to
-	new /obj/item/stack/medical/bone_gel(src) // Ghetto T2/3 option for securing internals
+	new /obj/item/stack/medical/bone_gel(src) // Ghetto T2 option for securing internals
 	new /obj/item/plunger/reinforced(src) // Can be used to mold heated metal at T3
 
 // advanced tools, an RCD, chems, etc etc. dont give this one to the crew early in the round
@@ -144,14 +144,14 @@
 	// Blunt/Brute tools
 	new /obj/item/weldingtool/experimental(src) // Used for repairing blunt damage or heating metal at T3 blunt
 	new /obj/item/screwdriver/power(src) // drill - screwdriver and wrench
-	new /obj/item/construction/rcd/loaded(src) // lets you instantly heal T3 blunt step 1
+	new /obj/item/construction/rcd/loaded(src) // reforms T3 blunt into T2
 	new /obj/item/bonesetter(src)
 	// Clothing items
 	new /obj/item/clothing/head/utility/welding(src)
 	new /obj/item/clothing/gloves/combat(src) // insulated AND heat-resistant
 	new /obj/item/clothing/glasses/hud/diagnostic(src) // When worn, generally improves wound treatment quality
 	// Reagent containers
-	new /obj/item/reagent_containers/spray/hercuri/chilled(src) // Highly effective (specifically coded to be) against burn wounds
+	new /obj/item/reagent_containers/spray/hercuri/chilled(src) // Pre-chilled, so it cools robotic burns fast
 	new /obj/item/reagent_containers/spray/hercuri/chilled(src) // 2 of them
 	new /obj/item/reagent_containers/spray/dinitrogen_plasmide(src) // same
 	new /obj/item/reagent_containers/spray/dinitrogen_plasmide(src)
@@ -163,7 +163,7 @@
 	new /obj/item/healthanalyzer/advanced(src) // advanced, not a normal analyzer
 	new /obj/item/healthanalyzer/simple(src) // Buffs wound treatment and gives details of wounds it scans
 	// "Ghetto" tools, things you shouldn't ideally use but you might have to
-	new /obj/item/stack/medical/bone_gel(src) // Ghetto T2/3 option for securing internals
+	new /obj/item/stack/medical/bone_gel(src) // Ghetto T2 option for securing internals
 	new /obj/item/plunger/reinforced(src) // Can be used to mold heated metal at T3 blunt
 
 /obj/item/storage/backpack/duffelbag/synth_treatment_kit/trauma/advanced/unzipped

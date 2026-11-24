@@ -4,3 +4,6 @@
 	It comes pre-chilled, so it cools overheated robotic limbs faster. \n\
 	It has a bold warning label near the nozzle: <b>ONLY USE IN EMERGENCIES! WILL CAUSE FREEZING!</b>"
 	reagents_temperature = 100
+
+/obj/item/reagent_containers/spray/dinitrogen_plasmide
+	desc = "A medical spray bottle. This one contains cold dinitrogen plasmide, a potent industrial coolant. Whatever soaks in slows you down."

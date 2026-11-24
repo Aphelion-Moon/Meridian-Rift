@@ -29,3 +29,32 @@
 		was_working_synth = FALSE
 
 #undef CLOT_RATE_INTENSITY_MULT
+
+// Coolant slows whoever metabolizes it. Synths can process it here, or the slowdown wouldn't reach them.
+/datum/reagent/dinitrogen_plasmide
+	description = "A compound of nitrogen and stabilized plasma, this substance is commonly used in industrial cooling due to its extreme thermal conductivity. \
+	Being a heavy compound, it slows anything that metabolizes it."
+	process_flags = REAGENT_ORGANIC | REAGENT_SYNTHETIC
+	overdose_threshold = 60 // spraying soaks some in, so people hit tg's 40 too soon
+
+/datum/reagent/dinitrogen_plasmide/on_mob_metabolize(mob/living/affected_mob)
+	. = ..()
+	affected_mob.add_movespeed_modifier(/datum/movespeed_modifier/dinitrogen_plasmide)
+	to_chat(affected_mob, span_warning("Your joints suddenly feel stiff."))
+
+/datum/reagent/dinitrogen_plasmide/on_mob_end_metabolize(mob/living/affected_mob, metabolization_ratio)
+	. = ..()
+	affected_mob.remove_movespeed_modifier(/datum/movespeed_modifier/dinitrogen_plasmide)
+	affected_mob.remove_movespeed_modifier(/datum/movespeed_modifier/dinitrogen_plasmide_overdose)
+	to_chat(affected_mob, span_warning("Your joints no longer feel stiff!"))
+
+/datum/reagent/dinitrogen_plasmide/overdose_start(mob/living/affected_mob, metabolization_ratio)
+	. = ..()
+	to_chat(affected_mob, span_danger("You feel like your joints are filling with some viscous fluid!"))
+	affected_mob.add_movespeed_modifier(/datum/movespeed_modifier/dinitrogen_plasmide_overdose)
+
+/datum/movespeed_modifier/dinitrogen_plasmide
+	multiplicative_slowdown = 0.3
+
+/datum/movespeed_modifier/dinitrogen_plasmide_overdose
+	multiplicative_slowdown = 1.3

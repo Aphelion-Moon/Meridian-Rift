@@ -145,7 +145,7 @@
 /// Alternative treatment: hitting the wounded bodypart until it works again.
 /datum/wound/blunt/robotic/moderate/receive_damage(wounding_type, wounding_dmg, wound_bonus)
 	. = ..()
-	if(wounding_dmg < percussive_damage_min || wounding_type != WOUND_BLUNT || !victim.pulledby)
+	if(!victim || wounding_dmg < percussive_damage_min || wounding_type != WOUND_BLUNT || !victim.pulledby) // APHELION EDIT CHANGE - SYNTH_WOUNDS - ORIGINAL: if(wounding_dmg < percussive_damage_min || wounding_type != WOUND_BLUNT || !victim.pulledby)
 		return
 	if (prob(percussive_repair_chance))
 		victim.visible_message(span_green("[victim]'s [limb.plaintext_zone] rattles from the impact, but looks a lot more secure!"), span_green("Your [limb.plaintext_zone] rattles into place!"))
@@ -255,6 +255,10 @@
 	playsound(get_turf(crowbarring_item), 'sound/machines/airlock/airlock_alien_prying.ogg', 30, TRUE)
 	if (!crowbarring_item.use_tool(target = victim, user = user, delay = delay, volume = 50, extra_checks = CALLBACK(src, PROC_REF(still_exists))))
 		return TRUE
+	// APHELION EDIT ADDITION START - SYNTH_WOUNDS
+	if (!victim) // the limb came off mid-pry
+		return TRUE
+	// APHELION EDIT ADDITION END
 
 	var/message = ""
 
@@ -262,7 +266,7 @@
 	var/obj/item/stack/medical/wrap/gauze = LAZYACCESS(limb.applied_items, LIMB_ITEM_GAUZE)
 	if (gauze)
 		shock_damage *= gauze.splint_factor // yay gauze
-	var/successful_shock = user.electrocute_act(shock_damage, limb, flags = SHOCK_KNOCKDOWN)
+	var/successful_shock = can_shock() && user.electrocute_act(shock_damage, limb, flags = SHOCK_KNOCKDOWN) // APHELION EDIT CHANGE - SYNTH_WOUNDS - ORIGINAL: var/successful_shock = user.electrocute_act(shock_damage, limb, flags = SHOCK_KNOCKDOWN)
 
 	if (successful_shock && user && can_shock())
 		message = span_boldwarning("[user] is shocked by [their_or_other] [limb.plaintext_zone]!")
@@ -270,6 +274,7 @@
 		if (user != victim)
 			victim_message = span_userdanger("[user] is shocked by your [limb.plaintext_zone] while [user.p_they()] tear it open!")
 
+	/* APHELION EDIT REMOVAL START - SYNTH_WOUNDS
 	if (successful_shock)
 		var/other_shock_text = ""
 		var/self_shock_text = ""
@@ -284,6 +289,23 @@
 
 		playsound(get_turf(crowbarring_item), 'sound/effects/bang.ogg', 35, TRUE) // we did it!
 		to_chat(user, span_green("You've torn [your_or_other] [limb.plaintext_zone] open, heavily damaging it but making it a lot easier to screwdriver the internals!"))
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - SYNTH_WOUNDS - the tear-open text shows without a shock too
+	var/other_shock_text = ""
+	var/self_shock_text = ""
+	if (successful_shock)
+		other_shock_text = ", and is striken by bolts of electricity"
+		self_shock_text = ", but are immediately shocked by the electricity contained within"
+	message = span_boldwarning("[user] tears open [their_or_other] [limb.plaintext_zone] with [user.p_their()] crowbar[other_shock_text]!")
+	self_message = span_warning("You tear open [your_or_other] [limb.plaintext_zone] with your crowbar[self_shock_text]!")
+	if(user != victim)
+		victim_message = span_userdanger("Your [limb.plaintext_zone] fragments and splinters as [user] tears it open with [user.p_their()] crowbar[successful_shock ? ", shocking [user.p_them()]" : ""]!")
+	else
+		victim_message = self_message
+
+	playsound(get_turf(crowbarring_item), 'sound/effects/bang.ogg', 35, TRUE) // we did it!
+	to_chat(user, span_green("You've torn [your_or_other] [limb.plaintext_zone] open, heavily damaging it but making it a lot easier to screwdriver the internals!"))
+	// APHELION EDIT ADDITION END
 	limb.receive_damage(brute = 15, wound_bonus = CANT_WOUND, damage_source = crowbarring_item)
 	crowbarred_open = TRUE
 	user.visible_message(message, self_message, ignored_mobs = list(victim))
@@ -366,10 +388,14 @@
 	victim.visible_message(span_notice("[user] begins rebooting [their_or_other] [limb.plaintext_zone]..."), \
 		span_notice("You begin restarting the electronics in [your_or_other] [limb.plaintext_zone]..."))
 
-	var/delay = 6 SECONDS / (HAS_TRAIT(src, TRAIT_WOUND_SCANNED) ? 1 : 2)
+	var/delay = 6 SECONDS / (HAS_TRAIT(src, TRAIT_WOUND_SCANNED) ? 2 : 1) // APHELION EDIT CHANGE - SYNTH_WOUNDS - ORIGINAL: var/delay = 6 SECONDS / (HAS_TRAIT(src, TRAIT_WOUND_SCANNED) ? 1 : 2)
 
 	if (!multitool.use_tool(target = victim, user = user, delay = delay, volume = 50,  extra_checks = CALLBACK(src, PROC_REF(still_exists))))
 		return TRUE
+	// APHELION EDIT ADDITION START - SYNTH_WOUNDS
+	if (!victim) // the limb came off mid-reboot
+		return TRUE
+	// APHELION EDIT ADDITION END
 
 	victim.visible_message(span_green("[user] finishes rebooting [their_or_other] [limb.plaintext_zone]!"), \
 		span_notice("You succesfully restart the electronics in [your_or_other] [limb.plaintext_zone]!"))
@@ -431,10 +457,29 @@
 	threshold_minimum = 125
 
 /datum/wound/blunt/robotic/critical/treat(obj/item/item, mob/treater)
+	// APHELION EDIT ADDITION START - SYNTH_WOUNDS
+	if(istype(item, /obj/item/construction/rcd))
+		return rcd_superstructure(item, treater)
+	if(istype(item, /obj/item/plunger))
+		return plunge(item, treater)
+	// APHELION EDIT ADDITION END
 	var/delay = 4 SECONDS / (HAS_TRAIT(src, TRAIT_WOUND_SCANNED) ? 2 : 1)
-	if(!limb.get_wound_type(WOUND_SERIES_METAL_BURN_OVERHEAT) || victim?.bodytemperature < BODYTEMP_HEAT_WARNING_3)
+	if(!limb.get_wound_type(/datum/wound/burn/robotic)) // APHELION EDIT CHANGE - SYNTH_WOUNDS - ORIGINAL: if(!limb.get_wound_type(WOUND_SERIES_METAL_BURN_OVERHEAT) || victim?.bodytemperature < BODYTEMP_HEAT_WARNING_3)
 		to_chat(treater, span_warning("The metal isn't hot enough to bend back into place!"))
 		return
+	// APHELION EDIT ADDITION START - SYNTH_WOUNDS
+	var/their_or_other = (treater == victim ? "[treater.p_their()]" : "[victim]'s")
+	var/your_or_other = (treater == victim ? "your" : "[victim]'s")
+	treater.visible_message(span_notice("[treater] begins bending the heated metal of [their_or_other] [limb.plaintext_zone] back into shape with [item]..."), \
+		span_notice("You begin bending the heated metal of [your_or_other] [limb.plaintext_zone] back into shape with [item]..."))
+	// APHELION EDIT ADDITION END
 	if(item.use_tool(target = victim, user = treater, delay = delay, volume = 50, extra_checks = CALLBACK(src, PROC_REF(still_exists))))
+		// APHELION EDIT ADDITION START - SYNTH_WOUNDS
+		if(!victim) // the limb came off mid-repair
+			return
+		treater.visible_message(span_green("[treater] bends the metal of [their_or_other] [limb.plaintext_zone] back into shape!"), \
+			span_green("You bend the metal of [your_or_other] [limb.plaintext_zone] back into shape!"))
+		to_chat(treater, span_green("The superstructure has been reformed! Your next step is to secure the internals via a screwdriver/wrench."))
+		// APHELION EDIT ADDITION END
 		replace_wound(new /datum/wound/blunt/robotic/severe)
 	return ..()
