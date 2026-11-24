@@ -231,7 +231,7 @@
 	max_damage = LIMB_MAX_HP_ADVANCED
 	body_damage_coeff = LIMB_BODY_DAMAGE_COEFFICIENT_ADVANCED
 
-	biological_state = (BIO_METAL|BIO_JOINTED)
+	biological_state = (BIO_ROBOTIC|BIO_JOINTED)
 	custom_materials = list(/datum/material/iron = SHEET_MATERIAL_AMOUNT * 5, /datum/material/titanium = SHEET_MATERIAL_AMOUNT * 3, /datum/material/gold = SHEET_MATERIAL_AMOUNT * 3)
 
 /obj/item/bodypart/arm/right/robot/teshari_advanced
@@ -253,7 +253,7 @@
 	max_damage = LIMB_MAX_HP_ADVANCED
 	body_damage_coeff = LIMB_BODY_DAMAGE_COEFFICIENT_ADVANCED
 
-	biological_state = (BIO_METAL|BIO_JOINTED)
+	biological_state = (BIO_ROBOTIC|BIO_JOINTED)
 	custom_materials = list(/datum/material/iron = SHEET_MATERIAL_AMOUNT * 5, /datum/material/titanium = SHEET_MATERIAL_AMOUNT * 3, /datum/material/gold = SHEET_MATERIAL_AMOUNT * 3)
 
 /obj/item/bodypart/leg/left/robot/teshari_advanced
@@ -275,7 +275,7 @@
 	max_damage = LIMB_MAX_HP_ADVANCED
 	body_damage_coeff = LIMB_BODY_DAMAGE_COEFFICIENT_ADVANCED
 
-	biological_state = (BIO_METAL|BIO_JOINTED)
+	biological_state = (BIO_ROBOTIC|BIO_JOINTED)
 	custom_materials = list(/datum/material/iron = SHEET_MATERIAL_AMOUNT * 5, /datum/material/titanium = SHEET_MATERIAL_AMOUNT * 3, /datum/material/gold = SHEET_MATERIAL_AMOUNT * 3)
 
 /obj/item/bodypart/leg/right/robot/teshari_advanced
@@ -297,7 +297,7 @@
 	max_damage = LIMB_MAX_HP_ADVANCED
 	body_damage_coeff = LIMB_BODY_DAMAGE_COEFFICIENT_ADVANCED
 
-	biological_state = (BIO_METAL|BIO_JOINTED)
+	biological_state = (BIO_ROBOTIC|BIO_JOINTED)
 	custom_materials = list(/datum/material/iron = SHEET_MATERIAL_AMOUNT * 5, /datum/material/titanium = SHEET_MATERIAL_AMOUNT * 3, /datum/material/gold = SHEET_MATERIAL_AMOUNT * 3)
 
 #undef ROBOTIC_LIGHT_BRUTE_MSG
