@@ -35,8 +35,7 @@
 	return input
 
 /datum/preference/loadout/proc/encode_custom_text(list/details)
-	var/static/list/max_lengths = list(INFO_NAMED = MAX_NAME_LEN, INFO_DESCRIBED = MAX_DESC_LEN)
-	for (var/key, max_length in max_lengths)
+	for (var/key, max_length in list(INFO_NAMED = MAX_NAME_LEN, INFO_DESCRIBED = MAX_DESC_LEN))
 		var/value = details?[key]
 		if (isnull(value))
 			continue
