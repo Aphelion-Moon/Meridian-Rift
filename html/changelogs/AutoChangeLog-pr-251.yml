@@ -1,0 +1,14 @@
+author: "vinylspiders"
+delete-after: True
+changes:
+  - rscadd: "you can now be slimed (hugging slimepeople, being attacked by slimes, etc, should leave their mark...)"
+  - rscadd: "tool work on machines can make you greasy, and work on vehicles, mechs and cyborgs has a chance to leave oil stains."
+  - rscadd: "walking or crawling over dirt, dust, ash, flour, concrete dust, rubble, garbage or oil on the floor can dirty you"
+  - rscadd: "mining rocks can cover you in dust."
+  - rscadd: "explosions, catching fire, and breathing in smoke without a mask or internals can leave soot marks on you"
+  - rscadd: "being splashed with oil, fuel, tar, cooking oil, lube, carbon, ash, cement, concrete, flour or slime jelly now leaves visible stains"
+  - rscadd: "sweat shows after exercise, overheating, exhaustion and other 'activities'"
+  - rscadd: "blood on a taur's uniform or suit continues below the waist, onto the taur body or the suit's lower part."
+  - bugfix: "taur bodies and their tails no longer stretch with height, and taur suits, big tails and wings stretch evenly"
+  - bugfix: "blood and rips on worn clothes sit in the right place on taurs and Teshari-shaped sprites, and stop at a taur's waist."
+  - bugfix: "a character with both a penis and a vagina now climaxes from the part that was stimulated."

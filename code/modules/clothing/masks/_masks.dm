@@ -48,7 +48,7 @@
 	if(isinhands || !(body_parts_covered & HEAD))
 		return
 	if(damaged_clothes)
-		. += mutable_appearance('icons/effects/item_damage.dmi', "damagedmask")
+		. += fit_worn_effect(mutable_appearance('icons/effects/item_damage.dmi', "damagedmask")) // APHELION EDIT CHANGE - ORIGINAL: . += mutable_appearance('icons/effects/item_damage.dmi', "damagedmask")
 
 /obj/item/clothing/mask/separate_worn_overlays(mutable_appearance/standing, mutable_appearance/draw_target, isinhands, icon_file, bodyshape = NONE)
 	. = ..()

@@ -6,12 +6,11 @@
 /**
  * Returns the images update_body_parts() draws a limb with under its render key. tg's limb_icon_cache, shared by every
  * body, serves the keys that come back. A key carrying DIRT_PRIVATE_KEY, a dirty limb's, almost never comes back, so
- * its images are kept on this mob instead, one entry per zone, built again when asked to or when the zone's stored key
- * differs. A zone drawn under any other key drops its private entry. update_body_parts() calls it only while this mob
- * holds private images, or for a key tg's cache can't serve (DIRT_LIMB_ICONS_STEADY(), DIRT_LIMB_ICONS_CHANGED()).
+ * its images are kept on this mob instead, built again when asked to or when the zone's stored key differs. A zone
+ * drawn under any other key drops its private entry. update_body_parts() calls it only while this mob holds private
+ * images, or for a key tg's cache can't serve (DIRT_LIMB_ICONS_STEADY(), DIRT_LIMB_ICONS_CHANGED()).
  *
  * Arguments:
- * - limb: The limb.
  * - key: Its render key (get_cache_key()).
  * - rebuild: Whether the zone's key changed since its last draw: its private images are built again.
  */
@@ -37,25 +36,8 @@
 	private_limb_icons[zone] = entry
 	return entry[2]
 
-/**
- * Returns the images a zone's limb was last drawn with, from either store (limb_icons_for()), or null while it isn't
- * drawn.
- *
- * Arguments:
- * - zone: The body zone.
- */
-/mob/living/carbon/proc/drawn_limb_icons(zone)
-	RETURN_TYPE(/list)
-	var/key = icon_render_keys[zone]
-	if(isnull(key))
-		return null
-	if(!findtextEx(key, DIRT_PRIVATE_KEY))
-		return limb_icon_cache[key]
-	var/list/entry = private_limb_icons?[zone]
-	return entry?[1] == key ? entry[2] : null
-
-/// A limb leaving its body takes its private images with it, so a limb put in its place, even one drawn under the same
-/// key before the body is drawn again (a species change swaps them so), is drawn from its own sprites.
+/// Drops the limb's private images from its old body. A limb put in its place under the same key, as a species change
+/// swaps them before the body is drawn again, is then drawn from its own sprites.
 /obj/item/bodypart/on_removal(mob/living/carbon/old_owner)
 	. = ..()
 	LAZYREMOVE(old_owner.private_limb_icons, body_zone)

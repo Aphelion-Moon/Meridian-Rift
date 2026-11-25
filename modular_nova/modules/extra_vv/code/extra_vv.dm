@@ -82,15 +82,14 @@
 	admin_ticket_log(src, msg)
 
 /**
- * Cleans all dirt overlays off mob
+ * Cleans all dirt overlays off this mob through the Clear Dirt verb, which logs it.
  */
 /mob/proc/vv_clean_dirt()
 	if(!ishuman(src))
 		return
 	if(!check_rights(R_ADMIN))
 		return
-	for(var/datum/component/dirtiness/carrier as anything in dirt_mess_carriers(src))
-		carrier.clear_mess()
+	SSadmin_verbs.dynamic_invoke_verb(usr, /datum/admin_verb/dirt_clear, src)
 
 /**
  * Whether the client/preferences captured before an admin prompt still own this live human.

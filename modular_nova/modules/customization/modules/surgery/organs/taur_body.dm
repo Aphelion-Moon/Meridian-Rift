@@ -237,6 +237,28 @@
 		can_lay_down = TRUE
 		laydown_offset = accessory.laydown_offset
 
+/// Sets where height moves the body from the sprite about to be drawn, which can change after the organ goes in.
+/datum/bodypart_overlay/mutant/taur_body/get_overlay(obj/item/bodypart/limb, layer_index, layer_real)
+	offset_location = height_location()
+	return ..()
+
+/**
+ * Returns where height moves the body from its sprite (offset_location). Height stretches the rider, not the body under
+ * it. Big Legs kinds stand in for the rider's own legs and stretch with them.
+ */
+/datum/bodypart_overlay/mutant/taur_body/proc/height_location()
+	var/datum/sprite_accessory/taur/accessory = sprite_datum
+	return (accessory.taur_mode & BODYSHAPE_TAUR_BIG_LEGS_ALL) ? ENTIRE_BODY : NO_MODIFY
+
+/**
+ * Whether this dummy stretches each image for its height, as a body in a round does, rather than itself in one piece.
+ * One filter over the whole dummy would stretch a taur body, which keeps its size.
+ */
+/mob/living/carbon/human/dummy/proc/stretches_each_image()
+	var/obj/item/organ/taur_body/taur = get_organ_slot(ORGAN_SLOT_EXTERNAL_TAUR)
+	var/datum/sprite_accessory/taur/accessory = taur?.bodypart_overlay.sprite_datum
+	return accessory && !(accessory.taur_mode & BODYSHAPE_TAUR_BIG_LEGS_ALL)
+
 /datum/bodypart_overlay/mutant/taur_body/get_base_icon_state()
 	return "[sprite_datum.icon_state][laying_down ? "_laying" : ""]"
 

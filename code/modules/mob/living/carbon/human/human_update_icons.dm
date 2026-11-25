@@ -103,12 +103,14 @@ There are several things that need to be remembered:
 		if(isvox(src) && (bodyshape & BODYSHAPE_CUSTOM))
 			vox_icon_file = dna.species.generate_custom_worn_icon(LOADOUT_ITEM_UNIFORM, uniform, src)
 			icon_file = vox_icon_file
+		var/species_icon_file = vox_icon_file // The sheet the species gave, which blood and rips are fitted to
 		// APHELION EDIT ADDITION END
 		if(!icon_file && digi && (uniform.supports_variations_flags & CLOTHING_DIGITIGRADE_VARIATION)) // APHELION EDIT CHANGE - ORIGINAL: if(digi && (uniform.supports_variations_flags & CLOTHING_DIGITIGRADE_VARIATION))
 			icon_file = uniform.worn_icon_digi || DIGITIGRADE_UNIFORM_FILE // NOVA EDIT CHANGE - ORIGINAL: icon_file = DIGITIGRADE_UNIFORM_FILE
 		// NOVA EDIT ADDITION START - birbs
 		else if(!icon_file && (bodyshape & BODYSHAPE_CUSTOM))
-			icon_file = dna.species.generate_custom_worn_icon(LOADOUT_ITEM_UNIFORM, w_uniform, src) // Might have to refactor how this works eventually, maybe.
+			species_icon_file = dna.species.generate_custom_worn_icon(LOADOUT_ITEM_UNIFORM, w_uniform, src) // Might have to refactor how this works eventually, maybe.
+			icon_file = species_icon_file
 		// NOVA EDIT ADDITION END
 		//Female sprites have lower priority than digitigrade sprites
 		var/chest_is_dimorphic
@@ -134,6 +136,8 @@ There are several things that need to be remembered:
 				uniform.worn_x_offset = -16
 			else if ((mutant_styles & BODYSHAPE_TAUR_HOOF) && uniform.worn_icon_taur_hoof)
 				uniform.worn_x_offset = -16
+			else
+				uniform.worn_x_offset = 0
 			//big legs
 			if((mutant_styles & BODYSHAPE_TAUR_BIG_LEGS_ALL) && (uniform.supports_variations_flags & CLOTHING_BIG_LEGS_VARIATION))
 				icon_file = mutant_styles & BODYSHAPE_TAUR_BIG_LEGS ? BIG_LEGS_UNIFORM_FILE : BIG_LEGS_STANCED_UNIFORM_FILE
@@ -147,6 +151,7 @@ There are several things that need to be remembered:
 			female_sprite_flags |= FEMALE_UNIFORM_TOP_ONLY
 		// APHELION EDIT ADDITION END
 		//END SPECIES HANDLING
+		fit_worn_effects(uniform, handled_by_bodyshape ? species_icon_file : null, LOADOUT_ITEM_UNIFORM, BODY_ZONE_CHEST, OFFSET_ACCESSORY) // APHELION EDIT ADDITION - Blood and rips on a species-shaped sprite
 		var/mutable_appearance/uniform_overlay = uniform.build_worn_icon(
 			default_layer = UNIFORM_LAYER,
 			default_icon_file = icon_file,
@@ -223,11 +228,13 @@ There are several things that need to be remembered:
 
 	// NOVA EDIT ADDITION START
 	var/mutant_override = FALSE
+	var/species_icon_file
 	if(bodyshape & BODYSHAPE_CUSTOM)
-		var/species_icon_file = dna.species.generate_custom_worn_icon(LOADOUT_ITEM_GLOVES, gloves, src)
+		species_icon_file = dna.species.generate_custom_worn_icon(LOADOUT_ITEM_GLOVES, gloves, src)
 		if(species_icon_file)
 			icon_file = species_icon_file
 			mutant_override = TRUE
+	fit_worn_effects(worn_item, species_icon_file, LOADOUT_ITEM_GLOVES, (species_icon_file && has_left_hand(check_disabled = FALSE)) ? BODY_ZONE_L_ARM : BODY_ZONE_R_ARM, OFFSET_HELD, vertical_only = TRUE)
 	// NOVA EDIT ADDITION END
 	var/mutable_appearance/gloves_overlay = gloves.build_worn_icon(default_layer = GLOVES_LAYER, default_icon_file = icon_file, bodyshape = bodyshape, override_file = mutant_override ? icon_file : null) // NOVA EDIT CHANGE - ORIGINAL: var/mutable_appearance/gloves_overlay = gloves.build_worn_icon(default_layer = NECK_LAYER, default_icon_file = icon_file, bodyshape = bodyshape)
 
@@ -431,14 +438,16 @@ There are several things that need to be remembered:
 
 		// NOVA EDIT ADDITION START - This needs to be refactored.
 		var/mutant_override = FALSE
+		var/species_icon_file
 		if(bodyshape & BODYSHAPE_CUSTOM)
-			var/species_icon_file = dna.species.generate_custom_worn_icon(LOADOUT_ITEM_HEAD, head, src)
+			species_icon_file = dna.species.generate_custom_worn_icon(LOADOUT_ITEM_HEAD, head, src)
 			if(species_icon_file)
 				icon_file = species_icon_file
 				mutant_override = TRUE
 		if((icon_file == 'icons/mob/clothing/head/default.dmi') && (bodyshape & BODYSHAPE_SNOUTED) && (worn_item.supports_variations_flags & CLOTHING_SNOUTED_VARIATION))
 			icon_file = worn_item.worn_icon_muzzled || SNOUTED_HEAD_FILE
 			mutant_override = TRUE
+		fit_worn_effects(worn_item, species_icon_file, LOADOUT_ITEM_HEAD, BODY_ZONE_HEAD, OFFSET_HEAD)
 		// NOVA EDIT ADDITION END
 		var/mutable_appearance/head_overlay = head.build_worn_icon(default_layer = HEAD_LAYER, default_icon_file = icon_file, bodyshape = bodyshape, override_file = mutant_override ? icon_file : null) // NOVA EDIT CHANGE - ORIGINAL: var/mutable_appearance/head_overlay = head.build_worn_icon(default_layer = HEAD_LAYER, default_icon_file = icon_file, bodyshape = bodyshape)
 		apply_height(head_overlay, UPPER_BODY)
@@ -495,8 +504,9 @@ There are several things that need to be remembered:
 				icon_file = worn_item.worn_icon_digi || DIGITIGRADE_SUIT_FILE
 				mutant_override = TRUE
 
+		var/species_icon_file
 		if(!mutant_override && bodyshape & BODYSHAPE_CUSTOM)
-			var/species_icon_file = dna.species.generate_custom_worn_icon(LOADOUT_ITEM_SUIT, wear_suit, src)
+			species_icon_file = dna.species.generate_custom_worn_icon(LOADOUT_ITEM_SUIT, wear_suit, src)
 			if(species_icon_file)
 				icon_file = species_icon_file
 				mutant_override = TRUE
@@ -513,6 +523,7 @@ There are several things that need to be remembered:
 				worn_item.worn_x_offset = 0
 		else
 			worn_item.worn_x_offset = 0
+		fit_worn_effects(worn_item, species_icon_file, LOADOUT_ITEM_SUIT, BODY_ZONE_CHEST, OFFSET_ACCESSORY)
 		// NOVA EDIT ADDITION END
 		var/mutable_appearance/suit_overlay = wear_suit.build_worn_icon(default_layer = SUIT_LAYER, default_icon_file = icon_file, bodyshape = bodyshape, override_file = mutant_override ? icon_file : null) // NOVA EDIT CHANGE - ORIGINAL: var/mutable_appearance/suit_overlay = wear_suit.build_worn_icon(default_layer = SUIT_LAYER, default_icon_file = icon_file, bodyshape = bodyshape)
 		apply_height(suit_overlay, ENTIRE_BODY)
@@ -545,14 +556,16 @@ There are several things that need to be remembered:
 
 		// NOVA EDIT ADDITION START
 		var/mutant_override = FALSE
+		var/species_icon_file
 		if(bodyshape & BODYSHAPE_CUSTOM)
-			var/species_icon_file = dna.species.generate_custom_worn_icon(LOADOUT_ITEM_MASK, wear_mask, src)
+			species_icon_file = dna.species.generate_custom_worn_icon(LOADOUT_ITEM_MASK, wear_mask, src)
 			if(species_icon_file)
 				icon_file = species_icon_file
 				mutant_override = TRUE
 		if(!mutant_override && (bodyshape & BODYSHAPE_SNOUTED) && (worn_item.supports_variations_flags & CLOTHING_SNOUTED_VARIATION))
 			icon_file = worn_item.worn_icon_muzzled || SNOUTED_MASK_FILE
 			mutant_override = TRUE
+		fit_worn_effects(worn_item, species_icon_file, LOADOUT_ITEM_MASK, BODY_ZONE_HEAD, OFFSET_FACEMASK)
 		// NOVA EDIT ADDITION END
 		var/mutable_appearance/mask_overlay = wear_mask.build_worn_icon(default_layer = FACEMASK_LAYER, default_icon_file = icon_file, bodyshape = bodyshape, override_file = mutant_override ? icon_file : null) // NOVA EDIT CHANGE - ORIGINAL: var/mutable_appearance/mask_overlay = wear_mask.build_worn_icon(default_layer = FACEMASK_LAYER, default_icon_file = icon_file, bodyshape = bodyshape)
 		apply_height(mask_overlay, UPPER_BODY)
@@ -903,6 +916,7 @@ generate/load female uniform sprites matching all previously decided variables
 	var/mutable_appearance/standing = mutable_appearance(layer = -layer2use, appearance_flags = KEEP_TOGETHER)
 	standing.overlays += draw_target
 	var/list/separate_overlays = separate_worn_overlays(standing, draw_target, isinhands, file2use, bodyshape)
+	if(dirt_stain_slot) dirt_order_worn(separate_overlays) // APHELION EDIT ADDITION - DIRT - The stain goes under dirt that landed after it
 	if(length(separate_overlays))
 		standing.overlays += separate_overlays
 	else // Don't nest overlays if there's nothing to nest against
@@ -1118,15 +1132,15 @@ generate/load female uniform sprites matching all previously decided variables
 /mob/living/carbon/human/proc/apply_height_filter(image/appearance)
 	PRIVATE_PROC(TRUE)
 
-	var/static/icon/cut_torso_mask = icon('icons/effects/cut.dmi', "Cut1")
-	var/static/icon/cut_legs_mask = icon('icons/effects/cut.dmi', "Cut2")
-	var/static/icon/lenghten_torso_mask = icon('icons/effects/cut.dmi', "Cut3")
-	var/static/icon/lenghten_legs_mask = icon('icons/effects/cut.dmi', "Cut4")
-	var/static/icon/lenghten_arms_mask = icon('icons/effects/cut.dmi', "Cut5")
+	var/static/icon/cut_torso_mask = wide_height_map('icons/effects/cut.dmi', "Cut1") // APHELION EDIT CHANGE - FITNESS - Maps tiled three wide, so wide images stretch end to end (fitness module.md, Height) - ORIGINAL: var/static/icon/cut_torso_mask = icon('icons/effects/cut.dmi', "Cut1")
+	var/static/icon/cut_legs_mask = wide_height_map('icons/effects/cut.dmi', "Cut2") // APHELION EDIT CHANGE - FITNESS - ORIGINAL: var/static/icon/cut_legs_mask = icon('icons/effects/cut.dmi', "Cut2")
+	var/static/icon/lenghten_torso_mask = wide_height_map('icons/effects/cut.dmi', "Cut3") // APHELION EDIT CHANGE - FITNESS - ORIGINAL: var/static/icon/lenghten_torso_mask = icon('icons/effects/cut.dmi', "Cut3")
+	var/static/icon/lenghten_legs_mask = wide_height_map('icons/effects/cut.dmi', "Cut4") // APHELION EDIT CHANGE - FITNESS - ORIGINAL: var/static/icon/lenghten_legs_mask = icon('icons/effects/cut.dmi', "Cut4")
+	var/static/icon/lenghten_arms_mask = wide_height_map('icons/effects/cut.dmi', "Cut5") // APHELION EDIT CHANGE - FITNESS - ORIGINAL: var/static/icon/lenghten_arms_mask = icon('icons/effects/cut.dmi', "Cut5")
 	// APHELION EDIT ADDITION START - FITNESS - A human torso stretches and shrinks below the pecs (fitness module.md, Height)
-	var/static/icon/human_cut_torso_mask = icon('modular_aphelion/modules/fitness/icons/height_cuts.dmi', "cut_torso")
-	var/static/icon/human_gnome_cut_torso_mask = icon('modular_aphelion/modules/fitness/icons/height_cuts.dmi', "gnome_cut_torso")
-	var/static/icon/human_lenghten_torso_mask = icon('modular_aphelion/modules/fitness/icons/height_cuts.dmi', "lengthen_torso")
+	var/static/icon/human_cut_torso_mask = wide_height_map('modular_aphelion/modules/fitness/icons/height_cuts.dmi', "cut_torso")
+	var/static/icon/human_gnome_cut_torso_mask = wide_height_map('modular_aphelion/modules/fitness/icons/height_cuts.dmi', "gnome_cut_torso")
+	var/static/icon/human_lenghten_torso_mask = wide_height_map('modular_aphelion/modules/fitness/icons/height_cuts.dmi', "lengthen_torso")
 	// APHELION EDIT ADDITION END
 
 	appearance.remove_filter(list(
