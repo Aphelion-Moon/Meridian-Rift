@@ -30,6 +30,8 @@
 		EXTERNAL_FRONT_OVER = ABOVE_BODY_FRONT_HEAD_LAYER,
 	)
 	dyable = FALSE
+	// Keeps its size with the body it grows from
+	offset_location = NO_MODIFY
 	/// The overlay of the taur body this tail grew from. Its pose picks the tail's states.
 	var/datum/bodypart_overlay/mutant/taur_body/body_overlay
 

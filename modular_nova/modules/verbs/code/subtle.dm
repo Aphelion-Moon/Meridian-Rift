@@ -117,6 +117,7 @@
 	var/target
 	var/subtler_range = SUBTLE_DEFAULT_DISTANCE
 	var/datum/weakref/offered_portal_output_ref
+	var/obj/item/clothing/sextoy/portal_fleshlight/target_device
 
 	if(!user.can_send_subtler_emote())
 		return FALSE
@@ -127,7 +128,8 @@
 		if(QDELETED(user) || !subtler_emote)
 			return FALSE
 
-		var/list/target_refs = build_subtler_targets(user, subtler_range)
+		var/list/portal_device_refs = list()
+		var/list/target_refs = build_subtler_targets(user, subtler_range, portal_device_refs)
 		var/list/targets = list(SUBTLE_ONE_TILE_TEXT, SUBTLE_SAME_TILE_TEXT)
 		for(var/target_name in target_refs)
 			targets += target_name
@@ -155,6 +157,11 @@
 				if(QDELETED(resolved_target))
 					return FALSE
 				target = resolved_target
+				var/datum/weakref/device_ref = portal_device_refs[selected_target]
+				if(device_ref)
+					target_device = device_ref.resolve()
+					if(QDELETED(target_device))
+						return FALSE
 		subtler_message = subtler_emote
 	else
 		target = SUBTLE_ONE_TILE
@@ -174,7 +181,11 @@
 
 	subtler_message = span_subtler("<b>[user]</b>[space]<i>[apply_message_emphasis(subtler_message)]</i>")
 
-	if(istype(target, /mob))
+	if(target_device)
+		if(!send_device_subtler(user, target_device, target, subtler_emote, running_emote_type, space, subtler_message))
+			to_chat(user, span_warning("Your emote was unable to be sent to your target through the portal."))
+			return FALSE
+	else if(istype(target, /mob))
 		var/mob/target_mob = target
 		if(QDELETED(target_mob) || (target_mob in GLOB.dead_mob_list))
 			return FALSE
@@ -260,8 +271,15 @@
  *
  * Kept in its own proc so everything it walks is released the moment it returns, rather than sitting in a local
  * and holding candidates alive across the prompt that consumes the result.
+ *
+ * Arguments:
+ * - user: Whoever is sending the Subtler.
+ * - subtler_range: How far away anyone outside a portal device link can be.
+ * - portal_device_refs: Gets the menu name of each person on the far end of a portal device link, however far away,
+ *   mapped to a weak reference to the device. They show as Unknown unless user can see them and their end isn't
+ *   anonymous.
  */
-/datum/emote/living/subtler/proc/build_subtler_targets(mob/user, subtler_range)
+/datum/emote/living/subtler/proc/build_subtler_targets(mob/user, subtler_range, list/portal_device_refs)
 	var/list/in_view = get_hearers_in_view(subtler_range, user)
 
 	var/obj/effect/overlay/holo_pad_hologram/sender_hologram = GLOB.hologram_impersonators[user]
@@ -285,23 +303,69 @@
 	for(var/atom/movable/candidate as anything in in_view)
 		if(QDELETED(candidate))
 			continue
-		target_refs[unique_target_name(candidate, target_refs)] = WEAKREF(candidate)
+		target_refs[unique_target_name("[candidate]", target_refs)] = WEAKREF(candidate)
+
+	for(var/obj/item/clothing/sextoy/portal_fleshlight/device as anything in portal_device_candidates(user))
+		var/mob/living/carbon/human/partner = device.far_end_partner(user)
+		if(!partner || (partner in GLOB.dead_mob_list))
+			continue
+		var/shown_name = (can_see(user, partner) && !device.hides_participant(partner)) ? "[partner]" : "Unknown"
+		var/partner_name = unique_target_name("[shown_name] (through the portal [portal_device_place(user, device)])", target_refs)
+		target_refs[partner_name] = WEAKREF(partner)
+		portal_device_refs[partner_name] = WEAKREF(device)
 	return target_refs
 
 /// Menu entries are keyed by display name, so identically named candidates have to be told apart.
-/datum/emote/living/subtler/proc/unique_target_name(atom/movable/candidate, list/taken_names)
+/datum/emote/living/subtler/proc/unique_target_name(candidate_name, list/taken_names)
 	var/static/list/reserved_names = list(
 		SUBTLE_ONE_TILE_TEXT,
 		SUBTLE_SAME_TILE_TEXT,
 		PORTAL_ONE_TILE_TEXT,
 		PORTAL_SAME_TILE_TEXT,
 	)
-	var/target_name = "[candidate]"
+	var/target_name = candidate_name
 	var/name_suffix = 1
 	while((target_name in reserved_names) || (target_name in taken_names))
 		name_suffix += 1
-		target_name = "[candidate] ([name_suffix])"
+		target_name = "[candidate_name] ([name_suffix])"
 	return target_name
+
+/**
+ * Returns every portal device that could link user to someone on its far end, each once.
+ *
+ * That's every device user carries or stands within a tile of, plus the device linked to any receiver that user wears.
+ * far_end_partner() decides whether each link is actually open.
+ */
+/datum/emote/living/subtler/proc/portal_device_candidates(mob/living/user)
+	var/list/devices = user.get_all_contents_type(/obj/item/clothing/sextoy/portal_fleshlight)
+	for(var/atom/movable/nearby in view(1, user))
+		if(istype(nearby, /obj/item/clothing/sextoy/portal_fleshlight))
+			devices |= nearby
+		else if(isliving(nearby))
+			var/mob/living/holder = nearby
+			devices |= holder.get_held_items_of_type(/obj/item/clothing/sextoy/portal_fleshlight)
+	var/mob/living/carbon/human/wearer = user
+	if(istype(wearer))
+		for(var/obj/item/clothing/sextoy/portal_panties/receiver in list(wearer.mouth, wearer.penis, wearer.vagina, wearer.anus))
+			if(receiver.linked_fleshlight)
+				devices |= receiver.linked_fleshlight
+	return devices
+
+/**
+ * Returns a short note on how user is linked to the device, so two links that both show Unknown can be told apart.
+ *
+ * That's the slot user wears the device's receiver in, the hand they hold the device in, that they carry it packed
+ * away, the floor, or whoever next to them holds it.
+ */
+/datum/emote/living/subtler/proc/portal_device_place(mob/living/carbon/human/user, obj/item/clothing/sextoy/portal_fleshlight/device)
+	if(device.linked_panties.get_equipped_wearer() == user)
+		return "in your [device.linked_panties.current_target]"
+	if(user.is_holding(device))
+		return "in your [user.get_held_index_name(user.get_held_index_of_item(device))]"
+	if(isturf(device.loc))
+		return "on the floor"
+	var/mob/living/holder = device.loc
+	return (istype(holder) && holder != user) ? "held by [holder]" : "you carry"
 
 /// Delivers one Subtler through a portal relay to whoever is on the far side, anonymously.
 /datum/emote/living/subtler/proc/send_portal_subtler(
@@ -324,6 +388,40 @@
 	portal_owner.show_message(portal_message, alt_msg = portal_message)
 	subtler_sound(portal_owner, running_emote_type | EMOTE_LEWD)
 	user.log_message("[log_action] a portal subtler to [key_name(portal_owner)]: [subtler_emote]", LOG_GAME)
+	return TRUE
+
+/**
+ * Delivers one Subtler through a portal device to the person offered on its far end.
+ *
+ * The far end sees it marked as coming through the portal. It's signed with the name anyone looking at the sender
+ * would see, or Unknown while the sender's end is anonymous.
+ *
+ * Arguments:
+ * - user: Whoever is sending it.
+ * - device: The device linking the two ends.
+ * - partner: The person offered on the far end. Nothing is sent once the link no longer reaches them.
+ * - subtler_emote: The emote as typed.
+ * - running_emote_type: The emote's type flags.
+ * - space: What goes between the sender's name and the emote.
+ * - sender_message: The sender's own copy, already formatted.
+ */
+/datum/emote/living/subtler/proc/send_device_subtler(
+	mob/user,
+	obj/item/clothing/sextoy/portal_fleshlight/device,
+	mob/living/carbon/human/partner,
+	subtler_emote,
+	running_emote_type,
+	space,
+	sender_message,
+)
+	if(QDELETED(device) || QDELETED(partner) || device.far_end_partner(user) != partner || (partner in GLOB.dead_mob_list))
+		return FALSE
+	user.show_message(sender_message, alt_msg = sender_message)
+	var/sender_hidden = device.hides_participant(user)
+	var/portal_message = span_subtler("Through the portal, <b>[sender_hidden ? "Unknown" : user]</b>[space]<i>[apply_message_emphasis(subtler_emote)]</i>")
+	partner.show_message(portal_message, alt_msg = portal_message)
+	subtler_sound(partner, running_emote_type | EMOTE_LEWD)
+	user.log_message("sent a portal subtler to [key_name(partner)][sender_hidden ? " (shown as Unknown)" : ""]: [subtler_emote]", LOG_GAME)
 	return TRUE
 
 /// Returns whether a target is in range of the sender or their live hologram.

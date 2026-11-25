@@ -351,13 +351,24 @@ GLOBAL_LIST_INIT(custom_sprite_view_facings, list("1" = NORTH, "2" = SOUTH, "4" 
 	var/obj/item/organ/taur_body/organ = body?.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAUR)
 	return organ?.bodypart_overlay
 
+/**
+ * Returns the taur body's render key without its dirt's entries (DIRT_PRIVATE_KEY). Paint is clipped to the body's own
+ * images, which dirt leaves alone.
+ */
+/proc/custom_sprite_taur_key(datum/bodypart_overlay/mutant/taur_body/taur, obj/item/bodypart/chest)
+	. = list()
+	for(var/entry in taur.icon_render_key(chest))
+		// the emissive entries are numbers
+		if(!istext(entry) || !findtextEx(entry, DIRT_PRIVATE_KEY))
+			. += entry
+
 /// Native taur geometry in its centered 64 by 32 frame, shared by editing and rendering.
 /proc/custom_sprite_taur_silhouette(mob/living/carbon/human/body, layer_index)
 	var/datum/bodypart_overlay/mutant/taur_body/taur = custom_sprite_taur_overlay(body)
 	var/obj/item/bodypart/chest = body.get_bodypart(BODY_ZONE_CHEST)
 	if(!taur?.sprite_datum || !chest)
 		return custom_sprite_blank_icon(CUSTOM_SPRITE_TAUR_WIDTH)
-	var/key = "taur-silhouette|[json_encode(taur.icon_render_key(chest))]|[chest.limb_gender]|[layer_index]"
+	var/key = "taur-silhouette|[json_encode(custom_sprite_taur_key(taur, chest))]|[chest.limb_gender]|[layer_index]"
 	var/icon/cached = GLOB.custom_sprite_limb_icons[key]
 	if(cached)
 		return cached
@@ -440,7 +451,7 @@ GLOBAL_LIST_INIT(custom_sprite_view_facings, list("1" = NORTH, "2" = SOUTH, "4" 
 		var/datum/bodypart_overlay/mutant/taur_body/taur = custom_sprite_taur_overlay(body)
 		var/obj/item/bodypart/chest = body.get_bodypart(BODY_ZONE_CHEST)
 		if(taur && chest)
-			geometry += list(taur.icon_render_key(chest), chest.limb_gender)
+			geometry += list(custom_sprite_taur_key(taur, chest), chest.limb_gender)
 	return json_encode(geometry)
 
 /// Row strings keep the wire payload small and test the same silhouette used by rendering. `wrist` gives a hand its wrist band.
