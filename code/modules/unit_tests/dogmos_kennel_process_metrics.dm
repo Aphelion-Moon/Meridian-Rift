@@ -22,11 +22,11 @@
 	kennel.ui_data(observer)
 	TEST_ASSERT_EQUAL(kennel.producer_active_viewers, 1, "Missing first viewer.")
 	TEST_ASSERT_EQUAL(kennel.producer_browse_pages_built, 0, "Overview scanned machinery.")
-	var/mob/living/carbon/human/second_observer = allocate(/mob/living/carbon/human/consistent)
-	second_observer.set_hud_used(new second_observer.hud_type(second_observer))
-	var/datum/tgui/dogmos_kennel/second_ui = allocate(/datum/tgui/dogmos_kennel, second_observer, kennel, "DogmosKennel")
+	var/mob/living/carbon/human/user = allocate(/mob/living/carbon/human/consistent)
+	user.set_hud_used(new user.hud_type(user))
+	var/datum/tgui/dogmos_kennel/second_ui = allocate(/datum/tgui/dogmos_kennel, user, kennel, "DogmosKennel")
 	kennel.open_uis += second_ui
-	kennel.ui_data(second_observer)
+	kennel.ui_data(user)
 	TEST_ASSERT_EQUAL(kennel.producer_process_metric_samples, 1, "Viewers multiplied routine sampling within one interval.")
 	TEST_ASSERT_EQUAL(kennel.producer_active_viewers, 2, "Missing second viewer.")
 	first_ui.selected_tab = "Structures/Machines"
@@ -34,7 +34,7 @@
 	TEST_ASSERT_EQUAL(kennel.producer_browse_pages_built, 1, "An explicit browse request did not build one page.")
 	TEST_ASSERT(kennel.producer_machinery_candidates_inspected <= 250, "A page scanned over its candidate budget.")
 	kennel.ui_data(observer)
-	kennel.ui_data(second_observer)
+	kennel.ui_data(user)
 	TEST_ASSERT_EQUAL(kennel.producer_browse_pages_built, 1, "An unchanged or hidden panel rescanned machinery.")
 	first_ui.browse_search = "no matching machine in this fixture"
 	first_ui.browse_page = 2
@@ -44,7 +44,7 @@
 	TEST_ASSERT(kennel.producer_machinery_candidates_inspected <= 500, "Filtering performed an unbounded count scan.")
 	kennel.open_uis -= first_ui
 	qdel(first_ui)
-	kennel.ui_data(second_observer)
+	kennel.ui_data(user)
 	TEST_ASSERT_EQUAL(kennel.producer_browse_pages_built, 2, "A closed browse panel still scanned.")
 	kennel.open_uis.Cut()
 
@@ -57,11 +57,11 @@
 
 /datum/unit_test/dogmos_kennel_machine_retirement/Run()
 	var/obj/machinery/machine = allocate(/obj/machinery/dogmos_kennel_retiring_test)
-	var/list/original_machinery = SSair.atmos_machinery
-	var/list/original_currentrun = SSair.currentrun
-	var/list/original_costs = SSair.diagnostics.kennel_machine_cost_ewma
-	var/original_state = SSair.state
-	var/original_part = SSair.currentpart
+	var/list/saved = SSair.atmos_machinery
+	var/list/backup = SSair.currentrun
+	var/list/previous = SSair.diagnostics.kennel_machine_cost_ewma
+	var/old_state = SSair.state
+	var/old_value = SSair.currentpart
 	var/original_tick_limit = Master.current_ticklimit
 	SSair.atmos_machinery = list()
 	SSair.diagnostics.kennel_machine_cost_ewma = list()
@@ -70,37 +70,37 @@
 	Master.current_ticklimit = TICK_USAGE + 100 / world.tick_lag
 	SSair.start_processing_machine(machine)
 	SSair.process_atmos_machinery()
-	var/still_processing = machine.atmos_processing
-	var/remaining_costs = length(SSair.diagnostics.kennel_machine_cost_ewma)
-	SSair.atmos_machinery = original_machinery
-	SSair.currentrun = original_currentrun
-	SSair.diagnostics.kennel_machine_cost_ewma = original_costs
-	SSair.currentpart = original_part
-	SSair.state = original_state
+	var/processing = machine.atmos_processing
+	var/remaining = length(SSair.diagnostics.kennel_machine_cost_ewma)
+	SSair.atmos_machinery = saved
+	SSair.currentrun = backup
+	SSair.diagnostics.kennel_machine_cost_ewma = previous
+	SSair.currentpart = old_value
+	SSair.state = old_state
 	Master.current_ticklimit = original_tick_limit
-	TEST_ASSERT(!still_processing, "The fixture did not retire from atmosphere processing.")
-	TEST_ASSERT_EQUAL(remaining_costs, 0, "Processing recreated the retired machine's Kennel cost entry.")
+	TEST_ASSERT(!processing, "The fixture did not retire from atmosphere processing.")
+	TEST_ASSERT_EQUAL(remaining, 0, "Processing recreated the retired machine's Kennel cost entry.")
 
 /** Cached cost identities must preserve REF's dynamic tag behavior. */
 /datum/unit_test/dogmos_kennel_machine_identity
 
 /datum/unit_test/dogmos_kennel_machine_identity/Run()
 	var/obj/machinery/machine = allocate(/obj/machinery)
-	var/list/original_costs = SSair.diagnostics.kennel_machine_cost_ewma
+	var/list/previous = SSair.diagnostics.kennel_machine_cost_ewma
 	SSair.diagnostics.kennel_machine_cost_ewma = list()
 	SSair.diagnostics.check_kennel_machine_cost(machine, 0.1)
-	var/engine_key = REF(machine)
+	var/first = REF(machine)
 	machine.datum_flags |= DF_USE_TAG
 	machine.tag = "kennel-cost-first"
 	SSair.diagnostics.check_kennel_machine_cost(machine, 0.2)
-	var/first_tag_key = REF(machine)
+	var/second = REF(machine)
 	machine.tag = "kennel-cost-second"
 	SSair.diagnostics.check_kennel_machine_cost(machine, 0.3)
-	var/second_tag_key = REF(machine)
-	var/list/sampled_costs = SSair.diagnostics.kennel_machine_cost_ewma
-	SSair.diagnostics.kennel_machine_cost_ewma = original_costs
+	var/third = REF(machine)
+	var/list/results = SSair.diagnostics.kennel_machine_cost_ewma
+	SSair.diagnostics.kennel_machine_cost_ewma = previous
 	machine.datum_flags &= ~DF_USE_TAG
 	machine.tag = null
-	TEST_ASSERT_EQUAL(sampled_costs[engine_key], 0.1, "The stable engine identity lost its cost sample.")
-	TEST_ASSERT_EQUAL(sampled_costs[first_tag_key], 0.2, "A tagged machine used its cached engine identity.")
-	TEST_ASSERT_EQUAL(sampled_costs[second_tag_key], 0.3, "Changing a machine tag did not update its cost identity.")
+	TEST_ASSERT_EQUAL(results[first], 0.1, "The stable engine identity lost its cost sample.")
+	TEST_ASSERT_EQUAL(results[second], 0.2, "A tagged machine used its cached engine identity.")
+	TEST_ASSERT_EQUAL(results[third], 0.3, "Changing a machine tag did not update its cost identity.")

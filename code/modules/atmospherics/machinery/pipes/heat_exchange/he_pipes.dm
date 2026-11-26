@@ -14,22 +14,25 @@
 
 	has_gas_visuals = FALSE
 
+	/// Tracks if we have a mob buckled to the pipe. An optimization, so we don't need to check every process tick.
+	VAR_PRIVATE/has_mob_to_cook = FALSE
+
 /obj/machinery/atmospherics/pipe/heat_exchanging/Initialize(mapload)
 	. = ..()
 
 	add_atom_colour("#404040", FIXED_COLOUR_PRIORITY)
 
-// APHELION EDIT ADDITION START - DOGMOS
-/** Wakes atmosphere processing when a mob is buckled onto the pipe. */
-/obj/machinery/atmospherics/pipe/heat_exchanging/post_buckle_mob(mob/living/buckled_mob)
-	. = ..()
-	SSair.start_processing_machine(src)
-
-// APHELION EDIT ADDITION END
 /obj/machinery/atmospherics/pipe/heat_exchanging/is_connectable(obj/machinery/atmospherics/pipe/heat_exchanging/target, given_layer, HE_type_check = TRUE)
 	if(istype(target, /obj/machinery/atmospherics/pipe/heat_exchanging) != HE_type_check)
 		return FALSE
 	. = ..()
+
+/obj/machinery/atmospherics/pipe/heat_exchanging/post_buckle_mob(mob/living/buckled_mob)
+	has_mob_to_cook = TRUE
+	SSair.start_processing_machine(src) // APHELION EDIT ADDITION - DOGMOS - Wakes atmosphere processing for the buckled mob.
+
+/obj/machinery/atmospherics/pipe/heat_exchanging/post_unbuckle_mob(mob/living/unbuckled_mob)
+	has_mob_to_cook = has_buckled_mobs()
 
 /** Exchanges heat with the environment, sleeping after thermal convergence. */ // APHELION EDIT ADDITION - DOGMOS
 /obj/machinery/atmospherics/pipe/heat_exchanging/process_atmos()
@@ -58,7 +61,7 @@
 
 
 	//heatup/cooldown any mobs buckled to ourselves based on our temperature
-	if(has_buckled_mobs())
+	if(has_mob_to_cook)
 		var/hc = pipe_air.heat_capacity()
 		var/mob/living/heat_source = buckled_mobs[1]
 		//Best guess-estimate of the total bodytemperature of all the mobs, since they share the same environment it's ~ok~ to guess like this
@@ -105,7 +108,7 @@
 			animate(src, color = rgb(h_r, h_g, h_b), time = 20, easing = SINE_EASING)
 
 	//burn any mobs buckled based on temperature
-	if(!has_buckled_mobs())
+	if(!has_mob_to_cook)
 		return
 	var/heat_limit = 1000
 	if(pipe_air.return_temperature() > heat_limit + 1) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(pipe_air.temperature > heat_limit + 1)

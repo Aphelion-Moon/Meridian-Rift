@@ -279,6 +279,7 @@ GLOBAL_LIST_INIT(blacklisted_automated_baseturfs, typecacheof(list(
 //If you modify this function, ensure it works correctly with lateloaded map templates.
 /turf/proc/AfterChange(flags, oldType) //called after a turf has been replaced in ChangeTurf()
 	levelupdate()
+	nav_dirty()
 	// APHELION EDIT ADDITION START - DOGMOS
 	mark_dogmos_turf_replacement()
 	register_dogmos_air(remove_uninitialized = TRUE)

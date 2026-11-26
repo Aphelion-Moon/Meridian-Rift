@@ -48,6 +48,9 @@
 	/// Datum for managing the overclock sound loop
 	var/datum/looping_sound/vent_pump_overclock/sound_loop
 
+	/// Multiplier to the amount of mols transferred - updated as it takes integrity damage
+	VAR_PRIVATE/transfer_rate_modifier = 1.0
+
 /obj/machinery/atmospherics/components/unary/vent_pump/Initialize(mapload)
 	if(!id_tag)
 		id_tag = assign_random_name()
@@ -69,7 +72,7 @@
 /obj/machinery/atmospherics/components/unary/vent_pump/on_update_integrity(old_value, new_value)
 	. = ..()
 	var/condition_string
-	switch(get_integrity_percentage())
+	switch(transfer_rate_modifier)
 		if(1)
 			condition_string = "perfect"
 		if(0.75 to 0.99)
@@ -81,6 +84,10 @@
 		else
 			condition_string = "terrible"
 	examine_condition = "The fan is in [condition_string] condition."
+
+/obj/machinery/atmospherics/components/unary/vent_pump/on_update_integrity(old_value, new_value)
+	. = ..()
+	transfer_rate_modifier = get_integrity_percentage()
 
 /obj/machinery/atmospherics/components/unary/vent_pump/examine(mob/user)
 	. = ..()
@@ -106,7 +113,7 @@
 	return ITEM_INTERACT_SUCCESS
 
 /obj/machinery/atmospherics/components/unary/vent_pump/screwdriver_act(mob/living/user, obj/item/tool)
-	var/time_to_repair = (10 SECONDS) * (1 - get_integrity_percentage())
+	var/time_to_repair = (10 SECONDS) * (1 - transfer_rate_modifier)
 	if(!time_to_repair)
 		return FALSE
 
@@ -240,6 +247,11 @@
 
 	update_appearance(UPDATE_ICON)
 
+/obj/machinery/atmospherics/components/unary/vent_pump/atom_destruction(damage_flag)
+	. = ..()
+	if(!damage_flag && fan_overclocked)
+		investigate_log("was destroyed as a result of overclocking", INVESTIGATE_ATMOS)
+
 /** Transfers gas while a pressure bound permits work, then sleeps until an input changes. */ // APHELION EDIT ADDITION - DOGMOS
 /obj/machinery/atmospherics/components/unary/vent_pump/process_atmos()
 	if(!is_operational)
@@ -262,12 +274,8 @@
 		return
 
 	if(fan_overclocked)
-		take_damage(fan_damage_rate, sound_effect=FALSE)
-		if(get_integrity() == 0)
-			investigate_log("was destroyed as a result of overclocking", INVESTIGATE_ATMOS)
-			return
+		take_damage(fan_damage_rate, sound_effect = FALSE)
 
-	var/percent_integrity = get_integrity_percentage()
 	var/datum/gas_mixture/air_contents = airs[1]
 	var/datum/gas_mixture/environment = us.return_air()
 	var/environment_pressure = environment.return_pressure()
@@ -286,8 +294,8 @@
 					return PROCESS_KILL // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: return FALSE
 
 				var/transfer_moles = (pressure_delta * environment.return_volume()) / (air_contents.return_temperature() * R_IDEAL_GAS_EQUATION) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/transfer_moles = (pressure_delta * environment.volume) / (air_contents.temperature * R_IDEAL_GAS_EQUATION)
-				if(!fan_overclocked && (percent_integrity < 1))
-					transfer_moles *= percent_integrity
+				if(!fan_overclocked)
+					transfer_moles *= transfer_rate_modifier
 
 				var/datum/gas_mixture/removed = air_contents.remove(transfer_moles)
 
@@ -310,8 +318,8 @@
 				return PROCESS_KILL // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: return FALSE
 
 			var/transfer_moles = (pressure_delta * air_contents.return_volume()) / (environment.return_temperature() * R_IDEAL_GAS_EQUATION) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/transfer_moles = (pressure_delta * air_contents.volume) / (environment.temperature * R_IDEAL_GAS_EQUATION)
-			if(!fan_overclocked && (percent_integrity < 1))
-				transfer_moles *= percent_integrity
+			if(!fan_overclocked)
+				transfer_moles *= transfer_rate_modifier
 
 			var/datum/gas_mixture/removed = loc.remove_air(transfer_moles)
 

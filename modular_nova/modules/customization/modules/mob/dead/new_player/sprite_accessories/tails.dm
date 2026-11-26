@@ -626,6 +626,18 @@
 /datum/sprite_accessory/tails/fish/chonky
 	name = "Chonky (Fish Infusion)"
 
+// TG Fox infusion tail
+/datum/sprite_accessory/tails/felinid/fox
+	name = "Fox (Fox Infusion)"
+	feature_key_override = FEATURE_TAIL_CAT
+
+// TG Mouse infusion tail
+/datum/sprite_accessory/tails/mouse
+	feature_key_override = FEATURE_TAIL_MOUSE
+
+/datum/sprite_accessory/tails/mouse/default
+	name = "Mouse (Mouse Infusion)"
+
 /datum/sprite_accessory/tails/xeno
 	feature_key_override = FEATURE_TAIL_XENO
 	recommended_species = list(SPECIES_XENO = 1)
