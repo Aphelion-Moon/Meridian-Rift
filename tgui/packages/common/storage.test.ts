@@ -1,177 +1,178 @@
 // THIS IS AN APHELION UI FILE
-import { afterEach, describe, expect, it, mock } from 'bun:test';
+import { afterEach, describe, expect, it, jest, mock } from 'bun:test';
 import { IFrameIndexedDbBackend, StorageProxy } from './storage';
 
-type Reply = { value?: unknown; error?: string } | null;
+type Reply = { value?: unknown; error?: string };
 
 /**
- * A storage iframe window that answers each `get` with what `answer` gives: a
- * value, an error, or nothing (null) for an iframe that never answers.
+ * A fake storage iframe window. It answers each `get` with what `answer`
+ * returns, once that's ready, and counts every get and set.
  */
-function fakeIframe(answer: (key: string) => Reply) {
+function fakeIframe(answer: (key: string) => Reply | Promise<Reply>) {
+  const seen = { gets: 0, writes: [] as string[] };
   const frame = {
-    postMessage: (message: { type: string; key: string }) => {
+    seen,
+    postMessage: async (message: { type: string; key: string }) => {
+      if (message.type === 'set') seen.writes.push(message.key);
       if (message.type !== 'get') return;
-      const reply = answer(message.key);
-      if (!reply) return;
-      setTimeout(() =>
-        window.dispatchEvent(
-          new MessageEvent('message', {
-            data: { key: message.key, ...reply },
-            source: frame as unknown as Window,
-          }),
-        ),
+      seen.gets++;
+      const reply = await answer(message.key);
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          data: { key: message.key, ...reply },
+          source: frame as unknown as Window,
+        }),
       );
     },
   };
   return frame;
 }
 
-function backendWith(answer: (key: string) => Reply) {
-  const backend = new IFrameIndexedDbBackend(30);
-  Object.assign(backend, { iframeWindow: fakeIframe(answer) });
-  return backend;
+function backendOver(answer: (key: string) => Reply | Promise<Reply>) {
+  const onReadTimeout = mock(() => {});
+  const backend = new IFrameIndexedDbBackend(onReadTimeout);
+  const frame = fakeIframe(answer);
+  Object.assign(backend, { iframeWindow: frame });
+  return { backend, seen: frame.seen, onReadTimeout };
 }
 
-describe('iframe storage reads', () => {
-  it('gives what is stored', async () => {
-    const backend = backendWith(() => ({ value: { fontSize: 16 } }));
-    expect(await backend.read('panel-settings')).toEqual({ fontSize: 16 });
+/** Moves the fake clock past each read timeout until `read` settles */
+async function timeOut<T>(read: Promise<T>): Promise<T> {
+  let settled = false;
+  read.then(() => {
+    settled = true;
   });
-
-  it('gives undefined when nothing is stored', async () => {
-    const backend = backendWith(() => ({ value: undefined }));
-    expect(await backend.read('panel-settings')).toBeUndefined();
-  });
-
-  it('fails when the store reports an error', async () => {
-    const backend = backendWith(() => ({ error: 'InvalidStateError' }));
-    await expect(backend.read('panel-settings')).rejects.toThrow();
-  });
-
-  it('fails when the store does not answer in time', async () => {
-    const backend = backendWith(() => null);
-    await expect(backend.read('panel-settings')).rejects.toThrow();
-  });
-
-  it('still gives undefined from get when the read fails', async () => {
-    const backend = backendWith(() => null);
-    expect(await backend.get('geometries')).toBeUndefined();
-  });
-});
-
-const byond = Byond as unknown as { storageCdn: string };
-const cdn = byond.storageCdn;
-
-/** A byondstorage that holds `stored` under panel-settings and nothing else. */
-function stubHubStorage(stored: string) {
-  Object.assign(window, {
-    hubStorage: {
-      getItem: (key: string) => (key === 'panel-settings' ? stored : null),
-      setItem: () => {},
-      removeItem: () => {},
-      clear: () => {},
-    },
-  });
-}
-
-/** A proxy over an iframe store whose reads answer like `read`. */
-async function proxyOver(read: (key: string) => Promise<unknown>) {
-  byond.storageCdn = 'https://cdn.invalid/iframe.html';
-  // Another server's settings, from when all servers shared byondstorage.
-  stubHubStorage(JSON.stringify({ fontSize: 9, theme: 'light' }));
-  const writes: string[] = [];
-  const iframe = {
-    impl: 2,
-    ready: async () => true,
-    read,
-    get: (key: string) => read(key).catch(() => undefined),
-    set: mock(async (key: string) => {
-      writes.push(key);
-    }),
-    remove: async () => {},
-    clear: async () => {},
-    destroy: async () => {},
-  };
-  const proxy = new StorageProxy(
-    () => iframe as unknown as IFrameIndexedDbBackend,
-  );
-  // Any call waits until the backend is picked, which includes the import.
-  await proxy.get('anything');
-  return { proxy, writes };
+  for (let round = 0; !settled && round < 10; round++) {
+    jest.advanceTimersByTime(5000);
+    for (let tick = 0; tick < 10; tick++) await Promise.resolve();
+  }
+  return read;
 }
 
 afterEach(() => {
-  byond.storageCdn = cdn;
-  Object.assign(window, { hubStorage: undefined });
+  jest.useRealTimers();
+});
+
+describe('iframe storage reads', () => {
+  it('does not save over a key while its read is still waiting', async () => {
+    let answer: (reply: Reply) => void = () => {};
+    const { backend, seen } = backendOver(
+      () =>
+        new Promise((resolve) => {
+          answer = resolve;
+        }),
+    );
+
+    const read = backend.get('panel-settings');
+    await backend.set('panel-settings', { fontSize: 9 });
+    expect(seen.writes).toEqual([]);
+
+    answer({ value: { fontSize: 16 } });
+    expect(await read).toEqual({ fontSize: 16 });
+    await backend.set('panel-settings', { fontSize: 9 });
+    expect(seen.writes).toEqual(['panel-settings']);
+  });
+
+  it('asks again when a read fails once', async () => {
+    const { backend, seen, onReadTimeout } = backendOver(() =>
+      seen.gets === 1
+        ? { error: 'InvalidStateError' }
+        : { value: { fontSize: 16 } },
+    );
+
+    expect(await backend.get('panel-settings')).toEqual({ fontSize: 16 });
+    expect(seen.gets).toBe(2);
+    expect(onReadTimeout).not.toHaveBeenCalled();
+    await backend.set('panel-settings', {});
+    expect(seen.writes).toEqual(['panel-settings']);
+  });
+
+  it('never saves over a key the store did not answer for, and warns once', async () => {
+    jest.useFakeTimers();
+    const { backend, seen, onReadTimeout } = backendOver(
+      () => new Promise(() => {}),
+    );
+
+    expect(await timeOut(backend.get('panel-settings'))).toBeUndefined();
+    expect(seen.gets).toBe(2);
+    await backend.set('panel-settings', {});
+    expect(seen.writes).toEqual([]);
+
+    // after that, a store that's down only gets one try per read
+    expect(await timeOut(backend.get('chat-state'))).toBeUndefined();
+    expect(seen.gets).toBe(3);
+    expect(onReadTimeout).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('importing settings from byondstorage', () => {
-  it('does not copy byondstorage over iframe data it could not read', async () => {
-    const { proxy, writes } = await proxyOver(() =>
-      Promise.reject(new Error('storage did not answer')),
-    );
-    expect(writes).toEqual([]);
-    expect(
-      proxy.diagnostics.some((entry) =>
-        entry.message.includes('nothing was imported'),
-      ),
-    ).toBe(true);
-    // Nothing the player has to read in chat.
-    expect(proxy.diagnostics.every((entry) => entry.level === 'info')).toBe(
-      true,
-    );
+  const byond = Byond as unknown as { storageCdn: string };
+  const cdn = byond.storageCdn;
+  const ready = IFrameIndexedDbBackend.prototype.ready;
+
+  afterEach(() => {
+    byond.storageCdn = cdn;
+    IFrameIndexedDbBackend.prototype.ready = ready;
+    Object.assign(window, { hubStorage: undefined });
   });
 
-  it('still imports byondstorage into an iframe store that is really empty', async () => {
-    const { writes } = await proxyOver(async () => undefined);
-    expect(writes).toEqual(['panel-settings', 'byondstorage-migrated']);
-  });
-});
-
-describe('storage reads', () => {
   /**
-   * A proxy over a store that holds a font size. Once `store.failing` is set,
-   * that many of its next reads fail.
+   * A proxy over an iframe store that answers like `answer`. byondstorage
+   * holds another server's settings, left from when all servers shared it.
    */
-  async function proxyOverFlakyStore() {
-    const store = { failing: 0 };
-    const read = mock(async (key: string) => {
-      if (store.failing > 0) {
-        store.failing--;
-        throw new Error('storage did not answer');
-      }
-      return key === 'panel-settings' ? { fontSize: 16 } : undefined;
+  async function proxyOver(answer: (key: string) => Reply) {
+    byond.storageCdn = 'https://cdn.invalid/iframe.html';
+    Object.assign(window, {
+      hubStorage: {
+        getItem: (key: string) =>
+          key === 'panel-settings' ? JSON.stringify({ fontSize: 9 }) : null,
+        setItem: () => {},
+        removeItem: () => {},
+        clear: () => {},
+      },
     });
-    const { proxy } = await proxyOver(read);
-    read.mockClear();
-    return { proxy, read, store };
+    const frame = fakeIframe(answer);
+    IFrameIndexedDbBackend.prototype.ready = async function (
+      this: IFrameIndexedDbBackend,
+    ) {
+      Object.assign(this, { iframeWindow: frame });
+      return true;
+    };
+
+    const proxy = new StorageProxy();
+    const warnings: string[] = [];
+    proxy.subscribe((diagnostic) => {
+      if (diagnostic.level !== 'info') warnings.push(diagnostic.message);
+    });
+    // resolves once the backend is picked, and picking it runs the byondstorage import
+    await proxy.getImpl();
+    return { proxy, writes: frame.seen.writes, warnings };
   }
 
-  it('asks again when a read fails once', async () => {
-    const { proxy, read, store } = await proxyOverFlakyStore();
-    store.failing = 1;
-
-    expect(await proxy.read('panel-settings')).toEqual({ fontSize: 16 });
-    expect(read).toHaveBeenCalledTimes(2);
+  it('does not import into a store that did not answer', async () => {
+    const { writes, warnings } = await proxyOver(() => ({
+      error: 'InvalidStateError',
+    }));
+    expect(writes).toEqual([]);
+    expect(warnings).toHaveLength(1);
   });
 
-  it('fails when the second try fails too, and asks once from then on', async () => {
-    const { proxy, read, store } = await proxyOverFlakyStore();
-    store.failing = 3;
-
-    await expect(proxy.read('panel-settings')).rejects.toThrow();
-    expect(read).toHaveBeenCalledTimes(2);
-
-    await expect(proxy.read('chat-state')).rejects.toThrow();
-    expect(read).toHaveBeenCalledTimes(3);
+  it('imports into a store that answered it is empty', async () => {
+    const { writes, warnings } = await proxyOver(() => ({ value: undefined }));
+    expect(writes).toEqual(['panel-settings', 'byondstorage-migrated']);
+    expect(warnings).toEqual([]);
   });
 
-  it('counts a byondstorage value that does not parse as nothing saved', async () => {
-    byond.storageCdn = '';
-    stubHubStorage('{"fontSize": 16');
-    const proxy = new StorageProxy();
+  it('saves what the player picked over settings that did not load', async () => {
+    const { proxy, writes } = await proxyOver(() => ({
+      error: 'InvalidStateError',
+    }));
+    await proxy.get('panel-settings');
+    await proxy.set('panel-settings', { fontSize: 9 });
+    expect(writes).toEqual([]);
 
-    expect(await proxy.read('panel-settings')).toBeUndefined();
+    await proxy.allowSaving('panel-settings');
+    await proxy.set('panel-settings', { fontSize: 9 });
+    expect(writes).toEqual(['panel-settings']);
   });
 });

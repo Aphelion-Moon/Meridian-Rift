@@ -4,7 +4,7 @@ import { chatPagesRecordAtom, mainPage } from '../chat/atom';
 import { startChatStateMigration } from '../chat/migration';
 import type { Page, StoredChatSettings } from '../chat/types';
 import { store } from '../events/store';
-import { settingsReadAtom, storedSettingsAtom } from './atoms'; // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: import { storedSettingsAtom } from './atoms';
+import { storedSettingsAtom } from './atoms';
 import { startSettingsMigration } from './migration';
 import type { ExportedSettings } from './types';
 
@@ -41,7 +41,7 @@ export function exportChatSettings(): void {
     });
 }
 
-export function importChatSettings(settings: string | string[]): void {
+export async function importChatSettings(settings: string | string[]): Promise<void> { // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: export function importChatSettings(settings: string | string[]): void {
   if (Array.isArray(settings)) return;
 
   let ourImport: ExportedSettings;
@@ -57,16 +57,16 @@ export function importChatSettings(settings: string | string[]): void {
   if ('chatPages' in ourImport && ourImport.chatPages) {
     const chatPart = rebuildChatState(ourImport.chatPages);
     if (chatPart) {
+      // APHELION EDIT ADDITION START - CHAT_SETTINGS
+      // the player picked these tabs, so we save them even if their saved tabs didn't load
+      await storage.allowSaving('chat-state');
+      // APHELION EDIT ADDITION END
       startChatStateMigration(chatPart);
     }
   }
 
+  await storage.allowSaving('panel-settings'); // APHELION EDIT ADDITION - CHAT_SETTINGS
   startSettingsMigration(settingsPart);
-  // APHELION EDIT ADDITION START - CHAT_SETTINGS
-  // The player picked these settings, so they're saved from here on, even
-  // if the stored ones couldn't be read.
-  store.set(settingsReadAtom, true);
-  // APHELION EDIT ADDITION END
   storage.set('panel-settings', store.get(storedSettingsAtom));
 }
 

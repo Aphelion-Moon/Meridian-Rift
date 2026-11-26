@@ -1,10 +1,10 @@
-import { type StorageDiagnostic, storage } from 'common/storage';
+import { storage } from 'common/storage';
 import DOMPurify from 'dompurify';
 import { useAtom, useAtomValue } from 'jotai';
 import { useEffect } from 'react';
-import { store } from '../events/store'; // APHELION EDIT ADDITION - CHAT_SETTINGS
-import { settingsLoadedAtom, settingsReadAtom } from '../settings/atoms'; // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: import { settingsLoadedAtom } from '../settings/atoms';
-import { chatLoadedAtom, chatReadAtom, versionAtom } from './atom'; // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: import { chatLoadedAtom, versionAtom } from './atom';
+import { store } from '../events/store';
+import { settingsLoadedAtom } from '../settings/atoms';
+import { chatLoadedAtom, currentPageAtom, versionAtom } from './atom';
 import { MESSAGE_SAVE_INTERVAL } from './constants';
 import { saveChatToStorage } from './helpers';
 import { startChatStateMigration } from './migration';
@@ -13,6 +13,32 @@ import { chatRenderer } from './renderer';
 
 // List of blacklisted tags
 const FORBID_TAGS = ['a', 'iframe', 'link', 'video'];
+
+function showStorageProblem(message: string): void {
+  const title = document.createElement('span');
+  title.className = 'alertwarning';
+  title.textContent = 'Chat storage problem';
+
+  const box = document.createElement('div');
+  box.className = 'boxed_message red_box';
+  box.append(title, document.createElement('br'), message);
+
+  chatRenderer.processBatch(
+    [
+      createMessage({
+        type: 'internal/storage',
+        html: box.outerHTML,
+      }),
+    ],
+    { suppressHighlightSound: true },
+  );
+}
+
+storage.subscribe((diagnostic) => {
+  if (diagnostic.level !== 'info') {
+    showStorageProblem(diagnostic.message);
+  }
+});
 
 /**
  * Custom hook that initializes chat from local storage and periodically saves
@@ -29,7 +55,19 @@ export function useChatPersistence() {
     if (!loaded && settingsLoaded) {
       async function fetchChat(): Promise<void> {
         console.log('Initializing chat');
-        await loadChatFromStorage();
+        try {
+          await loadChatFromStorage();
+        } catch (error) {
+          console.error('Failed to load chat from storage:', error);
+          showStorageProblem(
+            "Your saved chat couldn't be loaded, so chat is starting fresh.",
+          );
+        }
+
+        // nothing got restored, do this so like, the chat doesn't get stuck blank
+        if (!chatRenderer.page) {
+          chatRenderer.changePage(store.get(currentPageAtom));
+        }
 
         setLoaded(true);
         chatRenderer.onStateLoaded();
@@ -51,44 +89,10 @@ export function useChatPersistence() {
   }, [loaded]);
 
   async function loadChatFromStorage(): Promise<void> {
-    /* // APHELION EDIT REMOVAL START - CHAT_SETTINGS
     const [state, messages] = await Promise.all([
       storage.get('chat-state'),
       storage.get('chat-messages'),
     ]);
-    */ // APHELION EDIT REMOVAL END
-    // APHELION EDIT ADDITION START - CHAT_SETTINGS
-    let state: any;
-    let messages: any;
-    try {
-      [state, messages] = await Promise.all([
-        storage.read('chat-state'),
-        storage.read('chat-messages'),
-      ]);
-      store.set(chatReadAtom, true);
-    } catch (error) {
-      // Default tabs this session, and nothing saved over the player's chat.
-      console.error('Failed to load chat from storage:', error);
-    }
-    // What didn't load, said in chat so the player knows it's kept.
-    const notLoaded: StorageDiagnostic[] = [];
-    if (!store.get(settingsReadAtom)) {
-      notLoaded.push({
-        level: 'warn',
-        message:
-          "Your chat settings didn't load, so this session uses the defaults and doesn't save changes. Your saved settings are kept and come back next time.",
-      });
-    }
-    if (!store.get(chatReadAtom)) {
-      notLoaded.push({
-        level: 'warn',
-        message:
-          "Your chat tabs and history didn't load, so this session starts fresh and isn't saved. Your saved ones are kept and come back next time.",
-      });
-    }
-    // APHELION EDIT ADDITION END
-
-    surfaceStorageDiagnostics([...storage.diagnostics, ...notLoaded]); // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: surfaceStorageDiagnostics(storage.diagnostics);
 
     if (messages) {
       handleMessages(messages);
@@ -103,27 +107,6 @@ export function useChatPersistence() {
     } else {
       // Discard incompatible versions
       console.log('Discarded incompatible chat state from storage:', state);
-    }
-  }
-
-  function surfaceStorageDiagnostics(diagnostics: StorageDiagnostic[]) {
-    const hasIssues = diagnostics.some((d) => d.level !== 'info');
-    if (!hasIssues) return;
-
-    const batch = diagnostics
-      .filter((d) => d.level !== 'info')
-      .map((d) =>
-        createMessage({
-          type: 'internal/storage',
-          text: `[Storage] ${d.message}`,
-        }),
-      );
-
-    if (batch.length) {
-      chatRenderer.processBatch(batch, {
-        prepend: true,
-        suppressHighlightSound: true,
-      });
     }
   }
 

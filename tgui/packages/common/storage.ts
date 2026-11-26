@@ -9,20 +9,13 @@
 export const IMPL_HUB_STORAGE = 1;
 export const IMPL_IFRAME_INDEXED_DB = 2;
 
-type StorageImplementation =
+export type StorageImplementation =
   | typeof IMPL_HUB_STORAGE
   | typeof IMPL_IFRAME_INDEXED_DB;
 
 type StorageBackend = {
   impl: StorageImplementation;
   get(key: string): Promise<any>;
-  // APHELION EDIT ADDITION START - CHAT_SETTINGS
-  /**
-   * The saved value, or undefined if nothing's saved. Fails if the store
-   * doesn't answer, so a failed read never looks like an empty store.
-   */
-  read(key: string): Promise<any>;
-  // APHELION EDIT ADDITION END
   set(key: string, value: any): Promise<void>;
   remove(key: string): Promise<void>;
   clear(): Promise<void>;
@@ -48,6 +41,10 @@ const testHubStorage = testGeneric(
 const STORAGE_CDN_TIMEOUT = 5000;
 const persistedStorageKeys = ['panel-settings', 'chat-state', 'chat-messages'];
 const legacyHubMigrationKeys = ['panel-settings'];
+// APHELION EDIT ADDITION START - CHAT_SETTINGS
+/** What one try at a read returns if the iframe errored or didn't answer in time */
+const NO_ANSWER = Symbol('no answer');
+// APHELION EDIT ADDITION END
 
 class HubStorageBackend implements StorageBackend {
   public impl: StorageImplementation;
@@ -64,21 +61,6 @@ class HubStorageBackend implements StorageBackend {
     return undefined;
   }
 
-  // APHELION EDIT ADDITION START - CHAT_SETTINGS
-  async read(key: string): Promise<any> {
-    const value = await window.hubStorage.getItem(key);
-    if (typeof value !== 'string') return undefined;
-    try {
-      return JSON.parse(value);
-    } catch {
-      // Nothing can be read back from a value that doesn't parse, so it counts
-      // as nothing saved. If it failed instead, nothing would ever be saved
-      // over it and the settings would stay stuck on the defaults.
-      return undefined;
-    }
-  }
-
-  // APHELION EDIT ADDITION END
   async set(key: string, value: any): Promise<void> {
     window.hubStorage.setItem(key, JSON.stringify(value));
   }
@@ -97,14 +79,17 @@ export class IFrameIndexedDbBackend implements StorageBackend { // APHELION EDIT
 
   private documentElement: HTMLIFrameElement;
   private iframeWindow: Window;
+  private onReadTimeout: (key: string) => void;
+  // keys we asked for but never heard back about. this is like, so we can differientate them from "keys that just had no value at all"
+  private unreadKeys = new Set<string>();
   // APHELION EDIT ADDITION START - CHAT_SETTINGS
-  /** How long a read waits for the iframe before it fails, in ms. */
-  private timeout: number;
+  /** Whether a failed read gets a second try. Turned off after a read fails twice, since the store's likely down */
+  private retryReads = true;
   // APHELION EDIT ADDITION END
 
-  constructor(timeout = STORAGE_CDN_TIMEOUT) { // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: constructor() {
+  constructor(onReadTimeout: (key: string) => void) {
     this.impl = IMPL_IFRAME_INDEXED_DB;
-    this.timeout = timeout; // APHELION EDIT ADDITION - CHAT_SETTINGS
+    this.onReadTimeout = onReadTimeout;
   }
 
   async ready(): Promise<boolean | null> {
@@ -156,13 +141,31 @@ export class IFrameIndexedDbBackend implements StorageBackend { // APHELION EDIT
   }
 
   // APHELION EDIT ADDITION START - CHAT_SETTINGS
+  /** Returns the saved value, or undefined if nothing's saved or the store didn't answer */
   async get(key: string): Promise<any> {
-    return this.read(key).catch(() => undefined);
+    // the key counts as unread until we get an answer, so nothing saves over it while we wait
+    this.unreadKeys.add(key);
+    let value = await this.ask(key);
+    // a store that was only slow usually answers the second time
+    if (value === NO_ANSWER && this.retryReads) value = await this.ask(key);
+    if (value === NO_ANSWER) {
+      // warn only the first time a read fails both tries
+      if (this.retryReads) this.onReadTimeout(key);
+      this.retryReads = false;
+      return undefined;
+    }
+    this.unreadKeys.delete(key);
+    return value;
+  }
+
+  /** Lets `key` be saved even though it couldn't be read */
+  markRead(key: string): void {
+    this.unreadKeys.delete(key);
   }
 
   // APHELION EDIT ADDITION END
-  async read(key: string): Promise<any> { // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: async get(key: string): Promise<any> {
-    const promise = new Promise((resolve, reject) => { // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: const promise = new Promise((resolve) => {
+  private async ask(key: string): Promise<any> { // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: async get(key: string): Promise<any> {
+    const promise = new Promise((resolve) => {
       const listener = (message: MessageEvent) => {
         if (
           message.source === this.iframeWindow &&
@@ -171,29 +174,18 @@ export class IFrameIndexedDbBackend implements StorageBackend { // APHELION EDIT
         ) {
           clearTimeout(timeout);
           window.removeEventListener('message', listener);
-          // resolve(message.data.value); // APHELION EDIT REMOVAL - CHAT_SETTINGS
-          // APHELION EDIT ADDITION START - CHAT_SETTINGS
-          if (message.data.error) {
-            reject(
-              new Error(
-                `Storage couldn't read '${key}': ${message.data.error}`,
-              ),
-            );
-          } else {
-            resolve(message.data.value);
-          }
-          // APHELION EDIT ADDITION END
+          // this.unreadKeys.delete(key); // APHELION EDIT REMOVAL - CHAT_SETTINGS
+          resolve('error' in message.data ? NO_ANSWER : message.data.value); // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: resolve(message.data.value);
         }
       };
       const timeout = setTimeout(() => {
         window.removeEventListener('message', listener);
-        // resolve(undefined); // APHELION EDIT REMOVAL - CHAT_SETTINGS
-        // APHELION EDIT ADDITION START - CHAT_SETTINGS
-        reject(
-          new Error(`Storage didn't answer for '${key}' in ${this.timeout} ms`),
-        );
-        // APHELION EDIT ADDITION END
-      }, this.timeout); // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: }, STORAGE_CDN_TIMEOUT);
+        /* // APHELION EDIT REMOVAL START - CHAT_SETTINGS
+        this.unreadKeys.add(key);
+        this.onReadTimeout(key);
+        */ // APHELION EDIT REMOVAL END
+        resolve(NO_ANSWER); // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: resolve(undefined);
+      }, STORAGE_CDN_TIMEOUT);
 
       window.addEventListener('message', listener);
     });
@@ -203,6 +195,7 @@ export class IFrameIndexedDbBackend implements StorageBackend { // APHELION EDIT
   }
 
   async set(key: string, value: any): Promise<void> {
+    if (this.unreadKeys.has(key)) return;
     this.iframeWindow.postMessage({ type: 'set', key: key, value: value }, '*');
   }
 
@@ -223,34 +216,41 @@ export class IFrameIndexedDbBackend implements StorageBackend { // APHELION EDIT
  * Web Storage Proxy object, which selects the best backend available
  * depending on the environment.
  */
-export class StorageProxy implements StorageBackend { // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: class StorageProxy implements StorageBackend {
+export class StorageProxy { // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: class StorageProxy {
   private backendPromise: Promise<StorageBackend>;
-  public impl: StorageImplementation = IMPL_IFRAME_INDEXED_DB;
-  public diagnostics: StorageDiagnostic[] = [];
-  // APHELION EDIT ADDITION START - CHAT_SETTINGS
-  /**
-   * Whether a failed read is tried once more. Off after a second try failed
-   * too, so a store that's down isn't waited on twice for every read.
-   */
-  private retryReads = true;
-  // APHELION EDIT ADDITION END
+  private diagnostics: StorageDiagnostic[] = [];
+  private listener?: (diagnostic: StorageDiagnostic) => void;
 
   private log(level: StorageDiagnostic['level'], message: string) {
-    this.diagnostics.push({ level, message });
+    const diagnostic = { level, message };
+    this.diagnostics.push(diagnostic);
+    this.listener?.(diagnostic);
   }
 
-  constructor(createIframe = () => new IFrameIndexedDbBackend()) { // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: constructor() {
+  /** Calls `listener` with every diagnostic logged so far, then with each new one as it happens. */
+  subscribe(listener: (diagnostic: StorageDiagnostic) => void): void {
+    this.listener = listener;
+    for (const diagnostic of this.diagnostics) {
+      listener(diagnostic);
+    }
+  }
+
+  constructor() {
     this.backendPromise = (async () => {
       // Prefer the configured iframe storage when available. hubStorage may
       // already be enabled by another window/server, but the iframe origin is
       // the server-configured storage boundary.
       if (Byond.storageCdn) {
-        const iframe = createIframe(); // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: const iframe = new IFrameIndexedDbBackend();
+        const iframe = new IFrameIndexedDbBackend(() => // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: const iframe = new IFrameIndexedDbBackend((key) =>
+          this.log(
+            'warn',
+            "Some of your saved chat data didn't load in time. Using defaults for now, and not saving over what you had.", // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: `Timed out reading '${key}'. Using defaults for now, and not saving over what you had.`,
+          ),
+        );
 
         if ((await iframe.ready()) === true) {
           this.log('info', `Using iframe storage (${Byond.storageCdn})`);
 
-          /* // APHELION EDIT REMOVAL START - CHAT_SETTINGS
           if (await iframe.get('byondstorage-migrated')) return iframe;
 
           const iframeHasPersistedStorage = (
@@ -258,31 +258,12 @@ export class StorageProxy implements StorageBackend { // APHELION EDIT CHANGE - 
               persistedStorageKeys.map((setting) => iframe.get(setting)),
             )
           ).some((settings) => settings !== undefined);
-          */ // APHELION EDIT REMOVAL END
-          // APHELION EDIT ADDITION START - CHAT_SETTINGS
-          // Copy byondstorage only into a store that answered it's empty.
-          // A store that didn't answer can still hold the player's settings.
-          let iframeHasPersistedStorage: boolean;
-          try {
-            if (await iframe.read('byondstorage-migrated')) return iframe;
-
-            iframeHasPersistedStorage = (
-              await Promise.all(
-                persistedStorageKeys.map((setting) => iframe.read(setting)),
-              )
-            ).some((settings) => settings !== undefined);
-          } catch {
-            // Info, so it stays out of chat. It changes nothing for the player.
-            this.log(
-              'info',
-              "Couldn't read iframe storage, so nothing was imported from byondstorage",
-            );
-            return iframe;
-          }
-          // APHELION EDIT ADDITION END
 
           if (!iframeHasPersistedStorage) {
-            this.log('info', 'No existing iframe data, migrating from byondstorage');
+            this.log(
+              'info',
+              'No existing iframe data, migrating from byondstorage',
+            );
             const hubStorageWasEnabled = testHubStorage();
             if (!hubStorageWasEnabled) {
               Byond.winset(null, 'browser-options', '+byondstorage');
@@ -314,7 +295,10 @@ export class StorageProxy implements StorageBackend { // APHELION EDIT CHANGE - 
                     this.log('info', `Migrated '${setting}' from byondstorage`);
                   }
                 } catch {
-                  this.log('warn', `Failed to migrate '${setting}' from byondstorage`);
+                  this.log(
+                    'warn',
+                    `Failed to migrate '${setting}' from byondstorage`,
+                  );
                 }
               }),
             );
@@ -329,7 +313,10 @@ export class StorageProxy implements StorageBackend { // APHELION EDIT CHANGE - 
           return iframe;
         }
 
-        this.log('warn', `Iframe storage failed to load from ${Byond.storageCdn}`);
+        this.log(
+          'warn',
+          `Iframe storage failed to load from ${Byond.storageCdn}`,
+        );
         iframe.destroy();
       } else {
         this.log('info', 'No storage CDN configured');
@@ -358,27 +345,30 @@ export class StorageProxy implements StorageBackend { // APHELION EDIT CHANGE - 
     })();
   }
 
+  async getImpl(): Promise<StorageImplementation> {
+    return (await this.backendPromise).impl;
+  }
+
   async get(key: string): Promise<any> {
     const backend = await this.backendPromise;
-    return backend.get(key);
+    try {
+      return await backend.get(key);
+    } catch {
+      // usually a save that got cut off halfway, so it isn't valid json anymore. nothing in there to rescue, and letting it throw leaves chat dead on every join
+      this.log(
+        'warn',
+        `Your saved '${key}' was unreadable, so it's starting fresh.`,
+      );
+      return undefined;
+    }
   }
 
   // APHELION EDIT ADDITION START - CHAT_SETTINGS
-  async read(key: string): Promise<any> {
+  /** Lets `keys` be saved even if they couldn't be read, like when the player imports a settings file */
+  async allowSaving(...keys: string[]): Promise<void> {
     const backend = await this.backendPromise;
-    try {
-      return await backend.read(key);
-    } catch (error) {
-      if (!this.retryReads) throw error;
-    }
-    // A store that was only slow answers the second time, so one slow read
-    // doesn't cost the player their settings for the whole session.
-    try {
-      return await backend.read(key);
-    } catch (error) {
-      this.retryReads = false;
-      throw error;
-    }
+    if (!(backend instanceof IFrameIndexedDbBackend)) return;
+    for (const key of keys) backend.markRead(key);
   }
 
   // APHELION EDIT ADDITION END
