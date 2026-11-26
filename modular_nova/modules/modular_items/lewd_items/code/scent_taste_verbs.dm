@@ -1,5 +1,5 @@
-GAME_VERB_CONTEXT(/mob/living/carbon/human, lick, "Lick", "", "IC", /mob/living/carbon/human)
-	VERB_ARG_TYPED(target, VERB_ARG_TYPE_MOB, VERB_ARG_SOURCE_VIEW, /mob/living/carbon/human)
+GAME_VERB_CONTEXT_RANGE(/mob/living/carbon/human, lick, "Lick", "", "IC", /mob/living/carbon/human, oview(1))
+	VERB_ARG_TYPED_RANGE(target, VERB_ARG_TYPE_MOB, VERB_ARG_SOURCE_VIEW, /mob/living/carbon/human, 1)
 	if(!istype(target))
 		return FALSE
 	if(!get_organ_slot(ORGAN_SLOT_TONGUE))
@@ -17,8 +17,8 @@ GAME_VERB_CONTEXT(/mob/living/carbon/human, lick, "Lick", "", "IC", /mob/living/
 	to_chat(target, span_notice("[src] licks you."))
 	return TRUE
 
-GAME_VERB_CONTEXT(/mob/living/carbon/human, smell, "Smell", "", "IC", /mob/living/carbon/human)
-	VERB_ARG_TYPED(target, VERB_ARG_TYPE_MOB, VERB_ARG_SOURCE_VIEW, /mob/living/carbon/human)
+GAME_VERB_CONTEXT_RANGE(/mob/living/carbon/human, smell, "Smell", "", "IC", /mob/living/carbon/human, oview(1))
+	VERB_ARG_TYPED_RANGE(target, VERB_ARG_TYPE_MOB, VERB_ARG_SOURCE_VIEW, /mob/living/carbon/human, 1)
 	if(!istype(target))
 		return FALSE
 	if(!can_use_erp_flavor_verb(target, "doesn't feel like being approached that close right now."))
@@ -82,6 +82,11 @@ GAME_VERB_CONTEXT(/mob/living/carbon/human, smell, "Smell", "", "IC", /mob/livin
 	return client?.prefs?.read_preference(/datum/preference/toggle/erp) && target?.client?.prefs?.read_preference(/datum/preference/toggle/erp)
 
 /mob/living/carbon/human/proc/can_use_erp_flavor_verb(mob/living/carbon/human/target, warning_message)
+	// the verb runs after the target picker closes, so they may have walked off
+	if(!Adjacent(target))
+		to_chat(src, span_warning("You need to be next to [target] to do that."))
+		return FALSE
+
 	if(!can_see_erp_flavor(target))
 		to_chat(src, span_warning("You need ERP preferences enabled on both characters to do that."))
 		return FALSE
@@ -91,12 +96,3 @@ GAME_VERB_CONTEXT(/mob/living/carbon/human, smell, "Smell", "", "IC", /mob/livin
 		return FALSE
 
 	return TRUE
-
-/// Returns adjacent humans for the Lick/Smell IC verb target selector.
-/mob/living/proc/get_adjacent_humans()
-	var/list/nearby_humans = list()
-	for(var/mob/living/carbon/human/nearby_human in range(1, src))
-		if(nearby_human == src)
-			continue
-		nearby_humans += nearby_human
-	return nearby_humans

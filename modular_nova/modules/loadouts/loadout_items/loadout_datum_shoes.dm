@@ -89,15 +89,6 @@
 	name = "Boots - Cowboy (Colorable)"
 	item_path = /obj/item/clothing/shoes/cowboy/laced/recolorable
 
-/datum/loadout_item/shoes/cowboy_black
-	name = "Boots - Cowboy, Laced (Black)"
-
-/datum/loadout_item/shoes/cowboy_brown
-	name = "Boots - Cowboy, Laced (Brown)"
-
-/datum/loadout_item/shoes/cowboy_white
-	name = "Boots - Cowboy, Laced (White)"
-
 /datum/loadout_item/shoes/jackboots/frontier
 	name = "Boots - Heavy Frontier"
 	item_path = /obj/item/clothing/shoes/jackboots/frontier_colonist

@@ -1,4 +1,0 @@
-author: "vinylspiders"
-delete-after: True
-changes:
-  - bugfix: "chat panel settings (font size, theme, highlights) and chat tabs no longer reset to defaults when they're slow to load. If they can't be read, you get the defaults for that session and your own settings come back next time."
