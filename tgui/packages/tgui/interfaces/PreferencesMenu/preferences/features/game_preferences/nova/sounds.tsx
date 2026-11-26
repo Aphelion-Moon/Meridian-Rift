@@ -15,3 +15,11 @@ export const sound_loopalarm: FeatureToggle = {
     'When enabled, hear looping alarms.',
   component: CheckboxInput,
 };
+
+export const sound_lobby_join_continue: FeatureToggle = {
+  name: 'Lobby music persists after joining',
+  category: 'SOUND',
+  description:
+    'When enabled, lobby music will continue playing after observing or joining. Feel the rhythm!',
+  component: CheckboxInput,
+};
