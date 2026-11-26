@@ -1,0 +1,189 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_aphelion/modules/dirt/module.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>modular_aphelion/modules/dirt/module.md <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/ab7964fb278f6190b237e11cd13dc46bd0337ff2/modular_aphelion/modules/dirt/module.md"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/module.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><h2 id="dirt-overlays">Dirt overlays</h2>
+<p>Module ID: DIRT</p>
+<h3 id="description">Description:</h3>
+<p>Dirt that lands on a person shows on their sprite until it's washed off. Mess lands where a shot was aimed. General
+dirt, a cause's dirt in a material (mud from walking, soot from smoke), lands on everything that shows where its cause
+reaches.</p>
+<ul>
+<li><strong>Splats.</strong> <code>/datum/component/dirtiness</code> holds a person's or an item's splats (<code>/datum/dirt_splat</code>): a zone's mess at
+level 1 to 4 in one of <code>DIRT_VARIANTS</code> variants, or a general deposit. A person carries <code>DIRT_MAX_SPLATS</code> at most,
+across their skin, underclothes, parts, hair and what they wear, and the one landed longest ago goes first.</li>
+<li><strong>Aiming.</strong> A shot offers a region for each zone that shows on its target (<code>dirt_mess_regions()</code>), and
+<code>dirt_mess_land()</code> puts it on them. A shot's amount adds levels to the zone's newest splat, and what's left past the
+top starts another.</li>
+<li><strong>Masks.</strong> A surface's splats merge into one mask a direction, a tone role to each pixel (<code>dirt_merge()</code>). The masks
+are baked at run time into four-direction icons (<code>dirt_baked_icon()</code>), one for each limb, layer, garment or part
+they draw on. Each pixel takes its role's colour and alpha for its material.</li>
+<li><strong>Materials</strong> (<code>materials.dm</code>): mud, soot, oil, slime, sweat and the rest, each with its role colours, an edge and its
+flags. <code>dirt_material()</code> returns the shared one for an id, and slime and blood are made from any colour.</li>
+<li><strong>The generator.</strong> <code>dirt_rasterise()</code> draws a splat on a body's template: mess as streaks, globs and drips, and each
+general cause as its features (<code>features.dm</code>, <code>coverage.dm</code>, <code>causes_ground.dm</code>, <code>causes_upper.dm</code>). The face and
+hands are too small to wrap dirt round, so they take stamps (<code>stamps.dm</code>).</li>
+<li><strong>Templates</strong> (<code>surface.dm</code>). Dirt lies on limbs, not on the screen. A body's template maps each pixel to a limb, an
+angle round it and a height along it, built from the limb sprites the body draws, so every species gets its own.</li>
+<li><strong><code>SSdirt</code></strong> makes templates and masks in the background, a piece at a time, and every cache it keeps is bounded. A
+body draws its old masks until its new ones are made, and is drawn again once they are. <code>SSdirt.finish_all()</code> makes
+everything queued at once.</li>
+<li><strong>Where general dirt lands</strong> (<code>dirt_land()</code>). A cause reaches a fixed set of limbs (<code>dirt_cause_reach()</code>), and every
+carrier that shows on one of them takes the deposit there (<code>dirt_shown_carriers()</code>). The same cause and material
+raise a deposit rather than add one, and a bare body takes the painted designs (<code>painted.dm</code>).</li>
+<li><strong>What lands it</strong> (<code>sources.dm</code>). Slime, tool work on machines, dirt underfoot, blasts, fire, smoke and mining land
+general dirt in a round. So do falls, lying down and rolling on dirt, reagents and sweat, each through
+<code>dirt_source_land()</code>. Undefining <code>DIRT_SOURCES</code> turns them all off.</li>
+<li><strong>Where a shot lands</strong> (<code>dirt_mess_surface()</code>): the outermost garment over the zone, else the piece of underclothes
+that shows the most of it, else the skin.</li>
+<li><strong>Skin</strong> (<code>skin.dm</code>, <code>limb_cache.dm</code>). Each limb the skin's dirt lies on draws it in one container image, and an arm
+draws one more for its hand. A dirty limb's render key carries <code>DIRT_PRIVATE_KEY</code>, so its images stay on its own mob,
+out of tg's shared limb cache. Skin dirt fades out over <code>DIRT_FADE_RINGS</code> pixels before what's worn over it.</li>
+<li><strong>Clothes</strong> (<code>worn.dm</code>). A garment keeps its dirt when it comes off, and draws it inset in its worn wrapper while
+it's worn. On a garment, whichever of blood and dirt landed last draws on top (<code>stain_over()</code>).</li>
+<li><strong>Sweat</strong> (<code>sweat.dm</code>) darkens the cloth it lands on through a multiplier, and never lands on bare skin.</li>
+<li><strong>Underclothes</strong> aren't items, so the person holds their dirt, kept with the piece it's on.</li>
+<li><strong>Parts</strong> (<code>parts.dm</code>, <code>genital_overlays.dm</code>). Breasts, pecs, the penis, the testicles, the vulva and the butt take a
+share of a shot at their zone, and draw it with their own images.</li>
+<li><strong>Taurs</strong> (<code>taur.dm</code>, <code>taur_coat.dm</code>, <code>taur_overlay.dm</code>). A back shot lands on the rider and as pools along the taur
+body, which takes general dirt of its own. A taur suit takes the pools itself and draws its hem band.</li>
+<li><strong>Blood below a taur's waist</strong> (<code>blood.dm</code>). A uniform's or suit's stain, cut at the waist, runs down onto the taur
+body or a taur-fitted garment's cloth, drawn from the garments' own blood at the rider's height.</li>
+<li><strong>Drawn parts</strong> (<code>appendages.dm</code>, <code>canvas.dm</code>). Tails, wings, ears, horns and the other mutant parts carry their own
+general dirt, drawn by the canvas generator. A typecache of the parts that take dirt (<code>dirt_shape_kinds()</code>) lets
+every other part leave at the first check. A wagging tail draws its dirt on every frame of its wag.</li>
+<li><strong>Hair</strong> (<code>hair.dm</code>) carries its own general dirt under <code>DIRT_CARRIER_HAIR</code> while it shows, its pieces drawn over hats
+too.</li>
+<li><strong>Emissive blockers.</strong> Each baked image but sweat's multiplier draws a blocker in its shape and alpha
+(<code>dirt_emissive_blocker()</code>), so in the dark dirt dims a glow under it. A garment's dirt draws them only while blood
+or a glow of the garment's own lies under them (<code>dirt_glow_under()</code>).</li>
+<li><strong>The overlay budget.</strong> However many splats a body holds, its skin and underclothes dirt takes four of its overlays,
+six with a dirty hand, and each sweat multiplier one more. Their images share one holder a layer, and their blockers
+one group (<code>prepare_bodypart_overlays()</code>, in worn_emissives).</li>
+<li><strong>Washing</strong> clears it through the clean signal: showers, washing machines, soap. Clear Dirt (Debug, and every mob's VV
+menu, <code>R_ADMIN</code>) takes it all off a human.</li>
+<li><strong>Pixel parity.</strong> The masks match the reference generator's pixel for pixel, case by case of <code>dirt_corpus.json</code>
+against <code>dirt_manifest.txt</code>, so a change meant to move pixels starts in the reference generator.</li>
+</ul>
+<p>Known limits:</p>
+<ul>
+<li>The hair's dirt follows the stock hairstyle, not hair paint, and a drawn part's dirt ignores per-facing offsets.</li>
+<li>Big Legs taurs, parts on no canvas and tail spines take no general dirt.</li>
+<li>On bare skin tg's blood draws over skin dirt, whatever landed last.</li>
+<li>A blocker dims only what glows under its layer, so skin dirt leaves the eyes, the genitals and the parts drawn in
+front glowing.</li>
+<li>Blood below a taur's waist neither glows nor blocks.</li>
+</ul>
+<h3 id="tg-proc-file-changes">TG Proc/File Changes:</h3>
+<ul>
+<li><code>code/modules/mob/living/carbon/carbon_update_icons.dm</code>: <code>/mob/living/carbon/proc/update_body_parts()</code> takes each
+limb's images from <code>limb_icons_for()</code>, which serves a key without <code>DIRT_PRIVATE_KEY</code> from <code>limb_icon_cache</code> as tg
+does. A body holding no private images reads the cache itself, and skips the call while the cache holds the key
+(<code>DIRT_LIMB_ICONS_STEADY()</code>, <code>DIRT_LIMB_ICONS_CHANGED()</code>).</li>
+<li><code>code/modules/mob/living/carbon/human/human_update_icons.dm</code>: <code>/obj/item/proc/build_worn_icon()</code> calls
+<code>dirt_order_worn()</code> on the separate worn overlays while the item's <code>dirt_stain_slot</code> is set, which moves the blood
+stain under dirt that landed after it.</li>
+<li><code>code/modules/clothing/under/_under.dm</code> and <code>code/modules/clothing/suits/_suits.dm</code>: the accessories' overlays stay
+on a taur's rider (<code>fit_rider_overlays()</code>, <code>fit_rider_overlay()</code>).</li>
+<li><code>code/modules/clothing/clothing.dm</code> and the gloves', head's, masks', suits' and uniforms' base files: blood and rip
+overlays go through <code>fit_worn_effect()</code>, which cuts a taur's at the waist.</li>
+<li><code>code/modules/mob/living/carbon/human/human.dm</code>: <code>/mob/living/carbon/human/Initialize()</code> gives every human but a
+preview dummy its <code>/datum/component/dirt_sources</code>, while <code>DIRT_SOURCES</code> is defined.</li>
+</ul>
+<h3 id="modular-overrides">Modular Overrides:</h3>
+<ul>
+<li><code>code/component.dm</code>: <code>/datum/component/dirtiness</code>, the order of its images against a garment's blood stain
+(<code>on_blood_added()</code>, <code>stain_over()</code>), and the examine line. <code>/obj/item/add_blood_DNA()</code> notes blood for dirt as it
+lands on an item, then calls the base proc.</li>
+<li><code>code/skin.dm</code>: <code>/datum/bodypart_overlay/dirt_skin</code> (mess and general dirt, the hands' too),
+<code>/datum/bodypart_overlay/dirt_underclothes</code> (each piece's dirt and its sweat's multiplier) and
+<code>dirt_emissive_blocker()</code>, every baked image's blocker. On <code>/datum/controller/subsystem/accessories</code>, <code>setup_lists()</code>
+adds <code>DIRT_HAND_LAYER_POSTFIX</code> to <code>all_layer_postfixes</code>.</li>
+<li><code>code/worn.dm</code>: which garment or underclothes a shot lands on, what shows on each limb for general dirt, whether a
+body is bare or hidden, what's worn over the skin, <code>/datum/dirt_drawing</code>, <code>/obj/item/var/dirt_stain_slot</code> and
+<code>/obj/item/proc/dirt_order_worn()</code>.</li>
+<li><code>code/landing.dm</code>: <code>dirt_mess_land()</code>, <code>dirt_mess_place()</code>, <code>dirt_land()</code>, each cause's reach, the splat cap, the
+aim zones and the regions a shot offers.</li>
+<li><code>code/sources.dm</code>: the sources (<code>/datum/dirt_source</code>), <code>dirt_source_land()</code>, <code>/datum/component/dirt_sources</code>,
+<code>/datum/dirt_job/landing</code> and what lands general dirt. On <code>/datum/status_effect/slimed</code>, <code>on_apply()</code>. On
+<code>/mob/living/basic/slime</code>, <code>melee_attack()</code>. <code>tool_act()</code> on <code>/obj/machinery</code>, <code>/obj/vehicle</code> and
+<code>/mob/living/silicon/robot</code>. On <code>/datum/status_effect/exercised</code>, <code>on_apply()</code> and <code>refresh()</code>. On
+<code>/datum/status_effect/stop_drop_roll</code> and its <code>hallucinating</code> subtype, <code>reduce_firestacks()</code>.</li>
+<li><code>code/parts.dm</code>: <code>/datum/dirt_part_source</code>, which parts a body draws and where, the pecs guide, and the parts'
+rasterisers.</li>
+<li><code>code/genital_overlays.dm</code>: on <code>/datum/bodypart_overlay/mutant/genital</code>, <code>get_overlay()</code> draws a part's share and the
+skin's general dirt on it, and <code>icon_render_key()</code> carries their keys. On <code>/obj/item/organ/genital</code>,
+<code>on_mob_insert()</code> and <code>on_mob_remove()</code>.</li>
+<li><code>code/taur.dm</code>: <code>/datum/dirt_taur_source</code>, what a taur canvas shows, the pools' rasterisers, when a back shot takes
+them, the dirt a taller rider uncovers, what general dirt the taur body takes, and the taur suit over it.</li>
+<li><code>code/taur_overlay.dm</code>: on <code>/datum/bodypart_overlay/mutant/taur_body</code>, <code>get_overlay()</code> draws its pools, general dirt
+and the blood below the waist, <code>icon_render_key()</code> carries their masks' keys and the blood's side, and
+<code>dirt_read_source()</code> reads the taur body.</li>
+<li><code>code/taur_coat.dm</code>: the taur body's contact coats.</li>
+<li><code>code/blood.dm</code>: blood below a taur's waist: where the stain meets the crop, the start row by height, what it's drawn
+from and on, its shape, which side of the dirt it draws on, and the cover check that keeps it current.</li>
+<li><code>code/appendages.dm</code>: on <code>/datum/bodypart_overlay/mutant</code>, the drawn parts as carriers (<code>dirt_shape_overlay()</code>,
+<code>dirt_shape_render_key()</code>, the reads), and on <code>/datum/bodypart_overlay/mutant/tail</code> its wag. The wag's frames and
+carry.</li>
+<li><code>code/hair.dm</code>: on <code>/obj/item/bodypart/head</code>, <code>generate_icon_key()</code> carries the hair's masks' key and
+<code>get_hair_overlays()</code> draws the hair's dirt and its outer pieces'. The hair's merge.</li>
+<li><code>code/sweat.dm</code>: sweat's multiplier and the accessories kept dry.</li>
+<li><code>code/limb_cache.dm</code>: on <code>/mob/living/carbon</code>, <code>private_limb_icons</code> and <code>limb_icons_for()</code>.
+On <code>/obj/item/bodypart</code>, <code>on_removal()</code> drops the limb's private images.</li>
+<li><code>code/admin.dm</code>: the Clear Dirt admin verb.</li>
+<li><code>code/subsystem.dm</code>: <code>SSdirt</code>, and <code>/mob/living/carbon/human/proc/redraw_dirt()</code>.</li>
+<li><code>code/masks.dm</code>: splats, mask requests and the mask jobs.</li>
+<li><code>code/materials.dm</code>: materials, <code>dirt_material()</code> and slime's and blood's colours.</li>
+<li><code>code/surface.dm</code>: templates, from the limb sprites a body draws.</li>
+<li><code>code/mess.dm</code>, <code>code/features.dm</code>, <code>code/features_coat.dm</code>, <code>code/causes_ground.dm</code>, <code>code/causes_upper.dm</code>,
+<code>code/coverage.dm</code>, <code>code/stamps.dm</code>, <code>code/painted.dm</code>, <code>code/rasterise.dm</code> and <code>code/random.dm</code>: the generator.</li>
+<li><code>code/canvas.dm</code>: the canvas generator, for taur bodies, drawn parts and hair.</li>
+</ul>
+<h3 id="defines">Defines:</h3>
+<ul>
+<li><code>code/__DEFINES/~aphelion_defines/dirt.dm</code>: roles, limbs and limb bits, a template's pixel flags, belt and margin, the
+packed raster, the face's guards, thicknesses and thresholds, zones, surface kinds, canvases and shapes, the dirt
+layers and the hand's postfix, <code>DIRT_PRIVATE_KEY</code>, <code>DIRT_TAUR_BLOOD_OVER_KEY</code> and the limb icon macros, the
+underclothes, the variant, level, amount and splat limits, carriers, the bare share, materials with their edges,
+flags and cache sizes, causes, thetas, what a stamp does to a pixel, portal views, mask kinds, the redraw flags, the
+fade, run spacing and groups, part kinds, the taur canvas, the maths, index and prefix macros, the indexes of the
+blood and sweat lists, and the <code>DIRT_SOURCES</code> switch with <code>DIRT_LANDINGS_WAITING</code> and <code>VV_HK_DIRT_CLEAR</code>. Each
+source's chance, cooldown, level and volumes are on its <code>/datum/dirt_source</code> subtype (<code>code/sources.dm</code>).</li>
+</ul>
+<h3 id="included-files-that-are-not-contained-in-this-module">Included files that are not contained in this module:</h3>
+<ul>
+<li><code>modular_aphelion/modules/bulge/</code>: dirt uses its <code>bulge_register_icon()</code>, <code>bulge_blank_tile()</code>, <code>bulge_drawn_root()</code>,
+<code>bulge_drawn_leaf()</code>, <code>bulge_is_accessory()</code>, <code>bulge_clipped_icon()</code>, <code>/datum/bulge_bounded_cache</code>, a penis's
+<code>bulge_key</code>, <code>bulge_template</code>, <code>bulge_layer</code> and <code>bulge_cover_type</code>, <code>BULGE_ABOVE_COVER</code>, <code>bulge_wanted_cut()</code> and
+<code>bulge_cut_sprite()</code>. Its look records the testicles' <code>dirt_share_key()</code> (<code>bulge_anatomy_record()</code>,
+<code>bulge_anatomy_unchanged()</code>), and its key carries <code>DIRT_PRIVATE_KEY</code> when its anatomy or its cover's cloth carries
+mess (<code>bulge_over_signature()</code>). <code>bulge_over_cloth()</code> redraws a cover's dirt over the look's cloth, and
+<code>is_visibly_sweaty()</code> asks <code>dirt_wears_sweat()</code>.</li>
+<li><code>modular_aphelion/modules/custom_sprites/code/images.dm</code>: <code>custom_sprite_taur_key()</code> leaves the taur body's dirt
+entries (<code>DIRT_PRIVATE_KEY</code>) out of its render key, as paint is clipped to the body's own images.</li>
+<li><code>modular_nova/master_files/code/datums/bodypart_overlays/mutant_bodypart_overlay.dm</code>: every mutant part's
+<code>get_overlay()</code> and <code>icon_render_key()</code> call <code>dirt_shape_overlay()</code> and <code>dirt_shape_render_key()</code>.</li>
+<li><code>modular_nova/modules/modular_items/lewd_items/code/lewd_organs/</code>: the genitals whose overlays and organs
+<code>genital_overlays.dm</code> overrides, and <code>COMSIG_HUMAN_GENITAL_UPDATED</code>.</li>
+<li><code>modular_nova/modules/customization/modules/surgery/organs/taur_body.dm</code>: the taur body whose overlay
+<code>taur_overlay.dm</code> overrides. It doesn't stretch with height, but a Big Legs kind does (<code>height_location()</code>, set as
+it draws).</li>
+<li><code>modular_nova/master_files/code/modules/clothing/clothing.dm</code>: <code>fit_worn_effect()</code> cuts a taur's stain at the waist
+and notes it (<code>dirt_note_taur_stain()</code>). <code>cuts_effects_at_taur_waist()</code> says which garments' stains are cut there, and
+<code>dirt_taur_blood_inputs()</code> and <code>dirt_waist_blood()</code> follow it. The cut is <code>taur_waist_crop()</code>, the mask
+<code>generate_taur_clothing()</code> crops a taur's clothes with, which dirt reads the stain's last kept rows from.
+<code>fit_rider_overlays()</code> keeps a uniform's accessories on the rider, and <code>fit_rider_overlay()</code> those the suit draws
+above itself.</li>
+<li><code>modular_nova/modules/modular_items/lewd_items/code/lewd_arousal/climax.dm</code>: <code>climax_into_partner()</code> offers the
+regions and lands the pick, and <code>climax_through_portal_device()</code> lands a shot through a one-part portal on the
+penis.</li>
+<li><code>modular_nova/modules/extra_vv/code/extra_vv.dm</code>: the VV action runs the Clear Dirt verb, which clears every carrier
+(<code>dirt_carriers()</code>).</li>
+<li><code>modular_nova/modules/modular_items/lewd_items/code/lewd_machinery/lewd_portals.dm</code>: a wall relay draws the chest
+alone, and keeps what it draws over the body, the dirt containers among them, to the body through a render target
+of its own (<code>body_render_target()</code>). It always copies images with no sprite of their own
+(<code>append_appearance_copies()</code>), never takes them for an organ's (<code>compare_organ_icon()</code>), and leaves out a skirt or
+dress (<code>wall_relay_skips_uniform()</code>). A wall-stuck body draws no bulge (<code>portal_hides_bulge()</code>), and a gloryhole's
+occupant draws their penis only through its relay (<code>portal_relays_penis()</code>, asked by <code>dirt_body_parts()</code>).</li>
+<li><code>code/modules/unit_tests/~nova/dirt_test_helpers.dm</code>, <code>dirt_mess_drawing.dm</code>, <code>dirt_drawing.dm</code>,
+<code>dirt_taur_blood.dm</code>, <code>dirt_sources.dm</code>, <code>dirt_manifest.dm</code>, <code>dirt_corpus.json</code> and <code>dirt_manifest.txt</code>: the tests,
+their shared helpers, the parity corpus and its manifest.</li>
+<li><code>code/modules/unit_tests/_unit_tests.dm</code></li>
+<li><code>tgstation.dme</code></li>
+</ul></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/ab7964fb278f6190b237e11cd13dc46bd0337ff2">ab7964f</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

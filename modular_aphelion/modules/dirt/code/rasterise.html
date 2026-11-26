@@ -1,0 +1,103 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_aphelion/modules/dirt/code/rasterise.dm - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>modular_aphelion/modules/dirt/code/rasterise.dm <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/ab7964fb278f6190b237e11cd13dc46bd0337ff2/modular_aphelion/modules/dirt/code/rasterise.dm"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/dirt/code/rasterise.dm"></a></h1><table class="summary" cellspacing="0"><tr><th><a href="datum/dirt_pixels.html">/datum/dirt_pixels</a></th><td>A raster's or a mask's pixels: a tone role and a thickness for each. Lists are indexed y * width + x + 1 in the
+reference generator's coordinates, as a /datum/dirt_surface's are: x from the left and y from the top, both from 0.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_index_range">dirt_index_range</a></th><td>Returns list(1, 2, ... count), made once for each count. You should NEVER modify it.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_stepped_up_roles">dirt_stepped_up_roles</a></th><td>Returns each role a step darker, indexed by its DIRT_ROLE_* define: haze to film and film to body, the rest as they
+are. A material that its cause draws darker takes it, and so does a painted design at level 4. You should NEVER
+modify it.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_lighter_roles">dirt_lighter_roles</a></th><td>Returns each role a step lighter, indexed by its DIRT_ROLE_* define: haze to nothing, film to haze, body to film and
+core to body. Fleck and glint stay as they are. Cloth's rim takes it, for every role of a coat but its core, and
+for a speck. You should NEVER modify it.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_role_ranks">dirt_role_ranks</a></th><td>Returns each role's rank, indexed by its DIRT_ROLE_* define: where rasters or levels meet, the higher rank keeps the
+pixel. You should NEVER modify it.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_neighbour_table">dirt_neighbour_table</a></th><td>Returns each pixel's neighbours on a canvas, in the order the reference generator visits them: right, left, below,
+above, those off the canvas left out. Built once per canvas size. You should NEVER modify it.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_surface_rows">dirt_surface_rows</a></th><td>Returns a surface's pixels grouped by limb and row, so a feature is weighed only on the rows it can reach:
+alist(limb = list(list(row, lowest h, highest h, indexes), ...)), rows from the top. Built once for each surface. You
+should NEVER modify it.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_rasterise_aimed">dirt_rasterise_aimed</a></th><td>Returns mess aimed at a zone, drawn on one direction of a body. It holds levels 1 to <code>level</code>, each from the deposit's
+same draws. They're merged by role rank, the later level winning a tie (dirt_stack_level()), and the result is
+despeckled. The top level then breaks its flat edges. It keeps every pixel of level 3 as it was drawn, at its role
+or a darker one.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_rasterise">dirt_rasterise</a></th><td>Returns a deposit drawn on one direction of a body. It's the one entry point for every cause. Mess aimed at a zone
+(&quot;aimed_<zone>&quot;) goes to dirt_rasterise_aimed(). Any other cause draws levels 1 to <code>level</code>, each from the deposit's
+same random draws (dirt_cause_features()). They're merged by role rank, the later level winning a tie. If its cause
+draws the material darker (/datum/dirt_material/var/darker_causes), it then goes a step darker, haze to film and
+film to body. On a bare body's skin, a deposit with a hand-painted design (dirt_painted_rasterise()) wears it below
+the head in place of its own marks, which the head keeps. Then the whole is despeckled (dirt_rasterise_deposit()). A
+plunge, a blast or a douse is drawn by its body field (/datum/dirt_canvas_field/body), its bands back to back. A
+general deposit is drawn while drafting (dirt_drafted()), so its noise samples the draft's hash.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_rasterise_deposit">dirt_rasterise_deposit</a></th><td>Returns a general deposit drawn on one direction of a body, for dirt_rasterise(): levels 1 to <code>level</code>, then its
+finish (dirt_finish_deposit()). A plunge, a blast or a douse is its body field's bands drawn back to back
+(/datum/dirt_canvas_field/body), as a mask job draws them a piece each.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_finish_deposit">dirt_finish_deposit</a></th><td>Returns a general deposit on a body finished, from its levels stacked (dirt_stack_level()). It's made darker if its
+cause draws its material darker. It wears its painted design on a bare body's skin, and then it's despeckled.</td></tr><tr><th><a href="datum/dirt_canvas_field/body.html">/datum/dirt_canvas_field/body</a></th><td>A plunge, a blast or a douse on one direction of a body, as dirt_rasterise_deposit() draws it, drawn some rows at a
+time (draw_rows()). A mask job draws it a band a piece (dirt_canvas_field_band()) and keeps it among its fields
+(/datum/dirt_mask_job/proc/field_for()). Each level's whole-body coat is bound a band of rows at a time
+(/datum/dirt_feature/coverage/proc/bind_rows()).</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_stack_level">dirt_stack_level</a></th><td>Lays one level of a deposit over the levels under it, and changes them. Each pixel takes the level's role where that
+role ranks as high or higher. Only a glint, once drawn, stays, because a later run beside it would fold it in. A
+fleck is taken like any other role.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_cause_features">dirt_cause_features</a></th><td>Returns a general deposit's features at one level, from its &quot;<cause>:<variant>&quot; stream (dirt_general_stream()),
+drawn by its cause's proc (dirt_cause_procs()). A cause without a proc gets none.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_level_features">dirt_level_features</a></th><td>Returns a general deposit's features at one level for one direction. They're made afresh (dirt_cause_features()),
+or they're a mask job's, kept by level across the deposit's directions. They depend on the cause, level, variant and
+side alone. Their stream starts at its seed text on every call, and none of them reads it once made. So the first
+direction to ask makes them, and each later one takes them unbound (/datum/dirt_feature/proc/unbind()) to bind on
+its own view. A job draws one deposit's directions back to back, so the level keys them. The job's
+/datum/dirt_mask_job/proc/rasterise_next() stays on the same splat until it's made in every direction, then drops
+the features. Each of a job's features samples its noise through the job's table (/datum/dirt_feature/proc/noise()).
+This proc hands that table to the features, when a caller passes one. A body field passes none, so noise() samples
+afresh for its features. You should NEVER modify them.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_cause_procs">dirt_cause_procs</a></th><td>Returns each general cause's proc: alist(DIRT_CAUSE_* define = proc path). Each proc takes (level,
+/datum/dirt_random, side) and returns the cause's features at that level. For slime where it touched, the entry is
+list(proc path, the zone it touched), and the zone is passed after the side. You should NEVER modify it.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_cause_max_level">dirt_cause_max_level</a></th><td>Returns the top level a general cause reaches. Machine work and smoke have a harder fourth, as mess has its covering
+one. Every other cause stops at DIRT_DEPOSIT_MAX_LEVEL.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_runs_apart">dirt_runs_apart</a></th><td>Returns a level's features with the runs and drops this view leaves out taken out, and its run plan with them. Runs
+and drops are tried in the plan's order. Each stays only if it keeps DIRT_RUN_GAP px of skin from level 1's shot and
+from every one kept before it. Side by side, they fill into a sheet. The two hung from level 1's shot and drop always
+stay. Then each kept run's carry-on stays where it keeps as clear. Level 2's carry-on from the first drop stays where
+level 2 shows nothing new in the zone's main facing. The plan holds the top run level's set, so every level keeps
+the same ones.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_level_shows">dirt_level_shows</a></th><td>Returns whether a level shows anything new on the body over level 1's shot: a pixel the kept runs and drops draw that
+level 1's doesn't, beside either. A lone one would go.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_footprint">dirt_footprint</a></th><td>Returns the pixels features draw on in one view before the raster's cleanups, as alist(index = TRUE): where any of
+them lies thick enough for film. A feature hidden in profile is left out there.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_footprint_touches">dirt_footprint_touches</a></th><td>Returns whether any of a footprint's pixels lies within DIRT_RUN_GAP px of another's, in both axes: no skin between.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_rasterise_level">dirt_rasterise_level</a></th><td>Returns one level of a deposit drawn on one direction of a body. The first feature, in list order, to lie thickest on
+a pixel picks its role. A feature for cloth only or for skin only is left out of the other. A feature for profile
+only is left out facing south and north, and one hidden in profile is left out facing east and west. Nothing goes
+on an eye, the pixels beside it or a human mouth. A veil keeps only to dirt_face_zone()'s limits, and an eye's
+diagonals take film at most. On skin, a feature with a skin role draws in it. Cloth draws its rim a role lighter,
+so a garment keeps its outline, though a contact point keeps its tone.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_covering_thickness">dirt_covering_thickness</a></th><td>Returns how thick a covering feature lies on a pixel: film at most on the outline, and in profile broken by noise on
+the outline and beside it, to nothing, haze or film. A glint isn't broken.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_face_zone">dirt_face_zone</a></th><td>Returns the thickest a veil may lie on a pixel of a face. That's nothing across the eyes' top row and a pixel either
+side of them, because rings round each eye read as spectacles. Round a lone eye in profile it's haze there, because
+two clean pixels read as a chip. On the row under the eyes it's haze. Returns null elsewhere, where the veil decides.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_skin_streaks">dirt_skin_streaks</a></th><td>Streaks bare legs in a raster rather than coating them, and returns it. A solid coat up a bare shin reads as boots.
+The body tone more than 2.5 px up a leg mostly thins to film, in clumps about a limb wide. Each pixel is judged on
+its own, so the raster is changed where it is.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_cleanup">dirt_cleanup</a></th><td>Returns a raster cleaned up: a lone film pixel goes, a lone core softens to body, and a pixel whose role none of its
+neighbours share takes the role three of them share. Flecks stay.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_skin_rules">dirt_skin_rules</a></th><td>Makes a raster as skin takes it, and returns it. No pixel without a neighbour stays, since a lone dot reads as a mole
+and nothing smaller than 2 px stays. Skin gets wiped, so its core softens to body. Goo keeps its core, because
+flattened it reads as body paint.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_thin_light">dirt_thin_light</a></th><td>Thins a light material's coat on the legs, and returns the raster. Pale dirt lifts dark cloth, so a full coat reads
+as other trousers. The body tone stays on a leg's bottom two pixels and turns to film above them. The sole's row is
+film, with every third column clean. From 4 px up, pixels drop out: 14% more for each pixel up, 55% at most. Each
+pixel is judged on its own, so the raster is changed where it is.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_rings">dirt_rings</a></th><td>Rings what ringed features drew with broken film, and returns the raster. Abrasion's light core marks dark cloth,
+and its ring marks light cloth. The ring takes about half of the bare pixels of the surface beside them, off the
+face's guards.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_halo">dirt_halo</a></th><td>Rings thick patches with film, and returns the raster. It's oil's wicked halo, or wet mud's damp edge. A body or core
+pixel with two or more such neighbours puts film on the bare pixels of the surface beside it, off its rim and the
+face's guards.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_tide">dirt_tide</a></th><td>Darkens a drying coat's top edge, and returns the raster. About half of its film pixels with nothing over them take
+the body tone, in row-major order, two side by side at most, following the jagged top. It never makes core or a
+long run, because that reads as trim.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_sheen">dirt_sheen</a></th><td>Puts one wet fleck on a coat, and returns the raster. It's 1x2, on the leg's most convex lit spot, the boot's toe
+or the shin's front, 1 to 4.5 px up a leg. It goes on body or core with body or core under it, both inside the
+silhouette. The leftmost such pixel takes it, or the upper one on a tie.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_cover_sheen">dirt_cover_sheen</a></th><td>Puts a whole-body wet coat's glints on a raster, and returns it. Each is a pale glint fading into a film pixel under
+it, because a lone pale pixel reads as a harsh speck. One goes on the pixel of the body tone nearest each shine
+point, within 3 px of it. The first in row-major order wins a tie. Glints go only on the torso and the legs, because
+on a hand one reads as a speck. They go inside the silhouette, on body with body under it and off the face's guards.
+They're 4 px apart counted along rows and columns, and there are <code>most</code> of them at most. Where they may go is read
+before any is put, so the raster is changed where it is.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_ash_specks">dirt_ash_specks</a></th><td>Scatters ash's light flecks through a coat, and returns the raster. There are four at most, on the body tone inside
+the silhouette, each at least 3 px from the others, counted along rows and columns. They're placed in the order a
+noise hash puts the pixels, row-major on a tie. Pixels are bucketed by their hash, because the draft's hash has 65536
+values, too many to sort a hash and an index as one number.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_speck_shape">dirt_speck_shape</a></th><td>Returns a soft speck's shape, each pixel list(columns right, rows down, DIRT_ROLE_* define): a drip's film running
+down to haze, or a dot's film centre in a haze ring. You should NEVER modify it.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_scatter">dirt_scatter</a></th><td>Places specks after the coats, and returns the raster. Each goes where it lies first in row-major order, on its own
+limb's pixels off the face's guards, and only where it's clear of every pixel drawn so far. A speck is soft: film
+with a haze ring, or a drip fading from film to haze. A strict speck also keeps off the rows and columns of the
+strict ones before it. On bare skin only drips are placed, because a dot there reads as a mole however soft. Cloth
+draws a speck's rim a role lighter.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_overlay_stamps">dirt_overlay_stamps</a></th><td>Lays stamps over a raster, and changes it. A pixel they wipe goes clean, and a highlight they force turns film
+whatever is there. Every other mark draws where it ranks over what's there, never on an eye's or a mouth's guard,
+and film at most on an eye's diagonal.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_despeckle">dirt_despeckle</a></th><td>Returns a raster without lone pixels, which read harshly: a lone film or haze pixel goes, and a lone body or core
+pixel becomes film with a haze ring where the surface reaches. A film or haze hole with three dark neighbours fills
+with the body tone, because it reads as a chip or a scar. Glints and flecks stay.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_ragged_edges">dirt_ragged_edges</a></th><td>Breaks a covering raster's flat edges, and returns it. No top or bottom edge runs flat along one row for more than 2
+px. Cut level, a sheet reads as clipped at a region: an apron, a back patch, a bib. At irregular spots along a flat
+stretch, film runs on 1 to 3 px below a bottom edge, or rises 1 px over a top edge. It only adds film, on bare skin
+or haze of the chest and the legs, so what's under it stays, glints and flecks too. What's solid is read before
+anything is added, so the raster is changed where it is.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_ragged_free">dirt_ragged_free</a></th><td>Returns whether a covering raster's flat edge may run on over a pixel: bare skin or haze on the surface, where the
+chest or a leg shows.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_merge">dirt_merge</a></th><td>Returns rasters merged into a mask: on each pixel the thickest wins, by role rank and then thickness, and the first
+raster keeps a full tie. The pixel takes the winner's material. All the splats on one surface make one mask this way,
+oldest first. A mess splat below the top level leaves out each of its pieces that comes within DIRT_RUN_GAP px of an
+earlier mess splat's. Splats piled on each other fill into one sheet. A top-level splat keeps everything,
+because it covers. Other materials neither keep apart from earlier splats nor make later ones keep apart. A splat's
+packed raster is read run by run as it merges, and never unpacked. The exception is mess that leaves pieces out,
+whose pieces are read on its whole raster (dirt_pixels_from_drawn()).</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_merge_with_parts">dirt_merge_with_parts</a></th><td>Returns a surface's splats in one direction merged with the parts drawn under and over it. Each splat leaves out the
+pixels of the rounded parts on its zone (dirt_part_rounded()), because straight streaks carried onto a breast read
+as blocks. Then each part drawn under the surface takes each splat on its zone in its own pixels (dirt_part_field()).
+These merge in after the splats and keep every piece, as a top-level splat does. A part drawn over the surface takes
+its share on itself, so its field isn't drawn here.</td></tr><tr><th>/proc/<a href="global.html#proc/dirt_pieces_near">dirt_pieces_near</a></th><td>Returns TRUE on each pixel of a raster's pieces, 8-connected, that come within DIRT_RUN_GAP px of a taken pixel.</td></tr></table></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/ab7964fb278f6190b237e11cd13dc46bd0337ff2">ab7964f</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>
