@@ -10,6 +10,7 @@
 		"esbenp.prettier-vscode",
 		"biomejs.biome",
 		"ss13.ss13buildflags",
-		"BehaviorTreeG.behaviortreeg"
+		"BehaviorTreeG.behaviortreeg",
+		"sohpea.auxtools"
 	]
 }

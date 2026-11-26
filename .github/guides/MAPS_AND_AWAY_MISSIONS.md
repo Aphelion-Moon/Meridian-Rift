@@ -2,7 +2,6 @@
 
 Station map configurations included in this repository:
 
-- [CatwalkStation](../../_maps/map_jsons/catwalkstation.json)
 - [DeltaStation](../../_maps/map_jsons/deltastation.json)
 - [IceBoxStation](../../_maps/map_jsons/icebox.json)
 - [MetaStation](../../_maps/map_jsons/metastation.json)

@@ -28,7 +28,15 @@
 	color_src = USE_ONE_COLOR
 	has_inner = TRUE
 
-/datum/sprite_accessory/ears/fox
+// TG Fox infusion ears.
+/datum/sprite_accessory/ears/cat/fox
+	name = "Fox (Fox Infusion)"
+	color_src = USE_ONE_COLOR
+	has_inner = TRUE
+
+// TG Mouse infusion ears.
+/datum/sprite_accessory/ears/mouse
+	name = "Mouse (Mouse Infusion)"
 	color_src = USE_ONE_COLOR
 	has_inner = TRUE
 
