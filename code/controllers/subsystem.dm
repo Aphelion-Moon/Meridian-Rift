@@ -65,6 +65,11 @@
 
 	/// Scheduled world.time for next fire()
 	var/next_fire = 0
+	// APHELION EDIT ADDITION START - DOGMOS
+
+	/// Earliest world.time to resume a paused run waiting for external work; zero permits ordinary budget reuse.
+	var/resume_after = 0
+	// APHELION EDIT ADDITION END
 
 	/// Running average of the amount of milliseconds it takes the subsystem to complete a run (including all resumes but not the time spent paused)
 	var/cost = 0
@@ -280,6 +285,13 @@
 		if(SS_SLEEPING)
 			state = SS_PAUSING
 
+// APHELION EDIT ADDITION START - DOGMOS
+/// Keep this run queued without spending another MC allocation until the next game tick.
+/datum/controller/subsystem/proc/pause_until_next_tick()
+	resume_after = world.time + world.tick_lag
+	return pause()
+
+// APHELION EDIT ADDITION END
 /// Called after the config has been loaded or reloaded.
 /datum/controller/subsystem/proc/OnConfigLoad()
 

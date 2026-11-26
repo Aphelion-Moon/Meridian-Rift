@@ -28,17 +28,29 @@
 
 // Single crate orderable fuel rod, also used in the preloaded RBMK
 /obj/item/tank/rbmk2_rod/preloaded/populate_gas()
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	air_contents.assert_gas(/datum/gas/tritium)
 	air_contents.assert_gas(/datum/gas/nitrogen)
 	air_contents.moles[/datum/gas/tritium] = 80
 	air_contents.moles[/datum/gas/nitrogen] = 10
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	air_contents.set_moles(/datum/gas/tritium, 80)
+	air_contents.set_moles(/datum/gas/nitrogen, 10)
+// APHELION EDIT ADDITION END
 
 // RBMK rod for the prepacked RBMK crate
 /obj/item/tank/rbmk2_rod/random_tritium/populate_gas()
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	air_contents.assert_gas(/datum/gas/tritium)
 	air_contents.assert_gas(/datum/gas/nitrogen)
 	air_contents.moles[/datum/gas/tritium] = rand(2, 7)
 	air_contents.moles[/datum/gas/nitrogen] = 58
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	air_contents.set_moles(/datum/gas/tritium, rand(2, 7))
+	air_contents.set_moles(/datum/gas/nitrogen, 58)
+// APHELION EDIT ADDITION END
 
 /obj/item/tank/rbmk2_rod/atom_destruction(damage_flag)
 	if(!loc || !istype(loc, /obj/machinery/power/rbmk2))

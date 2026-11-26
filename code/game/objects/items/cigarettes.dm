@@ -43,6 +43,10 @@ CIGARETTE PACKETS ARE IN FANCY.DM
 
 /obj/item/match/fire_act(exposed_temperature, exposed_volume)
 	. = ..()
+	// APHELION EDIT ADDITION START - MATCH_FIRE_ACT
+	if(QDELETED(src))
+		return
+	// APHELION EDIT ADDITION END
 	matchignite()
 
 /obj/item/match/update_name(updates)

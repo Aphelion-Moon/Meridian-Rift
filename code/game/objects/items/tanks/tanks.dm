@@ -114,7 +114,7 @@
 		AddComponent(/datum/component/container_item/tank_holder, tank_holder_icon_state)
 
 	air_contents = new(volume) //liters
-	air_contents.temperature = T20C
+	air_contents.set_temperature(T20C) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: air_contents.temperature = T20C
 
 	populate_gas()
 
@@ -158,7 +158,7 @@
 
 	. += span_notice("The pressure gauge reads [round(air_contents.return_pressure(),0.01)] kPa.")
 
-	var/celsius_temperature = air_contents.temperature-T0C
+	var/celsius_temperature = air_contents.return_temperature()-T0C // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/celsius_temperature = air_contents.temperature-T0C
 	var/descriptive
 
 	if (celsius_temperature < 20)
@@ -223,7 +223,7 @@
 	if(tool.use_tool(src, user, 0, volume=40))
 		bomb_status = TRUE
 		balloon_alert(user, "bomb armed")
-		log_bomber(user, "welded a single tank bomb,", src, "| Temp: [air_contents.temperature] Pressure: [air_contents.return_pressure()]")
+		log_bomber(user, "welded a single tank bomb,", src, "| Temp: [air_contents.return_temperature()] Pressure: [air_contents.return_pressure()]") // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: log_bomber(user, "welded a single tank bomb,", src, "| Temp: [air_contents.temperature] Pressure: [air_contents.return_pressure()]")
 		add_fingerprint(user)
 		return ITEM_INTERACT_SUCCESS
 	return ..()
@@ -317,7 +317,7 @@
 	// (kpa * L * K * mol) / (kpa * L * K)
 	// If we cancel it all out, we get moles, which is the expected unit
 	// This sort of thing comes up often in atmos, keep the tool in mind for other bits of code
-	var/moles_needed = actual_distribute_pressure*volume_to_return/(R_IDEAL_GAS_EQUATION*air_contents.temperature)
+	var/moles_needed = actual_distribute_pressure*volume_to_return/(R_IDEAL_GAS_EQUATION*air_contents.return_temperature()) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/moles_needed = actual_distribute_pressure*volume_to_return/(R_IDEAL_GAS_EQUATION*air_contents.temperature)
 
 	return remove_air(moles_needed)
 
@@ -329,6 +329,7 @@
 
 	//Allow for reactions
 	excited = (excited | air_contents.react(src))
+	excited ||= air_contents.dogmos_fusion_waiting(src) // APHELION EDIT ADDITION - DOGMOS
 	excited = (excited | handle_tolerances(seconds_per_tick))
 	excited = (excited | leaking)
 
@@ -398,7 +399,7 @@
 		pressure = air_contents.return_pressure()
 
 		// As of writing this this is calibrated to maxcap at 140L and 160atm.
-		var/power = (air_contents.volume * (pressure - TANK_FRAGMENT_PRESSURE)) / TANK_FRAGMENT_SCALE
+		var/power = (air_contents.return_volume() * (pressure - TANK_FRAGMENT_PRESSURE)) / TANK_FRAGMENT_SCALE // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/power = (air_contents.volume * (pressure - TANK_FRAGMENT_PRESSURE)) / TANK_FRAGMENT_SCALE
 		log_atmos("[type] exploded with a power of [power] and a mix of ", air_contents)
 		dyn_explosion(src, power, flash_range = 1.5, ignorecap = FALSE)
 	return ..()
@@ -508,9 +509,12 @@
 	igniting = TRUE
 
 	var/datum/gas_mixture/our_mix = return_air()
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	our_mix.assert_gases(/datum/gas/plasma, /datum/gas/oxygen)
 	var/fuel_moles = our_mix.moles[/datum/gas/plasma] + our_mix.moles[/datum/gas/oxygen]/6
 	our_mix.garbage_collect()
+	*/ // APHELION EDIT REMOVAL END
+	var/fuel_moles = our_mix.get_moles(/datum/gas/plasma) + our_mix.get_moles(/datum/gas/oxygen)/6 // APHELION EDIT ADDITION - DOGMOS
 	var/datum/gas_mixture/bomb_mixture = our_mix.copy()
 	var/strength = 1
 
@@ -524,7 +528,7 @@
 	if(!igniter_temperature)
 		CRASH("[type] called ignite() without any igniters attached")
 
-	if(bomb_mixture.temperature > (T0C + 400))
+	if(bomb_mixture.return_temperature() > (T0C + 400)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(bomb_mixture.temperature > (T0C + 400))
 		strength = (fuel_moles/15)
 
 		if(strength >= 2)
@@ -539,7 +543,7 @@
 			ground_zero.assume_air(bomb_mixture)
 			ground_zero.hotspot_expose(igniter_temperature, 125)
 
-	else if(bomb_mixture.temperature > (T0C + 250))
+	else if(bomb_mixture.return_temperature() > (T0C + 250)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: else if(bomb_mixture.temperature > (T0C + 250))
 		strength = (fuel_moles/20)
 
 		if(strength >= 1)
@@ -550,7 +554,7 @@
 			ground_zero.assume_air(bomb_mixture)
 			ground_zero.hotspot_expose(igniter_temperature, 125)
 
-	else if(bomb_mixture.temperature > (T0C + 100))
+	else if(bomb_mixture.return_temperature() > (T0C + 100)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: else if(bomb_mixture.temperature > (T0C + 100))
 		strength = (fuel_moles/25)
 
 		if(strength >= 1)

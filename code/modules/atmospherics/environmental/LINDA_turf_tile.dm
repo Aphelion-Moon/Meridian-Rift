@@ -3,10 +3,12 @@
 	var/thermal_conductivity = 0.05
 	///Amount of heat necessary to activate some atmos processes (there is a weird usage of this var because is compared directly to the temperature instead of heat energy)
 	var/heat_capacity = INFINITY //This should be opt in rather then opt out
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	///Archived version of the temperature on a turf
 	var/temperature_archived
 	///All currently stored conductivities changes
 	var/list/thermal_conductivities
+	*/ // APHELION EDIT REMOVAL END
 
 	///list of turfs adjacent to us that air can flow onto
 	var/list/atmos_adjacent_turfs
@@ -31,6 +33,10 @@
 	var/pressure_difference = 0
 	///Where the difference come from (from higher pressure to lower pressure)
 	var/pressure_direction = 0
+	// APHELION EDIT ADDITION START - DOGMOS
+	/// Scratch target written by Dogmos while tracing a hull breach's path to space.
+	var/turf/pressure_specific_target
+	// APHELION EDIT ADDITION END
 
 	///Excited group we are part of
 	var/datum/excited_group/excited_group
@@ -84,7 +90,7 @@
 	//acounts for changes in temperature
 	var/turf/parent = parent_type
 	if(temperature != initial(temperature) || temperature != initial(parent.temperature))
-		mix.temperature = temperature
+		mix.set_temperature(temperature) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: mix.temperature = temperature
 
 	return mix
 
@@ -154,28 +160,50 @@
 	SEND_SIGNAL(src, COMSIG_TURF_EXPOSE, air, exposed_temperature)
 	check_atmos_process(src, air, exposed_temperature) //Manually do this to avoid needing to use elements, don't want 200 second atom init times
 
+/* // APHELION EDIT REMOVAL START - DOGMOS
 /turf/proc/archive()
 	temperature_archived = temperature
 
 /turf/open/archive()
+*/ // APHELION EDIT REMOVAL END
+/turf/open/proc/archive() // APHELION EDIT ADDITION - DOGMOS
 	LINDA_CYCLE_ARCHIVE(src)
 
 /////////////////////////GAS OVERLAYS//////////////////////////////
 
 
 /turf/open/proc/update_visuals()
+	// APHELION EDIT ADDITION START - DOGMOS
+	if(!air) // 2019-05-14: was not able to get this path to fire in testing. Consider removing/looking at callers -Naksu
+		apply_visual_overlays(null)
+		return
+
+	// Use the same native overlay inventory as the simulation callback.
+	__update_dogmos_visuals()
+
+/** Applies the gas-overlay diff produced by DM or Dogmos and caches the result. */
+/turf/open/proc/apply_visual_overlays(list/new_overlay_types)
+	// APHELION EDIT ADDITION END
 	var/list/atmos_overlay_types = src.atmos_overlay_types // Cache for free performance
 
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	if(!air) // 2019-05-14: was not able to get this path to fire in testing. Consider removing/looking at callers -Naksu
 		if (atmos_overlay_types)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	if(isnull(new_overlay_types))
+		if(atmos_overlay_types)
+	// APHELION EDIT ADDITION END
 			for(var/overlay in atmos_overlay_types)
 				vis_contents -= overlay
 			src.atmos_overlay_types = null
 		return
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 
 	var/list/moles = air.moles
 	var/list/new_overlay_types
 	GAS_OVERLAYS(moles, new_overlay_types, src)
+	*/ // APHELION EDIT REMOVAL END
 
 	if (atmos_overlay_types)
 		for(var/overlay in atmos_overlay_types-new_overlay_types) //doesn't remove overlays that would only be added
@@ -190,12 +218,19 @@
 	UNSETEMPTY(new_overlay_types)
 	src.atmos_overlay_types = new_overlay_types
 
+// APHELION EDIT ADDITION START - DOGMOS
+/// Receives the overlay list computed by Dogmos' gas-processing callback.
+/turf/open/proc/set_visuals(list/new_overlay_types)
+	apply_visual_overlays(new_overlay_types)
+
+// APHELION EDIT ADDITION END
 /proc/typecache_of_gases_with_no_overlays()
 	. = list()
 	for (var/gastype in subtypesof(/datum/gas))
 		var/datum/gas/gasvar = gastype
 		if (!initial(gasvar.gas_overlay))
 			.[gastype] = TRUE
+/* // APHELION EDIT REMOVAL START - DOGMOS
 
 /////////////////////////////SIMULATION///////////////////////////////////
 #ifdef TRACK_MAX_SHARE
@@ -371,6 +406,7 @@
 
 	significant_share_ticker = cached_ticker //Save our changes
 	temperature_expose(our_air, our_air.temperature)
+*/ // APHELION EDIT REMOVAL END
 
 //////////////////////////SPACEWIND/////////////////////////////
 
@@ -409,6 +445,51 @@
 	if (move_prob > PROBABILITY_OFFSET && prob(move_prob) && (move_resist != INFINITY) && (!anchored && (max_force >= (move_resist * MOVE_FORCE_PUSH_RATIO))) || (anchored && (max_force >= (move_resist * MOVE_FORCE_FORCEPUSH_RATIO))))
 		step(src, direction)
 		last_high_pressure_movement_air_cycle = SSair.times_fired
+// APHELION EDIT ADDITION START - DOGMOS
+
+/// Minimum moles a neighbor turf had before a hull breach sucked it dry for handle_decompression_floor_rip()
+/// to consider the loss violent enough to tear up the floor, rather than a minor pressure settle.
+#define DECOMPRESSION_FLOOR_RIP_MIN_MOLES (MOLES_CELLSTANDARD * 0.25)
+
+/**
+ * Called by Dogmos' katmos equalizer (explosively_depressurize(), aphelion-dogmos
+ * src/turfs/katmos.rs) when flood-filling a hull breach finds a firelock-flagged edge
+ * (DOGMOS_ADJACENT_FIRELOCK, see atmos_adjacency_flags_with()) between src and adjacent - a chance to
+ * slam the firelock shut immediately rather than waiting for its own reactive alarm check
+ * (/obj/machinery/door/firedoor/proc/process_results(), signal-driven off COMSIG_TURF_EXPOSE) to
+ * catch up, which could let a tick's worth of extra air escape first during an active breach.
+ */
+/turf/proc/consider_firelocks(turf/adjacent)
+	var/obj/machinery/door/firedoor/lock = locate(/obj/machinery/door/firedoor) in src
+	if(!lock)
+		lock = locate(/obj/machinery/door/firedoor) in adjacent
+	lock?.start_activation_process(FIRELOCK_ALARM_TYPE_GENERIC)
+
+/** Damages a breach-mouth floor when Dogmos reports a meaningful gas loss. */
+/turf/proc/handle_decompression_floor_rip(amount)
+	if(amount < DECOMPRESSION_FLOOR_RIP_MIN_MOLES || !isfloorturf(src) || decompression_floor_rip_resistant)
+		return
+	var/area/breach_area = get_area(src)
+	SSair.diagnostics.record_kennel_event(SSair.diagnostics.recent_breaches, list(
+		"time" = round_timestamp(),
+		"jump_to" = REF(src),
+		"area" = breach_area ? breach_area.name : null,
+		"moles_lost" = round(amount, DOGMOS_MOLE_DISPLAY_PRECISION),
+	), src)
+	for(var/obj/machinery/breach_adjacent_machine in src)
+		SSair.diagnostics.kennel_pin_structure(breach_adjacent_machine, "breach-adjacent", SSair.diagnostics.kennel_auto_pin_duration)
+	SSair.diagnostics.kennel_mark_overlay_recent(SSair.diagnostics.kennel_overlay_breach_turfs, KENNEL_OVERLAY_BREACH, src)
+	if(SSair.diagnostics.kennel_decompression_feedback_available(src))
+		visible_message(
+			span_danger("The hull tears open as pressure rips away the floor!"),
+			span_userdanger("The floor tears open under the pressure!"),
+			span_hear("You hear a violent rush of escaping air!"),
+		)
+		playsound(src, 'sound/effects/space_wind.ogg', 50, TRUE)
+	ScrapeAway(1, flags = CHANGETURF_INHERIT_AIR)
+
+#undef DECOMPRESSION_FLOOR_RIP_MIN_MOLES
+// APHELION EDIT ADDITION END
 
 ///////////////////////////EXCITED GROUPS/////////////////////////////
 
@@ -469,8 +550,10 @@
 /datum/excited_group/proc/self_breakdown(roundstart = FALSE, poke_turfs = FALSE)
 	var/datum/gas_mixture/shared_mix = new
 
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	//make local for sanic speed
 	var/list/shared_cached_moles = shared_mix.moles
+	*/ // APHELION EDIT REMOVAL END
 	var/list/turf_list = src.turf_list
 	var/turflen = turf_list.len
 	var/imumutable_in_group = FALSE
@@ -484,29 +567,42 @@
 			if(istype(group_member.air, /datum/gas_mixture/immutable))
 				imumutable_in_group = TRUE
 				shared_mix.copy_from(group_member.air) //This had better be immutable young man
-				shared_cached_moles = shared_mix.moles //update the cache
+				// shared_cached_moles = shared_mix.moles //update the cache // APHELION EDIT REMOVAL - DOGMOS
 				break
 			// If we're planetary use THAT mix, and stop here
 			if(group_member.planetary_atmos)
 				imumutable_in_group = TRUE
 				var/datum/gas_mixture/planetary_mix = SSair.planetary[group_member.initial_gas_mix]
 				shared_mix.copy_from(planetary_mix)
-				shared_cached_moles = shared_mix.moles // Cache update
+				// shared_cached_moles = shared_mix.moles // Cache update // APHELION EDIT REMOVAL - DOGMOS
 				break
 		//"borrowing" this code from merge(), I need to play with the temp portion. Lets expand it out
 		//temperature = (giver.temperature * giver_heat_capacity + temperature * self_heat_capacity) / combined_heat_capacity
 		var/capacity = mix.heat_capacity()
-		energy += mix.temperature * capacity
+		energy += mix.return_temperature() * capacity // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: energy += mix.temperature * capacity
 		heat_cap += capacity
 
+		/* // APHELION EDIT REMOVAL START - DOGMOS
 		for(var/gas_id, amount in mix.moles)
 			shared_cached_moles[gas_id] += amount
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
+		for(var/gas_id in mix.get_gases())
+			shared_mix.adjust_moles(gas_id, mix.get_moles(gas_id))
+		// APHELION EDIT ADDITION END
 
 	if(!imumutable_in_group)
+		/* // APHELION EDIT REMOVAL START - DOGMOS
 		shared_mix.temperature = energy / heat_cap
 		for(var/gas_id in shared_cached_moles)
 			shared_cached_moles[gas_id] /= turflen
 		shared_mix.garbage_collect()
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
+		shared_mix.set_temperature(energy / heat_cap)
+		for(var/gas_id in shared_mix.get_gases())
+			shared_mix.set_moles(gas_id, shared_mix.get_moles(gas_id) / turflen)
+		// APHELION EDIT ADDITION END
 
 	for(var/turf/open/group_member as anything in turf_list)
 		if(group_member.planetary_atmos) //We do this as a hack to try and minimize unneeded excited group spread over planetary turfs
@@ -525,7 +621,7 @@
 	for(var/turf/open/current_turf as anything in turf_list)
 		current_turf.excited = FALSE
 		current_turf.significant_share_ticker = 0
-		SSair.active_turfs -= current_turf
+		SSair.dogmos_remove_frontier_member(current_turf) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSair.active_turfs -= current_turf
 		#ifdef VISUALIZE_ACTIVE_TURFS //Use this when you want details about how the turfs are moving, display_all_groups should work for normal operation
 		current_turf.remove_atom_colour(TEMPORARY_COLOUR_PRIORITY, COLOR_VIBRANT_LIME)
 		#endif
@@ -567,8 +663,20 @@
 	var/offset = GET_Z_PLANE_OFFSET(thing.z) + 1
 	thing.vis_contents += GLOB.colored_turfs[display_id][offset]
 
+/* // APHELION EDIT REMOVAL START - DOGMOS
 ////////////////////////SUPERCONDUCTIVITY/////////////////////////////
+*/ // APHELION EDIT REMOVAL END
+// APHELION EDIT ADDITION START - DOGMOS
+////////////////////////SUPERCONDUCTIVITY (Dogmos, aphelion-dogmos src/turfs/superconduct.rs)/////////////////////////////
+/**
+ * The DM-side heat-conduction walk (super_conduct(), neighbor_conduct_with_src(), radiate_to_spess(),
+ * consider_superconductivity(), etc.) is deleted - Rust owns turf-to-turf heat conduction now
+ * (process_turf_heat, SSair.process_super_conductivity(), controllers/subsystem/air.dm). What remains
+ * here are the two procs Rust still calls into directly and can't do without:
+ */
+// APHELION EDIT ADDITION END
 
+/* // APHELION EDIT REMOVAL START - DOGMOS
 /**
 ALLLLLLLLLLLLLLLLLLLLRIGHT HERE WE GOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 
@@ -582,12 +690,16 @@ If an active turf is fitting, we add it to processing, conduct with any covered 
 Then we space some of our heat, and think about if we should stop conducting.
 **/
 
+*/ // APHELION EDIT REMOVAL END
+///Returns a set of directions that we should be conducting in, NOTE, atmos_supeconductivity is ACTUALLY inversed, don't worrry about it // APHELION EDIT ADDITION - DOGMOS
 /turf/proc/conductivity_directions()
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	if(archived_cycle < SSair.times_fired)
 		archive()
+	*/ // APHELION EDIT REMOVAL END
 	return ALL_CARDINALS
 
-///Returns a set of directions that we should be conducting in, NOTE, atmos_supeconductivity is ACTUALLY inversed, don't worrry about it
+// ///Returns a set of directions that we should be conducting in, NOTE, atmos_supeconductivity is ACTUALLY inversed, don't worrry about it // APHELION EDIT REMOVAL - DOGMOS
 /turf/open/conductivity_directions()
 	if(blocks_air)
 		return ..()
@@ -596,6 +708,7 @@ Then we space some of our heat, and think about if we should stop conducting.
 		if(!(checked_turf in atmos_adjacent_turfs) && !(atmos_supeconductivity & direction))
 			. |= direction
 
+/* // APHELION EDIT REMOVAL START - DOGMOS
 ///These two procs are a bit of a web, I belive in you
 /turf/proc/neighbor_conduct_with_src(turf/open/other)
 	if(!other.blocks_air) //Solid but neighbor is open
@@ -697,3 +810,18 @@ Then we space some of our heat, and think about if we should stop conducting.
 
 #undef LAST_SHARE_CHECK
 #undef PLANET_SHARE_CHECK
+*/ // APHELION EDIT REMOVAL END
+// APHELION EDIT ADDITION START - DOGMOS
+/**
+ * Answers Dogmos' `should_conduct_to_space` FFI call (aphelion-dogmos src/turfs/superconduct.rs,
+ * supercond_update_ref) - "is this turf directly adjacent to space", read once at registration into
+ * ThermalInfo.adjacent_to_space, and called synchronously with errors propagating, so this proc must
+ * always exist. Pure adjacency check, not a radiation calculation - Rust does its own space-radiation
+ * math entirely on its side now.
+ */
+/turf/proc/should_conduct_to_space()
+	for(var/direction in GLOB.cardinals)
+		if(isspaceturf(get_step(src, direction)))
+			return TRUE
+	return FALSE
+// APHELION EDIT ADDITION END

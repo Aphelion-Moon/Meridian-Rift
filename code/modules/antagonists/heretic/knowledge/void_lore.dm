@@ -380,7 +380,7 @@
 		if(isturf(thing_in_range))
 			var/turf/affected_turf = thing_in_range
 			var/datum/gas_mixture/environment = affected_turf.return_air()
-			environment.temperature *= 0.9
+			environment.set_temperature(environment.return_temperature() * 0.9) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: environment.temperature *= 0.9
 
 	// Telegraph the storm in every area on the station.
 	var/list/station_levels = SSmapping.levels_by_trait(ZTRAIT_STATION)
