@@ -204,6 +204,11 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 	var/obj/structure/lewd_portal/portal = buckled
 	return istype(portal) && portal.current_mob == src && portal.portal_mode == WALLSTUCK
 
+/// Whether this human's penis is drawn by a gloryhole's relay alone, while they're its occupant.
+/mob/living/carbon/human/proc/portal_relays_penis()
+	var/obj/structure/lewd_portal/portal = buckled
+	return istype(portal) && portal.current_mob == src && portal.portal_mode == GLORYHOLE
+
 /// Whether candidate has everything we need to draw the current portal mode.
 /obj/structure/lewd_portal/proc/can_relay(mob/living/carbon/human/candidate)
 	if(QDELETED(candidate) || !candidate.dna?.species)
@@ -314,8 +319,7 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 /datum/bodypart_overlay/mutant/genital/penis/can_draw_on_bodypart(obj/item/bodypart/bodypart_owner, mob/living/carbon/owner)
 	. = ..()
 	var/mob/living/carbon/human/human = owner || bodypart_owner.owner
-	var/obj/structure/lewd_portal/portal = human?.buckled
-	if(. && istype(portal) && portal.portal_mode == GLORYHOLE && portal.current_mob == human)
+	if(. && ishuman(human) && human.portal_relays_penis())
 		return FALSE
 
 /// Performs one render pass after a complete equipment/body overlay rebuild.
@@ -710,9 +714,10 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
  * Draws the occupant's hips and butt: the chest's images, and what's worn over them clipped to the body they draw.
  *
  * A wall relay shows the hips and butt only, so it draws no legs and no shoes. A hidden copy of the chest's own sprites
- * renders to body_render_target(), and the uniform, the underclothes and the chest's images with no sprite of their own
- * (mess containers) are clipped to it, so nothing drawn over the body reaches past it. A skirt or dress isn't drawn
- * (wall_relay_skips_uniform()): the body shows under it. A wall-stuck body draws no bulge (portal_hides_bulge()).
+ * renders to body_render_target(). The uniform, the underclothes and some of the chest's images are clipped to it, so
+ * nothing drawn over the body reaches past it. Those images have no sprite of their own (mess containers), or lie on a
+ * plane of their own (glows and blockers, a mess's among them). A skirt or dress isn't drawn
+ * (wall_relay_skips_uniform()), so the body shows under it. A wall-stuck body draws no bulge (portal_hides_bulge()).
  */
 /obj/effect/lewd_portal_relay/proc/lower_body_only()
 	var/list/generated_overlays = list()
@@ -724,10 +729,10 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 		var/mutable_appearance/body_holder = mutable_appearance(appearance_flags = KEEP_TOGETHER)
 		body_holder.render_target = body_render_target()
 		for(var/mutable_appearance/torso_copy as anything in torso_copies)
-			if(isnull(torso_copy.icon))
+			// an image on a plane of its own (an emissive) isn't drawn with the holder, so it's kept to the body too
+			if(isnull(torso_copy.icon) || torso_copy.plane != FLOAT_PLANE)
 				clip_to_body(torso_copy)
-			// an image on a plane of its own (an emissive) isn't drawn with the holder
-			else if(torso_copy.plane == FLOAT_PLANE)
+			else
 				body_holder.overlays += torso_copy
 				body_holder.layer = min(body_holder.layer, torso_copy.layer)
 			generated_overlays += torso_copy

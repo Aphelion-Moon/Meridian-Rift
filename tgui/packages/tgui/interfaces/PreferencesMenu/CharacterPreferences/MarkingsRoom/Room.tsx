@@ -109,6 +109,16 @@ export function useDecorProps(): DecorProps {
   );
 }
 
+/**
+ * The club's own rooms. Their counter is the club's: the marking's name taped
+ * on, the paint in use with its cap off, glass keys (`AugmentsRoom--club`).
+ */
+const CLUB_ROOMS: ReadonlySet<RoomThemeId> = new Set<RoomThemeId>([
+  'aphelion',
+  'augmentation',
+  'cyberpunk',
+]);
+
 export type RoomMode = 'augments' | 'markings';
 
 type Props = {
@@ -138,6 +148,7 @@ export function AugmentsRoom(props: Props) {
       className={classes([
         'AugmentsRoom',
         `AugmentsRoom--${mode}`,
+        CLUB_ROOMS.has(theme.id) && 'AugmentsRoom--club',
         uv && 'AugmentsRoom--uv',
       ])}
       data-window-fit="fixed"

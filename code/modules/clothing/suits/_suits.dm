@@ -28,11 +28,7 @@
 		return
 
 	if(damaged_clothes)
-		//. += mutable_appearance('icons/effects/item_damage.dmi', "damaged[blood_overlay_type]") // NOVA EDIT REMOVAL
-		// NOVA EDIT ADDITION BEGIN
-		var/damagefile2use = (bodyshape & BODYSHAPE_TAUR) ? 'modular_nova/master_files/icons/mob/64x32_item_damage.dmi' : 'icons/effects/item_damage.dmi'
-		. += mutable_appearance(damagefile2use, "damaged[blood_overlay_type]")
-		//NOVA EDIT ADDITION END
+		. += fit_worn_effect(mutable_appearance('icons/effects/item_damage.dmi', "damaged[blood_overlay_type]")) // APHELION EDIT CHANGE - ORIGINAL: . += mutable_appearance('icons/effects/item_damage.dmi', "damaged[blood_overlay_type]")
 
 	var/mob/living/carbon/human/wearer = loc
 	if(!ishuman(wearer) || !wearer.w_uniform)
@@ -42,7 +38,7 @@
 		return
 	for(var/obj/item/clothing/accessory/accessory as anything in undershirt.attached_accessories)
 		if (accessory.above_suit)
-			. += accessory.generate_accessory_overlay(undershirt)
+			. += fit_rider_overlay(accessory.generate_accessory_overlay(undershirt)) // APHELION EDIT CHANGE - ORIGINAL: . += accessory.generate_accessory_overlay(undershirt)
 
 /obj/item/clothing/suit/separate_worn_overlays(mutable_appearance/standing, mutable_appearance/draw_target, isinhands = FALSE, icon_file, bodyshape = NONE)
 	. = ..()

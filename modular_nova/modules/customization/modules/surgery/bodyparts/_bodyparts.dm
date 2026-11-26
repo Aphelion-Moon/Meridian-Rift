@@ -32,6 +32,11 @@
 		var/drawn_markings = LIMB_MARKING_ICON_KEY
 		if(drawn_markings)
 			. += drawn_markings
+	// Dummies key their limbs at the default height, since they stretch in one piece. One stretching each image needs
+	// its own height in the key, or its stretched limbs would be handed to bodies of other heights.
+	var/mob/living/carbon/human/dummy/dummy_owner = owner
+	if(isdummy(dummy_owner) && dummy_owner.stretches_each_image())
+		. += "[dummy_owner.mob_height]"
 	return .
 
 /**

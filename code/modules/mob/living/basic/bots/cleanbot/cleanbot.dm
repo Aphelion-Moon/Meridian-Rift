@@ -107,6 +107,7 @@
 	var/static/list/huntable_trash = typecacheof(list(
 		/obj/item/trash,
 		/obj/item/food/deadmouse,
+		/obj/item/food/deadroach, // APHELION EDIT ADDITION - EDIBLE_VERMIN
 		/obj/effect/decal/remains,
 		/obj/item/cigbutt,
 	))

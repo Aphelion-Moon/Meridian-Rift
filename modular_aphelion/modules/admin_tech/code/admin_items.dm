@@ -1675,7 +1675,7 @@ GLOBAL_LIST_INIT(subspace_ballmatter_spheres, list(
 
 // Of course I had to make a new pulse rifle.
 // The new heavy pulse
-/obj/projectile/beam/pulse/heavy
+/obj/projectile/beam/laser/pulse/heavy
 	name = "heavy pulse"
 	icon_state = "u_laser"
 	damage = 100
@@ -1688,7 +1688,7 @@ GLOBAL_LIST_INIT(subspace_ballmatter_spheres, list(
 
 // Casing for the above beam
 /obj/item/ammo_casing/energy/laser/pulse/heavy
-	projectile_type = /obj/projectile/beam/pulse/heavy
+	projectile_type = /obj/projectile/beam/laser/pulse/heavy
 	e_cost = LASER_SHOTS(200, STANDARD_CELL_CHARGE * 40)
 	select_name = "ANNIHILATE"
 	fire_sound = 'sound/items/weapons/pulse.ogg'
@@ -1857,7 +1857,7 @@ GLOBAL_LIST_INIT(subspace_ballmatter_spheres, list(
 	QDEL_NULL(scope_component)
 
 // The new super-heavy
-/obj/projectile/beam/pulse
+/obj/projectile/beam/laser/pulse
 	name = "pulse"
 	icon_state = "u_laser"
 	damage = 50
@@ -1868,7 +1868,7 @@ GLOBAL_LIST_INIT(subspace_ballmatter_spheres, list(
 	impact_type = /obj/effect/projectile/impact/pulse
 	wound_bonus = 10
 
-/obj/projectile/beam/pulse/on_hit(atom/target, blocked = 0, pierce_hit)
+/obj/projectile/beam/laser/pulse/on_hit(atom/target, blocked = 0, pierce_hit)
 	. = ..()
 	if (!QDELETED(target) && (isturf(target) || isstructure(target)))
 		if(isobj(target))

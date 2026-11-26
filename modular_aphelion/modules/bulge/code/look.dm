@@ -300,10 +300,12 @@
 	return TRUE
 
 /**
- * What the cover draws over its sprite (`overlays`, from bulge_over_overlays(): blood, dirt), over the look's cloth
- * too: each such overlay's sprite kept to the cloth's pixels (bulge_clipped_icon()), in its own colour and the alpha of
- * the cover's `root`, just above the cloth, as the garment draws its blood over itself. An overlay drawn off the tile
- * is left out, and so is a glow on it (the cloth's emissive blocker covers that glow beneath the cloth, as before).
+ * Draws what the cover draws over its sprite (`overlays`, from bulge_over_overlays(): blood, dirt) over the look's
+ * cloth too. Each such overlay's sprite is kept to the cloth's pixels (bulge_clipped_icon()), in its own colour, at
+ * its own alpha times the alpha of the cover's `root`. It keeps its blend (a sweat multiplier multiplies), but not an
+ * inset blend, as the sprite is already kept to the cloth. It's drawn just above the cloth, as the garment draws its
+ * blood over itself. An overlay drawn off the tile is left out, and so is a glow on it (the cloth's emissive blocker
+ * covers that glow beneath the cloth).
  */
 /datum/bodypart_overlay/mutant/genital/penis/proc/bulge_over_cloth(list/overlays, image/root)
 	bulge_template_masks(bulge_template)
@@ -319,6 +321,9 @@
 		var/mutable_appearance/drawn = mutable_appearance(clipped, "", -(bulge_layer - BULGE_ABOVE_COVER))
 		drawn.color = over.color
 		drawn.alpha = round(root.alpha * over.alpha / 255)
+		// a multiplier (sweat) multiplies the cloth, but an inset is already clipped to the cloth
+		if(over.blend_mode != BLEND_INSET_OVERLAY)
+			drawn.blend_mode = over.blend_mode
 		drawn.name = BULGE_CLOTH_NAME
 		LAZYADD(bulge_over, drawn)
 

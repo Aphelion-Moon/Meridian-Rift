@@ -310,12 +310,15 @@ describe('theme picker around native UI', () => {
   });
 
   it('waits for an already pending native resize before revealing a newly opened menu', async () => {
+    // Holds the clock still until the menu has opened, so the resize is still pending however slow the machine is
+    const clock = spyOn(performance, 'now').mockReturnValue(performance.now());
     render(<Fixture />);
     await act(async () => {
       window.dispatchEvent(new Event('resize'));
     });
     await open();
     expect(screen.queryAllByRole('menu').length).toBe(0);
+    clock.mockRestore();
     await waitFor(() => expect(screen.queryAllByRole('menu').length).toBe(1));
     expect(
       screen.getByRole('menu').getBoundingClientRect().right,

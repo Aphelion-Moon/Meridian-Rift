@@ -485,6 +485,7 @@
 	lose_text = span_notice("Your sensitivity to headpats fades away!")
 	medical_record_text = ""
 	icon = FA_ICON_PERSON_HARASSING
+	quirk_flags = QUIRK_NO_RECORD
 	erp_quirk = TRUE
 
 /datum/quirk/headpat_lover/add(client/client_source)

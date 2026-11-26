@@ -21,14 +21,15 @@
 /area/shuttle/supply)
 "g" = (
 /obj/machinery/button/door/directional/south{
-	name = "Off Ramp Toggle";
 	id = "QMLoaddoor";
+	name = "Off Ramp Toggle";
 	req_access = list("cargo")
 	},
 /obj/machinery/conveyor{
 	dir = 4;
 	id = "QMUnload"
 	},
+/obj/machinery/light/directional/south,
 /turf/open/floor/mineral/plastitanium,
 /area/shuttle/supply)
 "i" = (
@@ -48,12 +49,16 @@
 	id = "QMUnloaddoor";
 	name = "Supply Dock Loading Door"
 	},
-/obj/effect/landmark/flaps_install,
 /obj/machinery/conveyor{
 	dir = 8;
 	id = "QMLoad"
 	},
+/obj/effect/landmark/flaps_install,
 /turf/open/floor/plating,
+/area/shuttle/supply)
+"n" = (
+/obj/machinery/light/directional/west,
+/turf/open/floor/mineral/plastitanium,
 /area/shuttle/supply)
 "r" = (
 /obj/effect/spawner/structure/window/reinforced/shuttle,
@@ -77,10 +82,11 @@
 	id = "QMLoad"
 	},
 /obj/machinery/button/door/directional/north{
-	name = "On Ramp Toggle";
 	id = "QMUnloaddoor";
+	name = "On Ramp Toggle";
 	req_access = list("cargo")
 	},
+/obj/machinery/light/directional/north,
 /turf/open/floor/mineral/plastitanium,
 /area/shuttle/supply)
 "A" = (
@@ -147,14 +153,14 @@ c
 (3,1,1) = {"
 r
 s
+n
 f
 f
 f
 f
 f
 f
-f
-f
+n
 s
 a
 "}
