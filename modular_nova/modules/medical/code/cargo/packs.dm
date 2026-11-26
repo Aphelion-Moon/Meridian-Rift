@@ -1,6 +1,6 @@
 /datum/supply_pack/science/synthetic_burns
 	name = "Synthetic Burns Kit"
-	desc = "Contains bottles of pre-chilled hercuri and dinitrogen plasmide, perfect for treating synthetic burns!"
+	desc = "Contains sprays of chilled hercuri and dinitrogen plasmide, for cooling down overheated robotic limbs."
 	cost = CARGO_CRATE_VALUE * 2.5
 	contains = list(/obj/item/reagent_containers/spray/hercuri/chilled = 3, /obj/item/reagent_containers/spray/dinitrogen_plasmide = 3)
 	crate_name = "chilled hercuri crate"

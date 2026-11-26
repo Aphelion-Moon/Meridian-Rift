@@ -25,10 +25,10 @@
 	var/font = FOUNTAIN_PEN_FONT
 	damtype = BURN
 	force = 5
-	/// Weakref to the Mob this pen leashes and contains
-	var/datum/weakref/linked_mob_ref
-	/// Weakref to the tile this pen saves to deploy the mob to and from
-	var/datum/weakref/saved_loc_ref
+	/// The mob this pen leashes and contains. Cleared when either is deleted, or when the mob stops being a holosynth.
+	var/mob/living/carbon/human/linked_mob
+	/// The tile the pen deploys the mob to. Recalling the mob saves the tile it was on.
+	var/turf/saved_loc
 
 /obj/item/holosynth_pen/Initialize(mapload, mob/living/carbon/human/linked_mob)
 	. = ..()
@@ -37,8 +37,8 @@
 	AddComponent(/datum/component/gps/item, "HOLOSIGNAL", state = GLOB.deep_inventory_state, overlay_state = FALSE)
 
 	if(linked_mob)
-		linked_mob_ref = WEAKREF(linked_mob)
-		saved_loc_ref = WEAKREF(get_turf(linked_mob))
+		src.linked_mob = linked_mob
+		saved_loc = get_turf(linked_mob)
 
 		create_transform_component()
 		RegisterSignal(src, COMSIG_TRANSFORMING_PRE_TRANSFORM, PROC_REF(transform_check))
@@ -56,8 +56,6 @@
 		var/col_pref = linked_mob.client?.prefs?.read_preference(/datum/preference/color/mutant/holosynth_color)
 		var/ray_color = col_pref || linked_mob.dna?.features["holo_color"] || rgb(125, 180, 225)
 		AddComponent(/datum/component/holoray_trail, linked_mob, ray_color)
-	else
-		linked_mob_ref = null
 
 	AddComponent(\
 		/datum/component/aura_healing/holosynth,\
@@ -93,16 +91,11 @@
 	worn_icon_state = initial(worn_icon_state) + (active ? "_writing" : "")
 	update_appearance(UPDATE_ICON)
 
-	var/mob/living/carbon/human/linked_mob = linked_mob_ref?.resolve()
-	var/turf/saved_loc = saved_loc_ref?.resolve()
-	if(QDELETED(saved_loc))
-		saved_loc_ref = null
-
 	if(isnull(linked_mob))
 		return COMPONENT_NO_DEFAULT_MESSAGE
 
 	if(active)
-		saved_loc_ref = WEAKREF(get_turf(linked_mob))
+		saved_loc = get_turf(linked_mob)
 		new /obj/effect/temp_visual/guardian/phase/out(get_turf(linked_mob))
 		holosynth_drop_unkept_items(linked_mob)
 		linked_mob.forceMove(src)
@@ -113,18 +106,17 @@
 			new /obj/effect/temp_visual/guardian/phase(get_turf(linked_mob))
 		else
 			balloon_alert(user, "too far!")
-			saved_loc_ref = WEAKREF(get_turf(linked_mob))
+			saved_loc = get_turf(linked_mob)
 
 	return COMPONENT_NO_DEFAULT_MESSAGE
 
 /obj/item/holosynth_pen/proc/user_death()
 	SIGNAL_HANDLER
 
-	var/mob/living/carbon/human/linked_mob = linked_mob_ref?.resolve()
 	if(QDELETED(linked_mob))
 		return
 	var/turf/death_turf = get_turf(linked_mob)
-	saved_loc_ref = WEAKREF(death_turf)
+	saved_loc = death_turf
 	new /obj/effect/temp_visual/guardian/phase/out(death_turf)
 	holosynth_drop_unkept_items(linked_mob)
 	// Drop the pen on its own turf — wherever it currently is — so a pen carried by another player
@@ -138,12 +130,10 @@
 /obj/item/holosynth_pen/proc/user_qdeleted(mob/living/source)
 	SIGNAL_HANDLER
 	UnregisterSignal(source, list(COMSIG_LIVING_DEATH, COMSIG_QDELETING))
-	linked_mob_ref = null
+	linked_mob = null
 	qdel(src)
 
 /obj/item/holosynth_pen/Destroy()
-	var/mob/living/carbon/human/linked_mob = linked_mob_ref?.resolve()
-
 	if(linked_mob && !QDELETED(linked_mob))
 		UnregisterSignal(linked_mob, list(COMSIG_LIVING_DEATH, COMSIG_QDELETING))
 		linked_mob.apply_status_effect(/datum/status_effect/holosynth_dissolving)
@@ -151,6 +141,7 @@
 			span_danger("[linked_mob]'s whole body begins to fade away!"),
 			span_userdanger("You feel your projector being destroyed! You start to fade away!"),
 		)
+	linked_mob = null
 	return ..()
 
 /// aura_healing subclass that also resolves holosynth-style wounds on candidates in range.
@@ -188,10 +179,8 @@
 /datum/component/aura_healing/holosynth/process(seconds_per_tick)
 	. = ..()
 
-	var/list/candidates = requires_visibility ? view(range, parent) : range(range, parent)
-	for(var/mob/living/carbon/candidate in candidates)
-		if(limit_to_trait && !HAS_TRAIT(candidate, limit_to_trait))
-			continue
+	// After the parent's pass, current_alerts holds exactly the mobs it healed this tick.
+	for(var/mob/living/carbon/candidate in current_alerts)
 		for(var/datum/wound/iter_wound as anything in candidate.all_wounds)
 			if(GLOB.holosynth_wound_flavor[iter_wound.type])
 				iter_wound.holo_aura_tick(seconds_per_tick, wound_intensity_heal, wound_resolve_seconds)
@@ -206,7 +195,6 @@
 
 /// Validates targeting conditions and pins the pen's saved location to the target's turf.
 /obj/item/holosynth_pen/proc/try_set_saved_loc(atom/target, mob/living/user)
-	var/mob/living/carbon/human/linked_mob = linked_mob_ref?.resolve()
 	if(isnull(linked_mob) || user == linked_mob)
 		return ITEM_INTERACT_FAILURE
 	if(linked_mob.loc != src)
@@ -215,15 +203,13 @@
 	if(target.density)
 		balloon_alert(user, "solid object!")
 		return ITEM_INTERACT_FAILURE
-	saved_loc_ref = WEAKREF(get_turf(target))
+	saved_loc = get_turf(target)
 	balloon_alert(user, "location targeted")
 	playsound(src, 'sound/items/pen_click.ogg', 30, TRUE, -3)
 	return ITEM_INTERACT_SUCCESS
 
 /obj/item/holosynth_pen/examine()
 	. = ..()
-	var/mob/living/carbon/human/linked_mob = linked_mob_ref?.resolve()
-
 	if(linked_mob)
 		. += span_info("This one belongs to [linked_mob].")
 		if(linked_mob.loc == src)
@@ -241,8 +227,6 @@
 
 /obj/item/holosynth_pen/proc/transform_check(obj/item/source, mob/user, active)
 	SIGNAL_HANDLER
-
-	var/mob/living/carbon/human/linked_mob = linked_mob_ref?.resolve()
 
 	if(user == linked_mob)
 		balloon_alert(user, "can't modify yourself!")
@@ -298,7 +282,7 @@
 	var/obj/item/holosynth_pen/pen = source
 	if(!istype(pen))
 		return
-	var/mob/living/carbon/human/linked_mob = pen.linked_mob_ref?.resolve()
+	var/mob/living/carbon/human/linked_mob = pen.linked_mob
 	if(QDELETED(linked_mob) || linked_mob == user)
 		return
 	if(linked_mob.loc != pen) // if the mob is out, normal stripping applies to them directly

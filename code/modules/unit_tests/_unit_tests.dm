@@ -438,6 +438,7 @@
 #include "~nova\runtime_ai_objectives.dm"
 #include "~nova\runtime_silicon_tracking.dm"
 #include "~nova\runtime_visual_repairs.dm"
+#include "~nova\shock_propagation.dm"
 #include "~nova\shuttle.dm"
 #include "~nova\surgery_optional_patient.dm"
 #include "~nova\symphony_whitelist.dm"

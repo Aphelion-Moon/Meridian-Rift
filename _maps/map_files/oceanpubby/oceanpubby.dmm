@@ -59297,6 +59297,7 @@
 	dir = 5
 	},
 /obj/structure/table/glass,
+/obj/item/reagent_containers/spray/dinitrogen_plasmide,
 /obj/machinery/digital_clock/directional/east,
 /obj/effect/spawner/surgery_tray/full,
 /turf/open/floor/iron/dark/small,

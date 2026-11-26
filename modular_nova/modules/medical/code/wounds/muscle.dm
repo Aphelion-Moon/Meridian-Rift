@@ -47,7 +47,7 @@
 	if (victim)
 		UnregisterSignal(victim, COMSIG_LIVING_EARLY_UNARMED_ATTACK)
 
-	if (new_victim)
+	if (new_victim && severity > WOUND_SEVERITY_MODERATE)
 		RegisterSignal(new_victim, COMSIG_LIVING_EARLY_UNARMED_ATTACK, PROC_REF(attack_with_hurt_hand))
 
 	return ..()
@@ -79,7 +79,7 @@
 /datum/wound/muscle/proc/attack_with_hurt_hand(mob/M, atom/target, proximity)
 	SIGNAL_HANDLER
 
-	if(victim.has_hand_for_held_index(victim.active_hand_index) != limb || !victim.combat_mode || !ismob(target) || severity <= WOUND_SEVERITY_MODERATE)
+	if(victim.has_hand_for_held_index(victim.active_hand_index) != limb || !victim.combat_mode || !ismob(target))
 		return
 
 	// 15% of 30% chance to proc pain on hit
