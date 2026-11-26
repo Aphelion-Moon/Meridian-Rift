@@ -1,4 +1,4 @@
-/// A deterministic human the sweat hook reports as sweating, since nothing sets it in game yet.
+/// A deterministic human that reads as sweaty (is_visibly_sweaty()), without dressing it and landing sweat.
 /mob/living/carbon/human/consistent/sweaty_interaction_fixture/is_visibly_sweaty()
 	return TRUE
 
@@ -120,7 +120,6 @@
 	selected = single.texts_for(single.message, null, target, user, single.message_pit_hair)
 	TEST_ASSERT_EQUAL(json_encode(selected), json_encode(list("observer base")), "User hair incorrectly added target-hair text.")
 
-	// The sweat hook is dormant (is_visibly_sweaty() is FALSE) until the dirt and sweat overlays land.
 	target.set_body_hair(FEATURE_PITS, SPRITE_ACCESSORY_NONE)
 	selected = single.texts_for(single.message, null, user, target, null, single.message_sweaty)
 	TEST_ASSERT_EQUAL(json_encode(selected), json_encode(list("observer base")), "A dry target added sweaty text.")

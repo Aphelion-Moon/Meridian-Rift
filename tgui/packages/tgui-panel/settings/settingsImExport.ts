@@ -4,7 +4,7 @@ import { chatPagesRecordAtom, mainPage } from '../chat/atom';
 import { startChatStateMigration } from '../chat/migration';
 import type { Page, StoredChatSettings } from '../chat/types';
 import { store } from '../events/store';
-import { storedSettingsAtom } from './atoms';
+import { settingsReadAtom, storedSettingsAtom } from './atoms'; // APHELION EDIT CHANGE - CHAT_SETTINGS - ORIGINAL: import { storedSettingsAtom } from './atoms';
 import { startSettingsMigration } from './migration';
 import type { ExportedSettings } from './types';
 
@@ -62,6 +62,11 @@ export function importChatSettings(settings: string | string[]): void {
   }
 
   startSettingsMigration(settingsPart);
+  // APHELION EDIT ADDITION START - CHAT_SETTINGS
+  // The player picked these settings, so they're saved from here on, even
+  // if the stored ones couldn't be read.
+  store.set(settingsReadAtom, true);
+  // APHELION EDIT ADDITION END
   storage.set('panel-settings', store.get(storedSettingsAtom));
 }
 

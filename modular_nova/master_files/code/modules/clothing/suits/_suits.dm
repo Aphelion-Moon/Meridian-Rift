@@ -1,24 +1,3 @@
-// taur suit blood overlays
-/obj/item/clothing/suit/get_blood_overlay(blood_state, bodyshape)
-	// worn_x_offset is only set to -16 when we're actually drawing a taur-fitted (64x32) worn icon.
-	// Suits without a taur-specific sprite fall back to the cropped generic icon and stay at offset 0,
-	// so using the wide blood overlay for them makes the blood render shifted off to the side.
-	if(!(bodyshape & BODYSHAPE_TAUR) || !worn_x_offset)
-		return ..()
-	if(!GET_ATOM_BLOOD_DNA_LENGTH(src))
-		return
-
-	var/mutable_appearance/blood_overlay = mutable_appearance('modular_nova/master_files/icons/mob/64x32_blood.dmi', "[blood_overlay_type]blood")
-
-	blood_overlay.color = get_blood_dna_color()
-
-	var/emissive_alpha = get_blood_emissive_alpha(is_worn = TRUE)
-	if (emissive_alpha)
-		var/mutable_appearance/emissive_overlay = emissive_appearance(blood_overlay.icon, blood_overlay.icon_state, src, alpha = emissive_alpha)
-		blood_overlay.overlays += emissive_overlay
-
-	return blood_overlay
-
 //Define worn_icon_digi below here for suits so we don't have to make whole new .dm files for each
 /obj/item/clothing/suit/armor
 	worn_icon_digi = 'modular_nova/master_files/icons/mob/clothing/suits/armor_digi.dmi'

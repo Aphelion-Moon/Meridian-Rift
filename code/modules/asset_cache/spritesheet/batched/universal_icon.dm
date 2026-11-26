@@ -411,8 +411,9 @@
 /// Still fairly slow for complex appearances due to filesystem operations. Try to avoid using it
 // APHELION EDIT ADDITION START
 /// grow: the canvas fits every overlay, nested ones where they really are; see flat_x1.
+/// stretch: with grow, images under the flattened one get their height filters drawn in (character_preview_flatten()).
 // APHELION EDIT ADDITION END
-/proc/get_flat_uni_icon(image/appearance, defdir, deficon, defstate, defblend, start = TRUE, parentcolor, grow = FALSE) // APHELION EDIT CHANGE - ORIGINAL: /proc/get_flat_uni_icon(image/appearance, defdir, deficon, defstate, defblend, start = TRUE, parentcolor)
+/proc/get_flat_uni_icon(image/appearance, defdir, deficon, defstate, defblend, start = TRUE, parentcolor, grow = FALSE, stretch = FALSE) // APHELION EDIT CHANGE - ORIGINAL: /proc/get_flat_uni_icon(image/appearance, defdir, deficon, defstate, defblend, start = TRUE, parentcolor)
 	// Loop through the underlays, then overlays, sorting them into the layers list
 	#define PROCESS_OVERLAYS_OR_UNDERLAYS(flat, process, base_layer) \
 		for (var/i in 1 to process.len) { \
@@ -599,7 +600,8 @@
 					else
 						add.blend_color(appearance.color, ICON_MULTIPLY)
 			else // 'layer_image' is an appearance object.
-				add = get_flat_uni_icon(layer_image, curdir, curicon, curstate, curblend, FALSE, next_parentcolor, grow) // APHELION EDIT CHANGE - ORIGINAL: add = get_flat_uni_icon(layer_image, curdir, curicon, curstate, curblend, FALSE, next_parentcolor)
+				add = get_flat_uni_icon(layer_image, curdir, curicon, curstate, curblend, FALSE, next_parentcolor, grow, stretch) // APHELION EDIT CHANGE - ORIGINAL: add = get_flat_uni_icon(layer_image, curdir, curicon, curstate, curblend, FALSE, next_parentcolor)
+			if(grow && stretch && !start && layer_image == copy && !(appearance.appearance_flags & KEEP_TOGETHER)) add = character_preview_flat_height(add, appearance, curicon) // APHELION EDIT ADDITION - CHARACTER_PREVIEW - Height filters reach only an image's own icon, unless it keeps its overlays together
 			if(!add || !length(add.icon_file))
 				continue
 
@@ -666,6 +668,9 @@
 			flat.flat_y1 = flatY1
 			flat.flat_width = flatX2 - flatX1 + 1
 			flat.flat_height = flatY2 - flatY1 + 1
+			// CHARACTER_PREVIEW - An image that keeps its overlays together stretches as one for height
+			if(stretch && !start && (appearance.appearance_flags & KEEP_TOGETHER))
+				flat = character_preview_flat_height(flat, appearance, curicon)
 		// APHELION EDIT ADDITION END
 		return flat
 
@@ -681,6 +686,7 @@
 			else
 				final_icon.blend_color(appearance.color, ICON_MULTIPLY)
 
+		if(grow && stretch && !start) final_icon = character_preview_flat_height(final_icon, appearance, curicon) // APHELION EDIT ADDITION - CHARACTER_PREVIEW - A body that stretches each image for height, as in a round
 		return final_icon
 
 	#undef PROCESS_OVERLAYS_OR_UNDERLAYS

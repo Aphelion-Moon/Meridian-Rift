@@ -19,8 +19,11 @@ Augments+ and the species page's chamber) shows that one drawing.
   turned and walked once per facing instead, each walk cropped to the canvas that fits all four, as the map
   turned the mob itself when it turned. Height and body size, which a flatten leaves out, go with the
   drawing: `character_preview_effects()` reads which rows tg's height filters move from their displacement
-  maps, and the mob's transform. The page moves those rows on a canvas at 1x, then transforms that canvas,
-  each pixel taking the one under its centre (`sizedFacingPixels()`), and only then zooms it, as the game
+  maps, and the mob's transform. A taur's preview mob stretches each image, as a body in a round does, so its
+  taur body keeps its size; the flatten draws those images' height filters in (`character_preview_flat_height()`),
+  so hair, eyes and hats, which height lifts by an offset, stay on the head. The page moves those rows on a
+  canvas at 1x, then transforms that canvas, each pixel taking the one under its centre (`sizedFacingPixels()`),
+  and only then zooms it, as the game
   draws its map at the sprites' own pixel size before zooming it. So a fractional body size doubles and drops
   the whole pixels it does in game (checked against the client's own renders; a pixel exactly between two can
   differ, as it does from sprite to sprite in game). A silicon job's preview draws its image.
@@ -167,7 +170,7 @@ blocks, which aren't tagged again; Nova's modular files are edited directly.
 | --- | --- |
 | `code/modules/client/preferences.dm` | `/datum/preferences/ui_interact()` no longer shows the preview map, `ui_static_data()` no longer sends `character_preview_view`, and `ui_close()` lets the drawing go. `/atom/movable/screen/map_view/char_preview`: Nova's canvas vars and their code in `Destroy()` and `update_body()` are commented out, and Aphelion's earlier `preview_bounds` and `display_to_client()`, which went with them, are gone; `var/image/silicon_preview` stays, where `update_body()` keeps a silicon job's image. `update_body()` takes `catching_up`: with setup open, a change leaves the body stale and asks for a drawing (`defer_rebuild()`), whose rebuild is the one catching up; `Destroy()` takes the view out of the rebuild queue. `update_body()` records the preview mode it drew (`previous_preview_pref`), which Nova's `update_preview` action no longer sets: set there, a deferred rebuild saw no change of mode, skipped the mob's `update_body()`, and showed naked or underwear one change late. |
 | `code/controllers/subsystem/asset_loading.dm` | `/datum/controller/subsystem/asset_loading/fire()` doesn't tell iconforge to let go while a character preview is being drawn (`character_preview_drawing_under_way()`). |
-| `code/modules/asset_cache/spritesheet/batched/universal_icon.dm` | `/proc/get_flat_uni_icon()` passes over an appearance without an icon, names a runtime icon's file by the md5 of its content, writing it once, and takes `grow`: the canvas then fits every overlay, and the new `flat_x1`, `flat_y1`, `flat_width` and `flat_height` vars say where the look sits in it. Adds `/proc/uni_icon_facings_json()`. |
+| `code/modules/asset_cache/spritesheet/batched/universal_icon.dm` | `/proc/get_flat_uni_icon()` passes over an appearance without an icon, names a runtime icon's file by the md5 of its content, writing it once, and takes `grow`: the canvas then fits every overlay, and the new `flat_x1`, `flat_y1`, `flat_width` and `flat_height` vars say where the look sits in it. With `stretch` as well, which only the preview asks for (`character_preview_flatten()`), each image below the one flattened has its own height filters drawn in (`character_preview_flat_height()`): on its own icon, or on all of it when it keeps its overlays together. Adds `/proc/uni_icon_facings_json()`. |
 | `code/__HELPERS/icons.dm` | `getFlatIcon()` takes the same `grow`, with `grown_origin` to say where the grown canvas starts, and `get_flat_human_icon()` passes `grow` on. |
 | `code/modules/admin/outfit_editor.dm`, `code/modules/admin/verbs/selectequipment.dm` | Their outfit previews pass `grow = TRUE`, so wings, tails and big hats show whole. |
 | `code/modules/client/preferences/age.dm`, `names.dm`, `paraplegic.dm`, `playtime_reward_cloak.dm`, `random.dm`, `trans_prosthetic.dm` | Preferences the preview doesn't show set `should_update_preview = FALSE` (three in `random.dm`), so changing them doesn't rebuild the preview mob. |
@@ -186,8 +189,8 @@ blocks, which aren't tagged again; Nova's modular files are edited directly.
 - `code/drawing.dm`: `/datum/preference_middleware/character_preview`, which answers the window and draws the
   preview, with its glow while the window's lights are off (`set_lights()`, the `character_preview_lights` action);
   `/datum/preferences/var/preview_drawing` with `character_preview_changed()` and `character_preview_open()`;
-  `character_preview_walk()`, `character_preview_flat_box()` and `character_preview_turns_itself()`, which make the
-  recipes; and `/proc/iconforge_drawn()` with the globals it keeps: the drawings under way and how many looks' worth
+  `character_preview_walk()`, `character_preview_flatten()`, `character_preview_flat_box()` and
+  `character_preview_turns_itself()`, which make the recipes; and `/proc/iconforge_drawn()` with the globals it keeps: the drawings under way and how many looks' worth
   iconforge has drawn since it last let go of what it keeps, the custom sprite editors' pictures counting a tenth
   each; `/proc/character_preview_drawing_under_way()`. `/datum/preference_middleware/proc/add_preview_answer()`, which
   `start_answer()` asks of every middleware: each may add to an answer what it reads from the preview mob, which has just
@@ -206,7 +209,9 @@ blocks, which aren't tagged again; Nova's modular files are edited directly.
   flattens a look's glow onto its drawing's canvas. The custom sprite editors use them for their previews' glows.
 - `code/effects.dm`: `character_preview_effects()`, what the page draws over the drawing: the body's transform, and
   the rows tg's height filters move, which `character_preview_rows()` reads from their displacement maps
-  (`character_preview_map_rows()`). The species page moves its renders' rows with it too.
+  (`character_preview_map_rows()`, `character_preview_height_map()`). The species page moves its renders' rows with
+  it too. `character_preview_flat_height()` and `character_preview_height_plan()` draw an image's own height filters
+  into its flat icon, for a body that stretches each image.
 - `code/backgrounds.dm`: `/datum/preference/choiced/background_state/compile_constant_data()` also sends each
   background's tile, taken from the custom sprite editors' `custom_sprite_background_tiles()`.
 - `code/rebuilds.dm`: `SScharacter_preview`, the queue of preview mobs waiting to be rebuilt, which reads animated
@@ -239,6 +244,9 @@ blocks, which aren't tagged again; Nova's modular files are edited directly.
   its frame in every theme.
 - `modular_aphelion/modules/custom_sprites/code/images.dm`: `custom_sprite_background_tiles()`, the background tiles;
   its pictures count toward `iconforge_drawn()`.
+- `code/modules/unit_tests/~nova/character_preview_height.dm`, included from `code/modules/unit_tests/_unit_tests.dm`: a
+  DM unit test that a pixel height stretches and one it lifts by an offset, like hair, land where the game draws them,
+  on a plain body, a Big Legs taur and a feline taur.
 - `code/modules/unit_tests/~nova/character_preview_rebuilds.dm`, included from `code/modules/unit_tests/_unit_tests.dm`:
   a DM unit test that, with setup open, changes wait for their turn and one rebuild takes them all in.
 - `tgstation.dme`
