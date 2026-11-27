@@ -14,7 +14,6 @@
 		/obj/item/clothing/under/dress/skirt/primitive_catgirl_tailored_dress = 15,
 		/obj/item/clothing/under/dress/skirt/primitive_catgirl_tunic = 15,
 		/obj/item/clothing/under/dress/skirt/nova/loincloth = 5,
-		/obj/item/clothing/under/dress/skirt/nova/loincloth/loincloth_alt = 5,
 		/obj/item/clothing/suit/jacket/primitive_catgirl_coat = 15,
 		/obj/item/clothing/gloves/fingerless/primitive_catgirl_armwraps = 15,
 		/obj/item/clothing/shoes/winterboots/ice_boots/primitive_catgirl_boots = 15,

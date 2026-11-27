@@ -65,7 +65,6 @@
 				/obj/item/clothing/under/pants/nova/hakama = 5,
 				/obj/item/clothing/under/pants/nova/double_skirt_dress = 5,
 				/obj/item/clothing/under/dress/skirt/nova/loincloth = 5,
-				/obj/item/clothing/under/dress/skirt/nova/loincloth/loincloth_alt = 5,
 				/obj/item/clothing/under/shorts/nova/shorts_ripped = 5,
 				/obj/item/clothing/under/pants/nova/yoga = 5,
 				/obj/item/clothing/under/pants/nova/wide_leg = 5,

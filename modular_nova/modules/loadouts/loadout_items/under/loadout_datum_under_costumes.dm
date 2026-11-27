@@ -121,11 +121,7 @@
 /datum/loadout_item/under/miscellaneous/loincloth
 	name = "Loincloth"
 	item_path = /obj/item/clothing/under/dress/skirt/nova/loincloth
-	group = "Costumes"
-
-/datum/loadout_item/under/miscellaneous/loincloth_alt
-	name = "Loincloth (Short)"
-	item_path = /obj/item/clothing/under/dress/skirt/nova/loincloth/loincloth_alt
+	reskin_datum = /datum/atom_skin/loincloth
 	group = "Costumes"
 
 /datum/loadout_item/under/formal/maid_uniform

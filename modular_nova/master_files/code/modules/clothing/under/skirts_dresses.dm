@@ -553,6 +553,18 @@
  *	Others
  */
 
+/datum/atom_skin/loincloth
+	abstract_type = /datum/atom_skin/loincloth
+	greyscale_item_path = /obj/item/clothing/under/dress/skirt/nova/loincloth
+
+/datum/atom_skin/loincloth/default
+	preview_name = "Default"
+	new_icon_state = "loincloth"
+
+/datum/atom_skin/loincloth/short
+	preview_name = "Shortened"
+	new_icon_state = "loincloth_alt"
+
 /obj/item/clothing/under/dress/skirt/nova/loincloth
 	name = "loincloth"
 	desc = "A simple elegant cloth, to use wrapped around your waist and groin."
@@ -571,12 +583,5 @@
 	greyscale_config_worn_vox = /datum/greyscale_config/loincloth/worn
 	greyscale_config_worn_better_vox = /datum/greyscale_config/loincloth/worn
 
-/obj/item/clothing/under/dress/skirt/nova/loincloth/loincloth_alt
-	name = "shorter loincloth"
-	desc = "A simple elegant cloth, to use wrapped around your waist and groin. This one uses a shorter cloth."
-	icon_state = "/obj/item/clothing/under/dress/skirt/nova/loincloth/loincloth_alt"
-	post_init_icon_state = "loincloth_alt"
-	greyscale_config = /datum/greyscale_config/loincloth_alt
-	greyscale_config_worn = /datum/greyscale_config/loincloth_alt/worn
-	greyscale_config_worn_vox = /datum/greyscale_config/loincloth_alt/worn
-	greyscale_config_worn_better_vox = /datum/greyscale_config/loincloth_alt/worn
+/obj/item/clothing/under/dress/skirt/nova/loincloth/setup_reskins()
+	AddComponent(/datum/component/reskinable_item, /datum/atom_skin/loincloth, initial_skin = "Default")
