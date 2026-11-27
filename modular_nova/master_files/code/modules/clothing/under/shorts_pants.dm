@@ -76,6 +76,7 @@
 	greyscale_config_worn = /datum/greyscale_config/chaps/worn
 	greyscale_config_worn_digi = /datum/greyscale_config/chaps/worn/digi
 	greyscale_colors = "#787878#252525#2B2B2B"
+	body_parts_covered = LEGS
 	flags_1 = IS_PLAYER_COLORABLE_1
 
 /obj/item/clothing/under/pants/nova/chaps/click_ctrl_shift(mob/user)
